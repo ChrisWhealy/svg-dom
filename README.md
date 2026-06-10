@@ -131,7 +131,7 @@ No teardown is needed: the browser page is discarded after the run.
 
 ### Event handler tests
 
-Browser events dispatched via `EventTarget::dispatch_event` are **synchronous** — the handler runs inline before `dispatch_event` returns, which means we don't have tp worry about any `async` shenanigans.
+Browser events dispatched via `EventTarget::dispatch_event` are **synchronous** — the handler runs inline before `dispatch_event` returns, which means we don't have to worry about any `async` shenanigans.
 
 A shared `Rc<Cell<bool>>` flag is set inside the handler, and the test checks the flag immediately after dispatch:
 
