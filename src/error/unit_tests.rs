@@ -2,7 +2,7 @@ use super::Error;
 
 macro_rules! ensure_eq {
     ($left:expr, $right:expr) => {{
-        let left  = $left;
+        let left = $left;
         let right = $right;
         if left != right {
             return Err(format!("expected {:?}, got {:?}", right, left));

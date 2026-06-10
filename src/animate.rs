@@ -126,7 +126,7 @@ impl AnimationLoop {
     /// - the closure is dropped (freeing any captured values).
     ///
     /// Calling `stop()` is idempotent; therefore, attempting to stop an already-stopped loop is safe and has no effect.
-    /// 
+    ///
     /// Normally, there is no need for you to call `stop()` explicitly since dropping the `AnimationLoop` calls it
     /// automatically via the `impl Drop for AnimationLoop` below.
     ///
@@ -135,7 +135,7 @@ impl AnimationLoop {
     /// ```rust,no_run
     /// # use svg_dom::{AnimationLoop, SvgRoot};
     /// # use std::{cell::Cell, rc::Rc};
-    /// 
+    ///
     /// let svg = SvgRoot::attach("vis").unwrap();
     /// let count = Rc::new(Cell::new(0u32));
     ///

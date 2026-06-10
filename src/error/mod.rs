@@ -35,8 +35,8 @@ impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Error::ElementNotFound(id) => write!(f, "element not found: #{id}"),
-            Error::Dom(msg)            => write!(f, "DOM error: {msg}"),
-            Error::CastFailed(ty)      => write!(f, "JsCast to {ty} failed"),
+            Error::Dom(msg) => write!(f, "DOM error: {msg}"),
+            Error::CastFailed(ty) => write!(f, "JsCast to {ty} failed"),
         }
     }
 }
