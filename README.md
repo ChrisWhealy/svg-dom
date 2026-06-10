@@ -8,9 +8,8 @@ A lightweight Rust/WebAssembly library for creating and mutating live SVG conten
 
 - [What this crate is](#what-this-crate-is)
 - [What this crate is NOT](#what-this-crate-is-not)
-- [Core types](#core-types)
-- [Quick start](#quick-start)
 - [Building](#building)
+- [Quick start](#quick-start)
 - [Testing](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/testing.md)
 - [Design Notes](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/design_notes.md)
 - [Functional Gaps](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/gaps.md)
