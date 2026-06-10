@@ -4,9 +4,23 @@ A lightweight Rust/WebAssembly library for creating and mutating live SVG conten
 
 ***IMPORTANT***<br>This crate targets WebAssembly only.
 
+# Table of Contents
+
+- [What this crate is](#what-this-crate-is)
+- [What this crate is NOT](#what-this-crate-is-not)
+- [Core types](#core-types)
+- [Quick start](#quick-start)
+- [Building](#building)
+- [Testing](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/testing.md)
+- [Design Notes](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/design_notes.md)
+- [Functional Gaps](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/gaps.md)
+
 ## What this crate is
 
-`svg-dom` provides a thin, ergonomic layer over the `web-sys` SVG DOM bindings.
+This crate is still just a PoC!
+It has known functional gaps which will be filled in time...
+
+The `svg-dom` crate provides a thin, ergonomic layer over the `web-sys` SVG DOM bindings.
 
 It lets you:
 
@@ -25,6 +39,17 @@ The implementation cost of such functionality is high, especially in light of th
 
 Consequently, this crate works with the SVG DOM — a retained tree of vector elements — where each element persists between frames and can be individually updated.
 
+
+# Building
+
+Use [wasm-pack](https://rustwasm.github.io/wasm-pack/) to build:
+
+```sh
+wasm-pack build --target web
+```
+
+# Quick start
+
 ## Core types
 
 | Type | Purpose |
@@ -34,7 +59,7 @@ Consequently, this crate works with the SVG DOM — a retained tree of vector el
 | `AnimationLoop` | Drives a `requestAnimationFrame` loop; stops on `Drop`
 | `Error` | All failure modes: element not found, DOM error, cast failure
 
-## Quick start
+## Minimal Demo
 
 ```rust,no_run
 use wasm_bindgen::prelude::*;
@@ -76,104 +101,3 @@ pub fn run() -> Result<(), svg_dom::Error> {
     Ok(())
 }
 ```
-
-# Testing
-
-The test suite has two tiers that use different runners.
-
-## Unit tests — `cargo nextest run`
-
-Pure Rust tests with no browser dependency.
-
-Currently covers only the `Error` type's `Display` and `Debug` implementations and its inner-value accessors.
-
-```sh
-cargo nextest run
-```
-
-## Browser tests — `wasm-pack test`
-
-Everything that touches the SVG DOM requires a real browser.
-These tests use [`wasm-bindgen-test`](https://rustwasm.github.io/wasm-bindgen/wasm-bindgen-test/index.html), which compiles the test suite to WebAssembly, serves it to a headless browser, and streams the results back to the terminal.
-
-### Prerequisites
-
-```sh
-cargo install wasm-pack      # one-time install
-```
-
-Chrome or Firefox must be installed (headless mode is used — no window opens).
-
-### Running
-
-```sh
-wasm-pack test --headless --chrome    # or --firefox
-```
-
-### How it works
-
-Each function decorated with `#[wasm_bindgen_test]` runs inside the browser's JS engine with full access to the real DOM.
-The test file calls `wasm_bindgen_test_configure!(run_in_browser)` once to opt into this mode.
-
-Tests are organised into two integration test files under `tests/`:
-
-| File | What it covers |
-|---|---|
-| `tests/svg_root.rs` | `SvgRoot` constructors, viewport, and all element factories |
-| `tests/svg_node.rs` | `SvgNode` attribute API, clone semantics, `append`, and event handlers |
-
-Shared DOM helpers (creating fixture `<div>` and `<svg>` containers, assertion functions) live in `tests/common.rs` which is included as `mod common` by both test files.
-
-### DOM fixture strategy
-
-Each test appends its own uniquely-named container element to `<body>` so tests do not interfere with each other.
-No teardown is needed: the browser page is discarded after the run.
-
-### Event handler tests
-
-Browser events dispatched via `EventTarget::dispatch_event` are **synchronous** — the handler runs inline before `dispatch_event` returns, which means we don't have to worry about any `async` shenanigans.
-
-A shared `Rc<Cell<bool>>` flag is set inside the handler, and the test checks the flag immediately after dispatch:
-
-```rust
-let fired = Rc::new(Cell::new(false));
-let fired_c = fired.clone();
-node.on_click(move |_| { fired_c.set(true); })?;
-
-let event = MouseEvent::new("click")?;
-node.as_element().dispatch_event(&event)?;  // handler fires here, synchronously
-
-assert!(fired.get());
-```
-
-### Failure reporting
-
-All test functions return `Result<(), String>`.
-If a test fails, `wasm-bindgen-test` displays the `String` message directly without a stack trace, making failures easier to read
-in the terminal.
-
-# Building
-
-Use [wasm-pack](https://rustwasm.github.io/wasm-pack/) to build:
-
-```sh
-wasm-pack build --target web
-```
-
-# Design notes
-
-## `SvgNode` is a reference-counted handle
-
-`SvgNode` wraps an `Rc`, so cloning it is cheap and all clones refer to the same underlying DOM node.
-This makes it natural to share a node between an event closure and the surrounding code without the need for any `unsafe` or `Arc` shenanigans.
-
-## Event closures are owned by the node
-
-Closures registered with `on_click` / `on_mouseover` / `on_mouseout` are stored inside the `SvgNode`'s `Rc`.
-They live exactly as long as the last clone of the node exists, so you never have to manage their lifetime separately.
-
-## `requestAnimationFrame` self-rescheduling pattern
-
-`AnimationLoop` uses the standard WASM self-referencing closure pattern: the closure holds an `Rc` to itself so it can re-register with `requestAnimationFrame` after each frame.
-
-Calling `stop()` (or dropping the `AnimationLoop`) sets that `Rc` slot to `None`, which prevents the next re-schedule and allows the closure to be freed.
