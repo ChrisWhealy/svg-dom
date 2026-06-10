@@ -257,18 +257,18 @@ impl SvgRoot {
     /// The `d` string uses standard SVG path commands where the arguments to the uppercase command are interpretted as
     /// absolute coordinates, and the arguments to the lowercase commands as relative coordinates.
     ///
-    /// |  Command  | Arguments              | Description             |
-    /// |-----------|------------------------|-------------------------|
-    /// │ `M` / `m` │ `x y`                  │ Move (no draw)          │
-    /// │ `L` / `l` │ `x y`                  │ Line                    │
-    /// │ `H` / `h` │ `x`                    │ Horizontal line         │
-    /// │ `V` / `v` │ `y`                    │ Vertical line           │
-    /// │ `C` / `c` │ `x1 y1 x2 y2 x y`      │ Cubic Bézier            │
-    /// │ `S` / `s` │ `x2 y2 x y`            │ Smooth cubic Bézier     │
-    /// │ `Q` / `q` │ `x1 y1 x y`            │ Quadratic Bézier        │
-    /// │ `T` / `t` │ `x y`                  │ Smooth quadratic Bézier │
-    /// │ `A` / `a` │ `rx ry rot laf sf x y` │ Elliptical arc          │
-    /// │ `Z` / `z` │ None                   │ Close path              │
+    /// | Command   | Arguments              | Description             |
+    /// |:----------|:-----------------------|:------------------------|
+    /// | `M` / `m` | `x y`                  | Move (no draw)          |
+    /// | `L` / `l` | `x y`                  | Line                    |
+    /// | `H` / `h` | `x`                    | Horizontal line         |
+    /// | `V` / `v` | `y`                    | Vertical line           |
+    /// | `C` / `c` | `x1 y1 x2 y2 x y`      | Cubic Bézier            |
+    /// | `S` / `s` | `x2 y2 x y`            | Smooth cubic Bézier     |
+    /// | `Q` / `q` | `x1 y1 x y`            | Quadratic Bézier        |
+    /// | `T` / `t` | `x y`                  | Smooth quadratic Bézier |
+    /// | `A` / `a` | `rx ry rot laf sf x y` | Elliptical arc          |
+    /// | `Z` / `z` | —                      | Close path              |
     ///
     /// The path can be updated later without recreating the element using [`SvgNode::set_d`].
     ///
