@@ -1,22 +1,28 @@
+# Gap Analysis
+
+This crate is a working foundation for generating simple, flat SVG diagrams driven by a `requestAnimationFrame` (RAF) loop.
+However, it can't yet produce anything with gradients, filters, clipping, reusable symbols, touch input, or dynamic text.
+
+Those gaps will be filled in time, but for the time being, this crate must be treated as a PoC, not a general-purpose SVG library.
+
 # Missing SVG elements
 
-The six elements currently supported (`rect`, `circle`, `line`, `path`, `text` and `g`) are the most common ones, but the following nodes have not yet been implemented:
+The six SVG elements currently supported (`rect`, `circle`, `line`, `path`, `text` and `g`) are the most commonly ones; however, the following elements have not yet been implemented:
 
-
-| Missing | Why it matters
+| Missing Element | Why it matters
 |---|---|
-| `<ellipse>`                             | Independent x/y radii — `<circle>` can't substitute                           |
-| `<polyline>` / `<polygon>`              | Efficient multi-segment lines and filled shapes without path syntax           |
-| `<defs>`                                | Container for reusable assets — gradients, patterns, clip-paths all live here |
-| `<linearGradient>` / `<radialGradient>` | Gradient fills; not possible without `<defs>`                                 |
-| `<pattern>`                             | Tiled fill patterns                                                           |
-| `<clipPath>`                            | Masking regions                                                               |
-| `<marker>`                              | Arrowheads on lines and paths                                                 |
-| `<image>`                               | Embedding raster images                                                       |
-| `<use>` / `<symbol>`                    | Instance a defined shape multiple times without duplicating DOM nodes         |
-| `<tspan>`                               | Multi-line or mixed-style text within a `<text>`                              |
-| `<textPath>`                            | Text following a curve                                                        |
-| `<filter>` and primitives               | Drop shadows, blur, colour matrix, compositing                                |
+| `<ellipse>` | Offers independent `x,y` radii.  Something `<circle>` can't substitute
+| `<polyline>` / `<polygon>` | Efficient multi-segment lines and filled shapes without using the `path` syntax
+| `<defs>` | Container for reusable assets. Gradients, patterns, clip-paths all live here
+| `<linearGradient>` / `<radialGradient>` | Gradient fills that are not possible without `<defs>`
+| `<pattern>` | Tiled fill patterns
+| `<clipPath>` | Masking regions
+| `<marker>` | Arrowheads on lines and paths
+| `<image>` | Embedding raster images
+| `<use>` / `<symbol>` | Reference a defined shape multiple times without duplicating DOM nodes
+| `<tspan>`  | Multi-line or mixed-style text within a `<text>`
+| `<textPath>` | Allows text to follow a curve
+| `<filter>` and primitives | Drop shadows, blur, colour matrix, compositing etc
 
 # Missing tree operations
 
@@ -51,8 +57,3 @@ Read-back from the browser's layout engine is entirely absent:
 - `getTotalLength()` / `getPointAtLength()` — path measurement
 - `getCTM()` / `getScreenCTM()` — coordinate system transforms
 - `getBoundingClientRect()` — position relative to viewport
-
-# Summary
-
-The crate is a working foundation for simple, flat SVG diagrams driven by a RAF loop, but it can't yet produce anything with gradients, filters, clipping, reusable symbols, touch input, or dynamic text.
-Those gaps will be filled it time, but so far, this is a PoC crate, not a general-purpose SVG library.
