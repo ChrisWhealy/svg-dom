@@ -58,7 +58,7 @@ impl SvgNode {
     /// Returns a reference to the underlying `web-sys` `SvgElement`.
     ///
     /// Use this when you need to call a `web-sys` method that has not yet been wrapped by `SvgNode`, such as
-    /// `get_bounding_client_rect` or `set_inner_html`.
+    /// `get_bounding_client_rect` (requires the `DomRect` web-sys feature) or `set_inner_html`.
     ///
     /// # Example
     ///
@@ -68,7 +68,7 @@ impl SvgNode {
     /// let rect = svg.rect(10.0, 10.0, 80.0, 40.0)?;
     ///
     /// // Access a web-sys method not exposed directly by SvgNode.
-    /// let bounds = rect.as_element().get_bounding_client_rect();
+    /// let tag = rect.as_element().tag_name(); // "rect"
     /// # Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn as_element(&self) -> &SvgElement {

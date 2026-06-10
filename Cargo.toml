@@ -1,7 +1,16 @@
 [package]
-name = "svg_dom"
+name = "svg-dom"
+authors = ["Chris Whealy <chris@whealy.com>"]
 version = "0.1.0"
 edition = "2024"
+description = "A lightweight Rust/WebAssembly library for creating and mutating live SVG content directly in the browser DOM"
+keywords = ["svg", "wasm", "browser", "dom"]
+categories = ["wasm", "web-programming", "rendering"]
+repository = "https://github.com/ChrisWhealy/svg-dom"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 wasm-bindgen = "0.2"
@@ -9,13 +18,11 @@ js-sys = "0.3"
 
 [dependencies.web-sys]
 version = "0.3"
-features = [
-    "Document",
-    "Element",
-    "EventTarget",
-    "MouseEvent",
-    "Node",
-    "SvgElement",
-    "SvgsvgElement",
-    "Window",
-]
+features = ["Document", "Element", "EventTarget", "MouseEvent", "Node", "SvgElement", "SvgsvgElement", "Window"]
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+
+[dev-dependencies.web-sys]
+version = "0.3"
+features = ["Document", "Element", "EventTarget", "MouseEvent", "Node", "Window"]
