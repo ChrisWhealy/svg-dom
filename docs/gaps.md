@@ -7,7 +7,7 @@ These gaps will be filled in time, but for now, this crate must be treated as a 
 
 # Missing SVG elements
 
-The six SVG elements currently supported (`rect`, `circle`, `line`, `path`, `text` and `g`) are the most commonly ones; however, the following elements have not yet been implemented:
+The six SVG elements currently supported (`rect`, `circle`, `line`, `path`, `text` and `g`) are the most commonly used ones; however, the following elements have not yet been implemented:
 
 | Missing Element | Why it matters
 |---|---|
