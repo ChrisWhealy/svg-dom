@@ -21,6 +21,8 @@ version = "0.3"
 features = ["Document", "Element", "EventTarget", "MouseEvent", "Node", "SvgElement", "SvgsvgElement", "Window"]
 
 [dev-dependencies]
+js-sys = "0.3"
+wasm-bindgen-futures = "0.4"
 wasm-bindgen-test = "0.3"
 
 [dev-dependencies.web-sys]
