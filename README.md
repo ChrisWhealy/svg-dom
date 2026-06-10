@@ -2,6 +2,8 @@
 
 A lightweight Rust/WebAssembly library for creating and mutating live SVG content directly in the browser DOM.
 
+This crate is still just a PoC and has known functional gaps that will be filled in time...
+
 ***IMPORTANT***<br>This crate targets WebAssembly only.
 
 # Table of Contents
@@ -15,9 +17,6 @@ A lightweight Rust/WebAssembly library for creating and mutating live SVG conten
 - [Gap Analysis](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/gaps.md)
 
 ## What this crate is
-
-This crate is still just a PoC!
-It has known functional gaps which will be filled in time...
 
 The `svg-dom` crate provides a thin, ergonomic layer over the `web-sys` SVG DOM bindings.
 
