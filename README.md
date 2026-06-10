@@ -18,11 +18,12 @@ It lets you:
 
 ## What this crate is NOT
 
-This crate has nothing to do with the HTML `<canvas>` element.
-`<canvas>` is a pixel-based bitmap drawing API which, although it gives you the highest performance ceiling, requires you to take ownership of the entire layout, the render loop and hit-testing.
-The implementation cost of such functionality is prohibitive, especially in light of the fact the SVG DOM already provides the bulk of this functionality.
+This crate has nothing to do with the HTML `<canvas>` element!
 
-Consequently, `svg-dom` works with the SVG DOM — a retained tree of vector elements — where each element persists between frames and can be individually updated.
+The `<canvas>` element offers a pixel-based, bitmap drawing API which, although it gives you the highest performance ceiling, requires you to take ownership of the entire layout, the render loop and hit-testing.
+The implementation cost of such functionality is high, especially in light of the fact the SVG DOM already provides the bulk of this functionality.
+
+Consequently, this crate works with the SVG DOM — a retained tree of vector elements — where each element persists between frames and can be individually updated.
 
 ## Core types
 
@@ -59,7 +60,7 @@ pub fn run() -> Result<(), svg_dom::Error> {
 
     // Build a <g> group containing a circle and a label.
     let group = svg.group()?;
-    let dot   = svg.circle(200.0, 60.0, 8.0)?;
+    let dot = svg.circle(200.0, 60.0, 8.0)?;
     let label = svg.text(215.0, 65.0, "node A")?;
     group.append(&dot)?;
     group.append(&label)?;
@@ -83,7 +84,8 @@ The test suite has two tiers that use different runners.
 ## Unit tests — `cargo nextest run`
 
 Pure Rust tests with no browser dependency.
-Currently covers the `Error` type's `Display` and `Debug` implementations and its inner-value accessors.
+
+Currently covers only the `Error` type's `Display` and `Debug` implementations and its inner-value accessors.
 
 ```sh
 cargo nextest run
