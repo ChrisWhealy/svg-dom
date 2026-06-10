@@ -28,10 +28,10 @@ Consequently, `svg_dom` works with the SVG DOM — a retained tree of vector ele
 
 | Type | Purpose |
 |---|---|
-| [`SvgRoot`] | Wraps the root `<svg>` element; entry point for all element creation |
-| [`SvgNode`] | Cheap-to-clone handle to a live DOM element; attribute + event API |
-| [`AnimationLoop`] | Drives a `requestAnimationFrame` loop; stops on `Drop` |
-| [`Error`] | All failure modes: element not found, DOM error, cast failure |
+| `SvgRoot` | Wraps the root `<svg>` element; entry point for all element creation
+| `SvgNode` | Cheap-to-clone handle to a live DOM element; attribute + event API
+| `AnimationLoop` | Drives a `requestAnimationFrame` loop; stops on `Drop`
+| `Error` | All failure modes: element not found, DOM error, cast failure
 
 ## Quick start
 
@@ -78,7 +78,7 @@ pub fn run() -> Result<(), svg_dom::Error> {
 
 ## Building
 
-This crate targets WebAssembly only.  Use [wasm-pack](https://rustwasm.github.io/wasm-pack/) to build:
+Use [wasm-pack](https://rustwasm.github.io/wasm-pack/) to build:
 
 ```sh
 wasm-pack build --target web
@@ -88,8 +88,8 @@ wasm-pack build --target web
 
 ### `SvgNode` is a reference-counted handle
 
-`SvgNode` wraps an `Rc` so cloning it is cheap and all clones refer to the same underlying DOM node.
-This makes it natural to share a node between an event closure and the surrounding code without reaching for `unsafe` or `Arc`.
+`SvgNode` wraps an `Rc`, so cloning it is cheap and all clones refer to the same underlying DOM node.
+This makes it natural to share a node between an event closure and the surrounding code without the need for any `unsafe` or `Arc` shenanigans.
 
 ### Event closures are owned by the node
 
