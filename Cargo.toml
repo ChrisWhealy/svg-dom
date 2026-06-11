@@ -9,6 +9,9 @@ categories = ["wasm", "web-programming", "rendering"]
 repository = "https://github.com/ChrisWhealy/svg-dom"
 license = "MIT"
 
+[features]
+demo = []
+
 [lib]
 crate-type = ["cdylib", "rlib"]
 

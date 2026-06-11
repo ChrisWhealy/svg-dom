@@ -30,13 +30,12 @@ It lets you:
 
 ## What this crate is NOT
 
-This crate has nothing to do with the HTML `<canvas>` element!
+This crate does not touch the HTML `<canvas>` element!
 
 The `<canvas>` element offers a pixel-based, bitmap drawing API which, although it gives you the highest performance ceiling, requires you to take ownership of the entire layout, the render loop and hit-testing.
-The implementation cost of such functionality is high, especially in light of the fact the SVG DOM already provides the bulk of this functionality.
+Not only is the implementation cost of such functionality is high, it becomes somewhat redundant in light of the fact the SVG DOM already provides the bulk of this functionality.
 
-Consequently, this crate works with the SVG DOM — a retained tree of vector elements — where each element persists between frames and can be individually updated.
-
+Consequently, this crate works with the SVG DOM (a tree of vector elements) where each element persists between frames and can be individually updated.
 
 # Building
 

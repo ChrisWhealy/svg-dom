@@ -31,6 +31,8 @@
 //! ```
 
 pub mod animate;
+#[cfg(feature = "demo")]
+pub mod demo;
 pub mod error;
 pub mod node;
 pub mod root;
