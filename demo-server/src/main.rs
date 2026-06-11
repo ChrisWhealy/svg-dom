@@ -37,11 +37,10 @@ async fn main() -> std::io::Result<()> {
 
     println!("\n  svg-dom demo running on http://127.0.0.1:{port}/demo/\n");
 
-    let serve_root = root.clone();
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
-            .service(Files::new("/", serve_root.clone()).index_file("index.html"))
+            .service(Files::new("/", root.clone()).index_file("index.html"))
     })
     .bind(addr)?
     .run()
