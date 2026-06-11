@@ -1,0 +1,85 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: ui-monospace, "Cascadia Code", "Fira Code", monospace;
+  background: #0d1117;
+  color: #c9d1d9;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 4rem;
+}
+
+h1 {
+  font-size: 1.6rem;
+  color: #58a6ff;
+  margin-bottom: 0.4rem;
+}
+
+.subtitle {
+  color: #8b949e;
+  font-size: 0.85rem;
+  margin-bottom: 2.5rem;
+}
+
+.subtitle code {
+  color: #f0883e;
+  background: #161b22;
+  padding: 0.1em 0.4em;
+  border-radius: 3px;
+}
+
+h2 {
+  font-size: 1rem;
+  color: #79c0ff;
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid #21262d;
+}
+
+h2 code {
+  color: #f0883e;
+}
+
+.section {
+  margin-bottom: 2.5rem;
+}
+
+figure {
+  margin: 0;
+}
+
+/* Each demo section injects an <svg> into the matching <div> */
+.canvas {
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #21262d;
+}
+
+/* svg background comes from the element itself via CSS */
+.canvas svg {
+  background: #161b22;
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+figcaption {
+  font-size: 0.78rem;
+  color: #6e7681;
+  margin-top: 0.45rem;
+}
+
+figcaption strong {
+  color: #8b949e;
+}
+
+#error-banner {
+  display: none;
+  background: #3d1e1e;
+  border: 1px solid #f85149;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 2rem;
+  color: #f85149;
+  font-size: 0.85rem;
+}

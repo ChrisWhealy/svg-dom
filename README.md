@@ -45,6 +45,16 @@ Use [wasm-pack](https://rustwasm.github.io/wasm-pack/) to build:
 wasm-pack build --target web
 ```
 
+# Demo
+
+To run a basic demo, start the demo Web Server using
+
+```sh
+cargo demo
+```
+
+Then visit <http://127.0.0.1:8000/demo>
+
 # Quick start
 
 ## Core types

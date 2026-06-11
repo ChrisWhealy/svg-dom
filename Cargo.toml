@@ -1,3 +1,9 @@
+[workspace]
+members = ["demo-server"]
+# Keep plain `cargo build` / `cargo test` focused on the library; the demo
+# server (which pulls in actix) is built only on demand via `cargo demo`.
+default-members = ["."]
+
 [package]
 name = "svg-dom"
 authors = ["Chris Whealy <chris@whealy.com>"]

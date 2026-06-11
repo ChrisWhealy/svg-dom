@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>svg-dom — Element Gallery</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <h1>svg-dom — Element Gallery</h1>
+    <p class="subtitle">
+        All elements below are created programmatically from Rust/WebAssembly using the <code>svg-dom</code> crate.
+        &nbsp;Hover over or click highlighted elements to see live event handling.<br><br>
+        Build &amp; serve with <code>cargo demo</code> from the project root, then open
+        <code>http://127.0.0.1:8000/demo/</code>
+    </p>
+
+    <div id="error-banner"></div>
+
+    <--! rect  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <section class="section">
+        <h2><code>&lt;rect&gt;</code></h2>
+        <figure>
+            <div class="canvas" id="demo-rect"></div>
+            <figcaption>
+                <strong>fill</strong> · <strong>stroke</strong> · <strong>rounded (rx)</strong> ·
+                <strong>hover</strong> (mouseover / mouseout swap fill) ·
+                <strong>click</strong> (toggle fill colour)
+            </figcaption>
+        </figure>
+    </section>
+
+    <--! circle  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <section class="section">
+        <h2><code>&lt;circle&gt;</code></h2>
+        <figure>
+            <div class="canvas" id="demo-circle"></div>
+            <figcaption>
+                <strong>fill</strong> · <strong>stroke-only</strong> ·
+                <strong>hover</strong> (radius grows on mouseover)
+            </figcaption>
+        </figure>
+    </section>
+
+    <--! line  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <section class="section">
+        <h2><code>&lt;line&gt;</code></h2>
+        <figure>
+            <div class="canvas" id="demo-line"></div>
+            <figcaption>
+                <strong>horizontal</strong> · <strong>diagonal</strong> · <strong>thick stroke</strong>
+            </figcaption>
+        </figure>
+    </section>
+
+    <--! path  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <section class="section">
+        <h2><code>&lt;path&gt;</code></h2>
+        <figure>
+            <div class="canvas" id="demo-path"></div>
+            <figcaption>
+                <strong>M L Z</strong> (closed triangle) ·
+                <strong>Q</strong> (quadratic Bézier wave) ·
+                <strong>A</strong> (elliptical arc / open semicircle)
+            </figcaption>
+        </figure>
+    </section>
+
+    <--! text  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <section class="section">
+        <h2><code>&lt;text&gt;</code></h2>
+        <figure>
+            <div class="canvas" id="demo-text"></div>
+            <figcaption>
+                <strong>plain</strong> · <strong>bold large</strong> · <strong>coloured</strong>
+                — <em>y</em> positions the text <em>baseline</em>, not the top of the bounding box
+            </figcaption>
+        </figure>
+    </section>
+
+    <--! group - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <section class="section">
+        <h2><code>&lt;g&gt;</code> — group</h2>
+        <figure>
+            <div class="canvas" id="demo-group"></div>
+            <figcaption>
+                Two groups share the same local element coordinates; a
+                <code>transform="translate(…)"</code> repositions each group as a unit.
+                The dashed connector is drawn in SVG root space.
+            </figcaption>
+        </figure>
+    </section>
+
+    <--! AnimationLoop - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <section class="section">
+        <h2><code>AnimationLoop</code> — requestAnimationFrame</h2>
+        <figure>
+            <div class="canvas" id="demo-anim"></div>
+            <figcaption>
+                Three simultaneous animations driven by a single
+                <code>AnimationLoop::start</code> closure:
+                <strong>radius pulse</strong> · <strong>horizontal travel</strong> ·
+                <strong>hue rotation</strong>
+            </figcaption>
+        </figure>
+    </section>
+
+    <script type="module">
+        import init, {run_demo} from '../pkg/svg_dom.js';
+
+        try {
+            await init();
+            run_demo();
+        } catch (err) {
+            const banner = document.getElementById('error-banner');
+            banner.style.display = 'block';
+            banner.textContent = `WASM error: ${err}`;
+            console.error(err);
+        }
+    </script>
+</body>
+</html>
