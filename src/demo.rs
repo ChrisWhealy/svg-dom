@@ -637,7 +637,7 @@ fn demo_events_group() -> Result<(), Error> {
 
     // group 1 — on_mouseover.  This event *bubbles*, so the handler on the <g> fires every time the pointer enters a
     // descendant: once for the boundary, then again for each child (and again when crossing back onto the boundary).
-    let g1_count = labels(40.0, "#58a6ff", "group 1: on_mouseover (bubbles)")?;
+    let g1_count = labels(40.0, "#58a6ff", "group 1: on_mouseover (event bubbles)")?;
     let group1 = build(40.0, "#58a6ff")?;
     let c1 = Rc::new(Cell::new(0u32));
     group1.on_mouseover(move |_| {
@@ -653,7 +653,7 @@ fn demo_events_group() -> Result<(), Error> {
 
     // group 2 — mouseenter.  This event does *not* bubble, so the handler fires exactly once per boundary crossing,
     // no matter how many child shapes the pointer then sweeps over inside the group.
-    let g2_count = labels(440.0, "#d29922", "group 2: mouseenter (no bubble)")?;
+    let g2_count = labels(440.0, "#d29922", "group 2: mouseenter (event does not bubble)")?;
     let group2 = build(440.0, "#d29922")?;
     let c2 = Rc::new(Cell::new(0u32));
     // mouseenter is not wrapped by SvgNode; on_raw registers it on the element and leaks the closure, so the listener
