@@ -9,9 +9,10 @@
 //! The `demo` feature excludes this code from the normal library build.
 
 use std::{cell::Cell, mem, rc::Rc};
-use wasm_bindgen::prelude::*;
+use wasm_bindgen::{JsCast, prelude::*};
+use web_sys::MouseEvent;
 
-use crate::{AnimationLoop, Error, SvgRoot};
+use crate::{AnimationLoop, Error, SvgNode, SvgRoot};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Constants
@@ -42,6 +43,13 @@ pub fn run_demo() -> Result<(), JsValue> {
     demo_text().map_err(e)?;
     demo_group().map_err(e)?;
     demo_anim().map_err(e)?;
+
+    // Event-handling gallery
+    demo_events_click().map_err(e)?;
+    demo_events_colour().map_err(e)?;
+    demo_events_modifiers().map_err(e)?;
+    demo_events_press().map_err(e)?;
+    demo_events_group().map_err(e)?;
     Ok(())
 }
 
@@ -295,5 +303,368 @@ fn demo_anim() -> Result<(), Error> {
 
     // The loop must outlive this function — leak it for the page's lifetime.
     mem::forget(anim);
+    Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Event-handling helper
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+// `SvgNode` wraps `click`, `mouseover` and `mouseout` directly.  For every other event we drop down to the raw
+// `web-sys` element via [`SvgNode::as_element`] and register the listener ourselves.
+// The `Closure` is `forget`-ted so that it lives for the page's lifetime — exactly the same leak-on-purpose pattern
+// that `demo_anim` uses for its `AnimationLoop`.
+// 
+// However, in a real application, you would store the `Closure` somewhere with a defined lifetime.
+fn on_raw<F: Fn(MouseEvent) + 'static>(node: &SvgNode, event: &str, handler: F) -> Result<(), Error> {
+    let closure = Closure::<dyn Fn(MouseEvent)>::new(handler);
+    node.as_element()
+        .add_event_listener_with_callback(event, closure.as_ref().unchecked_ref())
+        .map_err(|e| Error::Dom(format!("{e:?}")))?;
+    closure.forget();
+    Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Events — click counter + reset button (two on_click handlers over shared state)
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//
+// Counting and resetting live on two *separate* buttons on purpose.  A "double-click to reset" on the counter itself
+// would misbehave: the browser always fires two `click` events before a `dblclick`, so any quick pair of clicks would
+// increment twice and then immediately reset to zero.
+fn demo_events_click() -> Result<(), Error> {
+    let svg = SvgRoot::create_in("demo-events-click", W, H)?;
+
+    // Counter button.  Its colour cycles on every click so repeated presses are visible.
+    let btn = svg.rect(40.0, 30.0, 150.0, 60.0)?;
+    btn.set_fill("steelblue")?;
+    btn.set_attr("rx", "8")?;
+    btn.set_attr("style", "cursor:pointer")?;
+
+    // The label sits on top of the button; `pointer-events:none` lets clicks fall through to the rect beneath.
+    let btn_label = svg.text(115.0, 66.0, "click me")?;
+    btn_label.set_fill("white")?;
+    btn_label.set_attr("font-size", "16")?;
+    btn_label.set_attr("text-anchor", "middle")?;
+    btn_label.set_attr("style", "pointer-events:none")?;
+
+    // Reset button — greyed out until there is actually something to reset.
+    let reset = svg.rect(210.0, 30.0, 110.0, 60.0)?;
+    reset.set_fill("#555")?;
+    reset.set_attr("rx", "8")?;
+    reset.set_attr("style", "cursor:pointer")?;
+
+    let reset_label = svg.text(265.0, 66.0, "reset")?;
+    reset_label.set_fill("white")?;
+    reset_label.set_attr("font-size", "15")?;
+    reset_label.set_attr("text-anchor", "middle")?;
+    reset_label.set_attr("style", "pointer-events:none")?;
+
+    let readout = svg.text(350.0, 66.0, "clicks: 0")?;
+    readout.set_fill("#c9d1d9")?;
+    readout.set_attr("font-size", "15")?;
+
+    let count = Rc::new(Cell::new(0u32));
+
+    // Counter click → increment.  Each closure captures a clone of its own node, which is what keeps that node (and
+    // therefore its listener) alive after this function returns.
+    let inc_btn = btn.clone();
+    let inc_reset = reset.clone();
+    let inc_readout = readout.clone();
+    let inc_count = count.clone();
+    btn.on_click(move |_| {
+        let n = inc_count.get() + 1;
+        inc_count.set(n);
+        let _ = inc_btn.set_fill(&format!("hsl({},60%,45%)", (n * 40) % 360));
+        let _ = inc_reset.set_fill("tomato"); // reset now has something to do
+        inc_readout
+            .as_element()
+            .set_text_content(Some(&format!("clicks: {n}")));
+    })?;
+
+    // Reset click → zero the count and restore the resting colours.
+    let rst_btn = btn.clone();
+    let rst_reset = reset.clone();
+    let rst_readout = readout.clone();
+    let rst_count = count.clone();
+    reset.on_click(move |_| {
+        rst_count.set(0);
+        let _ = rst_btn.set_fill("steelblue");
+        let _ = rst_reset.set_fill("#555");
+        rst_readout.as_element().set_text_content(Some("clicks: 0"));
+    })?;
+
+    caption(&svg, 400.0, "two on_click handlers sharing one Rc<Cell> counter")?;
+    Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Events — colour wheel (raw mousemove drives a second element's fill)
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//
+// A single transparent rect on *top* of everything captures the pointer, and every decoration below it carries
+// `pointer-events:none`.  That keeps exactly one element under the pointer at all times, so the cursor never flickers
+// as it moves (the earlier crosshair version flickered because the moving guides stole hover from the surface).
+fn demo_events_colour() -> Result<(), Error> {
+    const CX: f64 = 90.0; // wheel centre
+    const CY: f64 = 65.0;
+    const R: f64 = 52.0; // wheel radius
+    const STEP: f64 = 2.0; // angular width of each wedge, in degrees
+
+    let svg = SvgRoot::create_in("demo-events-colour", W, H)?;
+
+    // The wheel is built from thin pie wedges, each filled with its own hue.  Grouping them lets a single
+    // `pointer-events:none` on the <g> apply to every wedge at once.
+    let wheel = svg.group()?;
+    wheel.set_attr("pointer-events", "none")?;
+    let mut a: f64 = 0.0;
+    while a < 360.0 {
+        let (r0, r1) = (a.to_radians(), (a + STEP).to_radians());
+        let wedge = svg.path(&format!(
+            "M {CX} {CY} L {:.2} {:.2} A {R} {R} 0 0 1 {:.2} {:.2} Z",
+            CX + R * r0.cos(),
+            CY + R * r0.sin(),
+            CX + R * r1.cos(),
+            CY + R * r1.sin(),
+        ))?;
+        wedge.set_fill(&format!("hsl({:.0},90%,50%)", a + STEP / 2.0))?;
+        wheel.append(&wedge)?;
+        a += STEP;
+    }
+
+    // A hollow ring that marks the sampled point on the wheel; parked off-canvas until the pointer arrives.
+    let marker = svg.circle(-20.0, -20.0, 6.0)?;
+    marker.set_fill("none")?;
+    marker.set_stroke("white")?;
+    marker.set_stroke_width(2.0)?;
+    marker.set_attr("pointer-events", "none")?;
+
+    // The "second object": its fill follows whatever hue the pointer is over.
+    let swatch = svg.rect(210.0, 18.0, 250.0, 94.0)?;
+    swatch.set_fill("#222")?;
+    swatch.set_stroke("#444")?;
+    swatch.set_attr("rx", "12")?;
+    swatch.set_attr("pointer-events", "none")?;
+
+    let readout = svg.text(485.0, 70.0, "move over the wheel →")?;
+    readout.set_fill("#c9d1d9")?;
+    readout.set_attr("font-size", "15")?;
+    readout.set_attr("pointer-events", "none")?;
+
+    caption(&svg, 335.0, "raw mousemove over the wheel sets the swatch fill (hue from pointer angle)")?;
+
+    // The pointer-capture surface goes on last so it sits on top of everything above.
+    let surface = svg.rect(0.0, 0.0, W, H)?;
+    surface.set_fill("transparent")?;
+    surface.set_attr("style", "cursor:crosshair")?;
+
+    let mv_marker = marker.clone();
+    let mv_swatch = swatch.clone();
+    let mv_readout = readout.clone();
+    on_raw(&surface, "mousemove", move |e| {
+        let (x, y) = (f64::from(e.offset_x()), f64::from(e.offset_y()));
+        let (dx, dy) = (x - CX, y - CY);
+        if dx * dx + dy * dy <= R * R {
+            // Inside the wheel: hue is the pointer's angle about the centre.
+            let hue = (dy.atan2(dx).to_degrees() + 360.0) % 360.0;
+            let colour = format!("hsl({hue:.0},90%,50%)");
+            let _ = mv_swatch.set_fill(&colour);
+            let _ = mv_marker.set_attr("cx", &format!("{x:.1}"));
+            let _ = mv_marker.set_attr("cy", &format!("{y:.1}"));
+            mv_readout.as_element().set_text_content(Some(&colour));
+        } else {
+            // Outside the wheel: park the marker but leave the last sampled colour on the swatch.
+            let _ = mv_marker.set_attr("cx", "-20");
+            let _ = mv_marker.set_attr("cy", "-20");
+        }
+    })?;
+
+    Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Events — modifier keys (on_click) + right-click (raw contextmenu, preventDefault)
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+fn demo_events_modifiers() -> Result<(), Error> {
+    let svg = SvgRoot::create_in("demo-events-modifiers", W, H)?;
+
+    let pad = svg.rect(40.0, 25.0, 240.0, 80.0)?;
+    pad.set_fill("slateblue")?;
+    pad.set_attr("rx", "8")?;
+    pad.set_attr("style", "cursor:pointer")?;
+
+    let hint = svg.text(160.0, 70.0, "click me")?;
+    hint.set_fill("white")?;
+    hint.set_attr("font-size", "15")?;
+    hint.set_attr("text-anchor", "middle")?;
+    hint.set_attr("style", "pointer-events:none")?;
+
+    let readout = svg.text(310.0, 70.0, "try: click · shift · ctrl · alt · right-click")?;
+    readout.set_fill("#c9d1d9")?;
+    readout.set_attr("font-size", "14")?;
+
+    // Left-click → inspect the modifier-key flags carried by the MouseEvent.
+    let pad_click = pad.clone();
+    let ro_click = readout.clone();
+    pad.on_click(move |e| {
+        let (label, colour) = if e.shift_key() {
+            ("shift + click", "tomato")
+        } else if e.ctrl_key() {
+            ("ctrl + click", "mediumseagreen")
+        } else if e.alt_key() {
+            ("alt + click", "goldenrod")
+        } else if e.meta_key() {
+            ("meta + click", "orchid")
+        } else {
+            ("plain click", "slateblue")
+        };
+        let _ = pad_click.set_fill(colour);
+        ro_click
+            .as_element()
+            .set_text_content(Some(&format!("last: {label}")));
+    })?;
+
+    // Right-click → suppress the browser context menu and report it.  ('click' never fires for the secondary button,
+    // so the contextmenu event is the idiomatic hook for right-clicks.)
+    let pad_ctx = pad.clone();
+    let ro_ctx = readout.clone();
+    on_raw(&pad, "contextmenu", move |e| {
+        e.prevent_default();
+        let _ = pad_ctx.set_fill("crimson");
+        ro_ctx
+            .as_element()
+            .set_text_content(Some("last: right-click (context menu suppressed)"));
+    })?;
+
+    caption(&svg, 400.0, "on_click reads modifier keys · raw contextmenu calls preventDefault()")?;
+    Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Events — press state (raw mousedown / mouseup / mouseleave)
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+fn demo_events_press() -> Result<(), Error> {
+    let svg = SvgRoot::create_in("demo-events-press", W, H)?;
+
+    let pad = svg.rect(60.0, 25.0, 200.0, 80.0)?;
+    pad.set_fill("teal")?;
+    pad.set_attr("rx", "8")?;
+    pad.set_attr("style", "cursor:pointer")?;
+
+    let label = svg.text(160.0, 70.0, "press & hold")?;
+    label.set_fill("white")?;
+    label.set_attr("font-size", "15")?;
+    label.set_attr("text-anchor", "middle")?;
+    label.set_attr("style", "pointer-events:none")?;
+
+    let readout = svg.text(320.0, 70.0, "state: idle")?;
+    readout.set_fill("#c9d1d9")?;
+    readout.set_attr("font-size", "14")?;
+
+    // Closures are `Clone` when everything they capture is `Clone` (SvgNode is), so we can build `press`/`release`
+    // once and reuse them across several listeners.
+    let press = {
+        let pad = pad.clone();
+        let readout = readout.clone();
+        move || {
+            let _ = pad.set_fill("#0a3d3d"); // darken while held
+            let _ = pad.set_attr("transform", "translate(2,2)");
+            readout.as_element().set_text_content(Some("state: pressed"));
+        }
+    };
+    let release = {
+        let pad = pad.clone();
+        let readout = readout.clone();
+        move || {
+            let _ = pad.set_fill("teal");
+            let _ = pad.set_attr("transform", "translate(0,0)");
+            readout.as_element().set_text_content(Some("state: idle"));
+        }
+    };
+
+    on_raw(&pad, "mousedown", move |_| press())?;
+    let release_up = release.clone();
+    on_raw(&pad, "mouseup", move |_| release_up())?;
+    // If the pointer leaves while still held, treat it as a release so the button cannot stick in the pressed state.
+    on_raw(&pad, "mouseleave", move |_| release())?;
+
+    caption(&svg, 400.0, "raw mousedown / mouseup / mouseleave · pressed-state tracking")?;
+    Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Events — bubbling mouseover vs non-bubbling mouseenter on a group
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+fn demo_events_group() -> Result<(), Error> {
+    let svg = SvgRoot::create_in("demo-events-group", W, H)?;
+
+    // Builds a bordered container group holding two child shapes, translated to `x`.  The filled background rect is
+    // the group's visible boundary AND its hit area: a <g> has no geometry of its own, so without a filled background
+    // the gaps between the children would not count as "inside" the group.  Its fill matches the canvas colour so
+    // only the coloured border shows.  Returns the group node.
+    let build = |x: f64, border: &str| -> Result<SvgNode, Error> {
+        let g = svg.group()?;
+
+        let boundary = svg.rect(0.0, 0.0, 300.0, 80.0)?;
+        boundary.set_fill("#161b22")?; // == canvas background, so only the stroke is visible
+        boundary.set_stroke(border)?;
+        boundary.set_stroke_width(2.0)?;
+        boundary.set_attr("rx", "8")?;
+
+        let child_a = svg.circle(75.0, 40.0, 22.0)?;
+        child_a.set_fill("#f0883e")?;
+        let child_b = svg.rect(160.0, 18.0, 110.0, 44.0)?;
+        child_b.set_fill("#3fb950")?;
+        child_b.set_attr("rx", "4")?;
+
+        g.append(&boundary)?;
+        g.append(&child_a)?;
+        g.append(&child_b)?;
+        g.set_attr("transform", &format!("translate({x}, 26)"))?;
+        Ok(g)
+    };
+
+    // Builds the title + counter labels for a group and returns the (clonable) counter text node.
+    let labels = |x: f64, colour: &str, title: &str| -> Result<SvgNode, Error> {
+        let t = svg.text(x, 18.0, title)?;
+        t.set_fill(colour)?;
+        t.set_attr("font-size", "12")?;
+        let count = svg.text(x, 124.0, "fires: 0")?;
+        count.set_fill("#c9d1d9")?;
+        count.set_attr("font-size", "14")?;
+        Ok(count)
+    };
+
+    // group 1 — on_mouseover.  This event *bubbles*, so the handler on the <g> fires every time the pointer enters a
+    // descendant: once for the boundary, then again for each child (and again when crossing back onto the boundary).
+    let g1_count = labels(40.0, "#58a6ff", "group 1: on_mouseover (bubbles)")?;
+    let group1 = build(40.0, "#58a6ff")?;
+    let c1 = Rc::new(Cell::new(0u32));
+    group1.on_mouseover(move |_| {
+        let n = c1.get() + 1;
+        c1.set(n);
+        g1_count
+            .as_element()
+            .set_text_content(Some(&format!("fires: {n}")));
+    })?;
+    // on_mouseover stores its closure inside the node, so the node must outlive this function for the listener to keep
+    // working — leak it for the page's lifetime (just as demo_anim does with its AnimationLoop).
+    mem::forget(group1);
+
+    // group 2 — mouseenter.  This event does *not* bubble, so the handler fires exactly once per boundary crossing,
+    // no matter how many child shapes the pointer then sweeps over inside the group.
+    let g2_count = labels(440.0, "#d29922", "group 2: mouseenter (no bubble)")?;
+    let group2 = build(440.0, "#d29922")?;
+    let c2 = Rc::new(Cell::new(0u32));
+    // mouseenter is not wrapped by SvgNode; on_raw registers it on the element and leaks the closure, so the listener
+    // survives without our having to keep the group handle alive.
+    on_raw(&group2, "mouseenter", move |_| {
+        let n = c2.get() + 1;
+        c2.set(n);
+        g2_count
+            .as_element()
+            .set_text_content(Some(&format!("fires: {n}")));
+    })?;
+
     Ok(())
 }

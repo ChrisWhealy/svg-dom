@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>svg-dom — Element Gallery</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="./demo/style.css">
 </head>
 
 <body>
@@ -19,7 +19,7 @@
 
     <div id="error-banner"></div>
 
-    <--! rect  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <!-- rect  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
     <section class="section">
         <h2><code>&lt;rect&gt;</code></h2>
         <figure>
@@ -32,7 +32,7 @@
         </figure>
     </section>
 
-    <--! circle  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <!-- circle  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
     <section class="section">
         <h2><code>&lt;circle&gt;</code></h2>
         <figure>
@@ -44,7 +44,7 @@
         </figure>
     </section>
 
-    <--! line  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <!-- line  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
     <section class="section">
         <h2><code>&lt;line&gt;</code></h2>
         <figure>
@@ -55,7 +55,7 @@
         </figure>
     </section>
 
-    <--! path  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <!-- path  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
     <section class="section">
         <h2><code>&lt;path&gt;</code></h2>
         <figure>
@@ -68,7 +68,7 @@
         </figure>
     </section>
 
-    <--! text  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <!-- text  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
     <section class="section">
         <h2><code>&lt;text&gt;</code></h2>
         <figure>
@@ -80,7 +80,7 @@
         </figure>
     </section>
 
-    <--! group - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <!-- group - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
     <section class="section">
         <h2><code>&lt;g&gt;</code> — group</h2>
         <figure>
@@ -93,7 +93,7 @@
         </figure>
     </section>
 
-    <--! AnimationLoop - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <!-- AnimationLoop - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
     <section class="section">
         <h2><code>AnimationLoop</code> — requestAnimationFrame</h2>
         <figure>
@@ -103,6 +103,79 @@
                 <code>AnimationLoop::start</code> closure:
                 <strong>radius pulse</strong> · <strong>horizontal travel</strong> ·
                 <strong>hue rotation</strong>
+            </figcaption>
+        </figure>
+    </section>
+
+    <!-- Event handling  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <h1>Event handling</h1>
+    <p class="subtitle">
+        <code>SvgNode</code> wraps <code>on_click</code>, <code>on_mouseover</code> and <code>on_mouseout</code>
+        directly. Every other event is registered on the raw element returned by <code>as_element()</code>. The panels
+        below are interactive — click, hover, drag and right-click them.
+    </p>
+
+    <!-- click  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <section class="section">
+        <h2><code>on_click</code> — click counter &amp; reset button</h2>
+        <figure>
+            <div class="canvas" id="demo-events-click"></div>
+            <figcaption>
+                <strong>click</strong> the button to increment a counter held in a shared <code>Rc&lt;Cell&gt;</code>;
+                the separate <strong>reset</strong> button (a second <code>on_click</code>) zeroes it. The counter
+                colour cycles on every click.
+            </figcaption>
+        </figure>
+    </section>
+
+    <!-- colour wheel  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <section class="section">
+        <h2><code>mousemove</code> — colour wheel</h2>
+        <figure>
+            <div class="canvas" id="demo-events-colour"></div>
+            <figcaption>
+                Move the pointer over the wheel: each <strong>mousemove</strong> reads
+                <code>MouseEvent.offsetX / offsetY</code>, derives a hue from the pointer's angle, and recolours the
+                swatch on the right. One transparent surface captures the pointer so the cursor never flickers.
+            </figcaption>
+        </figure>
+    </section>
+
+    <!-- modifiers  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <section class="section">
+        <h2>Modifier keys &amp; <code>contextmenu</code></h2>
+        <figure>
+            <div class="canvas" id="demo-events-modifiers"></div>
+            <figcaption>
+                <strong>click</strong> reads the <code>shift</code> / <code>ctrl</code> / <code>alt</code> /
+                <code>meta</code> flags on the event; <strong>right-click</strong> fires a raw <code>contextmenu</code>
+                handler that calls <code>preventDefault()</code> to suppress the browser menu.
+            </figcaption>
+        </figure>
+    </section>
+
+    <!-- press  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <section class="section">
+        <h2><code>mousedown</code> / <code>mouseup</code> — press state</h2>
+        <figure>
+            <div class="canvas" id="demo-events-press"></div>
+            <figcaption>
+                Press and hold to drive a <strong>pressed</strong> state from <strong>mousedown</strong> /
+                <strong>mouseup</strong>; <strong>mouseleave</strong> cancels it so the button cannot stick down.
+            </figcaption>
+        </figure>
+    </section>
+
+    <!-- bubbling  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <section class="section">
+        <h2><code>mouseover</code> bubbling vs <code>mouseenter</code></h2>
+        <figure>
+            <div class="canvas" id="demo-events-group"></div>
+            <figcaption>
+                Each bordered group holds two child shapes and keeps its own fire counter. <strong>group 1</strong>
+                listens for bubbling <strong>mouseover</strong>, so its counter ticks up on entering the boundary
+                <em>and</em> again on each child; <strong>group 2</strong> listens for non-bubbling
+                <strong>mouseenter</strong>, so its counter rises only once per boundary crossing.
             </figcaption>
         </figure>
     </section>
@@ -121,4 +194,5 @@
         }
     </script>
 </body>
+
 </html>
