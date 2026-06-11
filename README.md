@@ -11,6 +11,7 @@ This crate is still just a PoC and has known functional gaps that will be filled
 - [What this crate is](#what-this-crate-is)
 - [What this crate is NOT](#what-this-crate-is-not)
 - [Building](#building)
+- [Demo Server](#demo-server)
 - [Quick start](#quick-start)
 - [Testing](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/testing.md)
 - [Design Notes](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/design_notes.md)
@@ -45,7 +46,7 @@ Use [wasm-pack](https://rustwasm.github.io/wasm-pack/) to build:
 wasm-pack build --target web
 ```
 
-# Demo
+# Demo Server
 
 To run a basic demo, start the demo Web Server using
 
