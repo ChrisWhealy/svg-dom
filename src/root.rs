@@ -254,8 +254,8 @@ impl SvgRoot {
     /// Creates a `<path>` element from an SVG path-data string, appends it to the root, and returns its [`SvgNode`]
     /// handle.
     ///
-    /// The `d` string uses standard SVG path commands where the arguments to the uppercase command are interpretted as
-    /// absolute coordinates, and the arguments to the lowercase commands as relative coordinates.
+    /// The `d` string uses standard SVG path commands where the arguments to the uppercase command supply absolute
+    /// coordinates, and the arguments to the lowercase commands supply relative coordinates.
     ///
     /// | Command   | Arguments              | Description             |
     /// |:----------|:-----------------------|:------------------------|

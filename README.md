@@ -19,24 +19,24 @@ This crate is still just a PoC and has known functional gaps that will be filled
 
 ## What this crate is
 
-The `svg-dom` crate provides a thin, ergonomic layer over the `web-sys` SVG DOM bindings.
+The `svg-dom` crate acts as a thin wrapper for `web-sys` SVG DOM bindings that allows you to:
 
-It lets you:
-
-- either attach to an existing `<svg>` element in your HTML page, or create new one programmatically
-- add SVG elements (`<rect>`, `<circle>`, `<line>`, `<path>`, `<text>`, `<g>`) and get back cheap-to-clone handles (`SvgNode`) that hold a live reference to the real DOM node
-- mutate individual attributes (`fill`, `stroke`, `d`, or any arbitrary attribute) on those handles at any time without to need to rebuild or diff the DOM tree
-- attach mouse event listeners (`click`, `mouseover`, `mouseout`) directly to individual elements
-- drive reactive updates through a `requestAnimationFrame` loop via `AnimationLoop`
+- Attach to an existing `<svg>` element in your HTML page
+- Create new `<svg>` element programmatically
+- Add a basic set of SVG elements using helper functions (`<rect>`, `<circle>`, `<line>`, `<path>`, `<text>`, `<g>`)
+   - You get back a cheap-to-clone handle (`SvgNode`) that holds a live reference to the real DOM node
+- Mutate an element's individual attributes (`fill`, `stroke`, `d`, or any arbitrary attribute) on those handles without the need to rebuild or diff the DOM tree
+- Attach mouse event listeners (`click`, `mouseover`, `mouseout`) directly to individual elements
+- Drive reactive updates through a `requestAnimationFrame` loop via `AnimationLoop`
 
 ## What this crate is NOT
 
-This crate does not touch the HTML `<canvas>` element!
+This crate does not use an HTML `<canvas>` element!
 
 The `<canvas>` element offers a pixel-based, bitmap drawing API which, although it gives you the highest performance ceiling, requires you to take ownership of the entire layout, the render loop and hit-testing.
-Not only is the implementation cost of such functionality is high, it becomes somewhat redundant in light of the fact the SVG DOM already provides the bulk of this functionality.
 
-Consequently, this crate works with the SVG DOM (a tree of vector elements) where each element persists between frames and can be individually updated.
+Not only is the implementation cost of such functionality is high, it becomes somewhat redundant in light of the fact that the SVG DOM is already a persistent tree of vector elements that can be individually updated.
+Consequently, this crate works only with the SVG DOM.
 
 # Building
 

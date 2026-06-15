@@ -208,8 +208,8 @@ impl SvgNode {
     ///
     /// Alters an existing path created by [`SvgRoot::path`](crate::SvgRoot::path) without needing to recreate the DOM element.
     ///
-    /// The `d` string uses standard SVG path commands where the arguments to the uppercase command are interpretted as
-    /// absolute coordinates, and the arguments to the lowercase commands as relative coordinates.
+    /// The `d` string uses standard SVG path commands where the arguments to the uppercase command supply absolute
+    /// coordinates, and the arguments to the lowercase commands supply relative coordinates.
     ///
     /// | Command   | Arguments              | Description             |
     /// |:----------|:-----------------------|:------------------------|
