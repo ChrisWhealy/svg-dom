@@ -8,11 +8,14 @@
 //!
 //! The `demo` feature excludes this code from the normal library build.
 
+mod colours;
+
 use std::{cell::Cell, mem, rc::Rc};
 use wasm_bindgen::{JsCast, prelude::*};
 use web_sys::MouseEvent;
 
 use crate::{AnimationLoop, Error, SvgNode, SvgRoot};
+use colours::*;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Constants
@@ -50,6 +53,7 @@ pub fn run_demo() -> Result<(), JsValue> {
     demo_events_modifiers().map_err(e)?;
     demo_events_press().map_err(e)?;
     demo_events_group().map_err(e)?;
+    demo_events_drag().map_err(e)?;
     Ok(())
 }
 
@@ -59,7 +63,7 @@ pub fn run_demo() -> Result<(), JsValue> {
 /// Appends a small grey caption below an element at horizontal centre `cx`.
 fn caption(svg: &SvgRoot, cx: f64, text: &str) -> Result<(), Error> {
     let t = svg.text(cx, H - 6.0, text)?;
-    t.set_fill("#777")?;
+    t.set_fill(CAPTION)?;
     t.set_attr("font-size", "11")?;
     t.set_attr("text-anchor", "middle")?;
     Ok(())
@@ -73,42 +77,42 @@ fn demo_rect() -> Result<(), Error> {
 
     // 1. Plain fill
     let r1 = svg.rect(10.0, 10.0, 130.0, 90.0)?;
-    r1.set_fill("steelblue")?;
+    r1.set_fill(STEELBLUE)?;
     caption(&svg, 75.0, "fill")?;
 
     // 2. Stroke-only (no fill)
     let r2 = svg.rect(155.0, 10.0, 130.0, 90.0)?;
-    r2.set_fill("none")?;
-    r2.set_stroke("coral")?;
+    r2.set_fill(NONE)?;
+    r2.set_stroke(CORAL)?;
     r2.set_stroke_width(3.0)?;
     caption(&svg, 220.0, "stroke")?;
 
     // 3. Rounded corners via rx attribute
     let r3 = svg.rect(300.0, 10.0, 130.0, 90.0)?;
-    r3.set_fill("mediumseagreen")?;
+    r3.set_fill(MEDIUM_SEA_GREEN)?;
     r3.set_attr("rx", "20")?;
     caption(&svg, 365.0, "rounded (rx)")?;
 
     // 4. Hover: fill swaps on mouseover / mouseout
     let r4 = svg.rect(445.0, 10.0, 130.0, 90.0)?;
-    r4.set_fill("goldenrod")?;
+    r4.set_fill(GOLDENROD)?;
     r4.set_attr("style", "cursor:pointer")?;
     let r4b = r4.clone();
-    r4.on_mouseover(move |_| { let _ = r4b.set_fill("gold"); })?;
+    r4.on_mouseover(move |_| { let _ = r4b.set_fill(GOLD); })?;
     let r4c = r4.clone();
-    r4.on_mouseout(move |_| { let _ = r4c.set_fill("goldenrod"); })?;
+    r4.on_mouseout(move |_| { let _ = r4c.set_fill(GOLDENROD); })?;
     caption(&svg, 510.0, "hover")?;
 
     // 5. Click: toggles between two fills
     let r5 = svg.rect(590.0, 10.0, 130.0, 90.0)?;
-    r5.set_fill("slategray")?;
+    r5.set_fill(SLATE_GRAY)?;
     r5.set_attr("style", "cursor:pointer")?;
     let toggled = Rc::new(Cell::new(false));
     let r5b = r5.clone();
     r5.on_click(move |_| {
         let next = !toggled.get();
         toggled.set(next);
-        let _ = r5b.set_fill(if next { "coral" } else { "slategray" });
+        let _ = r5b.set_fill(if next { CORAL } else { SLATE_GRAY });
     })?;
     caption(&svg, 655.0, "click (toggle)")?;
 
@@ -123,19 +127,19 @@ fn demo_circle() -> Result<(), Error> {
 
     // 1. Solid fill
     let c1 = svg.circle(70.0, 57.0, 47.0)?;
-    c1.set_fill("tomato")?;
+    c1.set_fill(TOMATO)?;
     caption(&svg, 70.0, "fill")?;
 
     // 2. Stroke-only
     let c2 = svg.circle(210.0, 57.0, 47.0)?;
-    c2.set_fill("none")?;
-    c2.set_stroke("orchid")?;
+    c2.set_fill(NONE)?;
+    c2.set_stroke(ORCHID)?;
     c2.set_stroke_width(4.0)?;
     caption(&svg, 210.0, "stroke")?;
 
     // 3. Hover: radius grows / shrinks
     let c3 = svg.circle(360.0, 57.0, 35.0)?;
-    c3.set_fill("lightskyblue")?;
+    c3.set_fill(LIGHT_SKY_BLUE)?;
     c3.set_attr("style", "cursor:pointer")?;
     let c3b = c3.clone();
     c3.on_mouseover(move |_| { let _ = c3b.set_attr("r", "50"); })?;
@@ -154,19 +158,19 @@ fn demo_line() -> Result<(), Error> {
 
     // Horizontal
     let l1 = svg.line(10.0, 55.0, 230.0, 55.0)?;
-    l1.set_stroke("#aaa")?;
+    l1.set_stroke(WIRE)?;
     l1.set_stroke_width(2.0)?;
     caption(&svg, 120.0, "horizontal")?;
 
     // Diagonal
     let l2 = svg.line(270.0, 10.0, 470.0, 110.0)?;
-    l2.set_stroke("coral")?;
+    l2.set_stroke(CORAL)?;
     l2.set_stroke_width(2.0)?;
     caption(&svg, 370.0, "diagonal")?;
 
     // Thick
     let l3 = svg.line(510.0, 55.0, 790.0, 55.0)?;
-    l3.set_stroke("goldenrod")?;
+    l3.set_stroke(GOLDENROD)?;
     l3.set_stroke_width(18.0)?;
     caption(&svg, 650.0, "thick stroke")?;
 
@@ -181,22 +185,22 @@ fn demo_path() -> Result<(), Error> {
 
     // Closed triangle (M / L / Z)
     let tri = svg.path("M 70 10 L 130 110 L 10 110 Z")?;
-    tri.set_fill("steelblue")?;
-    tri.set_stroke("white")?;
+    tri.set_fill(STEELBLUE)?;
+    tri.set_stroke(WHITE)?;
     tri.set_stroke_width(2.0)?;
     caption(&svg, 70.0, "triangle (M L Z)")?;
 
     // Quadratic Bézier wave (Q)
     let wave = svg.path("M 180 65 Q 245 10 310 65 Q 375 120 440 65")?;
-    wave.set_fill("none")?;
-    wave.set_stroke("mediumorchid")?;
+    wave.set_fill(NONE)?;
+    wave.set_stroke(MEDIUM_ORCHID)?;
     wave.set_stroke_width(3.0)?;
     caption(&svg, 310.0, "Bézier wave (Q)")?;
 
     // Elliptical arc — open semicircle (A)
     let arc = svg.path("M 510 65 A 60 60 0 1 1 630 65")?;
-    arc.set_fill("none")?;
-    arc.set_stroke("coral")?;
+    arc.set_fill(NONE)?;
+    arc.set_stroke(CORAL)?;
     arc.set_stroke_width(3.0)?;
     caption(&svg, 570.0, "arc (A)")?;
 
@@ -211,18 +215,18 @@ fn demo_text() -> Result<(), Error> {
 
     // Small plain text
     let t1 = svg.text(10.0, 60.0, "Plain text — 14px")?;
-    t1.set_fill("#d0d0d0")?;
+    t1.set_fill(PLAIN_TEXT)?;
     t1.set_attr("font-size", "14")?;
 
     // Large bold
     let t2 = svg.text(10.0, 100.0, "Bold — 36px")?;
-    t2.set_fill("steelblue")?;
+    t2.set_fill(STEELBLUE)?;
     t2.set_attr("font-size", "36")?;
     t2.set_attr("font-weight", "bold")?;
 
     // Coloured, medium
     let t3 = svg.text(430.0, 65.0, "Coloured — 22px")?;
-    t3.set_fill("coral")?;
+    t3.set_fill(CORAL)?;
     t3.set_attr("font-size", "22")?;
 
     Ok(())
@@ -237,9 +241,9 @@ fn demo_group() -> Result<(), Error> {
     // Group A — steelblue block, positioned with translate
     let g1 = svg.group()?;
     let b1 = svg.rect(0.0, 0.0, 150.0, 80.0)?;
-    b1.set_fill("steelblue")?;
+    b1.set_fill(STEELBLUE)?;
     let l1 = svg.text(75.0, 47.0, "Group A")?;
-    l1.set_fill("white")?;
+    l1.set_fill(WHITE)?;
     l1.set_attr("font-size", "15")?;
     l1.set_attr("text-anchor", "middle")?;
     g1.append(&b1)?;
@@ -248,16 +252,16 @@ fn demo_group() -> Result<(), Error> {
 
     // Dashed connector
     let conn = svg.line(190.0, 65.0, 280.0, 65.0)?;
-    conn.set_stroke("#444")?;
+    conn.set_stroke(GUIDE)?;
     conn.set_stroke_width(2.0)?;
     conn.set_attr("stroke-dasharray", "5 4")?;
 
     // Group B — darkorange block, different translate
     let g2 = svg.group()?;
     let b2 = svg.rect(0.0, 0.0, 150.0, 80.0)?;
-    b2.set_fill("darkorange")?;
+    b2.set_fill(DARK_ORANGE)?;
     let l2 = svg.text(75.0, 47.0, "Group B")?;
-    l2.set_fill("white")?;
+    l2.set_fill(WHITE)?;
     l2.set_attr("font-size", "15")?;
     l2.set_attr("text-anchor", "middle")?;
     g2.append(&b2)?;
@@ -275,12 +279,12 @@ fn demo_anim() -> Result<(), Error> {
 
     // Pulsing circle — radius oscillates
     let pulse = svg.circle(80.0, 55.0, 20.0)?;
-    pulse.set_fill("mediumorchid")?;
+    pulse.set_fill(MEDIUM_ORCHID)?;
     caption(&svg, 80.0, "radius pulse")?;
 
     // Travelling circle — cx oscillates horizontally
     let travel = svg.circle(400.0, 55.0, 14.0)?;
-    travel.set_fill("lightskyblue")?;
+    travel.set_fill(LIGHT_SKY_BLUE)?;
     caption(&svg, 400.0, "horizontal travel")?;
 
     // Hue-rotating rectangle
@@ -337,31 +341,31 @@ fn demo_events_click() -> Result<(), Error> {
 
     // Counter button.  Its colour cycles on every click so repeated presses are visible.
     let btn = svg.rect(40.0, 30.0, 150.0, 60.0)?;
-    btn.set_fill("steelblue")?;
+    btn.set_fill(STEELBLUE)?;
     btn.set_attr("rx", "8")?;
     btn.set_attr("style", "cursor:pointer")?;
 
     // The label sits on top of the button; `pointer-events:none` lets clicks fall through to the rect beneath.
     let btn_label = svg.text(115.0, 66.0, "click me")?;
-    btn_label.set_fill("white")?;
+    btn_label.set_fill(WHITE)?;
     btn_label.set_attr("font-size", "16")?;
     btn_label.set_attr("text-anchor", "middle")?;
     btn_label.set_attr("style", "pointer-events:none")?;
 
     // Reset button — greyed out until there is actually something to reset.
     let reset = svg.rect(210.0, 30.0, 110.0, 60.0)?;
-    reset.set_fill("#555")?;
+    reset.set_fill(RESET_IDLE)?;
     reset.set_attr("rx", "8")?;
     reset.set_attr("style", "cursor:pointer")?;
 
     let reset_label = svg.text(265.0, 66.0, "reset")?;
-    reset_label.set_fill("white")?;
+    reset_label.set_fill(WHITE)?;
     reset_label.set_attr("font-size", "15")?;
     reset_label.set_attr("text-anchor", "middle")?;
     reset_label.set_attr("style", "pointer-events:none")?;
 
     let readout = svg.text(350.0, 66.0, "clicks: 0")?;
-    readout.set_fill("#c9d1d9")?;
+    readout.set_fill(TEXT)?;
     readout.set_attr("font-size", "15")?;
 
     let count = Rc::new(Cell::new(0u32));
@@ -376,7 +380,7 @@ fn demo_events_click() -> Result<(), Error> {
         let n = inc_count.get() + 1;
         inc_count.set(n);
         let _ = inc_btn.set_fill(&format!("hsl({},60%,45%)", (n * 40) % 360));
-        let _ = inc_reset.set_fill("tomato"); // reset now has something to do
+        let _ = inc_reset.set_fill(TOMATO); // reset now has something to do
         inc_readout
             .as_element()
             .set_text_content(Some(&format!("clicks: {n}")));
@@ -389,8 +393,8 @@ fn demo_events_click() -> Result<(), Error> {
     let rst_count = count.clone();
     reset.on_click(move |_| {
         rst_count.set(0);
-        let _ = rst_btn.set_fill("steelblue");
-        let _ = rst_reset.set_fill("#555");
+        let _ = rst_btn.set_fill(STEELBLUE);
+        let _ = rst_reset.set_fill(RESET_IDLE);
         rst_readout.as_element().set_text_content(Some("clicks: 0"));
     })?;
 
@@ -416,7 +420,7 @@ fn demo_events_colour() -> Result<(), Error> {
     // The wheel is built from thin pie wedges, each filled with its own hue.  Grouping them lets a single
     // `pointer-events:none` on the <g> apply to every wedge at once.
     let wheel = svg.group()?;
-    wheel.set_attr("pointer-events", "none")?;
+    wheel.set_attr("pointer-events", NONE)?;
     let mut a: f64 = 0.0;
     while a < 360.0 {
         let (r0, r1) = (a.to_radians(), (a + STEP).to_radians());
@@ -434,28 +438,28 @@ fn demo_events_colour() -> Result<(), Error> {
 
     // A hollow ring that marks the sampled point on the wheel; parked off-canvas until the pointer arrives.
     let marker = svg.circle(-20.0, -20.0, 6.0)?;
-    marker.set_fill("none")?;
-    marker.set_stroke("white")?;
+    marker.set_fill(NONE)?;
+    marker.set_stroke(WHITE)?;
     marker.set_stroke_width(2.0)?;
-    marker.set_attr("pointer-events", "none")?;
+    marker.set_attr("pointer-events", NONE)?;
 
     // The "second object": its fill follows whatever hue the pointer is over.
     let swatch = svg.rect(210.0, 18.0, 250.0, 94.0)?;
-    swatch.set_fill("#222")?;
-    swatch.set_stroke("#444")?;
+    swatch.set_fill(SWATCH_EMPTY)?;
+    swatch.set_stroke(GUIDE)?;
     swatch.set_attr("rx", "12")?;
-    swatch.set_attr("pointer-events", "none")?;
+    swatch.set_attr("pointer-events", NONE)?;
 
     let readout = svg.text(485.0, 70.0, "move over the wheel →")?;
-    readout.set_fill("#c9d1d9")?;
+    readout.set_fill(TEXT)?;
     readout.set_attr("font-size", "15")?;
-    readout.set_attr("pointer-events", "none")?;
+    readout.set_attr("pointer-events", NONE)?;
 
     caption(&svg, 335.0, "raw mousemove over the wheel sets the swatch fill (hue from pointer angle)")?;
 
     // The pointer-capture surface goes on last so it sits on top of everything above.
     let surface = svg.rect(0.0, 0.0, W, H)?;
-    surface.set_fill("transparent")?;
+    surface.set_fill(TRANSPARENT)?;
     surface.set_attr("style", "cursor:crosshair")?;
 
     let mv_marker = marker.clone();
@@ -489,18 +493,18 @@ fn demo_events_modifiers() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-events-modifiers", W, H)?;
 
     let pad = svg.rect(40.0, 25.0, 240.0, 80.0)?;
-    pad.set_fill("slateblue")?;
+    pad.set_fill(SLATE_BLUE)?;
     pad.set_attr("rx", "8")?;
     pad.set_attr("style", "cursor:pointer")?;
 
     let hint = svg.text(160.0, 70.0, "click me")?;
-    hint.set_fill("white")?;
+    hint.set_fill(WHITE)?;
     hint.set_attr("font-size", "15")?;
     hint.set_attr("text-anchor", "middle")?;
     hint.set_attr("style", "pointer-events:none")?;
 
     let readout = svg.text(310.0, 70.0, "try: click · shift · ctrl · alt · right-click")?;
-    readout.set_fill("#c9d1d9")?;
+    readout.set_fill(TEXT)?;
     readout.set_attr("font-size", "14")?;
 
     // Left-click → inspect the modifier-key flags carried by the MouseEvent.
@@ -508,15 +512,15 @@ fn demo_events_modifiers() -> Result<(), Error> {
     let ro_click = readout.clone();
     pad.on_click(move |e| {
         let (label, colour) = if e.shift_key() {
-            ("shift + click", "tomato")
+            ("shift + click", TOMATO)
         } else if e.ctrl_key() {
-            ("ctrl + click", "mediumseagreen")
+            ("ctrl + click", MEDIUM_SEA_GREEN)
         } else if e.alt_key() {
-            ("alt + click", "goldenrod")
+            ("alt + click", GOLDENROD)
         } else if e.meta_key() {
-            ("meta + click", "orchid")
+            ("meta + click", ORCHID)
         } else {
-            ("plain click", "slateblue")
+            ("plain click", SLATE_BLUE)
         };
         let _ = pad_click.set_fill(colour);
         ro_click
@@ -530,7 +534,7 @@ fn demo_events_modifiers() -> Result<(), Error> {
     let ro_ctx = readout.clone();
     on_raw(&pad, "contextmenu", move |e| {
         e.prevent_default();
-        let _ = pad_ctx.set_fill("crimson");
+        let _ = pad_ctx.set_fill(CRIMSON);
         ro_ctx
             .as_element()
             .set_text_content(Some("last: right-click (context menu suppressed)"));
@@ -547,18 +551,18 @@ fn demo_events_press() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-events-press", W, H)?;
 
     let pad = svg.rect(60.0, 25.0, 200.0, 80.0)?;
-    pad.set_fill("teal")?;
+    pad.set_fill(TEAL)?;
     pad.set_attr("rx", "8")?;
     pad.set_attr("style", "cursor:pointer")?;
 
     let label = svg.text(160.0, 70.0, "press & hold")?;
-    label.set_fill("white")?;
+    label.set_fill(WHITE)?;
     label.set_attr("font-size", "15")?;
     label.set_attr("text-anchor", "middle")?;
     label.set_attr("style", "pointer-events:none")?;
 
     let readout = svg.text(320.0, 70.0, "state: idle")?;
-    readout.set_fill("#c9d1d9")?;
+    readout.set_fill(TEXT)?;
     readout.set_attr("font-size", "14")?;
 
     // Closures are `Clone` when everything they capture is `Clone` (SvgNode is), so we can build `press`/`release`
@@ -567,7 +571,7 @@ fn demo_events_press() -> Result<(), Error> {
         let pad = pad.clone();
         let readout = readout.clone();
         move || {
-            let _ = pad.set_fill("#0a3d3d"); // darken while held
+            let _ = pad.set_fill(TEAL_PRESSED); // darken while held
             let _ = pad.set_attr("transform", "translate(2,2)");
             readout.as_element().set_text_content(Some("state: pressed"));
         }
@@ -576,7 +580,7 @@ fn demo_events_press() -> Result<(), Error> {
         let pad = pad.clone();
         let readout = readout.clone();
         move || {
-            let _ = pad.set_fill("teal");
+            let _ = pad.set_fill(TEAL);
             let _ = pad.set_attr("transform", "translate(0,0)");
             readout.as_element().set_text_content(Some("state: idle"));
         }
@@ -606,15 +610,15 @@ fn demo_events_group() -> Result<(), Error> {
         let g = svg.group()?;
 
         let boundary = svg.rect(0.0, 0.0, 300.0, 80.0)?;
-        boundary.set_fill("#161b22")?; // == canvas background, so only the stroke is visible
+        boundary.set_fill(CANVAS_BG)?; // == canvas background, so only the stroke is visible
         boundary.set_stroke(border)?;
         boundary.set_stroke_width(2.0)?;
         boundary.set_attr("rx", "8")?;
 
         let child_a = svg.circle(75.0, 40.0, 22.0)?;
-        child_a.set_fill("#f0883e")?;
+        child_a.set_fill(LEAF_ORANGE)?;
         let child_b = svg.rect(160.0, 18.0, 110.0, 44.0)?;
-        child_b.set_fill("#3fb950")?;
+        child_b.set_fill(LEAF_GREEN)?;
         child_b.set_attr("rx", "4")?;
 
         g.append(&boundary)?;
@@ -630,15 +634,15 @@ fn demo_events_group() -> Result<(), Error> {
         t.set_fill(colour)?;
         t.set_attr("font-size", "12")?;
         let count = svg.text(x, 124.0, "fires: 0")?;
-        count.set_fill("#c9d1d9")?;
+        count.set_fill(TEXT)?;
         count.set_attr("font-size", "14")?;
         Ok(count)
     };
 
     // group 1 — on_mouseover.  This event *bubbles*, so the handler on the <g> fires every time the pointer enters a
     // descendant: once for the boundary, then again for each child (and again when crossing back onto the boundary).
-    let g1_count = labels(40.0, "#58a6ff", "group 1: on_mouseover (event bubbles)")?;
-    let group1 = build(40.0, "#58a6ff")?;
+    let g1_count = labels(40.0, ACCENT_BLUE, "group 1: on_mouseover (event bubbles)")?;
+    let group1 = build(40.0, ACCENT_BLUE)?;
     let c1 = Rc::new(Cell::new(0u32));
     group1.on_mouseover(move |_| {
         let n = c1.get() + 1;
@@ -653,8 +657,8 @@ fn demo_events_group() -> Result<(), Error> {
 
     // group 2 — mouseenter.  This event does *not* bubble, so the handler fires exactly once per boundary crossing,
     // no matter how many child shapes the pointer then sweeps over inside the group.
-    let g2_count = labels(440.0, "#d29922", "group 2: mouseenter (event does not bubble)")?;
-    let group2 = build(440.0, "#d29922")?;
+    let g2_count = labels(440.0, ACCENT_AMBER, "group 2: mouseenter (event does not bubble)")?;
+    let group2 = build(440.0, ACCENT_AMBER)?;
     let c2 = Rc::new(Cell::new(0u32));
     // mouseenter is not wrapped by SvgNode; on_raw registers it on the element and leaks the closure, so the listener
     // survives without our having to keep the group handle alive.
@@ -665,6 +669,135 @@ fn demo_events_group() -> Result<(), Error> {
             .as_element()
             .set_text_content(Some(&format!("fires: {n}")));
     })?;
+
+    Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Events — drag & drop a card within a parent bounding box (raw mousedown / mousemove / mouseup)
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+// A single transparent surface on *top* of everything captures every pointer event and hit-tests the card itself.
+// Keeping mousedown, mousemove and mouseup all on the one element means every offsetX/offsetY is read relative to the
+// surface, avoiding the cross-element offset mismatch you would get by putting mousedown on the card and mousemove on
+// the surface.
+fn demo_events_drag() -> Result<(), Error> {
+    const BX: f64 = 40.0; // bounding box
+    const BY: f64 = 22.0;
+    const BW: f64 = 720.0;
+    const BH: f64 = 86.0;
+    const OW: f64 = 96.0; // draggable card
+    const OH: f64 = 50.0;
+
+    let svg = SvgRoot::create_in("demo-events-drag", W, H)?;
+
+    // The parent bounding box that constrains the card (a dashed "drop zone").
+    let bbox = svg.rect(BX, BY, BW, BH)?;
+    bbox.set_fill(DROP_ZONE_FILL)?;
+    bbox.set_stroke(DROP_ZONE_BORDER)?;
+    bbox.set_stroke_width(1.5)?;
+    bbox.set_attr("rx", "8")?;
+    bbox.set_attr("stroke-dasharray", "6 4")?;
+
+    // The draggable card is a group (background + label) moved as a unit via its transform.
+    let card_bg = svg.rect(0.0, 0.0, OW, OH)?;
+    card_bg.set_fill(ACCENT_BLUE)?;
+    card_bg.set_attr("rx", "8")?;
+
+    let card_label = svg.text(OW / 2.0, OH / 2.0 + 5.0, "drag me")?;
+    card_label.set_fill(INK)?;
+    card_label.set_attr("font-size", "14")?;
+    card_label.set_attr("font-weight", "bold")?;
+    card_label.set_attr("text-anchor", "middle")?;
+
+    let card = svg.group()?;
+    card.append(&card_bg)?;
+    card.append(&card_label)?;
+
+    let start = (BX + 16.0, BY + (BH - OH) / 2.0);
+    card.set_attr("transform", &format!("translate({:.1}, {:.1})", start.0, start.1))?;
+
+    let readout = svg.text(W - 12.0, 16.0, &format!("x: {:.0}  y: {:.0}", start.0, start.1))?;
+    readout.set_fill(TEXT_MUTED)?;
+    readout.set_attr("font-size", "12")?;
+    readout.set_attr("text-anchor", "end")?;
+
+    caption(&svg, 400.0, "mousedown on the card, mousemove to drag, mouseup to drop — clamped to the box")?;
+
+    // Capture surface on top; it hit-tests the card and drives the whole gesture.
+    let surface = svg.rect(0.0, 0.0, W, H)?;
+    surface.set_fill(TRANSPARENT)?;
+    surface.set_attr("style", "cursor:default")?;
+
+    // Shared state: the card's current top-left, and Some(grab-offset) while a drag is in progress.
+    let pos = Rc::new(Cell::new(start));
+    let grab: Rc<Cell<Option<(f64, f64)>>> = Rc::new(Cell::new(None));
+
+    // Top-left bounds that keep the whole card inside the box.
+    let max_x = BX + BW - OW;
+    let max_y = BY + BH - OH;
+    let on_card = |px: f64, py: f64, ox: f64, oy: f64| {
+        (ox..ox + OW).contains(&px) && (oy..oy + OH).contains(&py)
+    };
+
+    // mousedown → start dragging only if the press landed on the card.
+    {
+        let pos = pos.clone();
+        let grab = grab.clone();
+        let card = card.clone();
+        let surface_c = surface.clone();
+
+        on_raw(&surface, "mousedown", move |e| {
+            let (px, py) = (f64::from(e.offset_x()), f64::from(e.offset_y()));
+            let (ox, oy) = pos.get();
+            if on_card(px, py, ox, oy) {
+                grab.set(Some((px - ox, py - oy)));
+                let _ = card.set_attr("opacity", "0.85");
+                let _ = surface_c.set_attr("style", "cursor:grabbing");
+            }
+        })?;
+    }
+
+    // mousemove → drag the card (clamped) while held; otherwise just hint the cursor when hovering it.
+    {
+        let pos = pos.clone();
+        let grab = grab.clone();
+        let card = card.clone();
+        let readout = readout.clone();
+        let surface_c = surface.clone();
+
+        on_raw(&surface, "mousemove", move |e| {
+            let (px, py) = (f64::from(e.offset_x()), f64::from(e.offset_y()));
+            if let Some((gx, gy)) = grab.get() {
+                let (nx, ny) = ((px - gx).clamp(BX, max_x), (py - gy).clamp(BY, max_y));
+                pos.set((nx, ny));
+                let _ = card.set_attr("transform", &format!("translate({nx:.1}, {ny:.1})"));
+                readout
+                    .as_element()
+                    .set_text_content(Some(&format!("x: {nx:.0}  y: {ny:.0}")));
+            } else {
+                let (ox, oy) = pos.get();
+                let cursor = if on_card(px, py, ox, oy) { "cursor:grab" } else { "cursor:default" };
+                let _ = surface_c.set_attr("style", cursor);
+            }
+        })?;
+    }
+
+    // mouseup / mouseleave → drop the card (mouseleave guards against releasing outside the canvas).
+    {
+        let grab = grab.clone();
+        let card = card.clone();
+        let surface_c = surface.clone();
+        let drop = move || {
+            grab.set(None);
+            let _ = card.set_attr("opacity", "1");
+            let _ = surface_c.set_attr("style", "cursor:default");
+        };
+        let drop_up = drop.clone();
+
+        on_raw(&surface, "mouseup", move |_| drop_up())?;
+        on_raw(&surface, "mouseleave", move |_| drop())?;
+    }
 
     Ok(())
 }

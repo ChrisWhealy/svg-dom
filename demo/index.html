@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>svg-dom — Element Gallery</title>
-    <link rel="stylesheet" href="./demo/style.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
@@ -176,6 +176,20 @@
                 listens for bubbling <strong>mouseover</strong>, so its counter ticks up on entering the boundary
                 <em>and</em> again on each child; <strong>group 2</strong> listens for non-bubbling
                 <strong>mouseenter</strong>, so its counter rises only once per boundary crossing.
+            </figcaption>
+        </figure>
+    </section>
+
+    <!-- drag & drop  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <section class="section">
+        <h2><code>mousedown</code> → <code>mousemove</code> → <code>mouseup</code> — drag &amp; drop</h2>
+        <figure>
+            <div class="canvas" id="demo-events-drag"></div>
+            <figcaption>
+                Press the card and drag it: <strong>mousedown</strong> records the grab offset,
+                <strong>mousemove</strong> repositions the card (clamped so it stays inside the dashed box), and
+                <strong>mouseup</strong> drops it. A single transparent surface captures the whole gesture and
+                hit-tests the card itself, so the pointer can move freely without outrunning it.
             </figcaption>
         </figure>
     </section>
