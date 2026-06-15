@@ -128,8 +128,10 @@ figure {
     margin: 0;
 }
 
-/* Each demo section injects an <svg> into the matching <div>. The canvas is kept at its native 800×130 so the
-   interactive demos read pointer coordinates 1:1; the stage scrolls if the window is too narrow. */
+/* Each demo section injects an <svg> into the matching <div>. The <svg> sizes itself from the width/height
+   attributes that the Rust code sets via SvgRoot::create_in (see W/H in src/demo/mod.rs) — the single source of
+   truth — so the dimensions are deliberately NOT repeated here. .canvas is inline-block so its border hugs the
+   canvas; the stage scrolls if the window is too narrow. */
 .canvas {
     display: inline-block;
     border-radius: 6px;
@@ -139,8 +141,6 @@ figure {
 
 .canvas svg {
     display: block;
-    width: 800px;
-    height: 180px;
     background: #161b22;
 }
 

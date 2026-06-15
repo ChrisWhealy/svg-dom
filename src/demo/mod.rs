@@ -20,8 +20,15 @@ use colours::*;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Constants
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Single source of truth for the demo canvas dimensions. `create_in` writes these to each <svg>'s width/height
+// attributes, which size the rendered element — so style.css deliberately does not repeat them.
 const W: f64 = 800.0; // SVG width shared across all demo canvases
-const H: f64 = 130.0; // SVG height shared across all demo canvases
+const H: f64 = 180.0; // SVG height shared across all demo canvases
+
+// The demos are composed within a BAND-tall region. PAD_Y is the offset that vertically centres that band in the
+// canvas, so every demo's content stays in the middle whatever H is. (PAD_Y is 0 when H == BAND.)
+const BAND: f64 = 130.0;
+const PAD_Y: f64 = (H - BAND) / 2.0;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Public entry point
@@ -62,7 +69,7 @@ pub fn run_demo() -> Result<(), JsValue> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Appends a small grey caption below an element at horizontal centre `cx`.
 fn caption(svg: &SvgRoot, cx: f64, text: &str) -> Result<(), Error> {
-    let t = svg.text(cx, H - 6.0, text)?;
+    let t = svg.text(cx, PAD_Y + BAND - 6.0, text)?;
     t.set_fill(CAPTION)?;
     t.set_attr("font-size", "11")?;
     t.set_attr("text-anchor", "middle")?;
@@ -76,25 +83,25 @@ fn demo_rect() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-rect", W, H)?;
 
     // 1. Plain fill
-    let r1 = svg.rect(10.0, 10.0, 130.0, 90.0)?;
+    let r1 = svg.rect(10.0, 10.0 + PAD_Y, 130.0, 90.0)?;
     r1.set_fill(STEELBLUE)?;
     caption(&svg, 75.0, "fill")?;
 
     // 2. Stroke-only (no fill)
-    let r2 = svg.rect(155.0, 10.0, 130.0, 90.0)?;
+    let r2 = svg.rect(155.0, 10.0 + PAD_Y, 130.0, 90.0)?;
     r2.set_fill(NONE)?;
     r2.set_stroke(CORAL)?;
     r2.set_stroke_width(3.0)?;
     caption(&svg, 220.0, "stroke")?;
 
     // 3. Rounded corners via rx attribute
-    let r3 = svg.rect(300.0, 10.0, 130.0, 90.0)?;
+    let r3 = svg.rect(300.0, 10.0 + PAD_Y, 130.0, 90.0)?;
     r3.set_fill(MEDIUM_SEA_GREEN)?;
     r3.set_attr("rx", "20")?;
     caption(&svg, 365.0, "rounded (rx)")?;
 
     // 4. Hover: fill swaps on mouseover / mouseout
-    let r4 = svg.rect(445.0, 10.0, 130.0, 90.0)?;
+    let r4 = svg.rect(445.0, 10.0 + PAD_Y, 130.0, 90.0)?;
     r4.set_fill(GOLDENROD)?;
     r4.set_attr("style", "cursor:pointer")?;
     let r4b = r4.clone();
@@ -108,7 +115,7 @@ fn demo_rect() -> Result<(), Error> {
     caption(&svg, 510.0, "hover")?;
 
     // 5. Click: toggles between two fills
-    let r5 = svg.rect(590.0, 10.0, 130.0, 90.0)?;
+    let r5 = svg.rect(590.0, 10.0 + PAD_Y, 130.0, 90.0)?;
     r5.set_fill(SLATE_GRAY)?;
     r5.set_attr("style", "cursor:pointer")?;
     let toggled = Rc::new(Cell::new(false));
@@ -130,19 +137,19 @@ fn demo_circle() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-circle", W, H)?;
 
     // 1. Solid fill
-    let c1 = svg.circle(70.0, 57.0, 47.0)?;
+    let c1 = svg.circle(70.0, 57.0 + PAD_Y, 47.0)?;
     c1.set_fill(TOMATO)?;
     caption(&svg, 70.0, "fill")?;
 
     // 2. Stroke-only
-    let c2 = svg.circle(210.0, 57.0, 47.0)?;
+    let c2 = svg.circle(210.0, 57.0 + PAD_Y, 47.0)?;
     c2.set_fill(NONE)?;
     c2.set_stroke(ORCHID)?;
     c2.set_stroke_width(4.0)?;
     caption(&svg, 210.0, "stroke")?;
 
     // 3. Hover: radius grows / shrinks
-    let c3 = svg.circle(360.0, 57.0, 35.0)?;
+    let c3 = svg.circle(360.0, 57.0 + PAD_Y, 35.0)?;
     c3.set_fill(LIGHT_SKY_BLUE)?;
     c3.set_attr("style", "cursor:pointer")?;
     let c3b = c3.clone();
@@ -165,19 +172,19 @@ fn demo_line() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-line", W, H)?;
 
     // Horizontal
-    let l1 = svg.line(10.0, 55.0, 230.0, 55.0)?;
+    let l1 = svg.line(10.0, 55.0 + PAD_Y, 230.0, 55.0 + PAD_Y)?;
     l1.set_stroke(WIRE)?;
     l1.set_stroke_width(2.0)?;
     caption(&svg, 120.0, "horizontal")?;
 
     // Diagonal
-    let l2 = svg.line(270.0, 10.0, 470.0, 110.0)?;
+    let l2 = svg.line(270.0, 10.0 + PAD_Y, 470.0, 110.0 + PAD_Y)?;
     l2.set_stroke(CORAL)?;
     l2.set_stroke_width(2.0)?;
     caption(&svg, 370.0, "diagonal")?;
 
     // Thick
-    let l3 = svg.line(510.0, 55.0, 790.0, 55.0)?;
+    let l3 = svg.line(510.0, 55.0 + PAD_Y, 790.0, 55.0 + PAD_Y)?;
     l3.set_stroke(GOLDENROD)?;
     l3.set_stroke_width(18.0)?;
     caption(&svg, 650.0, "thick stroke")?;
@@ -190,12 +197,15 @@ fn demo_line() -> Result<(), Error> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 fn demo_path() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-path", W, H)?;
+    // The path data is authored in the BAND; this transform vertically centres each path in the canvas.
+    let shift = format!("translate(0,{PAD_Y})");
 
     // Closed triangle (M / L / Z)
     let tri = svg.path("M 70 10 L 130 110 L 10 110 Z")?;
     tri.set_fill(STEELBLUE)?;
     tri.set_stroke(WHITE)?;
     tri.set_stroke_width(2.0)?;
+    tri.set_attr("transform", &shift)?;
     caption(&svg, 70.0, "triangle (M L Z)")?;
 
     // Quadratic Bézier wave (Q)
@@ -203,6 +213,7 @@ fn demo_path() -> Result<(), Error> {
     wave.set_fill(NONE)?;
     wave.set_stroke(MEDIUM_ORCHID)?;
     wave.set_stroke_width(3.0)?;
+    wave.set_attr("transform", &shift)?;
     caption(&svg, 310.0, "Bézier wave (Q)")?;
 
     // Elliptical arc — open semicircle (A)
@@ -210,6 +221,7 @@ fn demo_path() -> Result<(), Error> {
     arc.set_fill(NONE)?;
     arc.set_stroke(CORAL)?;
     arc.set_stroke_width(3.0)?;
+    arc.set_attr("transform", &shift)?;
     caption(&svg, 570.0, "arc (A)")?;
 
     Ok(())
@@ -222,18 +234,18 @@ fn demo_text() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-text", W, H)?;
 
     // Small plain text
-    let t1 = svg.text(10.0, 60.0, "Plain text — 14px")?;
+    let t1 = svg.text(10.0, 60.0 + PAD_Y, "Plain text — 14px")?;
     t1.set_fill(PLAIN_TEXT)?;
     t1.set_attr("font-size", "14")?;
 
     // Large bold
-    let t2 = svg.text(10.0, 100.0, "Bold — 36px")?;
+    let t2 = svg.text(10.0, 100.0 + PAD_Y, "Bold — 36px")?;
     t2.set_fill(STEELBLUE)?;
     t2.set_attr("font-size", "36")?;
     t2.set_attr("font-weight", "bold")?;
 
     // Coloured, medium
-    let t3 = svg.text(430.0, 65.0, "Coloured — 22px")?;
+    let t3 = svg.text(430.0, 65.0 + PAD_Y, "Coloured — 22px")?;
     t3.set_fill(CORAL)?;
     t3.set_attr("font-size", "22")?;
 
@@ -256,10 +268,10 @@ fn demo_group() -> Result<(), Error> {
     l1.set_attr("text-anchor", "middle")?;
     g1.append(&b1)?;
     g1.append(&l1)?;
-    g1.set_attr("transform", "translate(40, 25)")?;
+    g1.set_attr("transform", &format!("translate(40, {})", 25.0 + PAD_Y))?;
 
     // Dashed connector
-    let conn = svg.line(190.0, 65.0, 280.0, 65.0)?;
+    let conn = svg.line(190.0, 65.0 + PAD_Y, 280.0, 65.0 + PAD_Y)?;
     conn.set_stroke(GUIDE)?;
     conn.set_stroke_width(2.0)?;
     conn.set_attr("stroke-dasharray", "5 4")?;
@@ -274,7 +286,7 @@ fn demo_group() -> Result<(), Error> {
     l2.set_attr("text-anchor", "middle")?;
     g2.append(&b2)?;
     g2.append(&l2)?;
-    g2.set_attr("transform", "translate(280, 25)")?;
+    g2.set_attr("transform", &format!("translate(280, {})", 25.0 + PAD_Y))?;
 
     Ok(())
 }
@@ -286,17 +298,17 @@ fn demo_anim() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-anim", W, H)?;
 
     // Pulsing circle — radius oscillates
-    let pulse = svg.circle(80.0, 55.0, 20.0)?;
+    let pulse = svg.circle(80.0, 55.0 + PAD_Y, 20.0)?;
     pulse.set_fill(MEDIUM_ORCHID)?;
     caption(&svg, 80.0, "radius pulse")?;
 
     // Travelling circle — cx oscillates horizontally
-    let travel = svg.circle(400.0, 55.0, 14.0)?;
+    let travel = svg.circle(400.0, 55.0 + PAD_Y, 14.0)?;
     travel.set_fill(LIGHT_SKY_BLUE)?;
     caption(&svg, 400.0, "horizontal travel")?;
 
     // Hue-rotating rectangle
-    let hue_rect = svg.rect(600.0, 10.0, 185.0, 90.0)?;
+    let hue_rect = svg.rect(600.0, 10.0 + PAD_Y, 185.0, 90.0)?;
     caption(&svg, 693.0, "hue rotation")?;
 
     let anim = AnimationLoop::start(move |ts| {
@@ -352,31 +364,31 @@ fn demo_events_click() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-events-click", W, H)?;
 
     // Counter button.  Its colour cycles on every click so repeated presses are visible.
-    let btn = svg.rect(40.0, 30.0, 150.0, 60.0)?;
+    let btn = svg.rect(40.0, 30.0 + PAD_Y, 150.0, 60.0)?;
     btn.set_fill(STEELBLUE)?;
     btn.set_attr("rx", "8")?;
     btn.set_attr("style", "cursor:pointer")?;
 
     // The label sits on top of the button; `pointer-events:none` lets clicks fall through to the rect beneath.
-    let btn_label = svg.text(115.0, 66.0, "click me")?;
+    let btn_label = svg.text(115.0, 66.0 + PAD_Y, "click me")?;
     btn_label.set_fill(WHITE)?;
     btn_label.set_attr("font-size", "16")?;
     btn_label.set_attr("text-anchor", "middle")?;
     btn_label.set_attr("style", "pointer-events:none")?;
 
     // Reset button — greyed out until there is actually something to reset.
-    let reset = svg.rect(210.0, 30.0, 110.0, 60.0)?;
+    let reset = svg.rect(210.0, 30.0 + PAD_Y, 110.0, 60.0)?;
     reset.set_fill(RESET_IDLE)?;
     reset.set_attr("rx", "8")?;
     reset.set_attr("style", "cursor:pointer")?;
 
-    let reset_label = svg.text(265.0, 66.0, "reset")?;
+    let reset_label = svg.text(265.0, 66.0 + PAD_Y, "reset")?;
     reset_label.set_fill(WHITE)?;
     reset_label.set_attr("font-size", "15")?;
     reset_label.set_attr("text-anchor", "middle")?;
     reset_label.set_attr("style", "pointer-events:none")?;
 
-    let readout = svg.text(350.0, 66.0, "clicks: 0")?;
+    let readout = svg.text(350.0, 66.0 + PAD_Y, "clicks: 0")?;
     readout.set_fill(TEXT)?;
     readout.set_attr("font-size", "15")?;
 
@@ -426,12 +438,12 @@ fn demo_events_click() -> Result<(), Error> {
 // `pointer-events:none`.  That keeps exactly one element under the pointer at all times, so the cursor never flickers
 // as it moves (the earlier crosshair version flickered because the moving guides stole hover from the surface).
 fn demo_events_colour() -> Result<(), Error> {
-    const CX: f64 = 90.0; // wheel centre
-    const CY: f64 = 90.0;
-    const R: f64 = 77.0; // wheel radius
+    const CX: f64 = 90.0; // wheel centre (horizontal)
+    const CY: f64 = H / 2.0; // wheel centre (vertical) — middle of the canvas
+    const R: f64 = H / 2.0 - 13.0; // wheel radius, scaled to the canvas height (keeps a ~13px margin)
     const STEP: f64 = 2.0; // angular width of each wedge, in degrees
 
-    let svg = SvgRoot::create_in("demo-events-colour", W, H + 150.0)?;
+    let svg = SvgRoot::create_in("demo-events-colour", W, H)?;
 
     // The wheel is built from thin pie wedges, each filled with its own hue.  Grouping them lets a single
     // `pointer-events:none` on the <g> apply to every wedge at once.
@@ -461,13 +473,13 @@ fn demo_events_colour() -> Result<(), Error> {
     marker.set_attr("pointer-events", NONE)?;
 
     // The "second object": its fill follows whatever hue the pointer is over.
-    let swatch = svg.rect(210.0, 18.0, 250.0, 94.0)?;
+    let swatch = svg.rect(210.0, 18.0 + PAD_Y, 250.0, 94.0)?;
     swatch.set_fill(SWATCH_EMPTY)?;
     swatch.set_stroke(GUIDE)?;
     swatch.set_attr("rx", "12")?;
     swatch.set_attr("pointer-events", NONE)?;
 
-    let readout = svg.text(485.0, 70.0, "move over the wheel →")?;
+    let readout = svg.text(485.0, 70.0 + PAD_Y, "move over the wheel →")?;
     readout.set_fill(TEXT)?;
     readout.set_attr("font-size", "15")?;
     readout.set_attr("pointer-events", NONE)?;
@@ -479,7 +491,7 @@ fn demo_events_colour() -> Result<(), Error> {
     )?;
 
     // The pointer-capture surface goes on last so it sits on top of everything above.
-    let surface = svg.rect(0.0, 0.0, W, H + 150.0)?;
+    let surface = svg.rect(0.0, 0.0, W, H)?;
     surface.set_fill(TRANSPARENT)?;
     surface.set_attr("style", "cursor:crosshair")?;
 
@@ -515,18 +527,18 @@ fn demo_events_colour() -> Result<(), Error> {
 fn demo_events_modifiers() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-events-modifiers", W, H)?;
 
-    let pad = svg.rect(40.0, 25.0, 240.0, 80.0)?;
+    let pad = svg.rect(40.0, 25.0 + PAD_Y, 240.0, 80.0)?;
     pad.set_fill(SLATE_BLUE)?;
     pad.set_attr("rx", "8")?;
     pad.set_attr("style", "cursor:pointer")?;
 
-    let hint = svg.text(160.0, 70.0, "click me")?;
+    let hint = svg.text(160.0, 70.0 + PAD_Y, "click me")?;
     hint.set_fill(WHITE)?;
     hint.set_attr("font-size", "15")?;
     hint.set_attr("text-anchor", "middle")?;
     hint.set_attr("style", "pointer-events:none")?;
 
-    let readout = svg.text(310.0, 70.0, "try: click · shift · ctrl · alt · right-click")?;
+    let readout = svg.text(310.0, 70.0 + PAD_Y, "try: click · shift · ctrl · alt · right-click")?;
     readout.set_fill(TEXT)?;
     readout.set_attr("font-size", "14")?;
 
@@ -577,18 +589,18 @@ fn demo_events_modifiers() -> Result<(), Error> {
 fn demo_events_press() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-events-press", W, H)?;
 
-    let pad = svg.rect(60.0, 25.0, 200.0, 80.0)?;
+    let pad = svg.rect(60.0, 25.0 + PAD_Y, 200.0, 80.0)?;
     pad.set_fill(TEAL)?;
     pad.set_attr("rx", "8")?;
     pad.set_attr("style", "cursor:pointer")?;
 
-    let label = svg.text(160.0, 70.0, "press & hold")?;
+    let label = svg.text(160.0, 70.0 + PAD_Y, "press & hold")?;
     label.set_fill(WHITE)?;
     label.set_attr("font-size", "15")?;
     label.set_attr("text-anchor", "middle")?;
     label.set_attr("style", "pointer-events:none")?;
 
-    let readout = svg.text(320.0, 70.0, "state: idle")?;
+    let readout = svg.text(320.0, 70.0 + PAD_Y, "state: idle")?;
     readout.set_fill(TEXT)?;
     readout.set_attr("font-size", "14")?;
 
@@ -691,16 +703,16 @@ fn demo_events_group() -> Result<(), Error> {
         g.append(&boundary)?;
         g.append(&child_a)?;
         g.append(&child_b)?;
-        g.set_attr("transform", &format!("translate({x}, 26)"))?;
+        g.set_attr("transform", &format!("translate({x}, {})", 26.0 + PAD_Y))?;
         Ok(g)
     };
 
     // Builds the title + counter labels for a group and returns the (clonable) counter text node.
     let labels = |x: f64, colour: &str, title: &str| -> Result<SvgNode, Error> {
-        let t = svg.text(x, 18.0, title)?;
+        let t = svg.text(x, 18.0 + PAD_Y, title)?;
         t.set_fill(colour)?;
         t.set_attr("font-size", "12")?;
-        let count = svg.text(x, 124.0, "fires: 0")?;
+        let count = svg.text(x, 124.0 + PAD_Y, "fires: 0")?;
         count.set_fill(TEXT)?;
         count.set_attr("font-size", "14")?;
         Ok(count)
@@ -754,9 +766,9 @@ fn demo_events_group() -> Result<(), Error> {
 // the surface.
 fn demo_events_drag() -> Result<(), Error> {
     const BX: f64 = 40.0; // bounding box
-    const BY: f64 = 22.0;
     const BW: f64 = 720.0;
     const BH: f64 = 86.0;
+    const BY: f64 = (H - BH) / 2.0; // vertically centred in the canvas
     const OW: f64 = 96.0; // draggable card
     const OH: f64 = 50.0;
 
@@ -793,7 +805,7 @@ fn demo_events_drag() -> Result<(), Error> {
 
     let readout = svg.text(
         W - 12.0,
-        16.0,
+        BY - 6.0,
         &format!("x: {:.0}  y: {:.0}", start.0, start.1),
     )?;
     readout.set_fill(TEXT_MUTED)?;
