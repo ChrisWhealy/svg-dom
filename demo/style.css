@@ -1,85 +1,167 @@
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  font-family: ui-monospace, "Cascadia Code", "Fira Code", monospace;
-  background: #0d1117;
-  color: #c9d1d9;
-  max-width: 880px;
-  margin: 0 auto;
-  padding: 2rem 1.25rem 4rem;
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
-h1 {
-  font-size: 1.6rem;
-  color: #58a6ff;
-  margin-bottom: 0.4rem;
+body {
+    font-family: ui-monospace, "Cascadia Code", "Fira Code", monospace;
+    background: #0d1117;
+    color: #c9d1d9;
+    min-height: 100vh;
+}
+
+/* App shell: full-height menu on the left; title above the stage on the right. */
+#app {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+        "menu title"
+        "menu stage";
+    min-height: 100vh;
+}
+
+/* Menu panel */
+#menu {
+    grid-area: menu;
+    border-right: 1px solid #21262d;
+    padding: 1.5rem 1rem;
+    overflow-y: auto;
+}
+
+.brand {
+    font-size: 1.2rem;
+    color: #58a6ff;
+    margin-bottom: 1rem;
+}
+
+.menu-group {
+    color: #6e7681;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 1.25rem 0 0.4rem;
+}
+
+.menu-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    font: inherit;
+    font-size: 0.85rem;
+    color: #c9d1d9;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    padding: 0.4rem 0.6rem;
+    cursor: pointer;
+}
+
+.menu-item:hover {
+    background: #161b22;
+}
+
+.menu-item.active {
+    background: #161b22;
+    color: #58a6ff;
+    box-shadow: inset 2px 0 0 #58a6ff;
+}
+
+/* Title panel */
+#title {
+    grid-area: title;
+    padding: 1.75rem 2rem;
+    border-bottom: 1px solid #21262d;
+}
+
+#title h1 {
+    font-size: 1.6rem;
+    color: #58a6ff;
+    margin-bottom: 0.5rem;
 }
 
 .subtitle {
-  color: #8b949e;
-  font-size: 0.85rem;
-  margin-bottom: 2.5rem;
+    color: #8b949e;
+    font-size: 0.85rem;
+    max-width: 78ch;
 }
 
 .subtitle code {
-  color: #f0883e;
-  background: #161b22;
-  padding: 0.1em 0.4em;
-  border-radius: 3px;
+    color: #f0883e;
+    background: #161b22;
+    padding: 0.1em 0.4em;
+    border-radius: 3px;
+}
+
+/* Stage (demo) panel */
+#stage {
+    grid-area: stage;
+    padding: 1.75rem 2rem;
+    overflow: auto;
+}
+
+/* Only the selected demo is shown. */
+.section {
+    display: none;
+}
+
+.section.active {
+    display: block;
 }
 
 h2 {
-  font-size: 1rem;
-  color: #79c0ff;
-  margin-bottom: 0.6rem;
-  padding-bottom: 0.3rem;
-  border-bottom: 1px solid #21262d;
+    font-size: 1rem;
+    color: #79c0ff;
+    margin-bottom: 0.8rem;
+    padding-bottom: 0.3rem;
+    border-bottom: 1px solid #21262d;
 }
 
 h2 code {
-  color: #f0883e;
-}
-
-.section {
-  margin-bottom: 2.5rem;
+    color: #f0883e;
 }
 
 figure {
-  margin: 0;
+    margin: 0;
 }
 
-/* Each demo section injects an <svg> into the matching <div> */
+/* Each demo section injects an <svg> into the matching <div>. The canvas is kept at its native 800×130 so the
+   interactive demos read pointer coordinates 1:1; the stage scrolls if the window is too narrow. */
 .canvas {
-  border-radius: 6px;
-  overflow: hidden;
-  border: 1px solid #21262d;
+    display: inline-block;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #21262d;
 }
 
-/* svg background comes from the element itself via CSS */
 .canvas svg {
-  background: #161b22;
-  display: block;
-  width: 100%;
-  height: auto;
+    display: block;
+    width: 800px;
+    height: 180px;
+    background: #161b22;
 }
 
 figcaption {
-  font-size: 0.78rem;
-  color: #6e7681;
-  margin-top: 0.45rem;
+    font-size: 0.82rem;
+    color: #6e7681;
+    margin-top: 0.6rem;
+    max-width: 80ch;
 }
 
 figcaption strong {
-  color: #8b949e;
+    color: #8b949e;
 }
 
 #error-banner {
-  display: none;
-  background: #3d1e1e;
-  border: 1px solid #f85149;
-  border-radius: 6px;
-  padding: 0.75rem 1rem;
-  margin-bottom: 2rem;
-  color: #f85149;
-  font-size: 0.85rem;
+    display: none;
+    background: #3d1e1e;
+    border: 1px solid #f85149;
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    margin-top: 1rem;
+    color: #f85149;
+    font-size: 0.85rem;
 }

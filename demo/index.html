@@ -9,193 +9,235 @@
 </head>
 
 <body>
-    <h1>svg-dom — Element Gallery</h1>
-    <p class="subtitle">
-        All elements below are created programmatically from Rust/WebAssembly using the <code>svg-dom</code> crate.
-        &nbsp;Hover over or click highlighted elements to see live event handling.<br><br>
-        Build &amp; serve with <code>cargo demo</code> from the project root, then open
-        <code>http://127.0.0.1:8000/demo/</code>
-    </p>
+    <div id="app">
+        <!-- Menu panel  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+        <nav id="menu">
+            <h1 class="brand">svg-dom</h1>
 
-    <div id="error-banner"></div>
+            <div class="menu-group">Shapes</div>
+            <button type="button" class="menu-item" data-target="panel-rect">rect</button>
+            <button type="button" class="menu-item" data-target="panel-circle">circle</button>
+            <button type="button" class="menu-item" data-target="panel-line">line</button>
+            <button type="button" class="menu-item" data-target="panel-path">path</button>
+            <button type="button" class="menu-item" data-target="panel-text">text</button>
+            <button type="button" class="menu-item" data-target="panel-group">group</button>
+            <button type="button" class="menu-item" data-target="panel-anim">AnimationLoop</button>
 
-    <!-- rect  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-    <section class="section">
-        <h2><code>&lt;rect&gt;</code></h2>
-        <figure>
-            <div class="canvas" id="demo-rect"></div>
-            <figcaption>
-                <strong>fill</strong> · <strong>stroke</strong> · <strong>rounded (rx)</strong> ·
-                <strong>hover</strong> (mouseover / mouseout swap fill) ·
-                <strong>click</strong> (toggle fill colour)
-            </figcaption>
-        </figure>
-    </section>
+            <div class="menu-group">Event handling</div>
+            <button type="button" class="menu-item" data-target="panel-events-click">Click counter</button>
+            <button type="button" class="menu-item" data-target="panel-events-colour">Colour wheel</button>
+            <button type="button" class="menu-item" data-target="panel-events-modifiers">Modifier keys</button>
+            <button type="button" class="menu-item" data-target="panel-events-press">Press state</button>
+            <button type="button" class="menu-item" data-target="panel-events-group">Bubbling</button>
+            <button type="button" class="menu-item" data-target="panel-events-drag">Drag &amp; drop</button>
+        </nav>
 
-    <!-- circle  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-    <section class="section">
-        <h2><code>&lt;circle&gt;</code></h2>
-        <figure>
-            <div class="canvas" id="demo-circle"></div>
-            <figcaption>
-                <strong>fill</strong> · <strong>stroke-only</strong> ·
-                <strong>hover</strong> (radius grows on mouseover)
-            </figcaption>
-        </figure>
-    </section>
+        <!-- Title panel  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+        <header id="title">
+            <h1>Element Gallery</h1>
+            <p class="subtitle">
+                Every demo is created programmatically from Rust/WebAssembly using the <code>svg-dom</code> crate.
+                Pick a demo from the menu on the left; hover, click and drag the highlighted elements to see live
+                event handling.
+                <br><br>
+                Build &amp; serve with <code>cargo demo</code> from the project root, then open
+                <code>http://127.0.0.1:8000/demo/</code>
+            </p>
+            <div id="error-banner"></div>
+        </header>
 
-    <!-- line  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-    <section class="section">
-        <h2><code>&lt;line&gt;</code></h2>
-        <figure>
-            <div class="canvas" id="demo-line"></div>
-            <figcaption>
-                <strong>horizontal</strong> · <strong>diagonal</strong> · <strong>thick stroke</strong>
-            </figcaption>
-        </figure>
-    </section>
+        <!-- Demo (stage) panel  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+        <main id="stage">
+            <!-- rect -->
+            <section class="section" id="panel-rect">
+                <h2><code>&lt;rect&gt;</code></h2>
+                <figure>
+                    <div class="canvas" id="demo-rect"></div>
+                    <figcaption>
+                        <strong>fill</strong> · <strong>stroke</strong> · <strong>rounded (rx)</strong> ·
+                        <strong>hover</strong> (mouseover / mouseout swap fill) ·
+                        <strong>click</strong> (toggle fill colour)
+                    </figcaption>
+                </figure>
+            </section>
 
-    <!-- path  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-    <section class="section">
-        <h2><code>&lt;path&gt;</code></h2>
-        <figure>
-            <div class="canvas" id="demo-path"></div>
-            <figcaption>
-                <strong>M L Z</strong> (closed triangle) ·
-                <strong>Q</strong> (quadratic Bézier wave) ·
-                <strong>A</strong> (elliptical arc / open semicircle)
-            </figcaption>
-        </figure>
-    </section>
+            <!-- circle -->
+            <section class="section" id="panel-circle">
+                <h2><code>&lt;circle&gt;</code></h2>
+                <figure>
+                    <div class="canvas" id="demo-circle"></div>
+                    <figcaption>
+                        <strong>fill</strong> · <strong>stroke-only</strong> ·
+                        <strong>hover</strong> (radius grows on mouseover)
+                    </figcaption>
+                </figure>
+            </section>
 
-    <!-- text  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-    <section class="section">
-        <h2><code>&lt;text&gt;</code></h2>
-        <figure>
-            <div class="canvas" id="demo-text"></div>
-            <figcaption>
-                <strong>plain</strong> · <strong>bold large</strong> · <strong>coloured</strong>
-                — <em>y</em> positions the text <em>baseline</em>, not the top of the bounding box
-            </figcaption>
-        </figure>
-    </section>
+            <!-- line -->
+            <section class="section" id="panel-line">
+                <h2><code>&lt;line&gt;</code></h2>
+                <figure>
+                    <div class="canvas" id="demo-line"></div>
+                    <figcaption>
+                        <strong>horizontal</strong> · <strong>diagonal</strong> · <strong>thick stroke</strong>
+                    </figcaption>
+                </figure>
+            </section>
 
-    <!-- group - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-    <section class="section">
-        <h2><code>&lt;g&gt;</code> — group</h2>
-        <figure>
-            <div class="canvas" id="demo-group"></div>
-            <figcaption>
-                Two groups share the same local element coordinates; a
-                <code>transform="translate(…)"</code> repositions each group as a unit.
-                The dashed connector is drawn in SVG root space.
-            </figcaption>
-        </figure>
-    </section>
+            <!-- path -->
+            <section class="section" id="panel-path">
+                <h2><code>&lt;path&gt;</code></h2>
+                <figure>
+                    <div class="canvas" id="demo-path"></div>
+                    <figcaption>
+                        <strong>M L Z</strong> (closed triangle) ·
+                        <strong>Q</strong> (quadratic Bézier wave) ·
+                        <strong>A</strong> (elliptical arc / open semicircle)
+                    </figcaption>
+                </figure>
+            </section>
 
-    <!-- AnimationLoop - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-    <section class="section">
-        <h2><code>AnimationLoop</code> — requestAnimationFrame</h2>
-        <figure>
-            <div class="canvas" id="demo-anim"></div>
-            <figcaption>
-                Three simultaneous animations driven by a single
-                <code>AnimationLoop::start</code> closure:
-                <strong>radius pulse</strong> · <strong>horizontal travel</strong> ·
-                <strong>hue rotation</strong>
-            </figcaption>
-        </figure>
-    </section>
+            <!-- text -->
+            <section class="section" id="panel-text">
+                <h2><code>&lt;text&gt;</code></h2>
+                <figure>
+                    <div class="canvas" id="demo-text"></div>
+                    <figcaption>
+                        <strong>plain</strong> · <strong>bold large</strong> · <strong>coloured</strong>
+                        — <em>y</em> positions the text <em>baseline</em>, not the top of the bounding box
+                    </figcaption>
+                </figure>
+            </section>
 
-    <!-- Event handling  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-    <h1>Event handling</h1>
-    <p class="subtitle">
-        <code>SvgNode</code> wraps <code>on_click</code>, <code>on_mouseover</code> and <code>on_mouseout</code>
-        directly. Every other event is registered on the raw element returned by <code>as_element()</code>. The panels
-        below are interactive — click, hover, drag and right-click them.
-    </p>
+            <!-- group -->
+            <section class="section" id="panel-group">
+                <h2><code>&lt;g&gt;</code> — group</h2>
+                <figure>
+                    <div class="canvas" id="demo-group"></div>
+                    <figcaption>
+                        Two groups share the same local element coordinates; a
+                        <code>transform="translate(…)"</code> repositions each group as a unit.
+                        The dashed connector is drawn in SVG root space.
+                    </figcaption>
+                </figure>
+            </section>
 
-    <!-- click  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-    <section class="section">
-        <h2><code>on_click</code> — click counter &amp; reset button</h2>
-        <figure>
-            <div class="canvas" id="demo-events-click"></div>
-            <figcaption>
-                <strong>click</strong> the button to increment a counter held in a shared <code>Rc&lt;Cell&gt;</code>;
-                the separate <strong>reset</strong> button (a second <code>on_click</code>) zeroes it. The counter
-                colour cycles on every click.
-            </figcaption>
-        </figure>
-    </section>
+            <!-- AnimationLoop -->
+            <section class="section" id="panel-anim">
+                <h2><code>AnimationLoop</code> — requestAnimationFrame</h2>
+                <figure>
+                    <div class="canvas" id="demo-anim"></div>
+                    <figcaption>
+                        Three simultaneous animations driven by a single
+                        <code>AnimationLoop::start</code> closure:
+                        <strong>radius pulse</strong> · <strong>horizontal travel</strong> ·
+                        <strong>hue rotation</strong>
+                    </figcaption>
+                </figure>
+            </section>
 
-    <!-- colour wheel  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-    <section class="section">
-        <h2><code>mousemove</code> — colour wheel</h2>
-        <figure>
-            <div class="canvas" id="demo-events-colour"></div>
-            <figcaption>
-                Move the pointer over the wheel: each <strong>mousemove</strong> reads
-                <code>MouseEvent.offsetX / offsetY</code>, derives a hue from the pointer's angle, and recolours the
-                swatch on the right. One transparent surface captures the pointer so the cursor never flickers.
-            </figcaption>
-        </figure>
-    </section>
+            <!-- click -->
+            <section class="section" id="panel-events-click">
+                <h2><code>on_click</code> — click counter &amp; reset button</h2>
+                <figure>
+                    <div class="canvas" id="demo-events-click"></div>
+                    <figcaption>
+                        <strong>click</strong> the button to increment a counter held in a shared
+                        <code>Rc&lt;Cell&gt;</code>; the separate <strong>reset</strong> button (a second
+                        <code>on_click</code>) zeroes it. The counter colour cycles on every click.
+                    </figcaption>
+                </figure>
+            </section>
 
-    <!-- modifiers  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-    <section class="section">
-        <h2>Modifier keys &amp; <code>contextmenu</code></h2>
-        <figure>
-            <div class="canvas" id="demo-events-modifiers"></div>
-            <figcaption>
-                <strong>click</strong> reads the <code>shift</code> / <code>ctrl</code> / <code>alt</code> /
-                <code>meta</code> flags on the event; <strong>right-click</strong> fires a raw <code>contextmenu</code>
-                handler that calls <code>preventDefault()</code> to suppress the browser menu.
-            </figcaption>
-        </figure>
-    </section>
+            <!-- colour wheel -->
+            <section class="section" id="panel-events-colour">
+                <h2><code>mousemove</code> — colour wheel</h2>
+                <figure>
+                    <div class="canvas" id="demo-events-colour"></div>
+                    <figcaption>
+                        Move the pointer over the wheel: each <strong>mousemove</strong> reads
+                        <code>MouseEvent.offsetX / offsetY</code>, derives a hue from the pointer's angle, and recolours
+                        the swatch on the right. One transparent surface captures the pointer so the cursor never
+                        flickers.
+                    </figcaption>
+                </figure>
+            </section>
 
-    <!-- press  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-    <section class="section">
-        <h2><code>mousedown</code> / <code>mouseup</code> — press state</h2>
-        <figure>
-            <div class="canvas" id="demo-events-press"></div>
-            <figcaption>
-                Press and hold to drive a <strong>pressed</strong> state from <strong>mousedown</strong> /
-                <strong>mouseup</strong>; <strong>mouseleave</strong> cancels it so the button cannot stick down.
-            </figcaption>
-        </figure>
-    </section>
+            <!-- modifiers -->
+            <section class="section" id="panel-events-modifiers">
+                <h2>Modifier keys &amp; <code>contextmenu</code></h2>
+                <figure>
+                    <div class="canvas" id="demo-events-modifiers"></div>
+                    <figcaption>
+                        <strong>click</strong> reads the <code>shift</code> / <code>ctrl</code> / <code>alt</code> /
+                        <code>meta</code> flags on the event; <strong>right-click</strong> fires a raw
+                        <code>contextmenu</code> handler that calls <code>preventDefault()</code> to suppress the
+                        browser menu.
+                    </figcaption>
+                </figure>
+            </section>
 
-    <!-- bubbling  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-    <section class="section">
-        <h2><code>mouseover</code> bubbling vs <code>mouseenter</code></h2>
-        <figure>
-            <div class="canvas" id="demo-events-group"></div>
-            <figcaption>
-                Each bordered group holds two child shapes and keeps its own fire counter. <strong>group 1</strong>
-                listens for bubbling <strong>mouseover</strong>, so its counter ticks up on entering the boundary
-                <em>and</em> again on each child; <strong>group 2</strong> listens for non-bubbling
-                <strong>mouseenter</strong>, so its counter rises only once per boundary crossing.
-            </figcaption>
-        </figure>
-    </section>
+            <!-- press -->
+            <section class="section" id="panel-events-press">
+                <h2><code>mousedown</code> / <code>mouseup</code> — press state</h2>
+                <figure>
+                    <div class="canvas" id="demo-events-press"></div>
+                    <figcaption>
+                        Press and hold (primary button) to drive a <strong>pressed</strong> state from
+                        <strong>mousedown</strong> / <strong>mouseup</strong>; <strong>mouseleave</strong> cancels it
+                        so the button cannot stick down. The readout also lists any <strong>shift / ctrl / alt /
+                        meta</strong> keys held during the press.
+                    </figcaption>
+                </figure>
+            </section>
 
-    <!-- drag & drop  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-    <section class="section">
-        <h2><code>mousedown</code> → <code>mousemove</code> → <code>mouseup</code> — drag &amp; drop</h2>
-        <figure>
-            <div class="canvas" id="demo-events-drag"></div>
-            <figcaption>
-                Press the card and drag it: <strong>mousedown</strong> records the grab offset,
-                <strong>mousemove</strong> repositions the card (clamped so it stays inside the dashed box), and
-                <strong>mouseup</strong> drops it. A single transparent surface captures the whole gesture and
-                hit-tests the card itself, so the pointer can move freely without outrunning it.
-            </figcaption>
-        </figure>
-    </section>
+            <!-- bubbling -->
+            <section class="section" id="panel-events-group">
+                <h2><code>mouseover</code> bubbling vs <code>mouseenter</code></h2>
+                <figure>
+                    <div class="canvas" id="demo-events-group"></div>
+                    <figcaption>
+                        Each bordered group holds two child shapes and keeps its own fire counter.
+                        <strong>group 1</strong> listens for bubbling <strong>mouseover</strong>, so its counter ticks
+                        up on entering the boundary <em>and</em> again on each child; <strong>group 2</strong> listens
+                        for non-bubbling <strong>mouseenter</strong>, so its counter rises only once per boundary
+                        crossing.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- drag & drop -->
+            <section class="section" id="panel-events-drag">
+                <h2><code>mousedown</code> → <code>mousemove</code> → <code>mouseup</code> — drag &amp; drop</h2>
+                <figure>
+                    <div class="canvas" id="demo-events-drag"></div>
+                    <figcaption>
+                        Press the card and drag it: <strong>mousedown</strong> records the grab offset,
+                        <strong>mousemove</strong> repositions the card (clamped so it stays inside the dashed box),
+                        and <strong>mouseup</strong> drops it. A single transparent surface captures the whole gesture
+                        and hit-tests the card itself, so the pointer can move freely without outrunning it.
+                    </figcaption>
+                </figure>
+            </section>
+        </main>
+    </div>
 
     <script type="module">
         import init, {run_demo} from '../pkg/svg_dom.js';
+
+        // Show the demo whose panel id matches `target`, and highlight its menu item.
+        function selectDemo(target) {
+            for (const section of document.querySelectorAll('#stage .section')) {
+                section.classList.toggle('active', section.id === target);
+            }
+            for (const item of document.querySelectorAll('#menu .menu-item')) {
+                item.classList.toggle('active', item.dataset.target === target);
+            }
+        }
+
+        for (const item of document.querySelectorAll('#menu .menu-item')) {
+            item.addEventListener('click', () => selectDemo(item.dataset.target));
+        }
 
         try {
             await init();
@@ -206,6 +248,10 @@
             banner.textContent = `WASM error: ${err}`;
             console.error(err);
         }
+
+        // Select the first demo once everything is wired up.
+        const first = document.querySelector('#menu .menu-item');
+        if (first) selectDemo(first.dataset.target);
     </script>
 </body>
 

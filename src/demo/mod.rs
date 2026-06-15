@@ -20,8 +20,8 @@ use colours::*;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Constants
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const W: f64 = 800.0;  // SVG width shared across all demo canvases
-const H: f64 = 130.0;  // SVG height shared across all demo canvases
+const W: f64 = 800.0; // SVG width shared across all demo canvases
+const H: f64 = 130.0; // SVG height shared across all demo canvases
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Public entry point
@@ -98,9 +98,13 @@ fn demo_rect() -> Result<(), Error> {
     r4.set_fill(GOLDENROD)?;
     r4.set_attr("style", "cursor:pointer")?;
     let r4b = r4.clone();
-    r4.on_mouseover(move |_| { let _ = r4b.set_fill(GOLD); })?;
+    r4.on_mouseover(move |_| {
+        let _ = r4b.set_fill(GOLD);
+    })?;
     let r4c = r4.clone();
-    r4.on_mouseout(move |_| { let _ = r4c.set_fill(GOLDENROD); })?;
+    r4.on_mouseout(move |_| {
+        let _ = r4c.set_fill(GOLDENROD);
+    })?;
     caption(&svg, 510.0, "hover")?;
 
     // 5. Click: toggles between two fills
@@ -142,9 +146,13 @@ fn demo_circle() -> Result<(), Error> {
     c3.set_fill(LIGHT_SKY_BLUE)?;
     c3.set_attr("style", "cursor:pointer")?;
     let c3b = c3.clone();
-    c3.on_mouseover(move |_| { let _ = c3b.set_attr("r", "50"); })?;
+    c3.on_mouseover(move |_| {
+        let _ = c3b.set_attr("r", "50");
+    })?;
     let c3c = c3.clone();
-    c3.on_mouseout(move |_| { let _ = c3c.set_attr("r", "35"); })?;
+    c3.on_mouseout(move |_| {
+        let _ = c3c.set_attr("r", "35");
+    })?;
     caption(&svg, 360.0, "hover (radius)")?;
 
     Ok(())
@@ -318,9 +326,13 @@ fn demo_anim() -> Result<(), Error> {
 // `web-sys` element via [`SvgNode::as_element`] and register the listener ourselves.
 // The `Closure` is `forget`-ted so that it lives for the page's lifetime — exactly the same leak-on-purpose pattern
 // that `demo_anim` uses for its `AnimationLoop`.
-// 
+//
 // However, in a real application, you would store the `Closure` somewhere with a defined lifetime.
-fn on_raw<F: Fn(MouseEvent) + 'static>(node: &SvgNode, event: &str, handler: F) -> Result<(), Error> {
+fn on_raw<F: Fn(MouseEvent) + 'static>(
+    node: &SvgNode,
+    event: &str,
+    handler: F,
+) -> Result<(), Error> {
     let closure = Closure::<dyn Fn(MouseEvent)>::new(handler);
     node.as_element()
         .add_event_listener_with_callback(event, closure.as_ref().unchecked_ref())
@@ -398,7 +410,11 @@ fn demo_events_click() -> Result<(), Error> {
         rst_readout.as_element().set_text_content(Some("clicks: 0"));
     })?;
 
-    caption(&svg, 400.0, "two on_click handlers sharing one Rc<Cell> counter")?;
+    caption(
+        &svg,
+        400.0,
+        "two on_click handlers sharing one Rc<Cell> counter",
+    )?;
     Ok(())
 }
 
@@ -411,17 +427,18 @@ fn demo_events_click() -> Result<(), Error> {
 // as it moves (the earlier crosshair version flickered because the moving guides stole hover from the surface).
 fn demo_events_colour() -> Result<(), Error> {
     const CX: f64 = 90.0; // wheel centre
-    const CY: f64 = 65.0;
-    const R: f64 = 52.0; // wheel radius
+    const CY: f64 = 90.0;
+    const R: f64 = 77.0; // wheel radius
     const STEP: f64 = 2.0; // angular width of each wedge, in degrees
 
-    let svg = SvgRoot::create_in("demo-events-colour", W, H)?;
+    let svg = SvgRoot::create_in("demo-events-colour", W, H + 150.0)?;
 
     // The wheel is built from thin pie wedges, each filled with its own hue.  Grouping them lets a single
     // `pointer-events:none` on the <g> apply to every wedge at once.
     let wheel = svg.group()?;
     wheel.set_attr("pointer-events", NONE)?;
     let mut a: f64 = 0.0;
+
     while a < 360.0 {
         let (r0, r1) = (a.to_radians(), (a + STEP).to_radians());
         let wedge = svg.path(&format!(
@@ -455,19 +472,25 @@ fn demo_events_colour() -> Result<(), Error> {
     readout.set_attr("font-size", "15")?;
     readout.set_attr("pointer-events", NONE)?;
 
-    caption(&svg, 335.0, "raw mousemove over the wheel sets the swatch fill (hue from pointer angle)")?;
+    caption(
+        &svg,
+        450.0,
+        "Raw mousemove over the wheel sets the swatch fill (hue from pointer angle)",
+    )?;
 
     // The pointer-capture surface goes on last so it sits on top of everything above.
-    let surface = svg.rect(0.0, 0.0, W, H)?;
+    let surface = svg.rect(0.0, 0.0, W, H + 150.0)?;
     surface.set_fill(TRANSPARENT)?;
     surface.set_attr("style", "cursor:crosshair")?;
 
     let mv_marker = marker.clone();
     let mv_swatch = swatch.clone();
     let mv_readout = readout.clone();
+
     on_raw(&surface, "mousemove", move |e| {
         let (x, y) = (f64::from(e.offset_x()), f64::from(e.offset_y()));
         let (dx, dy) = (x - CX, y - CY);
+
         if dx * dx + dy * dy <= R * R {
             // Inside the wheel: hue is the pointer's angle about the centre.
             let hue = (dy.atan2(dx).to_degrees() + 360.0) % 360.0;
@@ -540,7 +563,11 @@ fn demo_events_modifiers() -> Result<(), Error> {
             .set_text_content(Some("last: right-click (context menu suppressed)"));
     })?;
 
-    caption(&svg, 400.0, "on_click reads modifier keys · raw contextmenu calls preventDefault()")?;
+    caption(
+        &svg,
+        400.0,
+        "on_click reads modifier keys · raw contextmenu calls preventDefault()",
+    )?;
     Ok(())
 }
 
@@ -570,10 +597,12 @@ fn demo_events_press() -> Result<(), Error> {
     let press = {
         let pad = pad.clone();
         let readout = readout.clone();
-        move || {
+        move |mods: &str| {
             let _ = pad.set_fill(TEAL_PRESSED); // darken while held
             let _ = pad.set_attr("transform", "translate(2,2)");
-            readout.as_element().set_text_content(Some("state: pressed"));
+            readout
+                .as_element()
+                .set_text_content(Some(&format!("state: pressed{mods}")));
         }
     };
     let release = {
@@ -586,13 +615,51 @@ fn demo_events_press() -> Result<(), Error> {
         }
     };
 
-    on_raw(&pad, "mousedown", move |_| press())?;
+    // Only the primary button starts a press, so a plain right-click never engages one. That guard is not enough on
+    // its own: on macOS a ctrl+click is reported as a *primary* mousedown (button 0) yet still opens the context
+    // menu, which swallows the matching mouseup and would leave the state stuck on "pressed".
+    // The `contextmenu` listener below is an OS-agnostic fix, which treats any context-menu trigger as a release.
+    // The readout also lists any modifier keys held during the press.
+    on_raw(&pad, "mousedown", move |e| {
+        if e.button() != 0 {
+            return;
+        }
+
+        let mut held = Vec::new();
+        if e.shift_key() {
+            held.push("shift");
+        }
+        if e.ctrl_key() {
+            held.push("ctrl");
+        }
+        if e.alt_key() {
+            held.push("alt");
+        }
+        if e.meta_key() {
+            held.push("meta");
+        }
+        let mods = if held.is_empty() {
+            String::new()
+        } else {
+            format!("  ·  {}", held.join(" + "))
+        };
+        press(&mods);
+    })?;
+
     let release_up = release.clone();
     on_raw(&pad, "mouseup", move |_| release_up())?;
+    // A context menu (right-click, or ctrl+click on macOS) interrupts the gesture and eats the mouseup — treat it as
+    // a release so the button can never stick in the pressed state, whatever the platform.
+    let release_ctx = release.clone();
+    on_raw(&pad, "contextmenu", move |_| release_ctx())?;
     // If the pointer leaves while still held, treat it as a release so the button cannot stick in the pressed state.
     on_raw(&pad, "mouseleave", move |_| release())?;
 
-    caption(&svg, 400.0, "raw mousedown / mouseup / mouseleave · pressed-state tracking")?;
+    caption(
+        &svg,
+        400.0,
+        "raw mousedown / mouseup / mouseleave · pressed-state tracking · reports held modifier keys",
+    )?;
     Ok(())
 }
 
@@ -657,7 +724,11 @@ fn demo_events_group() -> Result<(), Error> {
 
     // group 2 — mouseenter.  This event does *not* bubble, so the handler fires exactly once per boundary crossing,
     // no matter how many child shapes the pointer then sweeps over inside the group.
-    let g2_count = labels(440.0, ACCENT_AMBER, "group 2: mouseenter (event does not bubble)")?;
+    let g2_count = labels(
+        440.0,
+        ACCENT_AMBER,
+        "group 2: mouseenter (event does not bubble)",
+    )?;
     let group2 = build(440.0, ACCENT_AMBER)?;
     let c2 = Rc::new(Cell::new(0u32));
     // mouseenter is not wrapped by SvgNode; on_raw registers it on the element and leaks the closure, so the listener
@@ -715,14 +786,25 @@ fn demo_events_drag() -> Result<(), Error> {
     card.append(&card_label)?;
 
     let start = (BX + 16.0, BY + (BH - OH) / 2.0);
-    card.set_attr("transform", &format!("translate({:.1}, {:.1})", start.0, start.1))?;
+    card.set_attr(
+        "transform",
+        &format!("translate({:.1}, {:.1})", start.0, start.1),
+    )?;
 
-    let readout = svg.text(W - 12.0, 16.0, &format!("x: {:.0}  y: {:.0}", start.0, start.1))?;
+    let readout = svg.text(
+        W - 12.0,
+        16.0,
+        &format!("x: {:.0}  y: {:.0}", start.0, start.1),
+    )?;
     readout.set_fill(TEXT_MUTED)?;
     readout.set_attr("font-size", "12")?;
     readout.set_attr("text-anchor", "end")?;
 
-    caption(&svg, 400.0, "mousedown on the card, mousemove to drag, mouseup to drop — clamped to the box")?;
+    caption(
+        &svg,
+        400.0,
+        "mousedown on the card, mousemove to drag, mouseup to drop — clamped to the box",
+    )?;
 
     // Capture surface on top; it hit-tests the card and drives the whole gesture.
     let surface = svg.rect(0.0, 0.0, W, H)?;
@@ -777,7 +859,11 @@ fn demo_events_drag() -> Result<(), Error> {
                     .set_text_content(Some(&format!("x: {nx:.0}  y: {ny:.0}")));
             } else {
                 let (ox, oy) = pos.get();
-                let cursor = if on_card(px, py, ox, oy) { "cursor:grab" } else { "cursor:default" };
+                let cursor = if on_card(px, py, ox, oy) {
+                    "cursor:grab"
+                } else {
+                    "cursor:default"
+                };
                 let _ = surface_c.set_attr("style", cursor);
             }
         })?;
