@@ -17,6 +17,34 @@ This crate is still just a PoC and has known functional gaps that will be filled
 - [Design Notes](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/design_notes.md)
 - [Gap Analysis](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/gaps.md)
 
+## PoC ToDo List
+
+- [x] Define custom `Error` object suitable for handling browser DOM errors
+- [x] Define `SvgNode` object
+- [x] Define `SvgRoot` object
+- [x] Define `AnimationLoop` object
+- Implement helper functions for basic SVG shapes
+  - [x] `<circle>`
+  - [x] `<group>`
+  - [x] `<line>`
+  - [x] `<path>`
+  - [x] `<rect>`
+  - [x] `<text>`
+- [x] Build demo server to illustrate current functionality
+- Implement remaining SVG elements
+  - [ ] `<ellipse>`
+  - [ ] `<polyline>` / `<polygon>`
+  - [ ] `<defs>`
+  - [ ] `<linearGradient>` / `<radialGradient>`
+  - [ ] `<pattern>`
+  - [ ] `<clipPath>`
+  - [ ] `<marker>`
+  - [ ] `<image>`
+  - [ ] `<use>` / `<symbol>`
+  - [ ] `<tspan>`
+  - [ ] `<textPath>`
+  - [ ] `<filter>` and `<fe>` elements
+
 ## What this crate is
 
 The `svg-dom` crate acts as a thin wrapper for `web-sys` SVG DOM bindings that allows you to:

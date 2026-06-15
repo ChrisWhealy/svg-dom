@@ -31,13 +31,14 @@
 //! ```
 
 pub mod animate;
-#[cfg(feature = "demo")]
-pub mod demo;
 pub mod error;
 pub mod node;
 pub mod root;
 
+#[cfg(feature = "demo")]
+pub mod demo;
+
 pub use animate::AnimationLoop;
 pub use error::Error;
 pub use node::SvgNode;
-pub use root::SvgRoot;
+pub use root::svg_root::SvgRoot;

@@ -7,7 +7,8 @@ use crate::error::Error;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 struct SvgNodeInner {
     element: SvgElement,
-    // Closures stored here so they live as long as the node.
+
+    // Closures are stored here so they live as long as the node.
     // Dropping this Vec removes the event listeners from memory (though not from the DOM — use `remove_event_listener`
     // if you need a clean teardown before the element is removed).
     closures: RefCell<Vec<Closure<dyn Fn(MouseEvent)>>>,
