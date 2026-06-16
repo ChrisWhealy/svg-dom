@@ -20,7 +20,7 @@
 //! # Minimal example
 //!
 //! ```rust,no_run
-//! use svg_dom::{AnimationLoop, SvgRoot};
+//! use svg_dom::{AnimationLoop, SvgRoot, root::utils::{Point, Size}};
 //!
 //! // Attach to <svg id="vis"> in the page, add a rect, animate its colour.
 //! let svg  = SvgRoot::attach("vis").unwrap();

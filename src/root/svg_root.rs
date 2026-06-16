@@ -34,10 +34,10 @@ impl SvgRoot {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use svg_dom::SvgRoot;
+    /// use svg_dom::SvgRoot;
     /// // index.html contains: <svg id="diagram" width="800" height="600"></svg>
     /// let svg = SvgRoot::attach("diagram")?;
-    /// # Ok::<(), svg_dom::Error>(())
+    /// Ok::<(), svg_dom::Error>(())
     /// ```
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     pub fn attach(id: &str) -> Result<Self, Error> {
@@ -71,11 +71,11 @@ impl SvgRoot {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use svg_dom::SvgRoot;
+    /// use svg_dom::{SvgRoot, root::utils::Size};
     /// // index.html contains: <div id="app"></div>
-    /// let svg = SvgRoot::create_in("app", 800.0, 600.0)?;
+    /// let svg = SvgRoot::create_in("app", Size::new(800.0, 600.0))?;
     /// assert_eq!(svg.width(), 800.0);
-    /// # Ok::<(), svg_dom::Error>(())
+    /// Ok::<(), svg_dom::Error>(())
     /// ```
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     pub fn create_in(parent_id: &str, size: Size) -> Result<Self, Error> {
@@ -115,10 +115,10 @@ impl SvgRoot {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use svg_dom::SvgRoot;
-    /// let svg = SvgRoot::create_in("app", 800.0, 600.0)?;
+    /// use svg_dom::{SvgRoot, root::utils::Size};
+    /// let svg = SvgRoot::create_in("app", Size::new(800.0, 600.0))?;
     /// assert_eq!(svg.width(), 800.0);
-    /// # Ok::<(), svg_dom::Error>(())
+    /// Ok::<(), svg_dom::Error>(())
     /// ```
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     pub fn width(&self) -> f64 {
@@ -136,10 +136,10 @@ impl SvgRoot {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use svg_dom::SvgRoot;
-    /// let svg = SvgRoot::create_in("app", 800.0, 600.0)?;
+    /// use svg_dom::{SvgRoot, root::utils::Size};
+    /// let svg = SvgRoot::create_in("app", Size::new(800.0, 600.0))?;
     /// assert_eq!(svg.height(), 600.0);
-    /// # Ok::<(), svg_dom::Error>(())
+    /// Ok::<(), svg_dom::Error>(())
     /// ```
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     pub fn height(&self) -> f64 {
@@ -158,10 +158,10 @@ impl SvgRoot {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use svg_dom::SvgRoot;
+    /// use svg_dom::{SvgRoot, root::utils::Size};
     /// let svg = SvgRoot::attach("diagram")?;
-    /// svg.set_viewport(1024.0, 768.0)?;
-    /// # Ok::<(), svg_dom::Error>(())
+    /// svg.set_viewport(Size::new(1024.0, 768.0))?;
+    /// Ok::<(), svg_dom::Error>(())
     /// ```
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     pub fn set_viewport(&self, size: Size) -> Result<(), Error> {

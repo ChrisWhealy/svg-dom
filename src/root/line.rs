@@ -14,14 +14,14 @@ impl SvgRoot {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use svg_dom::SvgRoot;
+    /// # use svg_dom::{SvgRoot, root::utils::Point};
     /// let svg = SvgRoot::attach("diagram")?;
     /// let start = Point::new(50.0, 100.0);
     /// let end = Point::new(250.0, 100.0);
     /// let wire = svg.line(start, end)?;
     /// wire.set_stroke("grey")?;
     /// wire.set_stroke_width(2.0)?;
-    /// # Ok::<(), svg_dom::Error>(())
+    /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn line(&self, start: Point, end: Point) -> Result<SvgNode, Error> {
         let n = self.append_new("line")?;

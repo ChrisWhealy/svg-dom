@@ -11,12 +11,12 @@ impl SvgRoot {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use svg_dom::SvgRoot;
+    /// use svg_dom::{SvgRoot, root::utils::Point};
     /// let svg = SvgRoot::attach("diagram")?;
     /// let centre = Point::new(100.0, 100.0);
     /// let circle = svg.circle(centre, 30.0)?;
     /// circle.set_fill("steelblue")?;
-    /// # Ok::<(), svg_dom::Error>(())
+    /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn circle(&self, centre: Point, radius: f64) -> Result<SvgNode, Error> {
         let n = self.append_new("circle")?;

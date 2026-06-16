@@ -11,13 +11,14 @@ impl SvgRoot {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use svg_dom::SvgRoot;
+    /// # use svg_dom::{SvgRoot, root::utils::{Point, Size}};
     /// let svg  = SvgRoot::attach("diagram")?;
     /// let top_left = Point::new(10.0, 20.0);
-    /// let rect = svg.rect(top_left, 120.0, 60.0)?;
+    /// let size = Size::new(120.0, 60.0);
+    /// let rect = svg.rect(top_left, size)?;
     /// rect.set_fill("tomato")?;
     /// rect.set_stroke("black")?;
-    /// # Ok::<(), svg_dom::Error>(())
+    /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn rect(&self, top_left: Point, size: Size) -> Result<SvgNode, Error> {
         let n = self.append_new("rect")?;

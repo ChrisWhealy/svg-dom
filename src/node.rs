@@ -27,7 +27,7 @@ struct SvgNodeInner {
 /// # Clone semantics
 ///
 /// ```rust,no_run
-/// # use svg_dom::SvgRoot;
+/// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
 /// let svg = SvgRoot::attach("diagram")?;
 /// let rect = svg.rect(Point::new(10.0, 10.0), Size::new(80.0, 40.0))?;
 ///
@@ -35,7 +35,7 @@ struct SvgNodeInner {
 /// rect.on_mouseover(move |_| {
 ///     let _ = rect_hover.set_fill("gold"); // mutates the same <rect>
 /// })?;
-/// # Ok::<(), svg_dom::Error>(())
+/// Ok::<(), svg_dom::Error>(())
 /// ```
 #[derive(Clone)]
 pub struct SvgNode {
@@ -64,13 +64,13 @@ impl SvgNode {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use svg_dom::SvgRoot;
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
     /// let svg = SvgRoot::attach("diagram")?;
     /// let rect = svg.rect(Point::new(10.0, 10.0), Size::new(80.0, 40.0))?;
     ///
     /// // Access a web-sys method not exposed directly by SvgNode.
     /// let tag = rect.as_element().tag_name(); // "rect"
-    /// # Ok::<(), svg_dom::Error>(())
+    /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn as_element(&self) -> &SvgElement {
         &self.inner.element
@@ -87,13 +87,13 @@ impl SvgNode {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use svg_dom::SvgRoot;
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
     /// let svg  = SvgRoot::attach("diagram")?;
     /// let rect = svg.rect(Point::new(0.0, 0.0), Size::new(100.0, 50.0))?;
     ///
     /// rect.set_attr("rx", "8")?;           // set radius of rounded corners
     /// rect.set_attr("opacity", "0.75")?;
-    /// # Ok::<(), svg_dom::Error>(())
+    /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn set_attr(&self, name: &str, value: &str) -> Result<(), Error> {
         self.inner
@@ -110,14 +110,14 @@ impl SvgNode {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use svg_dom::SvgRoot;
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
     /// let svg = SvgRoot::attach("diagram")?;
     /// let rect = svg.rect(Point::new(0.0, 0.0), Size::new(100.0, 50.0))?;
     /// rect.set_attr("class", "highlighted")?;
     ///
     /// assert_eq!(rect.attr("class").as_deref(), Some("highlighted"));
     /// assert_eq!(rect.attr("nonexistent"), None);
-    /// # Ok::<(), svg_dom::Error>(())
+    /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn attr(&self, name: &str) -> Option<String> {
         self.inner.element.get_attribute(name)
@@ -131,12 +131,12 @@ impl SvgNode {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use svg_dom::SvgRoot;
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
     /// let svg = SvgRoot::attach("diagram")?;
     /// let rect = svg.rect(Point::new(0.0, 0.0), Size::new(100.0, 50.0))?;
     /// rect.set_attr("opacity", "0.5")?;
     /// rect.remove_attr("opacity")?;         // element is fully opaque again
-    /// # Ok::<(), svg_dom::Error>(())
+    /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn remove_attr(&self, name: &str) -> Result<(), Error> {
         self.inner
@@ -158,11 +158,11 @@ impl SvgNode {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use svg_dom::SvgRoot;
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
     /// let svg  = SvgRoot::attach("diagram")?;
     /// let rect = svg.rect(Point::new(0.0, 0.0), Size::new(80.0, 40.0))?;
     /// rect.set_fill("steelblue")?;
-    /// # Ok::<(), svg_dom::Error>(())
+    /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn set_fill(&self, colour: &str) -> Result<(), Error> {
         self.set_attr("fill", colour)
@@ -176,12 +176,12 @@ impl SvgNode {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use svg_dom::SvgRoot;
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
     /// let svg = SvgRoot::attach("diagram")?;
     /// let rect = svg.rect(Point::new(0.0, 0.0), Size::new(80.0, 40.0))?;
     /// rect.set_stroke("black")?;
     /// rect.set_stroke_width(1.5)?;
-    /// # Ok::<(), svg_dom::Error>(())
+    /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn set_stroke(&self, colour: &str) -> Result<(), Error> {
         self.set_attr("stroke", colour)
@@ -193,12 +193,12 @@ impl SvgNode {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use svg_dom::SvgRoot;
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
     /// let svg = SvgRoot::attach("diagram")?;
     /// let line = svg.line(Point::new(0.0, 50.0), Point::new(200.0, 50.0))?;
     /// line.set_stroke("grey")?;
     /// line.set_stroke_width(3.0)?;
-    /// # Ok::<(), svg_dom::Error>(())
+    /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn set_stroke_width(&self, width: f64) -> Result<(), Error> {
         self.set_attr("stroke-width", &width.to_string())
@@ -228,13 +228,13 @@ impl SvgNode {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use svg_dom::SvgRoot;
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
     /// let svg  = SvgRoot::attach("diagram")?;
     /// let path = svg.path("M 0 0 L 100 100")?;
     ///
     /// // Later: morph the path without touching any other attributes.
     /// path.set_d("M 0 0 Q 50 0 100 100")?;
-    /// # Ok::<(), svg_dom::Error>(())
+    /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn set_d(&self, path: &str) -> Result<(), Error> {
         self.set_attr("d", path)
@@ -252,7 +252,7 @@ impl SvgNode {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use svg_dom::SvgRoot;
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
     /// let svg = SvgRoot::attach("diagram")?;
     /// let group = svg.group()?;
     /// let rect = svg.rect(Point::new(0.0, 0.0), Size::new(80.0, 40.0))?;
@@ -263,7 +263,7 @@ impl SvgNode {
     ///
     /// // Moving the group moves both children.
     /// group.set_attr("transform", "translate(100, 50)")?;
-    /// # Ok::<(), svg_dom::Error>(())
+    /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn append(&self, child: &SvgNode) -> Result<(), Error> {
         self.inner
@@ -299,7 +299,7 @@ impl SvgNode {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use svg_dom::SvgRoot;
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
     /// let svg = SvgRoot::attach("diagram")?;
     /// let rect = svg.rect(Point::new(10.0, 10.0), Size::new(120.0, 60.0))?;
     /// rect.set_fill("steelblue")?;
@@ -308,7 +308,7 @@ impl SvgNode {
     /// rect.on_click(move |_evt| {
     ///     let _ = rect_click.set_fill("tomato");
     /// })?;
-    /// # Ok::<(), svg_dom::Error>(())
+    /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn on_click<F: Fn(MouseEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_mouse_listener("click", handler)
@@ -350,21 +350,21 @@ impl SvgNode {
     /// # Example — `mouseover` on a leaf element (no bubbling concern)
     ///
     /// ```rust,no_run
-    /// # use svg_dom::SvgRoot;
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
     /// let svg  = SvgRoot::attach("diagram")?;
     /// let rect = svg.rect(Point::new(10.0, 10.0), Size::new(120.0, 60.0))?;
     ///
     /// let r = rect.clone();
     /// rect.on_mouseover(move |_| { let _ = r.set_fill("gold"); })?;
-    /// # Ok::<(), svg_dom::Error>(())
+    /// Ok::<(), svg_dom::Error>(())
     /// ```
     ///
     /// # Example — `mouseenter` on a group via the raw element
     ///
     /// ```rust,no_run
-    /// # use svg_dom::SvgRoot;
-    /// # use wasm_bindgen::{JsCast, prelude::Closure};
-    /// # use web_sys::MouseEvent;
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
+    /// use wasm_bindgen::{JsCast, prelude::Closure};
+    /// use web_sys::MouseEvent;
     /// let svg = SvgRoot::attach("diagram")?;
     /// let group = svg.group()?;
     /// let box_ = svg.rect(Point::new(0.0, 0.0), Size::new(80.0, 40.0))?;
@@ -383,7 +383,7 @@ impl SvgNode {
     ///     .add_event_listener_with_callback("mouseenter", closure.as_ref().unchecked_ref())
     ///     .unwrap();
     /// closure.forget(); // keep the closure alive for the lifetime of the page
-    /// # Ok::<(), svg_dom::Error>(())
+    /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn on_mouseover<F: Fn(MouseEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_mouse_listener("mouseover", handler)
@@ -397,7 +397,7 @@ impl SvgNode {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use svg_dom::SvgRoot;
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
     /// let svg = SvgRoot::attach("diagram")?;
     /// let rect = svg.rect(Point::new(10.0, 10.0), Size::new(120.0, 60.0))?;
     /// rect.set_fill("steelblue")?;
@@ -407,7 +407,7 @@ impl SvgNode {
     ///
     /// let r_out = rect.clone();
     /// rect.on_mouseout(move |_| { let _ = r_out.set_fill("steelblue"); })?;
-    /// # Ok::<(), svg_dom::Error>(())
+    /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn on_mouseout<F: Fn(MouseEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_mouse_listener("mouseout", handler)

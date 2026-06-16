@@ -14,13 +14,13 @@ impl SvgRoot {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use svg_dom::SvgRoot;
+    /// use svg_dom::{SvgRoot, root::utils::Point};
     /// let svg = SvgRoot::attach("diagram")?;
     /// let location = Point::new(50.0, 30.0);
     /// let label = svg.text(location, "SHA-256 round")?;
     /// label.set_attr("font-size", "14")?;
     /// label.set_fill("white")?;
-    /// # Ok::<(), svg_dom::Error>(())
+    /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn text(&self, anchored_at: Point, content: &str) -> Result<SvgNode, Error> {
         let el = self.make_element("text")?;

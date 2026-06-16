@@ -29,7 +29,7 @@ use crate::error::Error;
 /// ## Example
 ///
 /// ```rust,no_run
-/// use svg_dom::{AnimationLoop, SvgRoot};
+/// use svg_dom::{AnimationLoop, SvgRoot, root::utils::{Point, Size}};
 ///
 /// let svg = SvgRoot::attach("diagram").unwrap();
 /// let rect = svg.rect(Point::new(10.0, 10.0), Size::new(80.0, 40.0)).unwrap();
@@ -70,7 +70,7 @@ impl AnimationLoop {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use svg_dom::{AnimationLoop, SvgRoot};
+    /// use svg_dom::{AnimationLoop, SvgRoot};
     /// let svg = SvgRoot::attach("vis").unwrap();
     /// let path = svg.path("M 0 50 L 200 50").unwrap();
     ///
@@ -133,8 +133,8 @@ impl AnimationLoop {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use svg_dom::{AnimationLoop, SvgRoot};
-    /// # use std::{cell::Cell, rc::Rc};
+    /// use svg_dom::{AnimationLoop, SvgRoot};
+    /// use std::{cell::Cell, rc::Rc};
     ///
     /// let svg = SvgRoot::attach("vis").unwrap();
     /// let count = Rc::new(Cell::new(0u32));
