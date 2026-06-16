@@ -1,6 +1,7 @@
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// An SVG coordinate point
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Point {
     pub x: f64,
     pub y: f64,
@@ -33,6 +34,7 @@ impl std::fmt::Display for Point {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// The size of an SVG element in pixels.
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Size {
     pub width: f64,
     pub height: f64,
@@ -49,6 +51,10 @@ impl Size {
 
     pub fn get_height_str(&self) -> String {
         self.height.to_string()
+    }
+
+    pub fn get_area(&self) -> f64 {
+        self.width * self.height
     }
 }
 
