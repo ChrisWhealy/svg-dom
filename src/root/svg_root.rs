@@ -1,4 +1,4 @@
-use super::{SVG_NS, document, set};
+use super::{SVG_NS, utils::Size, document, set};
 use crate::{SvgNode, error::Error};
 
 use wasm_bindgen::JsCast;
@@ -7,12 +7,12 @@ use web_sys::{Document, SvgElement, SvgsvgElement};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Wraps the root `<svg>` element and acts as the factory for all child SVG elements.
 ///
-/// If the `<svg>` element already exists in the DOM, then you can [`attach`](Self::attach) to it.
+/// If the `<svg>` element already exists in the DOM, then you can [`attach`](Self::attach) to it.  Otherwise,
+/// call [`create_in`](Self::create_in) to create a new DOM element and append it to the specified parent.
 ///
-/// If you need to create a new DOM element, then call [`create_in`](Self::create_in).
-///
-/// Every element-creation method appends the new element to the `<svg>` and returns an [`SvgNode`] handle that can be
+/// Every element-creation function appends a new element to the `<svg>` and returns an [`SvgNode`] handle that can be
 /// used to style it, move it, or attach event listeners.
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 pub struct SvgRoot {
     pub root: SvgsvgElement,
     document: Document,
@@ -20,14 +20,11 @@ pub struct SvgRoot {
 
 impl SvgRoot {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    // Constructors
-
-    /// Attaches to an existing `<svg>` element already present in the DOM.
+    /// Use this constructor when the `<svg>` placeholder already exists in the HTML and its dimensions have been set
+    /// using CSS or HTML attributes.
     ///
-    /// Looks up the element by `id` and verifies that it really is an `<svg>`.
-    ///
-    /// Use this constructor when the `<svg>` placeholder exists directly in HTML and its dimensions have been set using
-    /// CSS or HTML attributes.
+    /// The element is first looked up by `id`.  If found, it is verified that the `id` really belongs to an `<svg>`
+    /// element.
     ///
     /// # Errors
     ///
@@ -42,6 +39,7 @@ impl SvgRoot {
     /// let svg = SvgRoot::attach("diagram")?;
     /// # Ok::<(), svg_dom::Error>(())
     /// ```
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     pub fn attach(id: &str) -> Result<Self, Error> {
         let document = document()?;
         let element = document
@@ -57,8 +55,8 @@ impl SvgRoot {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates a new `<svg>` element, sizes it, and appends it to an existing HTML element.
     ///
-    /// Use this constructor when the SVG dimensions are only known at runtime (e.g. derived from data) or when you want
-    /// the element to be created programmatically rather than declared in HTML.
+    /// Use this constructor when the the element needs to be created programmatically, or the SVG dimensions can only
+    /// be known at runtime (e.g. derived from data).
     ///
     /// # Arguments
     ///
@@ -79,7 +77,8 @@ impl SvgRoot {
     /// assert_eq!(svg.width(), 800.0);
     /// # Ok::<(), svg_dom::Error>(())
     /// ```
-    pub fn create_in(parent_id: &str, width: f64, height: f64) -> Result<Self, Error> {
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    pub fn create_in(parent_id: &str, size: Size) -> Result<Self, Error> {
         let document = document()?;
         let parent = document
             .get_element_by_id(parent_id)
@@ -91,8 +90,8 @@ impl SvgRoot {
             .dyn_into::<SvgsvgElement>()
             .map_err(|_| Error::CastFailed("SvgsvgElement"))?;
 
-        set(&svg, "width", &width.to_string())?;
-        set(&svg, "height", &height.to_string())?;
+        set(&svg, "width", &size.get_width_str())?;
+        set(&svg, "height", &size.get_height_str())?;
 
         parent
             .append_child(&svg)
@@ -108,6 +107,7 @@ impl SvgRoot {
     // Viewport
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Returns the current `width` of the `<svg>` in pixels.
     ///
     /// Returns `0.0` if the attribute is absent or cannot be parsed as a number.
@@ -120,6 +120,7 @@ impl SvgRoot {
     /// assert_eq!(svg.width(), 800.0);
     /// # Ok::<(), svg_dom::Error>(())
     /// ```
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     pub fn width(&self) -> f64 {
         self.root
             .get_attribute("width")
@@ -140,6 +141,7 @@ impl SvgRoot {
     /// assert_eq!(svg.height(), 600.0);
     /// # Ok::<(), svg_dom::Error>(())
     /// ```
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     pub fn height(&self) -> f64 {
         self.root
             .get_attribute("height")
@@ -161,9 +163,10 @@ impl SvgRoot {
     /// svg.set_viewport(1024.0, 768.0)?;
     /// # Ok::<(), svg_dom::Error>(())
     /// ```
-    pub fn set_viewport(&self, width: f64, height: f64) -> Result<(), Error> {
-        set(&self.root, "width", &width.to_string())?;
-        set(&self.root, "height", &height.to_string())
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    pub fn set_viewport(&self, size: Size) -> Result<(), Error> {
+        set(&self.root, "width", &size.get_width_str())?;
+        set(&self.root, "height", &size.get_height_str())
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

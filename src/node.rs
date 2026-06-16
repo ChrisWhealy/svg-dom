@@ -29,7 +29,7 @@ struct SvgNodeInner {
 /// ```rust,no_run
 /// # use svg_dom::SvgRoot;
 /// let svg = SvgRoot::attach("diagram")?;
-/// let rect = svg.rect(10.0, 10.0, 80.0, 40.0)?;
+/// let rect = svg.rect(Point::new(10.0, 10.0), Size::new(80.0, 40.0))?;
 ///
 /// let rect_hover = rect.clone();           // another reference to the same DOM node
 /// rect.on_mouseover(move |_| {
@@ -66,7 +66,7 @@ impl SvgNode {
     /// ```rust,no_run
     /// # use svg_dom::SvgRoot;
     /// let svg = SvgRoot::attach("diagram")?;
-    /// let rect = svg.rect(10.0, 10.0, 80.0, 40.0)?;
+    /// let rect = svg.rect(Point::new(10.0, 10.0), Size::new(80.0, 40.0))?;
     ///
     /// // Access a web-sys method not exposed directly by SvgNode.
     /// let tag = rect.as_element().tag_name(); // "rect"
@@ -89,7 +89,7 @@ impl SvgNode {
     /// ```rust,no_run
     /// # use svg_dom::SvgRoot;
     /// let svg  = SvgRoot::attach("diagram")?;
-    /// let rect = svg.rect(0.0, 0.0, 100.0, 50.0)?;
+    /// let rect = svg.rect(Point::new(0.0, 0.0), Size::new(100.0, 50.0))?;
     ///
     /// rect.set_attr("rx", "8")?;           // set radius of rounded corners
     /// rect.set_attr("opacity", "0.75")?;
@@ -112,7 +112,7 @@ impl SvgNode {
     /// ```rust,no_run
     /// # use svg_dom::SvgRoot;
     /// let svg = SvgRoot::attach("diagram")?;
-    /// let rect = svg.rect(0.0, 0.0, 100.0, 50.0)?;
+    /// let rect = svg.rect(Point::new(0.0, 0.0), Size::new(100.0, 50.0))?;
     /// rect.set_attr("class", "highlighted")?;
     ///
     /// assert_eq!(rect.attr("class").as_deref(), Some("highlighted"));
@@ -133,7 +133,7 @@ impl SvgNode {
     /// ```rust,no_run
     /// # use svg_dom::SvgRoot;
     /// let svg = SvgRoot::attach("diagram")?;
-    /// let rect = svg.rect(0.0, 0.0, 100.0, 50.0)?;
+    /// let rect = svg.rect(Point::new(0.0, 0.0), Size::new(100.0, 50.0))?;
     /// rect.set_attr("opacity", "0.5")?;
     /// rect.remove_attr("opacity")?;         // element is fully opaque again
     /// # Ok::<(), svg_dom::Error>(())
@@ -160,7 +160,7 @@ impl SvgNode {
     /// ```rust,no_run
     /// # use svg_dom::SvgRoot;
     /// let svg  = SvgRoot::attach("diagram")?;
-    /// let rect = svg.rect(0.0, 0.0, 80.0, 40.0)?;
+    /// let rect = svg.rect(Point::new(0.0, 0.0), Size::new(80.0, 40.0))?;
     /// rect.set_fill("steelblue")?;
     /// # Ok::<(), svg_dom::Error>(())
     /// ```
@@ -178,7 +178,7 @@ impl SvgNode {
     /// ```rust,no_run
     /// # use svg_dom::SvgRoot;
     /// let svg = SvgRoot::attach("diagram")?;
-    /// let rect = svg.rect(0.0, 0.0, 80.0, 40.0)?;
+    /// let rect = svg.rect(Point::new(0.0, 0.0), Size::new(80.0, 40.0))?;
     /// rect.set_stroke("black")?;
     /// rect.set_stroke_width(1.5)?;
     /// # Ok::<(), svg_dom::Error>(())
@@ -195,7 +195,7 @@ impl SvgNode {
     /// ```rust,no_run
     /// # use svg_dom::SvgRoot;
     /// let svg = SvgRoot::attach("diagram")?;
-    /// let line = svg.line(0.0, 50.0, 200.0, 50.0)?;
+    /// let line = svg.line(Point::new(0.0, 50.0), Point::new(200.0, 50.0))?;
     /// line.set_stroke("grey")?;
     /// line.set_stroke_width(3.0)?;
     /// # Ok::<(), svg_dom::Error>(())
@@ -255,8 +255,8 @@ impl SvgNode {
     /// # use svg_dom::SvgRoot;
     /// let svg = SvgRoot::attach("diagram")?;
     /// let group = svg.group()?;
-    /// let rect = svg.rect(0.0, 0.0, 80.0, 40.0)?;
-    /// let label = svg.text(8.0, 26.0, "XOR")?;
+    /// let rect = svg.rect(Point::new(0.0, 0.0), Size::new(80.0, 40.0))?;
+    /// let label = svg.text(Point::new(8.0, 26.0), "XOR")?;
     ///
     /// group.append(&rect)?;
     /// group.append(&label)?;
@@ -301,7 +301,7 @@ impl SvgNode {
     /// ```rust,no_run
     /// # use svg_dom::SvgRoot;
     /// let svg = SvgRoot::attach("diagram")?;
-    /// let rect = svg.rect(10.0, 10.0, 120.0, 60.0)?;
+    /// let rect = svg.rect(Point::new(10.0, 10.0), Size::new(120.0, 60.0))?;
     /// rect.set_fill("steelblue")?;
     ///
     /// let rect_click = rect.clone();
@@ -352,7 +352,7 @@ impl SvgNode {
     /// ```rust,no_run
     /// # use svg_dom::SvgRoot;
     /// let svg  = SvgRoot::attach("diagram")?;
-    /// let rect = svg.rect(10.0, 10.0, 120.0, 60.0)?;
+    /// let rect = svg.rect(Point::new(10.0, 10.0), Size::new(120.0, 60.0))?;
     ///
     /// let r = rect.clone();
     /// rect.on_mouseover(move |_| { let _ = r.set_fill("gold"); })?;
@@ -367,13 +367,13 @@ impl SvgNode {
     /// # use web_sys::MouseEvent;
     /// let svg = SvgRoot::attach("diagram")?;
     /// let group = svg.group()?;
-    /// let box_ = svg.rect(0.0, 0.0, 80.0, 40.0)?;
-    /// let label = svg.text(8.0, 26.0, "XOR")?;
+    /// let box_ = svg.rect(Point::new(0.0, 0.0), Size::new(80.0, 40.0))?;
+    /// let label = svg.text(Point::new(8.0, 26.0), "XOR")?;
     /// group.append(&box_)?;
     /// group.append(&label)?;
     ///
     /// // The `mouseenter` event does not bubble, so it fires exactly once when the pointer enters the group boundary,
-    /// // ond not once per child element crossed.
+    /// // whilst ignoring any boundary-crossings of the group's child elements.
     /// let group_enter = group.clone();
     /// let closure = Closure::<dyn Fn(MouseEvent)>::new(move |_: MouseEvent| {
     ///     let _ = group_enter.set_attr("opacity", "0.6");
@@ -399,7 +399,7 @@ impl SvgNode {
     /// ```rust,no_run
     /// # use svg_dom::SvgRoot;
     /// let svg = SvgRoot::attach("diagram")?;
-    /// let rect = svg.rect(10.0, 10.0, 120.0, 60.0)?;
+    /// let rect = svg.rect(Point::new(10.0, 10.0), Size::new(120.0, 60.0))?;
     /// rect.set_fill("steelblue")?;
     ///
     /// let r_over = rect.clone();

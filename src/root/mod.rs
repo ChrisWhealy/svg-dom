@@ -5,6 +5,7 @@ pub mod path;
 pub mod rect;
 pub mod svg_root;
 pub mod text;
+pub mod utils;
 
 use crate::error::Error;
 use web_sys::Document;

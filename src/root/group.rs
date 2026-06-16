@@ -15,8 +15,10 @@ impl SvgRoot {
     /// let group = svg.group()?;
     ///
     /// // Both children move with the group when its transform is updated.
-    /// let box_  = svg.rect(0.0, 0.0, 80.0, 40.0)?;
-    /// let label = svg.text(10.0, 26.0, "XOR")?;
+    /// let box_size = Point::new(80.0, 40.0);
+    /// let box_ = svg.rect(Point::origin(), box_size)?;
+    /// let label_anchor = Point::new(10.0, 26.0);
+    /// let label = svg.text(label_anchor, "XOR")?;
     /// group.append(&box_)?;
     /// group.append(&label)?;
     ///

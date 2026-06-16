@@ -32,7 +32,7 @@ use crate::error::Error;
 /// use svg_dom::{AnimationLoop, SvgRoot};
 ///
 /// let svg = SvgRoot::attach("diagram").unwrap();
-/// let rect = svg.rect(10.0, 10.0, 80.0, 40.0).unwrap();
+/// let rect = svg.rect(Point::new(10.0, 10.0), Size::new(80.0, 40.0)).unwrap();
 ///
 /// // Pulse the rectangle's opacity.
 /// let anim = AnimationLoop::start(move |ts| {

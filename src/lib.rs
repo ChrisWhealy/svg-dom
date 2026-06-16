@@ -1,18 +1,21 @@
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-//! Ergonomic live SVG DOM manipulation for Rust/WebAssembly.
+//! Live SVG DOM manipulation for Rust/WebAssembly.
 //!
 //! `svg_dom` lets you create, style, and animate SVG elements directly in the browser DOM without needing either to
-//! rebuild or diff a virtual tree.  Every element you create is returned as an [`SvgNode`].  This is a cheap-to-clone
-//! `Rc`-backed handle to the real DOM node — so you can update its attributes or attach event listeners at any time.
+//! rebuild or diff a virtual tree.
+//! 
+//! Every element you create is returned as an [`SvgNode`].  This is a cheap-to-clone `Rc`-backed handle to the real DOM
+//! node — so you can update its attributes or attach event listeners at any time.
 //!
 //! # Crate layout
 //!
 //! | Module | Key type | Purpose |
 //! |---|---|---|
-//! | [`root`] | [`SvgRoot`] | Wraps the `<svg>` root; factory for all child elements |
-//! | [`node`] | [`SvgNode`] | Live element handle that provides access to attributes, events and tree operations |
-//! | [`animate`] | [`AnimationLoop`] | `requestAnimationFrame` loop |
+//! | [`demo`] | | Provides a set of SVG element examples.  Run `cargo demo` then visit http://localhost:8000/demo. |
 //! | [`error`] | [`Error`] | Wrapper for Browser DOM errors |
+//! | [`root`] | [`SvgRoot`] | Wraps the `<svg>` root; factory for all child elements |
+//! | [`animate`] | [`AnimationLoop`] | `requestAnimationFrame` loop |
+//! | [`node`] | [`SvgNode`] | Live element handle that provides access to attributes, events and tree operations |
 //!
 //! # Minimal example
 //!
@@ -21,7 +24,7 @@
 //!
 //! // Attach to <svg id="vis"> in the page, add a rect, animate its colour.
 //! let svg  = SvgRoot::attach("vis").unwrap();
-//! let rect = svg.rect(10.0, 10.0, 80.0, 40.0).unwrap();
+//! let rect = svg.rect(Point::new(10.0, 10.0), Size::new(80.0, 40.0)).unwrap();
 //! rect.set_fill("steelblue").unwrap();
 //!
 //! let _loop = AnimationLoop::start(move |ts| {
