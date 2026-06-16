@@ -4,15 +4,14 @@
 //! ```sh
 //! cargo demo
 //! ```
-//! This rebuilds the wasm package (`wasm-pack build --target web --features demo`)
-//! and then serves the project root, so the demo lives at:
-//! <http://127.0.0.1:8000/demo/>.
+//! This rebuilds the wasm package (`wasm-pack build --target web --features demo`) and then serves the project root, so
+//! the demo lives at: <http://127.0.0.1:8000/demo/>.
 //!
-//! Override the port with the `PORT` environment variable, e.g. `PORT=9000 cargo demo`.
+//! The port number can be overridden using the `PORT` environment variable, e.g. `PORT=9000 cargo demo`.
 
 use std::{
     path::{Path, PathBuf},
-    process::Command,
+    process::{self, Command},
 };
 
 use actix_files::Files;
@@ -27,6 +26,7 @@ async fn main() -> std::io::Result<()> {
         .expect("demo-server must live inside the project")
         .to_path_buf();
 
+    // Run wasm-pack
     build_wasm(&root);
 
     let port: u16 = std::env::var("PORT")
@@ -48,10 +48,11 @@ async fn main() -> std::io::Result<()> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Rebuilds the wasm package so the served `pkg/` is up to date. A failure here is non-fatal: we warn and fall back to
-/// whatever `pkg/` already exists.
+/// Rebuilds the wasm package so the served `pkg/` is up to date.
+/// A failure here is fatal: rather than silently serving a stale `pkg/`, the error is reported and the process exits.
 fn build_wasm(root: &Path) {
     println!("Building wasm package: wasm-pack build --target web --features demo");
+
     match Command::new("wasm-pack")
         .current_dir(root)
         .args(["build", "--target", "web", "--features", "demo"])
@@ -59,10 +60,12 @@ fn build_wasm(root: &Path) {
     {
         Ok(status) if status.success() => {}
         Ok(status) => {
-            eprintln!("warning: wasm-pack exited with {status}; serving existing pkg/ if present");
+            eprintln!("aborting: wasm-pack exited with {status}");
+            process::exit(1);
         }
         Err(err) => {
-            eprintln!("warning: could not run wasm-pack ({err}); serving existing pkg/ if present");
+            eprintln!("aborting: could not run wasm-pack ({err})");
+            process::exit(1);
         }
     }
 }
