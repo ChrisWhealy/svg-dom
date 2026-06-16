@@ -1,7 +1,7 @@
 use std::{cell::Cell, rc::Rc};
 use wasm_bindgen_test::*;
 use web_sys::MouseEvent;
-use svg_dom::SvgRoot;
+use svg_dom::{SvgRoot, root::utils::*};
 
 mod common;
 
@@ -11,7 +11,7 @@ wasm_bindgen_test_configure!(run_in_browser);
 // Using a unique `container_id` per test prevents DOM id collisions.
 fn make_svg(container_id: &str) -> SvgRoot {
     common::div(container_id);
-    SvgRoot::create_in(container_id, 200.0, 200.0).unwrap()
+    SvgRoot::create_in(container_id, Size { width: 200.0, height: 200.0 }).unwrap()
 }
 
 // Helper: dispatch a synthetic MouseEvent directly to a node's underlying element.
@@ -29,7 +29,7 @@ fn dispatch(node: &svg_dom::SvgNode, event_type: &str) -> Result<(), String> {
 /// An attribute written with `set_attr` is immediately readable back via `attr`.
 #[wasm_bindgen_test]
 fn should_read_new_value_after_calling_set_attr() -> Result<(), String> {
-    let rect = make_svg("node-set-attr").rect(0.0, 0.0, 50.0, 50.0).map_err(|e| e.to_string())?;
+    let rect = make_svg("node-set-attr").rect(Point::origin(), Size::new(50.0, 50.0)).map_err(|e| e.to_string())?;
     rect.set_attr("opacity", "0.5").map_err(|e| e.to_string())?;
     common::check_eq(rect.attr("opacity"), Some("0.5".into()))
 }
@@ -37,7 +37,7 @@ fn should_read_new_value_after_calling_set_attr() -> Result<(), String> {
 /// `attr` returns `None` for an attribute that has never been set.
 #[wasm_bindgen_test]
 fn should_return_none_for_absent_attribute() -> Result<(), String> {
-    let rect = make_svg("node-attr-absent").rect(0.0, 0.0, 50.0, 50.0).map_err(|e| e.to_string())?;
+    let rect = make_svg("node-attr-absent").rect(Point::origin(), Size::new(50.0, 50.0)).map_err(|e| e.to_string())?;
     common::check_eq(rect.attr("nonexistent"), None)
 }
 
@@ -48,7 +48,7 @@ fn should_return_none_for_absent_attribute() -> Result<(), String> {
 /// After `remove_attr`, `attr` returns `None` for that attribute.
 #[wasm_bindgen_test]
 fn should_return_none_after_reading_removed_attribute() -> Result<(), String> {
-    let rect = make_svg("node-remove-attr").rect(0.0, 0.0, 50.0, 50.0).map_err(|e| e.to_string())?;
+    let rect = make_svg("node-remove-attr").rect(Point::origin(), Size::new(50.0, 50.0)).map_err(|e| e.to_string())?;
     rect.set_attr("opacity", "0.5").map_err(|e| e.to_string())?;
     rect.remove_attr("opacity").map_err(|e| e.to_string())?;
     common::check_eq(rect.attr("opacity"), None)
@@ -57,7 +57,7 @@ fn should_return_none_after_reading_removed_attribute() -> Result<(), String> {
 /// Calling `remove_attr` twice on the same attribute is idempotent
 #[wasm_bindgen_test]
 fn should_succeed_after_calling_remove_attr_twice() -> Result<(), String> {
-    let rect = make_svg("node-remove-attr-twice").rect(0.0, 0.0, 50.0, 50.0).map_err(|e| e.to_string())?;
+    let rect = make_svg("node-remove-attr-twice").rect(Point::origin(), Size::new(50.0, 50.0)).map_err(|e| e.to_string())?;
     rect.set_attr("opacity", "0.5").map_err(|e| e.to_string())?;
     rect.remove_attr("opacity").map_err(|e| e.to_string())?;
     rect.remove_attr("opacity").map_err(|e| e.to_string())
@@ -66,7 +66,7 @@ fn should_succeed_after_calling_remove_attr_twice() -> Result<(), String> {
 /// Calling `remove_attr` on a non-existent attribute succeeds without error
 #[wasm_bindgen_test]
 fn should_successfully_remove_nonexistent_attribute() -> Result<(), String> {
-    let rect = make_svg("node-remove-absent").rect(0.0, 0.0, 50.0, 50.0).map_err(|e| e.to_string())?;
+    let rect = make_svg("node-remove-absent").rect(Point::origin(), Size::new(50.0, 50.0)).map_err(|e| e.to_string())?;
     rect.remove_attr("nonexistent").map_err(|e| e.to_string())
 }
 
@@ -78,7 +78,7 @@ fn should_successfully_remove_nonexistent_attribute() -> Result<(), String> {
 /// immediately visible via the original.
 #[wasm_bindgen_test]
 fn should_refer_to_same_dom_node_after_clone() -> Result<(), String> {
-    let rect  = make_svg("node-clone").rect(0.0, 0.0, 50.0, 50.0).map_err(|e| e.to_string())?;
+    let rect  = make_svg("node-clone").rect(Point::origin(), Size::new(50.0, 50.0)).map_err(|e| e.to_string())?;
     let clone = rect.clone();
     clone.set_fill("crimson").map_err(|e| e.to_string())?;
     common::check_eq(rect.attr("fill"), Some("crimson".into()))
@@ -91,7 +91,7 @@ fn should_refer_to_same_dom_node_after_clone() -> Result<(), String> {
 /// `set_fill` writes the `fill` attribute.
 #[wasm_bindgen_test]
 fn should_update_fill_attribute_after_calling_set_fill() -> Result<(), String> {
-    let rect = make_svg("node-fill").rect(0.0, 0.0, 50.0, 50.0).map_err(|e| e.to_string())?;
+    let rect = make_svg("node-fill").rect(Point::origin(), Size::new(50.0, 50.0)).map_err(|e| e.to_string())?;
     rect.set_fill("steelblue").map_err(|e| e.to_string())?;
     common::check_eq(rect.attr("fill"), Some("steelblue".into()))
 }
@@ -99,7 +99,7 @@ fn should_update_fill_attribute_after_calling_set_fill() -> Result<(), String> {
 /// `set_stroke` writes the `stroke` attribute.
 #[wasm_bindgen_test]
 fn should_update_stroke_attribute_after_calling_set_stroke() -> Result<(), String> {
-    let rect = make_svg("node-stroke").rect(0.0, 0.0, 50.0, 50.0).map_err(|e| e.to_string())?;
+    let rect = make_svg("node-stroke").rect(Point::origin(), Size::new(50.0, 50.0)).map_err(|e| e.to_string())?;
     rect.set_stroke("black").map_err(|e| e.to_string())?;
     common::check_eq(rect.attr("stroke"), Some("black".into()))
 }
@@ -107,7 +107,7 @@ fn should_update_stroke_attribute_after_calling_set_stroke() -> Result<(), Strin
 /// `set_stroke_width` writes the `stroke-width` attribute.
 #[wasm_bindgen_test]
 fn should_update_stroke_width_attribute_after_calling_set_stroke_width() -> Result<(), String> {
-    let line = make_svg("node-stroke-width").line(0.0, 0.0, 100.0, 100.0).map_err(|e| e.to_string())?;
+    let line = make_svg("node-stroke-width").line(Point::origin(), Point::new(100.0, 100.0)).map_err(|e| e.to_string())?;
     line.set_stroke_width(3.0).map_err(|e| e.to_string())?;
     common::check_eq(line.attr("stroke-width"), Some("3".into()))
 }
@@ -129,7 +129,7 @@ fn should_update_path_data_after_calling_set_d() -> Result<(), String> {
 fn should_append_element_to_group() -> Result<(), String> {
     let svg   = make_svg("node-append");
     let group = svg.group().map_err(|e| e.to_string())?;
-    let rect  = svg.rect(0.0, 0.0, 50.0, 50.0).map_err(|e| e.to_string())?;
+    let rect  = svg.rect(Point::origin(), Size::new(50.0, 50.0)).map_err(|e| e.to_string())?;
     group.append(&rect).map_err(|e| e.to_string())?;
     common::check_eq(group.as_element().child_element_count(), 1)
 }
@@ -144,7 +144,7 @@ fn should_append_element_to_group() -> Result<(), String> {
 /// An `on_click` handler fires when a synthetic `click` event is dispatched.
 #[wasm_bindgen_test]
 fn should_fire_on_click_after_synthetic_click() -> Result<(), String> {
-    let rect    = make_svg("node-click").rect(0.0, 0.0, 200.0, 200.0).map_err(|e| e.to_string())?;
+    let rect    = make_svg("node-click").rect(Point::origin(), Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
     let fired   = Rc::new(Cell::new(false));
     let fired_c = fired.clone();
     rect.on_click(move |_| { fired_c.set(true); }).map_err(|e| e.to_string())?;
@@ -155,7 +155,7 @@ fn should_fire_on_click_after_synthetic_click() -> Result<(), String> {
 /// An `on_mouseover` handler fires when a synthetic `mouseover` event is dispatched.
 #[wasm_bindgen_test]
 fn should_fire_on_mouseover_after_synthetic_mouseover() -> Result<(), String> {
-    let rect    = make_svg("node-mouseover").rect(0.0, 0.0, 200.0, 200.0).map_err(|e| e.to_string())?;
+    let rect    = make_svg("node-mouseover").rect(Point::origin(), Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
     let fired   = Rc::new(Cell::new(false));
     let fired_c = fired.clone();
     rect.on_mouseover(move |_| { fired_c.set(true); }).map_err(|e| e.to_string())?;
@@ -166,7 +166,7 @@ fn should_fire_on_mouseover_after_synthetic_mouseover() -> Result<(), String> {
 /// An `on_mouseout` handler fires when a synthetic `mouseout` event is dispatched.
 #[wasm_bindgen_test]
 fn should_fire_on_mouseout_after_synthetic_mouseout() -> Result<(), String> {
-    let rect    = make_svg("node-mouseout").rect(0.0, 0.0, 200.0, 200.0).map_err(|e| e.to_string())?;
+    let rect    = make_svg("node-mouseout").rect(Point::origin(), Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
     let fired   = Rc::new(Cell::new(false));
     let fired_c = fired.clone();
     rect.on_mouseout(move |_| { fired_c.set(true); }).map_err(|e| e.to_string())?;
@@ -178,7 +178,7 @@ fn should_fire_on_mouseout_after_synthetic_mouseout() -> Result<(), String> {
 /// them firing when the event is dispatched.
 #[wasm_bindgen_test]
 fn should_fire_multiple_handlers_on_same_node() -> Result<(), String> {
-    let rect    = make_svg("node-multi-handler").rect(0.0, 0.0, 200.0, 200.0).map_err(|e| e.to_string())?;
+    let rect    = make_svg("node-multi-handler").rect(Point::origin(), Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
     let count   = Rc::new(Cell::new(0u32));
     let count_1 = count.clone();
     let count_2 = count.clone();
@@ -194,7 +194,7 @@ fn should_fire_multiple_handlers_on_same_node() -> Result<(), String> {
 /// a clone, confirming that both handles point to the same underlying DOM element.
 #[wasm_bindgen_test]
 fn should_fire_original_handler_when_dispatched_via_clone() -> Result<(), String> {
-    let rect    = make_svg("node-clone-event").rect(0.0, 0.0, 200.0, 200.0).map_err(|e| e.to_string())?;
+    let rect    = make_svg("node-clone-event").rect(Point::origin(), Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
     let clone   = rect.clone();
     let fired   = Rc::new(Cell::new(false));
     let fired_c = fired.clone();

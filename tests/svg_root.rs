@@ -1,5 +1,5 @@
 use wasm_bindgen_test::*;
-use svg_dom::{Error, SvgRoot};
+use svg_dom::{Error, SvgRoot, root::utils::{Point, Size}};
 
 mod common;
 
@@ -45,7 +45,7 @@ fn should_not_attach_to_non_svg_element() -> Result<(), String> {
 /// Creating inside a parent id that does not exist returns `ElementNotFound`.
 #[wasm_bindgen_test]
 fn should_not_create_element_as_child_of_unknown_parent() -> Result<(), String> {
-    match SvgRoot::create_in("no-such-parent-xyzzy", 100.0, 100.0) {
+    match SvgRoot::create_in("no-such-parent-xyzzy", Size::new(100.0, 100.0)) {
         Err(Error::ElementNotFound(id)) => common::check_eq(id, "no-such-parent-xyzzy".into()),
         Err(e) => Err(format!("wrong error variant: {e:?}")),
         Ok(_)  => Err("expected Err, got Ok".into()),
@@ -56,7 +56,7 @@ fn should_not_create_element_as_child_of_unknown_parent() -> Result<(), String> 
 #[wasm_bindgen_test]
 fn should_create_single_svg_child_in_parent() -> Result<(), String> {
     common::div("create-in-parent");
-    SvgRoot::create_in("create-in-parent", 400.0, 300.0)
+    SvgRoot::create_in("create-in-parent", Size::new(400.0, 300.0))
         .map_err(|e| e.to_string())?;
 
     let document = web_sys::window().unwrap().document().unwrap();
@@ -70,7 +70,7 @@ fn should_create_single_svg_child_in_parent() -> Result<(), String> {
 #[wasm_bindgen_test]
 fn should_set_width_when_creating_element() -> Result<(), String> {
     common::div("create-in-width");
-    let svg = SvgRoot::create_in("create-in-width", 640.0, 480.0)
+    let svg = SvgRoot::create_in("create-in-width", Size::new(640.0, 480.0))
         .map_err(|e| e.to_string())?;
     common::check_eq(svg.width(), 640.0)
 }
@@ -79,7 +79,7 @@ fn should_set_width_when_creating_element() -> Result<(), String> {
 #[wasm_bindgen_test]
 fn should_set_height_when_creating_element() -> Result<(), String> {
     common::div("create-in-height");
-    let svg = SvgRoot::create_in("create-in-height", 640.0, 480.0)
+    let svg = SvgRoot::create_in("create-in-height", Size::new(640.0, 480.0))
         .map_err(|e| e.to_string())?;
     common::check_eq(svg.height(), 480.0)
 }
@@ -112,9 +112,9 @@ fn should_return_zero_for_missing_height() -> Result<(), String> {
 #[wasm_bindgen_test]
 fn should_update_viewport_width_and_height() -> Result<(), String> {
     common::div("set-viewport");
-    let svg = SvgRoot::create_in("set-viewport", 100.0, 100.0)
+    let svg = SvgRoot::create_in("set-viewport", Size::new(100.0, 100.0))
         .map_err(|e| e.to_string())?;
-    svg.set_viewport(1920.0, 1080.0).map_err(|e| e.to_string())?;
+    svg.set_viewport(Size::new(1920.0, 1080.0)).map_err(|e| e.to_string())?;
     common::check_eq(svg.width(),  1920.0)?;
     common::check_eq(svg.height(), 1080.0)
 }
@@ -127,8 +127,8 @@ fn should_update_viewport_width_and_height() -> Result<(), String> {
 #[wasm_bindgen_test]
 fn should_create_rect_with_correct_attributes() -> Result<(), String> {
     common::div("rect-factory");
-    let svg  = SvgRoot::create_in("rect-factory", 200.0, 200.0).map_err(|e| e.to_string())?;
-    let rect = svg.rect(10.0, 20.0, 120.0, 60.0).map_err(|e| e.to_string())?;
+    let svg  = SvgRoot::create_in("rect-factory", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let rect = svg.rect(Point::new(10.0, 20.0), Size::new(120.0, 60.0)).map_err(|e| e.to_string())?;
     common::check_eq(rect.attr("x"),      Some("10".into()))?;
     common::check_eq(rect.attr("y"),      Some("20".into()))?;
     common::check_eq(rect.attr("width"),  Some("120".into()))?;
@@ -139,8 +139,8 @@ fn should_create_rect_with_correct_attributes() -> Result<(), String> {
 #[wasm_bindgen_test]
 fn should_create_circle_with_correct_attributes() -> Result<(), String> {
     common::div("circle-factory");
-    let svg    = SvgRoot::create_in("circle-factory", 200.0, 200.0).map_err(|e| e.to_string())?;
-    let circle = svg.circle(50.0, 60.0, 25.0).map_err(|e| e.to_string())?;
+    let svg    = SvgRoot::create_in("circle-factory", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let circle = svg.circle(Point::new(50.0, 60.0), 25.0).map_err(|e| e.to_string())?;
     common::check_eq(circle.attr("cx"), Some("50".into()))?;
     common::check_eq(circle.attr("cy"), Some("60".into()))?;
     common::check_eq(circle.attr("r"),  Some("25".into()))
@@ -150,8 +150,8 @@ fn should_create_circle_with_correct_attributes() -> Result<(), String> {
 #[wasm_bindgen_test]
 fn should_create_line_with_correct_endpoints() -> Result<(), String> {
     common::div("line-factory");
-    let svg  = SvgRoot::create_in("line-factory", 200.0, 200.0).map_err(|e| e.to_string())?;
-    let line = svg.line(0.0, 10.0, 100.0, 110.0).map_err(|e| e.to_string())?;
+    let svg  = SvgRoot::create_in("line-factory", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let line = svg.line(Point::new(0.0, 10.0), Point::new(100.0, 110.0)).map_err(|e| e.to_string())?;
     common::check_eq(line.attr("x1"), Some("0".into()))?;
     common::check_eq(line.attr("y1"), Some("10".into()))?;
     common::check_eq(line.attr("x2"), Some("100".into()))?;
@@ -162,7 +162,7 @@ fn should_create_line_with_correct_endpoints() -> Result<(), String> {
 #[wasm_bindgen_test]
 fn should_create_path_with_d_attribute() -> Result<(), String> {
     common::div("path-factory");
-    let svg  = SvgRoot::create_in("path-factory", 200.0, 200.0).map_err(|e| e.to_string())?;
+    let svg  = SvgRoot::create_in("path-factory", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
     let path = svg.path("M 0 0 L 100 100").map_err(|e| e.to_string())?;
     common::check_eq(path.attr("d"), Some("M 0 0 L 100 100".into()))
 }
@@ -171,8 +171,8 @@ fn should_create_path_with_d_attribute() -> Result<(), String> {
 #[wasm_bindgen_test]
 fn should_create_text_with_position_and_content() -> Result<(), String> {
     common::div("text-factory");
-    let svg  = SvgRoot::create_in("text-factory", 200.0, 200.0).map_err(|e| e.to_string())?;
-    let text = svg.text(15.0, 30.0, "Hello SVG").map_err(|e| e.to_string())?;
+    let svg  = SvgRoot::create_in("text-factory", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let text = svg.text(Point::new(15.0, 30.0), "Hello SVG").map_err(|e| e.to_string())?;
     common::check_eq(text.attr("x"), Some("15".into()))?;
     common::check_eq(text.attr("y"), Some("30".into()))?;
     common::check_eq(text.as_element().text_content(), Some("Hello SVG".into()))
@@ -182,7 +182,7 @@ fn should_create_text_with_position_and_content() -> Result<(), String> {
 #[wasm_bindgen_test]
 fn should_create_g_element() -> Result<(), String> {
     common::div("group-factory");
-    let svg   = SvgRoot::create_in("group-factory", 200.0, 200.0).map_err(|e| e.to_string())?;
+    let svg   = SvgRoot::create_in("group-factory", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
     let group = svg.group().map_err(|e| e.to_string())?;
     common::check_eq(group.as_element().tag_name(), "g".to_string())
 }
