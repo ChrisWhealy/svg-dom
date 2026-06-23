@@ -2,7 +2,7 @@
 
 A lightweight Rust/WebAssembly library for creating and mutating live SVG content directly in the browser DOM.
 
-This crate is still just a PoC and has known functional gaps that will be filled in time...
+This crate is still just an MVP and contains known functional gaps that will be filled in time&hellip;
 
 ***IMPORTANT***<br>This crate targets WebAssembly only.
 
