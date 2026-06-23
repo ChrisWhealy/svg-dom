@@ -31,7 +31,7 @@ This crate is still just an MVP and contains known functional gaps that will be 
   - [x] `<rect>`
   - [x] `<text>`
 - [x] Implement multi-atrribute setter for an SVG node
-- [x] Implement batch-building API allow elements to be added *en masse*
+- [x] Implement batch-building API that allows elements to be added *en masse*
 - [x] Build demo server to illustrate current functionality
 - Implement remaining SVG elements
   - [ ] `<ellipse>`
