@@ -17,7 +17,7 @@ This crate is still just an MVP and contains known functional gaps that will be 
 - [Design Notes](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/design_notes.md)
 - [Gap Analysis](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/gaps.md)
 
-## PoC ToDo List
+## ToDo List
 
 - [x] Define custom `Error` object suitable for handling browser DOM errors
 - [x] Define `SvgNode` object
