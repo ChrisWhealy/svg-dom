@@ -16,3 +16,12 @@ They live exactly as long as the last clone of the node exists, so you never hav
 `AnimationLoop` uses the standard WASM self-referencing closure pattern: the closure holds an `Rc` to itself so it can re-register with `requestAnimationFrame` after each frame.
 
 Calling `stop()` (or dropping the `AnimationLoop`) sets that `Rc` slot to `None`, which prevents the next re-schedule and allows the closure to be freed.
+
+## Per-frame formatting uses a reusable scratch buffer
+
+`AnimationLoop::start_with_frame` supplies an `AnimationFrame` value to each RAF callback.
+`AnimationFrame` owns one reusable `String` scratch buffer and exposes helpers such as `set_attr_fmt`, `set_fill_fmt`, `set_d_fmt`, and `set_text_fmt`.
+
+Use these helpers for values that change every frame instead of writing `set_attr(..., &format!(...))` or `set_attr(..., &value.to_string())` inside the RAF callback.
+
+The DOM still receives a normal `&str`, but on the Rust/WASM side, the same allocation is used across frames.

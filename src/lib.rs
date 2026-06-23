@@ -27,9 +27,9 @@
 //! let rect = svg.rect(Point::new(10.0, 10.0), Size::new(80.0, 40.0)).unwrap();
 //! rect.set_fill("steelblue").unwrap();
 //!
-//! let _loop = AnimationLoop::start(move |ts| {
+//! let _loop = AnimationLoop::start_with_frame(move |ts, frame| {
 //!     let lightness = 30 + ((ts / 1000.0).sin().abs() * 40.0) as u8;
-//!     let _ = rect.set_fill(&format!("hsl(210,70%,{lightness}%)"));
+//!     let _ = frame.set_fill_fmt(&rect, format_args!("hsl(210,70%,{lightness}%)"));
 //! }).unwrap();
 //! ```
 
@@ -41,7 +41,7 @@ pub mod root;
 #[cfg(feature = "demo")]
 pub mod demo;
 
-pub use animate::AnimationLoop;
+pub use animate::{anim_frame::AnimationFrame, anim_loop::AnimationLoop};
 pub use error::Error;
 pub use node::SvgNode;
 pub use root::batch::SvgBatch;

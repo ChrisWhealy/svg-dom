@@ -129,11 +129,26 @@ pub fn run() -> Result<(), svg_dom::Error> {
     // Animate: pulse the circle radius each frame.
     // The AnimationLoop must be kept alive (e.g. stored in a static or leaked) for
     // the loop to continue — dropping it cancels the pending frame immediately.
-    let _loop = AnimationLoop::start(move |ts| {
+    let _loop = AnimationLoop::start_with_frame(move |ts, frame| {
         let r = 8.0 + 4.0 * (ts / 500.0).sin();
-        let _ = dot.set_attr("r", &r.to_string());
+        let _ = frame.set_attr_fmt(&dot, "r", format_args!("{r}"));
     })?;
 
     Ok(())
 }
 ```
+
+## Allocation-light animation formatting
+
+For attributes that change every animation frame, prefer `AnimationLoop::start_with_frame` over building fresh strings with `format!` inside the RAF callback.
+The callback receives an `AnimationFrame` scratch buffer that is allocated once and reused for formatted attributes and text:
+
+```rust,no_run
+let _loop = AnimationLoop::start_with_frame(move |ts, frame| {
+    let x = 100.0 + 50.0 * (ts / 600.0).sin();
+    let _ = frame.set_attr_fmt(&dot, "cx", format_args!("{x:.1}"));
+    let _ = frame.set_fill_fmt(&dot, format_args!("hsl({:.0},70%,50%)", ts % 360.0));
+})?;
+```
+
+The existing `AnimationLoop::start` API is still available for callbacks that do not need reusable formatting storage.

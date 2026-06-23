@@ -1,12 +1,10 @@
+use crate::{animate::anim_frame::AnimationFrame, error::Error};
 use std::{
     cell::{Cell, RefCell},
     rc::Rc,
 };
 use wasm_bindgen::{JsCast, prelude::*};
 
-use crate::error::Error;
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// # A running `window.requestAnimationFrame` loop.
 ///
 /// `requestAnimationFrame` is the browser API that schedules a callback immediately before the browser paints the next
@@ -25,28 +23,10 @@ use crate::error::Error;
 ///
 /// The `AnimationLoop` can be kept alive by storing it in a `static`, a `Closure` captured variable, or some other
 /// location whose lifespan outlives your animation.
-///
-/// ## Example
-///
-/// ```rust,no_run
-/// use svg_dom::{AnimationLoop, SvgRoot, root::utils::{Point, Size}};
-///
-/// let svg = SvgRoot::attach("diagram").unwrap();
-/// let rect = svg.rect(Point::new(10.0, 10.0), Size::new(80.0, 40.0)).unwrap();
-///
-/// // Pulse the rectangle's opacity.
-/// let anim = AnimationLoop::start(move |ts| {
-///     let alpha = 0.4 + 0.6 * (ts / 800.0).sin().abs();
-///     let _ = rect.set_attr("opacity", &format!("{alpha:.3}"));
-/// }).unwrap();
-///
-/// // `anim` must stay alive — store it somewhere that outlives the page.
-/// std::mem::forget(anim); // or store in a static/thread_local
-/// ```
 pub struct AnimationLoop {
     window: web_sys::Window,
     handle: Rc<Cell<i32>>,
-    closure: Rc<RefCell<Option<Closure<dyn Fn(f64)>>>>,
+    closure: Rc<RefCell<Option<Closure<dyn FnMut(f64)>>>>,
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -82,11 +62,27 @@ impl AnimationLoop {
     ///
     /// std::mem::forget(_loop); // keep alive for the lifetime of the page
     /// ```
-    pub fn start<F: Fn(f64) + 'static>(callback: F) -> Result<Self, Error> {
+    pub fn start<F: FnMut(f64) + 'static>(callback: F) -> Result<Self, Error> {
+        Self::start_inner(callback)
+    }
+
+    /// Starts a `requestAnimationFrame` loop and gives each callback a reusable [`AnimationFrame`] buffer.
+    ///
+    /// This is intended for hot animation paths that update attributes such as `x`, `y`, `transform`, `d`, or text every
+    /// frame.  Instead of allocating a fresh `String` via `format!(...)` on each frame, write the formatted value into
+    /// the provided buffer with methods such as [`AnimationFrame::set_attr_fmt`].
+    pub fn start_with_frame<F: FnMut(f64, &mut AnimationFrame) + 'static>(
+        mut callback: F,
+    ) -> Result<Self, Error> {
+        let mut frame = AnimationFrame::new();
+        Self::start_inner(move |ts| callback(ts, &mut frame))
+    }
+
+    fn start_inner<F: FnMut(f64) + 'static>(mut callback: F) -> Result<Self, Error> {
         let window = web_sys::window().ok_or_else(|| Error::Dom("no window".into()))?;
 
         let handle: Rc<Cell<i32>> = Rc::new(Cell::new(0));
-        let closure: Rc<RefCell<Option<Closure<dyn Fn(f64)>>>> = Rc::new(RefCell::new(None));
+        let closure: Rc<RefCell<Option<Closure<dyn FnMut(f64)>>>> = Rc::new(RefCell::new(None));
 
         // Clones moved into the closure so it can re-schedule itself.
         let handle_inner = handle.clone();
