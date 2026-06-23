@@ -3,7 +3,7 @@
 This crate offers a working foundation for generating simple, flat SVG diagrams driven by a `requestAnimationFrame` (RAF) loop.
 However, it can't yet produce anything with gradients, filters, clipping, reusable symbols, touch input, or dynamic text.
 
-These gaps will be filled in time, but for now, this crate must be treated as a PoC, not a general-purpose SVG library.
+These gaps will be filled in time, but for now, this crate must be treated as an MVP, not a general-purpose SVG library.
 
 # Missing SVG elements
 
