@@ -5,8 +5,21 @@ use web_sys::{MouseEvent, SvgElement};
 type MouseClosure = Closure<dyn Fn(MouseEvent)>;
 
 struct MouseListener {
+    element: SvgElement,
     event_type: String,
     closure: MouseClosure,
+}
+
+impl Drop for MouseListener {
+    fn drop(&mut self) {
+        // Remove the browser-side listener before the wasm-bindgen Closure field is
+        // dropped.  Otherwise the DOM can retain a callback reference to a closure
+        // that no longer exists in Rust-managed memory.
+        let _ = self.element.remove_event_listener_with_callback(
+            &self.event_type,
+            self.closure.as_ref().unchecked_ref(),
+        );
+    }
 }
 
 use crate::error::Error;
@@ -26,16 +39,10 @@ struct SvgNodeInner {
 
 impl Drop for SvgNodeInner {
     fn drop(&mut self) {
-        let Some(listeners) = self.listeners.get_mut().take() else {
-            return;
-        };
-
-        for listener in *listeners {
-            let _ = self.element.remove_event_listener_with_callback(
-                &listener.event_type,
-                listener.closure.as_ref().unchecked_ref(),
-            );
-        }
+        // Drop the listener storage explicitly while the SVG element is still alive.
+        // Each MouseListener removes its own DOM callback before its Closure field is
+        // freed.
+        let _ = self.listeners.get_mut().take();
     }
 }
 
@@ -363,6 +370,7 @@ impl SvgNode {
             .borrow_mut()
             .get_or_insert_with(|| Box::new(Vec::new()))
             .push(MouseListener {
+                element: self.inner.element.clone(),
                 event_type: event_type.to_string(),
                 closure,
             });

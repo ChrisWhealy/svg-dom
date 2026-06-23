@@ -1,6 +1,6 @@
 use std::{cell::Cell, rc::Rc};
 use wasm_bindgen_test::*;
-use web_sys::MouseEvent;
+use web_sys::{MouseEvent, SvgElement};
 use svg_dom::{SvgRoot, root::utils::*};
 
 mod common;
@@ -17,8 +17,12 @@ fn make_svg(container_id: &str) -> SvgRoot {
 // Helper: dispatch a synthetic MouseEvent directly to a node's underlying element.
 // `dispatch_event` is synchronous in browsers, so the handler fires before this returns.
 fn dispatch(node: &svg_dom::SvgNode, event_type: &str) -> Result<(), String> {
+    dispatch_element(node.as_element(), event_type)
+}
+
+fn dispatch_element(element: &SvgElement, event_type: &str) -> Result<(), String> {
     let event = MouseEvent::new(event_type).map_err(|e| format!("{e:?}"))?;
-    node.as_element().dispatch_event(&event).map_err(|e| format!("{e:?}"))?;
+    element.dispatch_event(&event).map_err(|e| format!("{e:?}"))?;
     Ok(())
 }
 
@@ -201,4 +205,25 @@ fn should_fire_original_handler_when_dispatched_via_clone() -> Result<(), String
     rect.on_click(move |_| { fired_c.set(true); }).map_err(|e| e.to_string())?;
     dispatch(&clone, "click")?;
     common::check(fired.get(), "click handler did not fire when dispatched via clone")
+}
+
+/// Dropping the final `SvgNode` handle removes its registered listener from the DOM before
+/// dropping the stored wasm-bindgen `Closure`.  Keeping a clone of the raw DOM element lets
+/// the test dispatch another event after the Rust-side listener storage has been freed.
+#[wasm_bindgen_test]
+fn should_remove_dom_listener_when_final_node_handle_is_dropped() -> Result<(), String> {
+    let rect  = make_svg("node-drop-listener").rect(Point::origin(), Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let elem  = rect.as_element().clone();
+    let count = Rc::new(Cell::new(0u32));
+    let seen  = count.clone();
+
+    rect.on_click(move |_| { seen.set(seen.get() + 1); }).map_err(|e| e.to_string())?;
+
+    dispatch_element(&elem, "click")?;
+    common::check_eq(count.get(), 1)?;
+
+    drop(rect);
+    dispatch_element(&elem, "click")?;
+
+    common::check_eq(count.get(), 1)
 }

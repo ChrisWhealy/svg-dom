@@ -2,14 +2,15 @@
 
 The test suite has two tiers that use different runners.
 
-## Unit tests — `cargo nextest run`
+## Unit tests — `cargo test`
 
 Pure Rust tests with no browser dependency.
 
-Currently covers only the `Error` type's `Display` and `Debug` implementations and its inner-value accessors.
+Currently covers the `Error` type's `Display` and `Debug` implementations and its inner-value accessors.
+Also covers doc tests.
 
 ```sh
-cargo nextest run
+cargo test
 ```
 
 ## Browser tests — `wasm-pack test`
