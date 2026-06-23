@@ -5,7 +5,7 @@
 //! cargo demo
 //! ```
 //! This rebuilds the wasm package (`wasm-pack build --target web --features demo`) and then serves the project root, so
-//! the demo lives at: <http://127.0.0.1:8000/demo/>.
+//! the demo lives at: <http://127.0.0.1:8080/demo/>.
 //!
 //! The port number can be overridden using the `PORT` environment variable, e.g. `PORT=9000 cargo demo`.
 
@@ -16,6 +16,8 @@ use std::{
 
 use actix_files::Files;
 use actix_web::{App, HttpServer, middleware::Logger};
+
+const DEFAULT_PORT: u16 = 8080;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #[actix_web::main]
@@ -32,7 +34,7 @@ async fn main() -> std::io::Result<()> {
     let port: u16 = std::env::var("PORT")
         .ok()
         .and_then(|p| p.parse().ok())
-        .unwrap_or(8000);
+        .unwrap_or(DEFAULT_PORT);
     let addr = ("127.0.0.1", port);
 
     println!("\n  svg-dom demo running on http://127.0.0.1:{port}/demo/\n");

@@ -2,16 +2,21 @@ use std::{cell::RefCell, rc::Rc};
 use wasm_bindgen::{JsCast, prelude::*};
 use web_sys::{MouseEvent, SvgElement};
 
+type MouseClosure = Closure<dyn Fn(MouseEvent)>;
+
 use crate::error::Error;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 struct SvgNodeInner {
     element: SvgElement,
 
-    // Closures are stored here so they live as long as the node.
+    // Mouse event closures are allocated only for interactive nodes.
+    // Most SVG elements are passive geometry, so keeping the closure Vec behind an Option<Box<_>> avoids carrying an
+    // empty Vec in every SvgNodeInner.
+    //
     // Dropping this Vec removes the event listeners from memory (though not from the DOM — use `remove_event_listener`
     // if you need a clean teardown before the element is removed).
-    closures: RefCell<Vec<Closure<dyn Fn(MouseEvent)>>>,
+    closures: RefCell<Option<Box<Vec<MouseClosure>>>>,
 }
 
 /// A cheap-to-clone handle to a live SVG DOM element.
@@ -48,7 +53,7 @@ impl SvgNode {
         SvgNode {
             inner: Rc::new(SvgNodeInner {
                 element,
-                closures: RefCell::new(Vec::new()),
+                closures: RefCell::new(None),
             }),
         }
     }
@@ -74,6 +79,53 @@ impl SvgNode {
     /// ```
     pub fn as_element(&self) -> &SvgElement {
         &self.inner.element
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// # Text measurement
+    ///
+    /// Returns the rendered advance width of a text element's content, in user units, by wrapping
+    /// [`SVGTextContentElement.getComputedTextLength()`]. Returns `None` for non-text elements.
+    ///
+    /// This reflects the actual font metrics in effect (family, size, `letter-spacing`, `word-spacing`), so it is the
+    /// reliable way to discover, for example, the width of a monospace digit (the CSS `ch` unit) at runtime rather than
+    /// hard-coding a guess. The element must be attached to a rendered document for the measurement to be meaningful.
+    ///
+    /// [`SVGTextContentElement.getComputedTextLength()`]: https://developer.mozilla.org/docs/Web/API/SVGTextContentElement/getComputedTextLength
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{root::utils::Point, SvgRoot};
+    /// let svg = SvgRoot::attach("diagram")?;
+    /// let probe = svg.text(Point::origin(), "0")?;
+    /// let ch = probe.computed_text_length().unwrap_or(0.0); // width of one monospace digit
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn computed_text_length(&self) -> Option<f64> {
+        self.inner
+            .element
+            .dyn_ref::<web_sys::SvgTextContentElement>()
+            .map(|t| t.get_computed_text_length() as f64)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// # Text content
+    ///
+    /// Replaces the element's text content. Use on a `<text>` element to update the string it displays without
+    /// recreating it.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{root::utils::Point, SvgRoot};
+    /// let svg = SvgRoot::attach("diagram")?;
+    /// let label = svg.text(Point::new(10.0, 20.0), "0")?;
+    /// label.set_text("42"); // live-update the displayed value
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn set_text(&self, content: &str) {
+        self.inner.element.set_text_content(Some(content));
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -286,7 +338,11 @@ impl SvgNode {
             .element
             .add_event_listener_with_callback(event_type, closure.as_ref().unchecked_ref())
             .map_err(|e| Error::Dom(format!("{e:?}")))?;
-        self.inner.closures.borrow_mut().push(closure);
+        self.inner
+            .closures
+            .borrow_mut()
+            .get_or_insert_with(|| Box::new(Vec::new()))
+            .push(closure);
         Ok(())
     }
 
