@@ -103,16 +103,16 @@ fn demo_rect() -> Result<(), Error> {
     r3.set_attr("rx", "20")?;
     caption(&svg, 365.0, "rounded (rx)")?;
 
-    // 4. Hover: fill swaps on mouseover / mouseout
+    // 4. Hover: fill swaps on pointerenter / pointerleave
     let r4 = svg.rect(Point::new(445.0, 10.0 + PAD_Y), Size::new(130.0, 90.0))?;
     r4.set_fill(GOLDENROD)?;
     r4.set_attr("style", "cursor:pointer")?;
     let r4b = r4.clone();
-    r4.on_mouseover(move |_| {
+    r4.on_pointerenter(move |_| {
         let _ = r4b.set_fill(GOLD);
     })?;
     let r4c = r4.clone();
-    r4.on_mouseout(move |_| {
+    r4.on_pointerleave(move |_| {
         let _ = r4c.set_fill(GOLDENROD);
     })?;
     caption(&svg, 510.0, "hover")?;
@@ -156,11 +156,11 @@ fn demo_circle() -> Result<(), Error> {
     c3.set_fill(LIGHT_SKY_BLUE)?;
     c3.set_attr("style", "cursor:pointer")?;
     let c3b = c3.clone();
-    c3.on_mouseover(move |_| {
+    c3.on_pointerenter(move |_| {
         let _ = c3b.set_attr("r", "50");
     })?;
     let c3c = c3.clone();
-    c3.on_mouseout(move |_| {
+    c3.on_pointerleave(move |_| {
         let _ = c3c.set_attr("r", "35");
     })?;
     caption(&svg, 360.0, "hover (radius)")?;
@@ -349,7 +349,7 @@ fn demo_anim() -> Result<(), Error> {
 // Event-handling helper
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-// `SvgNode` wraps `click`, `mouseover` and `mouseout` directly.  For every other event we drop down to the raw
+// `SvgNode` wraps `click`, `pointerenter` and `pointerleave` directly.  For every other event we drop down to the raw
 // `web-sys` element via [`SvgNode::as_element`] and register the listener ourselves.
 // The `Closure` is `forget`-ted so that it lives for the page's lifetime — exactly the same leak-on-purpose pattern
 // that `demo_anim` uses for its `AnimationLoop`.
@@ -602,7 +602,7 @@ fn demo_events_modifiers() -> Result<(), Error> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// Events — press state (raw mousedown / mouseup / mouseleave)
+// Events — press state (raw mousedown / mouseup / pointerleave)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 fn demo_events_press() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-events-press", Size::new(W, H))?;
@@ -685,18 +685,18 @@ fn demo_events_press() -> Result<(), Error> {
     on_raw(&pad, "contextmenu", move |_| release_ctx())?;
 
     // If the pointer leaves while still held, treat it as a release so the button cannot get stuck in the pressed state
-    on_raw(&pad, "mouseleave", move |_| release())?;
+    on_raw(&pad, "pointerleave", move |_| release())?;
 
     caption(
         &svg,
         400.0,
-        "raw mousedown / mouseup / mouseleave · pressed-state tracking · reports held modifier keys",
+        "raw mousedown / mouseup / pointerleave · pressed-state tracking · reports held modifier keys",
     )?;
     Ok(())
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// Events — bubbling mouseover vs non-bubbling mouseenter on a group
+// Events — pointerenter wrappers on groups
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 fn demo_events_group() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-events-group", Size::new(W, H))?;
@@ -738,40 +738,36 @@ fn demo_events_group() -> Result<(), Error> {
         Ok(count)
     };
 
-    // group 1 — on_mouseover.  This event *bubbles*, so the handler on the <g> fires every time the pointer enters a
-    // descendant: once for the boundary, then again for each child (and again when crossing back onto the boundary).
-    let g1_count = labels(40.0, ACCENT_BLUE, "group 1: on_mouseover (event bubbles)")?;
+    // group 1 — on_pointerenter. This uses the non-bubbling pointerenter event, so the handler fires once when the
+    // pointer enters the group boundary and ignores child-to-child movement inside the group.
+    let g1_count = labels(40.0, ACCENT_BLUE, "group 1: on_pointerenter")?;
     let group1 = build(40.0, ACCENT_BLUE)?;
     let c1 = Rc::new(Cell::new(0u32));
-    group1.on_mouseover(move |_| {
+    group1.on_pointerenter(move |_| {
         let n = c1.get() + 1;
         c1.set(n);
         g1_count
             .as_element()
             .set_text_content(Some(&format!("fires: {n}")));
     })?;
-    // on_mouseover stores its closure inside the node, so the node must outlive this function for the listener to keep
+    // on_pointerenter stores its closure inside the node, so the node must outlive this function for the listener to keep
     // working — leak it for the page's lifetime (just as demo_anim does with its AnimationLoop).
     mem::forget(group1);
 
-    // group 2 — mouseenter.  This event does *not* bubble, so the handler fires exactly once per boundary crossing,
-    // no matter how many child shapes the pointer then sweeps over inside the group.
-    let g2_count = labels(
-        440.0,
-        ACCENT_AMBER,
-        "group 2: mouseenter (event does not bubble)",
-    )?;
+    // group 2 — the same wrapper on another group, showing the behaviour is independent of the child shapes.
+    let g2_count = labels(440.0, ACCENT_AMBER, "group 2: on_pointerenter")?;
     let group2 = build(440.0, ACCENT_AMBER)?;
     let c2 = Rc::new(Cell::new(0u32));
-    // mouseenter is not wrapped by SvgNode; on_raw registers it on the element and leaks the closure, so the listener
-    // survives without our having to keep the group handle alive.
-    on_raw(&group2, "mouseenter", move |_| {
+    group2.on_pointerenter(move |_| {
         let n = c2.get() + 1;
         c2.set(n);
         g2_count
             .as_element()
             .set_text_content(Some(&format!("fires: {n}")));
     })?;
+    // on_pointerenter stores its closure inside the node, so the node must outlive this function for the listener to keep
+    // working — leak it for the page's lifetime (just as demo_anim does with its AnimationLoop).
+    mem::forget(group2);
 
     Ok(())
 }
@@ -900,7 +896,7 @@ fn demo_events_drag() -> Result<(), Error> {
         })?;
     }
 
-    // mouseup / mouseleave → drop the card (mouseleave guards against releasing outside the canvas).
+    // mouseup / pointerleave → drop the card (pointerleave guards against releasing outside the canvas).
     {
         let grab = grab.clone();
         let card = card.clone();
@@ -913,7 +909,7 @@ fn demo_events_drag() -> Result<(), Error> {
         let drop_up = drop.clone();
 
         on_raw(&surface, "mouseup", move |_| drop_up())?;
-        on_raw(&surface, "mouseleave", move |_| drop())?;
+        on_raw(&surface, "pointerleave", move |_| drop())?;
     }
 
     Ok(())

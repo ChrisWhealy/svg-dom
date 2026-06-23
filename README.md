@@ -54,7 +54,7 @@ The `svg-dom` crate acts as a thin wrapper for `web-sys` SVG DOM bindings that a
 - Add a basic set of SVG elements using helper functions (`<rect>`, `<circle>`, `<line>`, `<path>`, `<text>`, `<g>`)
    - You get back a cheap-to-clone handle (`SvgNode`) that holds a live reference to the real DOM node
 - Mutate an element's individual attributes (`fill`, `stroke`, `d`, or any arbitrary attribute) on those handles without the need to rebuild or diff the DOM tree
-- Attach mouse event listeners (`click`, `mouseover`, `mouseout`) directly to individual elements
+- Attach pointer/mouse event listeners (`click`, `pointerenter`, `pointerleave`) directly to individual elements
 - Drive reactive updates through a `requestAnimationFrame` loop via `AnimationLoop`
 
 ## What this crate is NOT
@@ -114,10 +114,10 @@ pub fn run() -> Result<(), svg_dom::Error> {
 
     // Clone the handle so the event closure can refer to the same DOM node.
     let rect_out = rect.clone();
-    rect.on_mouseover(move |_evt| { let _ = rect_out.set_fill("gold"); })?;
+    rect.on_pointerenter(move |_evt| { let _ = rect_out.set_fill("gold"); })?;
 
     let rect_back = rect.clone();
-    rect.on_mouseout(move |_evt| { let _ = rect_back.set_fill("steelblue"); })?;
+    rect.on_pointerleave(move |_evt| { let _ = rect_back.set_fill("steelblue"); })?;
 
     // Build a <g> group containing a circle and a label.
     let group = svg.group()?;

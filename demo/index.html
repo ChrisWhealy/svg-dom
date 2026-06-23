@@ -55,7 +55,7 @@
                     <div class="canvas" id="demo-rect"></div>
                     <figcaption>
                         <strong>fill</strong> · <strong>stroke</strong> · <strong>rounded (rx)</strong> ·
-                        <strong>hover</strong> (mouseover / mouseout swap fill) ·
+                        <strong>hover</strong> (pointerenter / pointerleave swap fill) ·
                         <strong>click</strong> (toggle fill colour)
                     </figcaption>
                 </figure>
@@ -68,7 +68,7 @@
                     <div class="canvas" id="demo-circle"></div>
                     <figcaption>
                         <strong>fill</strong> · <strong>stroke-only</strong> ·
-                        <strong>hover</strong> (radius grows on mouseover)
+                        <strong>hover</strong> (radius grows on pointerenter)
                     </figcaption>
                 </figure>
             </section>
@@ -184,7 +184,7 @@
                     <div class="canvas" id="demo-events-press"></div>
                     <figcaption>
                         Press and hold (primary button) to drive a <strong>pressed</strong> state from
-                        <strong>mousedown</strong> / <strong>mouseup</strong>; <strong>mouseleave</strong> cancels it
+                        <strong>mousedown</strong> / <strong>mouseup</strong>; <strong>pointerleave</strong> cancels it
                         so the button cannot stick down. The readout also lists any <strong>shift / ctrl / alt /
                             meta</strong> keys held during the press.
                     </figcaption>
@@ -193,15 +193,13 @@
 
             <!-- bubbling -->
             <section class="section" id="panel-events-group">
-                <h2><code>mouseover</code> bubbling vs <code>mouseenter</code></h2>
+                <h2><code>pointerenter</code> on grouped SVG</h2>
                 <figure>
                     <div class="canvas" id="demo-events-group"></div>
                     <figcaption>
                         Each bordered group holds two child shapes and keeps its own fire counter.
-                        <strong>group 1</strong> listens for bubbling <strong>mouseover</strong>, so its counter ticks
-                        up on entering the boundary <em>and</em> again on each child; <strong>group 2</strong> listens
-                        for non-bubbling <strong>mouseenter</strong>, so its counter rises only once per boundary
-                        crossing.
+                        Both groups use the wrapped <strong>pointerenter</strong> event, so each counter rises only once
+                        per boundary crossing; moving between children inside the group does not add extra ticks.
                     </figcaption>
                 </figure>
             </section>

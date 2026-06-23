@@ -33,14 +33,14 @@ The following elements all need to be implemented:
 
 # Missing events
 
-Only three mouse events are wrapped.
-Wrappers for these events are missing:
+Five mouse/pointer events are wrapped: `click`, `pointerenter`, `pointerleave`, and the legacy `mouseover` / `mouseout` wrappers kept for compatibility.
+
+Prefer `pointerenter` / `pointerleave` for hover behaviour because they do not bubble through child elements.
+Wrappers for these events are still missing:
 
 - `mousedown`, `mouseup`, `mousemove`
-- `mouseenter` / `mouseleave` (the non-bubbling equivalents we discussed)
 - `wheel` (scroll/zoom)
 - Touch events (`touchstart`, `touchmove`, `touchend`) — important for mobile
-- No `remove_event_listener` — once registered, a handler cannot be detached
 
 # Missing attribute helpers
 

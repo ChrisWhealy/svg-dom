@@ -1,6 +1,6 @@
 use std::{cell::Cell, rc::Rc};
 use wasm_bindgen_test::*;
-use web_sys::{MouseEvent, SvgElement};
+use web_sys::{MouseEvent, PointerEvent, SvgElement};
 use svg_dom::{SvgRoot, root::utils::*};
 
 mod common;
@@ -14,15 +14,20 @@ fn make_svg(container_id: &str) -> SvgRoot {
     SvgRoot::create_in(container_id, Size { width: 200.0, height: 200.0 }).unwrap()
 }
 
-// Helper: dispatch a synthetic MouseEvent directly to a node's underlying element.
+// Helper: dispatch a synthetic mouse/pointer event directly to a node's underlying element.
 // `dispatch_event` is synchronous in browsers, so the handler fires before this returns.
 fn dispatch(node: &svg_dom::SvgNode, event_type: &str) -> Result<(), String> {
     dispatch_element(node.as_element(), event_type)
 }
 
 fn dispatch_element(element: &SvgElement, event_type: &str) -> Result<(), String> {
-    let event = MouseEvent::new(event_type).map_err(|e| format!("{e:?}"))?;
-    element.dispatch_event(&event).map_err(|e| format!("{e:?}"))?;
+    if event_type.starts_with("pointer") {
+        let event = PointerEvent::new(event_type).map_err(|e| format!("{e:?}"))?;
+        element.dispatch_event(&event).map_err(|e| format!("{e:?}"))?;
+    } else {
+        let event = MouseEvent::new(event_type).map_err(|e| format!("{e:?}"))?;
+        element.dispatch_event(&event).map_err(|e| format!("{e:?}"))?;
+    }
     Ok(())
 }
 
@@ -156,26 +161,26 @@ fn should_fire_on_click_after_synthetic_click() -> Result<(), String> {
     common::check(fired.get(), "click handler did not fire")
 }
 
-/// An `on_mouseover` handler fires when a synthetic `mouseover` event is dispatched.
+/// An `on_pointerenter` handler fires when a synthetic `pointerenter` event is dispatched.
 #[wasm_bindgen_test]
-fn should_fire_on_mouseover_after_synthetic_mouseover() -> Result<(), String> {
-    let rect    = make_svg("node-mouseover").rect(Point::origin(), Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+fn should_fire_on_pointerenter_after_synthetic_pointerenter() -> Result<(), String> {
+    let rect    = make_svg("node-pointerenter").rect(Point::origin(), Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
     let fired   = Rc::new(Cell::new(false));
     let fired_c = fired.clone();
-    rect.on_mouseover(move |_| { fired_c.set(true); }).map_err(|e| e.to_string())?;
-    dispatch(&rect, "mouseover")?;
-    common::check(fired.get(), "mouseover handler did not fire")
+    rect.on_pointerenter(move |_| { fired_c.set(true); }).map_err(|e| e.to_string())?;
+    dispatch(&rect, "pointerenter")?;
+    common::check(fired.get(), "pointerenter handler did not fire")
 }
 
-/// An `on_mouseout` handler fires when a synthetic `mouseout` event is dispatched.
+/// An `on_pointerleave` handler fires when a synthetic `pointerleave` event is dispatched.
 #[wasm_bindgen_test]
-fn should_fire_on_mouseout_after_synthetic_mouseout() -> Result<(), String> {
-    let rect    = make_svg("node-mouseout").rect(Point::origin(), Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+fn should_fire_on_pointerleave_after_synthetic_pointerleave() -> Result<(), String> {
+    let rect    = make_svg("node-pointerleave").rect(Point::origin(), Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
     let fired   = Rc::new(Cell::new(false));
     let fired_c = fired.clone();
-    rect.on_mouseout(move |_| { fired_c.set(true); }).map_err(|e| e.to_string())?;
-    dispatch(&rect, "mouseout")?;
-    common::check(fired.get(), "mouseout handler did not fire")
+    rect.on_pointerleave(move |_| { fired_c.set(true); }).map_err(|e| e.to_string())?;
+    dispatch(&rect, "pointerleave")?;
+    common::check(fired.get(), "pointerleave handler did not fire")
 }
 
 /// Registering multiple handlers for the same event on the same node results in all of

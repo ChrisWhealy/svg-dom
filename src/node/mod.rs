@@ -1,26 +1,10 @@
+mod event;
+
+use event::*;
+
 use std::{cell::RefCell, rc::Rc};
 use wasm_bindgen::{JsCast, prelude::*};
-use web_sys::{MouseEvent, SvgElement};
-
-type MouseClosure = Closure<dyn Fn(MouseEvent)>;
-
-struct MouseListener {
-    element: SvgElement,
-    event_type: String,
-    closure: MouseClosure,
-}
-
-impl Drop for MouseListener {
-    fn drop(&mut self) {
-        // Remove the browser-side listener before the wasm-bindgen Closure field is
-        // dropped.  Otherwise the DOM can retain a callback reference to a closure
-        // that no longer exists in Rust-managed memory.
-        let _ = self.element.remove_event_listener_with_callback(
-            &self.event_type,
-            self.closure.as_ref().unchecked_ref(),
-        );
-    }
-}
+use web_sys::{MouseEvent, PointerEvent, SvgElement};
 
 use crate::error::Error;
 
@@ -34,13 +18,13 @@ struct SvgNodeInner {
     //
     // Each entry stores both the event type and the Closure so the listener can be removed from the DOM before the
     // Closure is dropped. This prevents a detached DOM callback from pointing at an invalid wasm-bindgen closure.
-    listeners: RefCell<Option<Box<Vec<MouseListener>>>>,
+    listeners: RefCell<Option<Box<Vec<EventListener>>>>,
 }
 
 impl Drop for SvgNodeInner {
     fn drop(&mut self) {
         // Drop the listener storage explicitly while the SVG element is still alive.
-        // Each MouseListener removes its own DOM callback before its Closure field is
+        // Each EventListener removes its own DOM callback before its Closure field is
         // freed.
         let _ = self.listeners.get_mut().take();
     }
@@ -64,7 +48,7 @@ impl Drop for SvgNodeInner {
 /// let rect = svg.rect(Point::new(10.0, 10.0), Size::new(80.0, 40.0))?;
 ///
 /// let rect_hover = rect.clone();           // another reference to the same DOM node
-/// rect.on_mouseover(move |_| {
+/// rect.on_pointerenter(move |_| {
 ///     let _ = rect_hover.set_fill("gold"); // mutates the same <rect>
 /// })?;
 /// Ok::<(), svg_dom::Error>(())
@@ -369,10 +353,32 @@ impl SvgNode {
             .listeners
             .borrow_mut()
             .get_or_insert_with(|| Box::new(Vec::new()))
-            .push(MouseListener {
+            .push(EventListener {
                 element: self.inner.element.clone(),
                 event_type: event_type.to_string(),
-                closure,
+                closure: EventClosure::Mouse(closure),
+            });
+        Ok(())
+    }
+
+    fn add_pointer_listener<F: Fn(PointerEvent) + 'static>(
+        &self,
+        event_type: &str,
+        handler: F,
+    ) -> Result<(), Error> {
+        let closure = Closure::<dyn Fn(PointerEvent)>::new(handler);
+        self.inner
+            .element
+            .add_event_listener_with_callback(event_type, closure.as_ref().unchecked_ref())
+            .map_err(|e| Error::Dom(format!("{e:?}")))?;
+        self.inner
+            .listeners
+            .borrow_mut()
+            .get_or_insert_with(|| Box::new(Vec::new()))
+            .push(EventListener {
+                element: self.inner.element.clone(),
+                event_type: event_type.to_string(),
+                closure: EventClosure::Pointer(closure),
             });
         Ok(())
     }
@@ -402,39 +408,18 @@ impl SvgNode {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Registers an event handler function that fires when the pointer enters the element.
+    /// Registers an event handler function that fires when the pointer enters this element.
     ///
-    /// Note that the `mouseover` event bubbles, so attaching a handler to this event on a DOM element with children can
-    /// become problematic.  Consider this example:
+    /// This wrapper uses the browser's `pointerenter` event rather than `mouseover`.
+    /// `pointerenter` does **not** bubble, so it fires once when the pointer crosses the
+    /// boundary of this element and does not re-fire just because the pointer moves over
+    /// one of the element's children. This makes it the preferred wrapper for hover-like
+    /// behaviour on both leaf elements and grouped SVG content.
     ///
-    /// ```xml
-    /// <g id="group">
-    ///   <rect id="box" />
-    ///   <text id="label">XOR</text>
-    /// </g>
-    /// ```
+    /// The handler receives a [`PointerEvent`], giving access to normal mouse-style
+    /// coordinates plus pointer-specific data such as `pointer_id` and `pointer_type`.
     ///
-    /// If you call `group.on_mouseover(handler)`, you might expect the event handler to be fired only once when the
-    /// pointer enters the `<g>` element. However, the browser natively fires the `mouseover` event whenever the pointer
-    /// passes over **any** element, irrespective of whether or not an event handler has been registered for that element.
-    /// Since `mouseover` bubbles up to the parent node, the event handler registered for `mouseover` on `#group` will
-    /// be fired when:
-    ///
-    /// 1. the pointer moves over `#box` → `mouseover` fires on `#box`, then bubbles up to `#group` → your handler fires
-    /// 2. the pointer slides across to `#label` → `mouseover` fires on `#label` and again, bubbles up to `#group` →
-    ///    your handler fires again
-    ///
-    /// In order to treat the child elements belonging to `#group` as if they were a single element, you should instead
-    /// use the `mouseenter` event.  It fires only when the pointer crosses the boundary of the element to which it has
-    /// been attached and it does **not** bubble.
-    ///
-    /// So attaching `mouseenter` to `#group` gives you exactly one event trigger when the pointer enters the group,
-    /// regardless of how many of the group's child nodes it passes over.
-    ///
-    /// Since `SvgNode` does not wrap `mouseenter` directly, register it via [`as_element`](Self::as_element) and
-    /// `add_event_listener_with_callback` on the raw `web-sys` element.
-    ///
-    /// # Example — `mouseover` on a leaf element (no bubbling concern)
+    /// # Example — hover on a leaf element
     ///
     /// ```rust,no_run
     /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
@@ -442,16 +427,14 @@ impl SvgNode {
     /// let rect = svg.rect(Point::new(10.0, 10.0), Size::new(120.0, 60.0))?;
     ///
     /// let r = rect.clone();
-    /// rect.on_mouseover(move |_| { let _ = r.set_fill("gold"); })?;
+    /// rect.on_pointerenter(move |_| { let _ = r.set_fill("gold"); })?;
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     ///
-    /// # Example — `mouseenter` on a group via the raw element
+    /// # Example — hover on a group without child bubbling
     ///
     /// ```rust,no_run
     /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
-    /// use wasm_bindgen::{JsCast, prelude::Closure};
-    /// use web_sys::MouseEvent;
     /// let svg = SvgRoot::attach("diagram")?;
     /// let group = svg.group()?;
     /// let box_ = svg.rect(Point::new(0.0, 0.0), Size::new(80.0, 40.0))?;
@@ -459,27 +442,24 @@ impl SvgNode {
     /// group.append(&box_)?;
     /// group.append(&label)?;
     ///
-    /// // The `mouseenter` event does not bubble, so it fires exactly once when the pointer enters the group boundary,
-    /// // whilst ignoring any boundary-crossings of the group's child elements.
     /// let group_enter = group.clone();
-    /// let closure = Closure::<dyn Fn(MouseEvent)>::new(move |_: MouseEvent| {
+    /// group.on_pointerenter(move |_| {
     ///     let _ = group_enter.set_attr("opacity", "0.6");
-    /// });
-    /// group
-    ///     .as_element()
-    ///     .add_event_listener_with_callback("mouseenter", closure.as_ref().unchecked_ref())
-    ///     .unwrap();
-    /// closure.forget(); // keep the closure alive for the lifetime of the page
+    /// })?;
     /// Ok::<(), svg_dom::Error>(())
     /// ```
-    pub fn on_mouseover<F: Fn(MouseEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
-        self.add_mouse_listener("mouseover", handler)
+    pub fn on_pointerenter<F: Fn(PointerEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
+        self.add_pointer_listener("pointerenter", handler)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers an event handler function that fires when the pointer leaves this element.
     ///
-    /// Commonly paired with [`on_mouseover`](Self::on_mouseover) to implement hover effects.
+    /// This wrapper uses `pointerleave`, the non-bubbling counterpart to `pointerenter`.
+    /// It is preferred over `mouseout` for hover cleanup because child-boundary crossings
+    /// inside a group do not trigger extra leave events.
+    ///
+    /// Commonly paired with [`on_pointerenter`](Self::on_pointerenter) to implement hover effects.
     ///
     /// # Example
     ///
@@ -490,12 +470,34 @@ impl SvgNode {
     /// rect.set_fill("steelblue")?;
     ///
     /// let r_over = rect.clone();
-    /// rect.on_mouseover(move |_| { let _ = r_over.set_fill("gold"); })?;
+    /// rect.on_pointerenter(move |_| { let _ = r_over.set_fill("gold"); })?;
     ///
     /// let r_out = rect.clone();
-    /// rect.on_mouseout(move |_| { let _ = r_out.set_fill("steelblue"); })?;
+    /// rect.on_pointerleave(move |_| { let _ = r_out.set_fill("steelblue"); })?;
     /// Ok::<(), svg_dom::Error>(())
     /// ```
+    pub fn on_pointerleave<F: Fn(PointerEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
+        self.add_pointer_listener("pointerleave", handler)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Registers an event handler function for the bubbling `mouseover` event.
+    ///
+    /// Prefer [`on_pointerenter`](Self::on_pointerenter) for hover behaviour. `mouseover`
+    /// bubbles, so handlers attached to groups can fire repeatedly as the pointer crosses
+    /// child elements inside the group.
+    #[deprecated(note = "prefer on_pointerenter, which uses the non-bubbling pointerenter event")]
+    pub fn on_mouseover<F: Fn(MouseEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
+        self.add_mouse_listener("mouseover", handler)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Registers an event handler function for the bubbling `mouseout` event.
+    ///
+    /// Prefer [`on_pointerleave`](Self::on_pointerleave) for hover cleanup. `mouseout`
+    /// bubbles, so handlers attached to groups can fire repeatedly as the pointer crosses
+    /// child elements inside the group.
+    #[deprecated(note = "prefer on_pointerleave, which uses the non-bubbling pointerleave event")]
     pub fn on_mouseout<F: Fn(MouseEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_mouse_listener("mouseout", handler)
     }
