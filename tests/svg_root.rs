@@ -38,6 +38,34 @@ fn should_not_attach_to_non_svg_element() -> Result<(), String> {
     }
 }
 
+/// `attach` reads the initial viewport attributes once and stores them in memory.
+#[wasm_bindgen_test]
+fn should_cache_existing_svg_viewport_when_attaching() -> Result<(), String> {
+    let el = common::svg("attach-cache-viewport");
+    el.set_attribute("width", "320").unwrap();
+    el.set_attribute("height", "240").unwrap();
+
+    let svg = SvgRoot::attach("attach-cache-viewport").map_err(|e| e.to_string())?;
+
+    common::check_eq(svg.width(), 320.0)?;
+    common::check_eq(svg.height(), 240.0)
+}
+
+/// `width` and `height` use the cached viewport instead of reparsing DOM attributes on every call.
+#[wasm_bindgen_test]
+fn should_not_reparse_viewport_attributes_after_attach() -> Result<(), String> {
+    let el = common::svg("attach-cache-no-reparse");
+    el.set_attribute("width", "640").unwrap();
+    el.set_attribute("height", "480").unwrap();
+
+    let svg = SvgRoot::attach("attach-cache-no-reparse").map_err(|e| e.to_string())?;
+    el.set_attribute("width", "1").unwrap();
+    el.set_attribute("height", "2").unwrap();
+
+    common::check_eq(svg.width(), 640.0)?;
+    common::check_eq(svg.height(), 480.0)
+}
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // SvgRoot::create_in
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

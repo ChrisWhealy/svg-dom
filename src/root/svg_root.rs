@@ -1,6 +1,7 @@
 use super::{SVG_NS, utils::Size, document, set};
 use crate::{SvgNode, error::Error};
 
+use std::cell::Cell;
 use wasm_bindgen::JsCast;
 use web_sys::{Document, SvgElement, SvgsvgElement};
 
@@ -16,6 +17,7 @@ use web_sys::{Document, SvgElement, SvgsvgElement};
 pub struct SvgRoot {
     pub root: SvgsvgElement,
     pub(crate) document: Document,
+    viewport: Cell<Size>,
 }
 
 impl SvgRoot {
@@ -49,7 +51,13 @@ impl SvgRoot {
             .dyn_into::<SvgsvgElement>()
             .map_err(|_| Error::CastFailed("SvgsvgElement"))?;
 
-        Ok(SvgRoot { root, document })
+        let viewport = Cell::new(read_viewport(&root));
+
+        Ok(SvgRoot {
+            root,
+            document,
+            viewport,
+        })
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -100,6 +108,7 @@ impl SvgRoot {
         Ok(SvgRoot {
             root: svg,
             document,
+            viewport: Cell::new(size),
         })
     }
 
@@ -108,9 +117,10 @@ impl SvgRoot {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Returns the current `width` of the `<svg>` in pixels.
+    /// Returns the cached `width` of the `<svg>` in pixels.
     ///
-    /// Returns `0.0` if the attribute is absent or cannot be parsed as a number.
+    /// The value is read from the DOM once when attaching to an existing element, then kept in memory.
+    /// Returns `0.0` if the initial attribute is absent or cannot be parsed as a number.
     ///
     /// # Example
     ///
@@ -122,16 +132,14 @@ impl SvgRoot {
     /// ```
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     pub fn width(&self) -> f64 {
-        self.root
-            .get_attribute("width")
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(0.0)
+        self.viewport.get().width
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Returns the current `height` of the `<svg>` in pixels.
+    /// Returns the cached `height` of the `<svg>` in pixels.
     ///
-    /// Returns `0.0` if the attribute is absent or cannot be parsed as a number.
+    /// The value is read from the DOM once when attaching to an existing element, then kept in memory.
+    /// Returns `0.0` if the initial attribute is absent or cannot be parsed as a number.
     ///
     /// # Example
     ///
@@ -143,14 +151,11 @@ impl SvgRoot {
     /// ```
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     pub fn height(&self) -> f64 {
-        self.root
-            .get_attribute("height")
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(0.0)
+        self.viewport.get().height
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Updates the `width` and `height` attributes on the root `<svg>` element.
+    /// Updates the cached viewport and the `width` and `height` attributes on the root `<svg>` element.
     ///
     /// Call this when the available viewport changes — for example in response to the browser window being resized (the
     /// `resize` event).
@@ -166,7 +171,9 @@ impl SvgRoot {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     pub fn set_viewport(&self, size: Size) -> Result<(), Error> {
         set(&self.root, "width", &size.get_width_str())?;
-        set(&self.root, "height", &size.get_height_str())
+        set(&self.root, "height", &size.get_height_str())?;
+        self.viewport.set(size);
+        Ok(())
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -196,4 +203,14 @@ impl SvgRoot {
         self.append_node(&node)?;
         Ok(node)
     }
+}
+
+fn read_viewport(root: &SvgsvgElement) -> Size {
+    Size::new(read_number_attr(root, "width"), read_number_attr(root, "height"))
+}
+
+fn read_number_attr(root: &SvgsvgElement, name: &str) -> f64 {
+    root.get_attribute(name)
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0.0)
 }
