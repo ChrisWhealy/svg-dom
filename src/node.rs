@@ -4,19 +4,39 @@ use web_sys::{MouseEvent, SvgElement};
 
 type MouseClosure = Closure<dyn Fn(MouseEvent)>;
 
+struct MouseListener {
+    event_type: String,
+    closure: MouseClosure,
+}
+
 use crate::error::Error;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 struct SvgNodeInner {
     element: SvgElement,
 
-    // Mouse event closures are allocated only for interactive nodes.
-    // Most SVG elements are passive geometry, so keeping the closure Vec behind an Option<Box<_>> avoids carrying an
+    // Listener storage is allocated only for interactive nodes.
+    // Most SVG elements are passive geometry, so keeping the listener Vec behind an Option<Box<_>> avoids carrying an
     // empty Vec in every SvgNodeInner.
     //
-    // Dropping this Vec removes the event listeners from memory (though not from the DOM — use `remove_event_listener`
-    // if you need a clean teardown before the element is removed).
-    closures: RefCell<Option<Box<Vec<MouseClosure>>>>,
+    // Each entry stores both the event type and the Closure so the listener can be removed from the DOM before the
+    // Closure is dropped. This prevents a detached DOM callback from pointing at an invalid wasm-bindgen closure.
+    listeners: RefCell<Option<Box<Vec<MouseListener>>>>,
+}
+
+impl Drop for SvgNodeInner {
+    fn drop(&mut self) {
+        let Some(listeners) = self.listeners.get_mut().take() else {
+            return;
+        };
+
+        for listener in *listeners {
+            let _ = self.element.remove_event_listener_with_callback(
+                &listener.event_type,
+                listener.closure.as_ref().unchecked_ref(),
+            );
+        }
+    }
 }
 
 /// A cheap-to-clone handle to a live SVG DOM element.
@@ -53,7 +73,7 @@ impl SvgNode {
         SvgNode {
             inner: Rc::new(SvgNodeInner {
                 element,
-                closures: RefCell::new(None),
+                listeners: RefCell::new(None),
             }),
         }
     }
@@ -339,10 +359,13 @@ impl SvgNode {
             .add_event_listener_with_callback(event_type, closure.as_ref().unchecked_ref())
             .map_err(|e| Error::Dom(format!("{e:?}")))?;
         self.inner
-            .closures
+            .listeners
             .borrow_mut()
             .get_or_insert_with(|| Box::new(Vec::new()))
-            .push(closure);
+            .push(MouseListener {
+                event_type: event_type.to_string(),
+                closure,
+            });
         Ok(())
     }
 

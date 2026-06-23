@@ -5,9 +5,10 @@
 `SvgNode` wraps an `Rc`, so cloning it is cheap and all clones refer to the same underlying DOM node.
 This makes it natural to share a node between an event closure and the surrounding code without the need for any `unsafe` or `Arc` shenanigans.
 
-## Event closures are owned by the node
+## Event listeners are owned by the node
 
-Closures registered with `on_click` / `on_mouseover` / `on_mouseout` are stored inside the `SvgNode`'s `Rc`.
+Listeners registered with `on_click` / `on_mouseover` / `on_mouseout` are stored inside the `SvgNode`'s `Rc`.
+Each stored entry keeps the event type together with its wasm-bindgen closure, so the DOM listener can be removed before the closure is dropped.
 They live exactly as long as the last clone of the node exists, so you never have to manage their lifetime separately.
 
 ## `requestAnimationFrame` self-rescheduling pattern
