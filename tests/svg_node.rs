@@ -50,6 +50,46 @@ fn should_return_none_for_absent_attribute() -> Result<(), String> {
     common::check_eq(rect.attr("nonexistent"), None)
 }
 
+/// `set_attrs` writes each supplied attribute and all values are immediately readable back.
+#[wasm_bindgen_test]
+fn should_set_multiple_attributes_in_one_call() -> Result<(), String> {
+    let rect = make_svg("node-set-attrs")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+
+    rect.set_attrs([
+        ("fill", "steelblue"),
+        ("stroke", "white"),
+        ("stroke-width", "2"),
+    ])
+    .map_err(|e| e.to_string())?;
+
+    common::check_eq(rect.attr("fill"), Some("steelblue".into()))?;
+    common::check_eq(rect.attr("stroke"), Some("white".into()))?;
+    common::check_eq(rect.attr("stroke-width"), Some("2".into()))
+}
+
+/// `set_attrs` accepts owned String values as well as string literals.
+#[wasm_bindgen_test]
+fn should_set_multiple_owned_string_attributes_in_one_call() -> Result<(), String> {
+    let line = make_svg("node-set-attrs-owned")
+        .line(Point::origin(), Point::new(10.0, 20.0))
+        .map_err(|e| e.to_string())?;
+
+    line.set_attrs([
+        ("x1", 1.0_f64.to_string()),
+        ("y1", 2.0_f64.to_string()),
+        ("x2", 3.0_f64.to_string()),
+        ("y2", 4.0_f64.to_string()),
+    ])
+    .map_err(|e| e.to_string())?;
+
+    common::check_eq(line.attr("x1"), Some("1".into()))?;
+    common::check_eq(line.attr("y1"), Some("2".into()))?;
+    common::check_eq(line.attr("x2"), Some("3".into()))?;
+    common::check_eq(line.attr("y2"), Some("4".into()))
+}
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // remove_attr
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

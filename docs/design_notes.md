@@ -25,3 +25,10 @@ Calling `stop()` (or dropping the `AnimationLoop`) sets that `Rc` slot to `None`
 Use these helpers for values that change every frame instead of writing `set_attr(..., &format!(...))` or `set_attr(..., &value.to_string())` inside the RAF callback.
 
 The DOM still receives a normal `&str`, but on the Rust/WASM side, the same allocation is used across frames.
+
+## Multi-attribute updates
+
+`SvgNode::set_attrs` accepts any `IntoIterator` of `(name, value)` pairs where both sides implement `AsRef<str>`.
+This keeps the public API ergonomic for string literals while also allowing computed `String` values from helpers such as `Point::get_x_str()`.
+
+The built-in element factories and the browser demos use this setter for grouped initial geometry, text, and presentation attributes.  The browser still receives one normal SVG `setAttribute` operation per attribute, but crate code now has a single path for grouped attribute application and callers no longer need to spell out several repeated `set_attr` calls.

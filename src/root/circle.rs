@@ -20,9 +20,11 @@ impl SvgRoot {
     /// ```
     pub fn circle(&self, centre: Point, radius: f64) -> Result<SvgNode, Error> {
         let n = self.make_node("circle")?;
-        n.set_attr("cx", &centre.get_x_str())?;
-        n.set_attr("cy", &centre.get_y_str())?;
-        n.set_attr("r", &radius.to_string())?;
+        n.set_attrs([
+            ("cx", centre.get_x_str()),
+            ("cy", centre.get_y_str()),
+            ("r", radius.to_string()),
+        ])?;
         self.append_node(&n)?;
         Ok(n)
     }

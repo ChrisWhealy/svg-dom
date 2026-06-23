@@ -24,8 +24,10 @@ impl SvgRoot {
     /// ```
     pub fn text(&self, anchored_at: Point, content: &str) -> Result<SvgNode, Error> {
         let n = self.make_node("text")?;
-        n.set_attr("x", &anchored_at.get_x_str())?;
-        n.set_attr("y", &anchored_at.get_y_str())?;
+        n.set_attrs([
+            ("x", anchored_at.get_x_str()),
+            ("y", anchored_at.get_y_str()),
+        ])?;
         n.as_element().set_text_content(Some(content));
         self.append_node(&n)?;
         Ok(n)

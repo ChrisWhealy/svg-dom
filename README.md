@@ -53,7 +53,7 @@ The `svg-dom` crate acts as a thin wrapper for `web-sys` SVG DOM bindings that a
 - Create new `<svg>` element programmatically
 - Add a basic set of SVG elements using helper functions (`<rect>`, `<circle>`, `<line>`, `<path>`, `<text>`, `<g>`)
    - You get back a cheap-to-clone handle (`SvgNode`) that holds a live reference to the real DOM node
-- Mutate an element's individual attributes (`fill`, `stroke`, `d`, or any arbitrary attribute) on those handles without the need to rebuild or diff the DOM tree
+- Mutate an element's attributes (`fill`, `stroke`, `d`, any arbitrary attribute, or several attributes with `set_attrs`) on those handles without the need to rebuild or diff the DOM tree
 - Attach pointer/mouse event listeners (`click`, `pointerenter`, `pointerleave`) directly to individual elements
 - Drive reactive updates through a `requestAnimationFrame` loop via `AnimationLoop`
 
@@ -137,6 +137,23 @@ pub fn run() -> Result<(), svg_dom::Error> {
     Ok(())
 }
 ```
+
+## Setting several attributes at once
+
+Use `SvgNode::set_attrs` when a geometry or style update naturally changes several attributes together.
+It accepts string literals and owned `String` values, so it is convenient both for fixed style values and computed geometry:
+
+```rust,no_run
+let rect = svg.rect(Point::origin(), Size::new(80.0, 40.0))?;
+rect.set_attrs([
+    ("fill", "steelblue"),
+    ("stroke", "white"),
+    ("stroke-width", "2"),
+    ("rx", "6"),
+])?;
+```
+
+Element factory methods use the same multi-attribute setter internally so the built-in shapes have a single, consistent path for applying initial geometry attributes.
 
 ## Allocation-light animation formatting
 

@@ -166,6 +166,46 @@ impl SvgNode {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// # Multi-attribute setter
+    ///
+    /// Sets several attributes on this element in sequence.
+    ///
+    /// This is a convenience wrapper around repeated [`set_attr`](Self::set_attr) calls. It is useful when creating or
+    /// updating an element whose geometry or style is described by several attributes at once. The setter accepts both
+    /// borrowed and owned strings, so it works with literal values as well as values produced by `to_string()`.
+    ///
+    /// If the browser rejects one of the attributes, this returns the first DOM error and stops. Attributes already set
+    /// before that error are left in place, matching the behaviour you would get from issuing the same `set_attr` calls
+    /// manually.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let rect = svg.rect(Point::origin(), Size::new(80.0, 40.0))?;
+    ///
+    /// rect.set_attrs([
+    ///     ("fill", "steelblue"),
+    ///     ("stroke", "white"),
+    ///     ("stroke-width", "2"),
+    ///     ("rx", "6"),
+    /// ])?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn set_attrs<I, K, V>(&self, attrs: I) -> Result<(), Error>
+    where
+        I: IntoIterator<Item = (K, V)>,
+        K: AsRef<str>,
+        V: AsRef<str>,
+    {
+        for (name, value) in attrs {
+            self.set_attr(name.as_ref(), value.as_ref())?;
+        }
+        Ok(())
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// # Read element attribute value
     ///
     /// Returns `None` if the attribute is not present.

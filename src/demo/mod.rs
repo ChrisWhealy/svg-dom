@@ -74,8 +74,7 @@ pub fn run_demo() -> Result<(), JsValue> {
 fn caption(svg: &SvgRoot, cx: f64, text: &str) -> Result<(), Error> {
     let t = svg.text(Point::new(cx, PAD_Y + BAND - 6.0), text)?;
     t.set_fill(CAPTION)?;
-    t.set_attr("font-size", "11")?;
-    t.set_attr("text-anchor", "middle")?;
+    t.set_attrs([("font-size", "11"), ("text-anchor", "middle")])?;
     Ok(())
 }
 
@@ -253,8 +252,7 @@ fn demo_text() -> Result<(), Error> {
     // Large bold
     let t2 = svg.text(Point::new(10.0, 100.0 + PAD_Y), "Bold — 36px")?;
     t2.set_fill(STEELBLUE)?;
-    t2.set_attr("font-size", "36")?;
-    t2.set_attr("font-weight", "bold")?;
+    t2.set_attrs([("font-size", "36"), ("font-weight", "bold")])?;
 
     // Coloured, medium
     let t3 = svg.text(Point::new(430.0, 65.0 + PAD_Y), "Coloured — 22px")?;
@@ -276,8 +274,7 @@ fn demo_group() -> Result<(), Error> {
     b1.set_fill(STEELBLUE)?;
     let l1 = svg.text(Point::new(75.0, 47.0), "Group A")?;
     l1.set_fill(WHITE)?;
-    l1.set_attr("font-size", "15")?;
-    l1.set_attr("text-anchor", "middle")?;
+    l1.set_attrs([("font-size", "15"), ("text-anchor", "middle")])?;
     g1.append(&b1)?;
     g1.append(&l1)?;
     g1.set_attr("transform", &format!("translate(40, {})", 25.0 + PAD_Y))?;
@@ -297,8 +294,7 @@ fn demo_group() -> Result<(), Error> {
     b2.set_fill(DARK_ORANGE)?;
     let l2 = svg.text(Point::new(75.0, 47.0), "Group B")?;
     l2.set_fill(WHITE)?;
-    l2.set_attr("font-size", "15")?;
-    l2.set_attr("text-anchor", "middle")?;
+    l2.set_attrs([("font-size", "15"), ("text-anchor", "middle")])?;
     g2.append(&b2)?;
     g2.append(&l2)?;
     g2.set_attr("transform", &format!("translate(280, {})", 25.0 + PAD_Y))?;
@@ -381,27 +377,29 @@ fn demo_events_click() -> Result<(), Error> {
     // Counter button.  Its colour cycles on every click so repeated presses are visible.
     let btn = svg.rect(Point::new(40.0, 30.0 + PAD_Y), Size::new(150.0, 60.0))?;
     btn.set_fill(STEELBLUE)?;
-    btn.set_attr("rx", "8")?;
-    btn.set_attr("style", "cursor:pointer")?;
+    btn.set_attrs([("rx", "8"), ("style", "cursor:pointer")])?;
 
     // The label sits on top of the button; `pointer-events:none` lets clicks fall through to the rect beneath.
     let btn_label = svg.text(Point::new(115.0, 66.0 + PAD_Y), "click me")?;
     btn_label.set_fill(WHITE)?;
-    btn_label.set_attr("font-size", "16")?;
-    btn_label.set_attr("text-anchor", "middle")?;
-    btn_label.set_attr("style", "pointer-events:none")?;
+    btn_label.set_attrs([
+        ("font-size", "16"),
+        ("text-anchor", "middle"),
+        ("style", "pointer-events:none"),
+    ])?;
 
     // Reset button — greyed out until there is actually something to reset.
     let reset = svg.rect(Point::new(210.0, 30.0 + PAD_Y), Size::new(110.0, 60.0))?;
     reset.set_fill(RESET_IDLE)?;
-    reset.set_attr("rx", "8")?;
-    reset.set_attr("style", "cursor:pointer")?;
+    reset.set_attrs([("rx", "8"), ("style", "cursor:pointer")])?;
 
     let reset_label = svg.text(Point::new(265.0, 66.0 + PAD_Y), "reset")?;
     reset_label.set_fill(WHITE)?;
-    reset_label.set_attr("font-size", "15")?;
-    reset_label.set_attr("text-anchor", "middle")?;
-    reset_label.set_attr("style", "pointer-events:none")?;
+    reset_label.set_attrs([
+        ("font-size", "15"),
+        ("text-anchor", "middle"),
+        ("style", "pointer-events:none"),
+    ])?;
 
     let readout = svg.text(Point::new(350.0, 66.0 + PAD_Y), "clicks: 0")?;
     readout.set_fill(TEXT)?;
@@ -491,13 +489,11 @@ fn demo_events_colour() -> Result<(), Error> {
     let swatch = svg.rect(Point::new(210.0, 18.0 + PAD_Y), Size::new(250.0, 94.0))?;
     swatch.set_fill(SWATCH_EMPTY)?;
     swatch.set_stroke(GUIDE)?;
-    swatch.set_attr("rx", "12")?;
-    swatch.set_attr("pointer-events", NONE)?;
+    swatch.set_attrs([("rx", "12"), ("pointer-events", NONE)])?;
 
     let readout = svg.text(Point::new(485.0, 70.0 + PAD_Y), "move over the wheel →")?;
     readout.set_fill(TEXT)?;
-    readout.set_attr("font-size", "15")?;
-    readout.set_attr("pointer-events", NONE)?;
+    readout.set_attrs([("font-size", "15"), ("pointer-events", NONE)])?;
 
     caption(
         &svg,
@@ -523,13 +519,14 @@ fn demo_events_colour() -> Result<(), Error> {
             let hue = (dy.atan2(dx).to_degrees() + 360.0) % 360.0;
             let colour = format!("hsl({hue:.0},90%,50%)");
             let _ = mv_swatch.set_fill(&colour);
-            let _ = mv_marker.set_attr("cx", &format!("{x:.1}"));
-            let _ = mv_marker.set_attr("cy", &format!("{y:.1}"));
+            let _ = mv_marker.set_attrs([
+                ("cx", format!("{x:.1}")),
+                ("cy", format!("{y:.1}")),
+            ]);
             mv_readout.as_element().set_text_content(Some(&colour));
         } else {
             // Outside the wheel: park the marker but leave the last sampled colour on the swatch.
-            let _ = mv_marker.set_attr("cx", "-20");
-            let _ = mv_marker.set_attr("cy", "-20");
+            let _ = mv_marker.set_attrs([("cx", "-20"), ("cy", "-20")]);
         }
     })?;
 
@@ -544,14 +541,15 @@ fn demo_events_modifiers() -> Result<(), Error> {
 
     let pad = svg.rect(Point::new(40.0, 25.0 + PAD_Y), Size::new(240.0, 80.0))?;
     pad.set_fill(SLATE_BLUE)?;
-    pad.set_attr("rx", "8")?;
-    pad.set_attr("style", "cursor:pointer")?;
+    pad.set_attrs([("rx", "8"), ("style", "cursor:pointer")])?;
 
     let hint = svg.text(Point::new(160.0, 70.0 + PAD_Y), "click me")?;
     hint.set_fill(WHITE)?;
-    hint.set_attr("font-size", "15")?;
-    hint.set_attr("text-anchor", "middle")?;
-    hint.set_attr("style", "pointer-events:none")?;
+    hint.set_attrs([
+        ("font-size", "15"),
+        ("text-anchor", "middle"),
+        ("style", "pointer-events:none"),
+    ])?;
 
     let readout = svg.text(
         Point::new(310.0, 70.0 + PAD_Y),
@@ -609,14 +607,15 @@ fn demo_events_press() -> Result<(), Error> {
 
     let pad = svg.rect(Point::new(60.0, 25.0 + PAD_Y), Size::new(200.0, 80.0))?;
     pad.set_fill(TEAL)?;
-    pad.set_attr("rx", "8")?;
-    pad.set_attr("style", "cursor:pointer")?;
+    pad.set_attrs([("rx", "8"), ("style", "cursor:pointer")])?;
 
     let label = svg.text(Point::new(160.0, 70.0 + PAD_Y), "press & hold")?;
     label.set_fill(WHITE)?;
-    label.set_attr("font-size", "15")?;
-    label.set_attr("text-anchor", "middle")?;
-    label.set_attr("style", "pointer-events:none")?;
+    label.set_attrs([
+        ("font-size", "15"),
+        ("text-anchor", "middle"),
+        ("style", "pointer-events:none"),
+    ])?;
 
     let readout = svg.text(Point::new(320.0, 70.0 + PAD_Y), "state: idle")?;
     readout.set_fill(TEXT)?;
@@ -795,8 +794,7 @@ fn demo_events_drag() -> Result<(), Error> {
     bbox.set_fill(DROP_ZONE_FILL)?;
     bbox.set_stroke(DROP_ZONE_BORDER)?;
     bbox.set_stroke_width(1.5)?;
-    bbox.set_attr("rx", "8")?;
-    bbox.set_attr("stroke-dasharray", "6 4")?;
+    bbox.set_attrs([("rx", "8"), ("stroke-dasharray", "6 4")])?;
 
     // The draggable card is a group (background + label) moved as a unit via its transform.
     let card_bg = svg.rect(Point::new(0.0, 0.0), Size::new(OW, OH))?;
@@ -805,9 +803,11 @@ fn demo_events_drag() -> Result<(), Error> {
 
     let card_label = svg.text(Point::new(OW / 2.0, OH / 2.0 + 5.0), "drag me")?;
     card_label.set_fill(INK)?;
-    card_label.set_attr("font-size", "14")?;
-    card_label.set_attr("font-weight", "bold")?;
-    card_label.set_attr("text-anchor", "middle")?;
+    card_label.set_attrs([
+        ("font-size", "14"),
+        ("font-weight", "bold"),
+        ("text-anchor", "middle"),
+    ])?;
 
     let card = svg.group()?;
     card.append(&card_bg)?;
@@ -824,8 +824,7 @@ fn demo_events_drag() -> Result<(), Error> {
         &format!("x: {:.0}  y: {:.0}", start.0, start.1),
     )?;
     readout.set_fill(TEXT_MUTED)?;
-    readout.set_attr("font-size", "12")?;
-    readout.set_attr("text-anchor", "end")?;
+    readout.set_attrs([("font-size", "12"), ("text-anchor", "end")])?;
 
     caption(
         &svg,
