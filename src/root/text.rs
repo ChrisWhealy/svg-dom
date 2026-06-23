@@ -23,15 +23,11 @@ impl SvgRoot {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn text(&self, anchored_at: Point, content: &str) -> Result<SvgNode, Error> {
-        let el = self.make_element("text")?;
-        el.set_attribute("x", &anchored_at.get_x_str())
-            .map_err(|e| Error::Dom(format!("{e:?}")))?;
-        el.set_attribute("y", &anchored_at.get_y_str())
-            .map_err(|e| Error::Dom(format!("{e:?}")))?;
-        el.set_text_content(Some(content));
-        self.root
-            .append_child(&el)
-            .map_err(|e| Error::Dom(format!("{e:?}")))?;
-        Ok(SvgNode::new(el))
+        let n = self.make_node("text")?;
+        n.set_attr("x", &anchored_at.get_x_str())?;
+        n.set_attr("y", &anchored_at.get_y_str())?;
+        n.as_element().set_text_content(Some(content));
+        self.append_node(&n)?;
+        Ok(n)
     }
 }

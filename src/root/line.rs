@@ -24,11 +24,12 @@ impl SvgRoot {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn line(&self, start: Point, end: Point) -> Result<SvgNode, Error> {
-        let n = self.append_new("line")?;
+        let n = self.make_node("line")?;
         n.set_attr("x1", &start.get_x_str())?;
         n.set_attr("y1", &start.get_y_str())?;
         n.set_attr("x2", &end.get_x_str())?;
         n.set_attr("y2", &end.get_y_str())?;
+        self.append_node(&n)?;
         Ok(n)
     }
 }

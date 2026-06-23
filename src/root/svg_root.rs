@@ -180,11 +180,20 @@ impl SvgRoot {
             .map_err(|_| Error::CastFailed("SvgElement"))
     }
 
-    pub(crate) fn append_new(&self, tag: &str) -> Result<SvgNode, Error> {
-        let el = self.make_element(tag)?;
+    pub(crate) fn make_node(&self, tag: &str) -> Result<SvgNode, Error> {
+        self.make_element(tag).map(SvgNode::new)
+    }
+
+    pub(crate) fn append_node(&self, node: &SvgNode) -> Result<(), Error> {
         self.root
-            .append_child(&el)
-            .map_err(|e| Error::Dom(format!("{e:?}")))?;
-        Ok(SvgNode::new(el))
+            .append_child(node.as_element())
+            .map(|_| ())
+            .map_err(|e| Error::Dom(format!("{e:?}")))
+    }
+
+    pub(crate) fn append_new(&self, tag: &str) -> Result<SvgNode, Error> {
+        let node = self.make_node(tag)?;
+        self.append_node(&node)?;
+        Ok(node)
     }
 }

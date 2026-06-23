@@ -21,11 +21,12 @@ impl SvgRoot {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn rect(&self, top_left: Point, size: Size) -> Result<SvgNode, Error> {
-        let n = self.append_new("rect")?;
+        let n = self.make_node("rect")?;
         n.set_attr("x", &top_left.get_x_str())?;
         n.set_attr("y", &top_left.get_y_str())?;
         n.set_attr("width", &size.get_width_str())?;
         n.set_attr("height", &size.get_height_str())?;
+        self.append_node(&n)?;
         Ok(n)
     }
 }
