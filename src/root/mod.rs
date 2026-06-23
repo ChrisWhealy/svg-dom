@@ -1,3 +1,4 @@
+pub mod batch;
 pub mod circle;
 pub mod group;
 pub mod line;

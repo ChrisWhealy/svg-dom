@@ -15,7 +15,7 @@ use web_sys::{Document, SvgElement, SvgsvgElement};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 pub struct SvgRoot {
     pub root: SvgsvgElement,
-    document: Document,
+    pub(crate) document: Document,
 }
 
 impl SvgRoot {

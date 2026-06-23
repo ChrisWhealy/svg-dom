@@ -44,4 +44,5 @@ pub mod demo;
 pub use animate::AnimationLoop;
 pub use error::Error;
 pub use node::SvgNode;
+pub use root::batch::SvgBatch;
 pub use root::svg_root::SvgRoot;
