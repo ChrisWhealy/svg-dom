@@ -63,8 +63,9 @@ This crate does not use an HTML `<canvas>` element!
 
 The `<canvas>` element offers a pixel-based, bitmap drawing API which, although it gives you the highest performance ceiling, requires you to take ownership of the entire layout, the render loop and hit-testing.
 
-Not only is the implementation cost of such functionality is high, it becomes somewhat redundant in light of the fact that the SVG DOM is already a persistent tree of vector elements that can be individually updated.
-Consequently, this crate works only with the SVG DOM.
+Not only is the implementation cost of such functionality high, it becomes somewhat redundant in light of the fact that the SVG DOM is already a persistent tree of vector elements that can be individually updated and with which JavaScript (via `web-sys`) can already interact.
+
+Consequently, this crate works exclusively with the SVG DOM.
 
 # Building
 
