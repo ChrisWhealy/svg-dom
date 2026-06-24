@@ -33,7 +33,17 @@ The following elements all need to be implemented:
 
 # Event coverage
 
-Managed wrappers now cover the SVG interaction events expected by ordinary application code: click/double-click/context menu, mouse movement and button state, pointer lifecycle, wheel, touch, keyboard, focus/blur, drag-and-drop, and a generic `on_event` escape hatch.
+Managed wrappers now cover the SVG interaction events expected by ordinary application code:
+
+* click/double-click/context menu,
+* mouse movement and button state,
+* pointer lifecycle,
+* wheel,
+* touch,
+* keyboard,
+* focus/blur,
+* drag-and-drop, and 
+* a generic `on_event` escape hatch.
 
 Prefer `pointerenter` / `pointerleave` for hover behaviour because they do not bubble through child elements. The legacy `mouseover` / `mouseout` wrappers remain for compatibility.
 
