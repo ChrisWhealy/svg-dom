@@ -29,6 +29,14 @@ The DOM still receives a normal `&str`, but on the Rust/WASM side, the same allo
 ## Multi-attribute updates
 
 `SvgNode::set_attrs` accepts any `IntoIterator` of `(name, value)` pairs where both sides implement `AsRef<str>`.
-This keeps the public API ergonomic for string literals while also allowing computed `String` values from helpers such as `Point::get_x_str()`.
+This keeps the public API ergonomic for string literals and precomputed string values.
 
-The built-in element factories and the browser demos use this setter for grouped initial geometry, text, and presentation attributes.  The browser still receives one normal SVG `setAttribute` operation per attribute, but crate code now has a single path for grouped attribute application and callers no longer need to spell out several repeated `set_attr` calls.
+Use `set_attrs` when all values are already strings and you want a compact method for setting multiple attributes at once.
+
+## Reusable attribute formatting
+
+`SvgAttrs` owns a reusable `String` scratch buffer, then `AttrWriter` binds that buffer to a single `SvgNode` for chainable writes.
+Use this in order to avoid the need to call `to_string()` or `format!` for numeric or formatted attribute values.
+
+The browser still receives one normal SVG `setAttribute` operation per attribute, but the Rust/WASM side reuses the formatting allocation.
+The built-in root and batch element factories use the same mechanism for initial numeric geometry attributes, so repeated element creation does not allocate a fresh formatting `String` per element.

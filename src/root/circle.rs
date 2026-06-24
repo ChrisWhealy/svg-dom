@@ -1,5 +1,6 @@
 use crate::{SvgRoot, error::Error, node::SvgNode, root::utils::Point};
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 impl SvgRoot {
     /// Creates a `<circle>` element, appends it to the root, and returns its [`SvgNode`] handle.
     ///
@@ -19,12 +20,15 @@ impl SvgRoot {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn circle(&self, centre: Point, radius: f64) -> Result<SvgNode, Error> {
-        let n = self.make_node("circle")?;
-        let mut scratch = String::new();
-        n.set_attr_display("cx", centre.x, &mut scratch)?;
-        n.set_attr_display("cy", centre.y, &mut scratch)?;
-        n.set_attr_display("r", radius, &mut scratch)?;
-        self.append_node(&n)?;
-        Ok(n)
+        let node = self.make_node("circle")?;
+        {
+            let mut attrs = self.attrs.borrow_mut();
+            attrs.display(&node, "cx", centre.x)?;
+            attrs.display(&node, "cy", centre.y)?;
+            attrs.display(&node, "r", radius)?;
+        }
+        self.append_node(&node)?;
+
+        Ok(node)
     }
 }

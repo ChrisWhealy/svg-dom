@@ -272,3 +272,26 @@ fn should_remove_dom_listener_when_final_node_handle_is_dropped() -> Result<(), 
 
     common::check_eq(count.get(), 1)
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// SvgAttrs / AttrWriter
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `SvgAttrs` reuses its scratch buffer while setting string, numeric and formatted attributes.
+#[wasm_bindgen_test]
+fn should_set_attributes_with_reusable_attr_writer() -> Result<(), String> {
+    let rect = make_svg("node-svg-attrs").rect(Point::origin(), Size::new(50.0, 50.0)).map_err(|e| e.to_string())?;
+    let mut attrs = svg_dom::SvgAttrs::with_capacity(64);
+
+    rect.attrs(&mut attrs)
+        .fill("steelblue").map_err(|e| e.to_string())?
+        .stroke("white").map_err(|e| e.to_string())?
+        .stroke_width(2.5).map_err(|e| e.to_string())?
+        .fmt("transform", format_args!("translate({}, {})", 10, 20)).map_err(|e| e.to_string())?;
+
+    common::check_eq(rect.attr("fill"), Some("steelblue".into()))?;
+    common::check_eq(rect.attr("stroke"), Some("white".into()))?;
+    common::check_eq(rect.attr("stroke-width"), Some("2.5".into()))?;
+    common::check_eq(rect.attr("transform"), Some("translate(10, 20)".into()))?;
+    common::check(attrs.capacity() >= 64, "SvgAttrs should retain its scratch allocation")
+}

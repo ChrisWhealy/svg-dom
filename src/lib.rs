@@ -3,7 +3,7 @@
 //!
 //! `svg_dom` lets you create, style, and animate SVG elements directly in the browser DOM without needing either to
 //! rebuild or diff a virtual tree.
-//! 
+//!
 //! Every element you create is returned as an [`SvgNode`].  This is a cheap-to-clone `Rc`-backed handle to the real DOM
 //! node — so you can update its attributes or attach event listeners at any time.
 //!
@@ -13,7 +13,7 @@
 //! |---|---|---|
 //! | [`demo`] | | Provides a set of SVG element examples.  Run `cargo demo` then visit http://localhost:8000/demo. |
 //! | [`error`] | [`Error`] | Wrapper for Browser DOM errors |
-//! | [`root`] | [`SvgRoot`] | Wraps the `<svg>` root; factory for all child elements |
+//! | [`root`] | [`SvgRoot`] / [`SvgAttrs`] | Wraps the `<svg>` root; factory for all child elements; reusable attribute writing |
 //! | [`animate`] | [`AnimationLoop`] | `requestAnimationFrame` loop |
 //! | [`node`] | [`SvgNode`] | Live element handle that provides access to attributes, events and tree operations |
 //!
@@ -44,5 +44,8 @@ pub mod demo;
 pub use animate::{anim_frame::AnimationFrame, anim_loop::AnimationLoop};
 pub use error::Error;
 pub use node::SvgNode;
-pub use root::batch::SvgBatch;
-pub use root::svg_root::SvgRoot;
+pub use root::{
+    attrs::{AttrWriter, SvgAttrs},
+    batch::SvgBatch,
+    svg_root::SvgRoot,
+};

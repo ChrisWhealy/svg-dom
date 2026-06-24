@@ -1,7 +1,7 @@
-use super::{document, set_display, utils::Size, SVG_NS};
+use super::{SVG_NS, attrs::SvgAttrs, document, utils::Size};
 use crate::{SvgNode, error::Error};
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use wasm_bindgen::JsCast;
 use web_sys::{Document, SvgElement, SvgsvgElement};
 
@@ -18,6 +18,7 @@ pub struct SvgRoot {
     pub root: SvgsvgElement,
     pub(crate) document: Document,
     viewport: Cell<Size>,
+    pub(crate) attrs: RefCell<SvgAttrs>,
 }
 
 impl SvgRoot {
@@ -57,6 +58,7 @@ impl SvgRoot {
             root,
             document,
             viewport,
+            attrs: RefCell::new(SvgAttrs::new()),
         })
     }
 
@@ -98,9 +100,9 @@ impl SvgRoot {
             .dyn_into::<SvgsvgElement>()
             .map_err(|_| Error::CastFailed("SvgsvgElement"))?;
 
-        let mut scratch = String::new();
-        set_display(&svg, "width", size.width, &mut scratch)?;
-        set_display(&svg, "height", size.height, &mut scratch)?;
+        let mut attrs = SvgAttrs::new();
+        attrs.display_element(&svg, "width", size.width)?;
+        attrs.display_element(&svg, "height", size.height)?;
 
         parent
             .append_child(&svg)
@@ -110,6 +112,7 @@ impl SvgRoot {
             root: svg,
             document,
             viewport: Cell::new(size),
+            attrs: RefCell::new(SvgAttrs::new()),
         })
     }
 
@@ -171,9 +174,9 @@ impl SvgRoot {
     /// ```
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     pub fn set_viewport(&self, size: Size) -> Result<(), Error> {
-        let mut scratch = String::new();
-        set_display(&self.root, "width", size.width, &mut scratch)?;
-        set_display(&self.root, "height", size.height, &mut scratch)?;
+        let mut attrs = self.attrs.borrow_mut();
+        attrs.display_element(&self.root, "width", size.width)?;
+        attrs.display_element(&self.root, "height", size.height)?;
         self.viewport.set(size);
         Ok(())
     }
@@ -207,10 +210,15 @@ impl SvgRoot {
     }
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 fn read_viewport(root: &SvgsvgElement) -> Size {
-    Size::new(read_number_attr(root, "width"), read_number_attr(root, "height"))
+    Size::new(
+        read_number_attr(root, "width"),
+        read_number_attr(root, "height"),
+    )
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 fn read_number_attr(root: &SvgsvgElement, name: &str) -> f64 {
     root.get_attribute(name)
         .and_then(|s| s.parse().ok())

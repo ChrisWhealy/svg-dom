@@ -15,7 +15,7 @@ use wasm_bindgen::{JsCast, prelude::*};
 use web_sys::MouseEvent;
 
 use crate::{
-    AnimationLoop, Error, SvgNode, SvgRoot,
+    AnimationLoop, Error, SvgAttrs, SvgNode, SvgRoot,
     root::utils::{Point, Size},
 };
 use colours::*;
@@ -73,8 +73,10 @@ pub fn run_demo() -> Result<(), JsValue> {
 /// Appends a small grey caption below an element at horizontal centre `cx`.
 fn caption(svg: &SvgRoot, cx: f64, text: &str) -> Result<(), Error> {
     let t = svg.text(Point::new(cx, PAD_Y + BAND - 6.0), text)?;
-    t.set_fill(CAPTION)?;
-    t.set_attrs([("font-size", "11"), ("text-anchor", "middle")])?;
+    let mut attrs = SvgAttrs::new();
+    t.attrs(&mut attrs)
+        .fill(CAPTION)?
+        .apply([("font-size", "11"), ("text-anchor", "middle")])?;
     Ok(())
 }
 
@@ -91,9 +93,11 @@ fn demo_rect() -> Result<(), Error> {
 
     // 2. Stroke-only (no fill)
     let r2 = svg.rect(Point::new(155.0, 10.0 + PAD_Y), Size::new(130.0, 90.0))?;
-    r2.set_fill(NONE)?;
-    r2.set_stroke(CORAL)?;
-    r2.set_stroke_width(3.0)?;
+    let mut attrs = SvgAttrs::new();
+    r2.attrs(&mut attrs)
+        .fill(NONE)?
+        .stroke(CORAL)?
+        .stroke_width(3.0)?;
     caption(&svg, 220.0, "stroke")?;
 
     // 3. Rounded corners via rx attribute
@@ -213,10 +217,12 @@ fn demo_path() -> Result<(), Error> {
 
     // Closed triangle (M / L / Z)
     let tri = svg.path("M 70 10 L 130 110 L 10 110 Z")?;
-    tri.set_fill(STEELBLUE)?;
-    tri.set_stroke(WHITE)?;
-    tri.set_stroke_width(2.0)?;
-    tri.set_attr("transform", &shift)?;
+    let mut attrs = SvgAttrs::new();
+    tri.attrs(&mut attrs)
+        .fill(STEELBLUE)?
+        .stroke(WHITE)?
+        .stroke_width(2.0)?
+        .set("transform", &shift)?;
     caption(&svg, 70.0, "triangle (M L Z)")?;
 
     // Quadratic Bézier wave (Q)
@@ -251,8 +257,10 @@ fn demo_text() -> Result<(), Error> {
 
     // Large bold
     let t2 = svg.text(Point::new(10.0, 100.0 + PAD_Y), "Bold — 36px")?;
-    t2.set_fill(STEELBLUE)?;
-    t2.set_attrs([("font-size", "36"), ("font-weight", "bold")])?;
+    let mut attrs = SvgAttrs::new();
+    t2.attrs(&mut attrs)
+        .fill(STEELBLUE)?
+        .apply([("font-size", "36"), ("font-weight", "bold")])?;
 
     // Coloured, medium
     let t3 = svg.text(Point::new(430.0, 65.0 + PAD_Y), "Coloured — 22px")?;

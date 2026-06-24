@@ -37,9 +37,10 @@ impl SvgRoot {
     /// # Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn path(&self, d: &str) -> Result<SvgNode, Error> {
-        let n = self.make_node("path")?;
-        n.set_attr("d", d)?;
-        self.append_node(&n)?;
-        Ok(n)
+        let node = self.make_node("path")?;
+        node.set_attr("d", d)?;
+        self.append_node(&node)?;
+
+        Ok(node)
     }
 }

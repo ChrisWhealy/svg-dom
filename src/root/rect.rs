@@ -21,13 +21,16 @@ impl SvgRoot {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn rect(&self, top_left: Point, size: Size) -> Result<SvgNode, Error> {
-        let n = self.make_node("rect")?;
-        let mut scratch = String::new();
-        n.set_attr_display("x", top_left.x, &mut scratch)?;
-        n.set_attr_display("y", top_left.y, &mut scratch)?;
-        n.set_attr_display("width", size.width, &mut scratch)?;
-        n.set_attr_display("height", size.height, &mut scratch)?;
-        self.append_node(&n)?;
-        Ok(n)
+        let node = self.make_node("rect")?;
+        {
+            let mut attrs = self.attrs.borrow_mut();
+            attrs.display(&node, "x", top_left.x)?;
+            attrs.display(&node, "y", top_left.y)?;
+            attrs.display(&node, "width", size.width)?;
+            attrs.display(&node, "height", size.height)?;
+        }
+        self.append_node(&node)?;
+
+        Ok(node)
     }
 }

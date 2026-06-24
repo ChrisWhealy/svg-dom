@@ -1,12 +1,13 @@
 mod event;
 
+use crate::{
+    error::Error,
+    root::attrs::{AttrWriter, SvgAttrs},
+};
 use event::*;
-
-use std::{cell::RefCell, fmt::Write, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 use wasm_bindgen::{JsCast, prelude::*};
 use web_sys::{MouseEvent, PointerEvent, SvgElement};
-
-use crate::error::Error;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 struct SvgNodeInner {
@@ -165,15 +166,13 @@ impl SvgNode {
             .map_err(|e| Error::Dom(format!("{e:?}")))
     }
 
-    pub(crate) fn set_attr_display<T: std::fmt::Display>(
-        &self,
-        name: &str,
-        value: T,
-        scratch: &mut String,
-    ) -> Result<(), Error> {
-        scratch.clear();
-        write!(scratch, "{value}").expect("that's weird - writing Display output to String cannot fail");
-        self.set_attr(name, scratch)
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Binds a reusable [`SvgAttrs`] buffer to this node and returns a chainable attribute writer.
+    ///
+    /// Use this when setting several numeric or formatted attributes as it avoids the need to allocate a new `String`
+    /// for each attribute value.
+    pub fn attrs<'a>(&'a self, attrs: &'a mut SvgAttrs) -> AttrWriter<'a> {
+        attrs.writer(self)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -315,10 +314,8 @@ impl SvgNode {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn set_stroke_width(&self, width: f64) -> Result<(), Error> {
-        {
-            let mut scratch = String::new();
-            self.set_attr_display("stroke-width", width, &mut scratch)
-        }
+        let mut attrs = SvgAttrs::new();
+        attrs.display(self, "stroke-width", width)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

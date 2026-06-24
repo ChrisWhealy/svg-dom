@@ -24,13 +24,16 @@ impl SvgRoot {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn line(&self, start: Point, end: Point) -> Result<SvgNode, Error> {
-        let n = self.make_node("line")?;
-        let mut scratch = String::new();
-        n.set_attr_display("x1", start.x, &mut scratch)?;
-        n.set_attr_display("y1", start.y, &mut scratch)?;
-        n.set_attr_display("x2", end.x, &mut scratch)?;
-        n.set_attr_display("y2", end.y, &mut scratch)?;
-        self.append_node(&n)?;
-        Ok(n)
+        let node = self.make_node("line")?;
+        {
+            let mut attrs = self.attrs.borrow_mut();
+            attrs.display(&node, "x1", start.x)?;
+            attrs.display(&node, "y1", start.y)?;
+            attrs.display(&node, "x2", end.x)?;
+            attrs.display(&node, "y2", end.y)?;
+        }
+        self.append_node(&node)?;
+        
+        Ok(node)
     }
 }

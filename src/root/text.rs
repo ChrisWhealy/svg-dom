@@ -23,12 +23,15 @@ impl SvgRoot {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn text(&self, anchored_at: Point, content: &str) -> Result<SvgNode, Error> {
-        let n = self.make_node("text")?;
-        let mut scratch = String::new();
-        n.set_attr_display("x", anchored_at.x, &mut scratch)?;
-        n.set_attr_display("y", anchored_at.y, &mut scratch)?;
-        n.as_element().set_text_content(Some(content));
-        self.append_node(&n)?;
-        Ok(n)
+        let node = self.make_node("text")?;
+        {
+            let mut attrs = self.attrs.borrow_mut();
+            attrs.display(&node, "x", anchored_at.x)?;
+            attrs.display(&node, "y", anchored_at.y)?;
+        }
+        node.as_element().set_text_content(Some(content));
+        self.append_node(&node)?;
+
+        Ok(node)
     }
 }

@@ -30,7 +30,8 @@ This crate is still just an MVP and contains known functional gaps that will be 
   - [x] `<path>`
   - [x] `<rect>`
   - [x] `<text>`
-- [x] Implement multi-atrribute setter for an SVG node
+- [x] Implement multi-attribute setter for an SVG node
+- [x] Implement reusable `SvgAttrs` / `AttrWriter` for allocation-light attribute writing
 - [x] Implement batch-building API that allows elements to be added *en masse*
 - [x] Build demo server to illustrate current functionality
 - Implement remaining SVG elements
@@ -55,7 +56,11 @@ The `svg-dom` crate acts as a thin wrapper for `web-sys` SVG DOM bindings that a
 - Create new `<svg>` element programmatically
 - Add a basic set of SVG elements using helper functions (`<rect>`, `<circle>`, `<line>`, `<path>`, `<text>`, `<g>`)
    - You get back a cheap-to-clone handle (`SvgNode`) that holds a live reference to the real DOM node
-- Mutate an element's attributes (`fill`, `stroke`, `d`, any arbitrary attribute, or several attributes with `set_attrs`) on those handles without the need to rebuild or diff the DOM tree
+- Using the element's handle, you can mutate attributes without the need to rebuild or diff the DOM tree
+   - via helpers such as `fill`, `stroke`, `d`
+   - Any arbitrary attribute
+   - Several attributes using `set_attrs`
+   - Formatted values via `SvgAttrs`
 - Attach pointer/mouse event listeners (`click`, `pointerenter`, `pointerleave`) directly to individual elements
 - Drive reactive updates through a `requestAnimationFrame` loop via `AnimationLoop`
 
@@ -91,18 +96,19 @@ Then visit <http://127.0.0.1:8000/demo>
 
 ## Core types
 
-| Type | Purpose |
+| Type | Purpose
 |---|---|
 | `SvgRoot` | Wraps the root `<svg>` element; entry point for all element creation
 | `SvgNode` | Cheap-to-clone handle to a live DOM element; attribute + event API
 | `AnimationLoop` | Drives a `requestAnimationFrame` loop; stops on `Drop`
-| `Error` | All failure modes: element not found, DOM error, cast failure
+| `SvgAttrs` / `AttrWriter` | Reusable scratch buffer for allocation-light attribute writing
+| `Error` | All failure modes: element not found, DOM error or client-side cast failure
 
 ## Minimal Demo
 
 ```rust,no_run
 use wasm_bindgen::prelude::*;
-use svg_dom::{AnimationLoop, SvgRoot};
+use svg_dom::{AnimationLoop, SvgAttrs, SvgRoot, root::utils::{Point, Size}};
 
 #[wasm_bindgen(start)]
 pub fn run() -> Result<(), svg_dom::Error> {
@@ -110,10 +116,12 @@ pub fn run() -> Result<(), svg_dom::Error> {
     let svg = SvgRoot::attach("diagram")?;
 
     // Add a rectangle and give it a colour.
-    let rect = svg.rect(20.0, 20.0, 160.0, 80.0)?;
-    rect.set_fill("steelblue")?;
-    rect.set_stroke("white")?;
-    rect.set_stroke_width(2.0)?;
+    let rect = svg.rect(Point::new(20.0, 20.0), Size::new(160.0, 80.0))?;
+    let mut attrs = SvgAttrs::new();
+    rect.attrs(&mut attrs)
+        .fill("steelblue")?
+        .stroke("white")?
+        .stroke_width(2.0)?;
 
     // Clone the handle so the event closure can refer to the same DOM node.
     let rect_out = rect.clone();
@@ -124,8 +132,8 @@ pub fn run() -> Result<(), svg_dom::Error> {
 
     // Build a <g> group containing a circle and a label.
     let group = svg.group()?;
-    let dot = svg.circle(200.0, 60.0, 8.0)?;
-    let label = svg.text(215.0, 65.0, "node A")?;
+    let dot = svg.circle(Point::new(200.0, 60.0), 8.0)?;
+    let label = svg.text(Point::new(215.0, 65.0), "node A")?;
     group.append(&dot)?;
     group.append(&label)?;
 
@@ -156,7 +164,18 @@ rect.set_attrs([
 ])?;
 ```
 
-Element factory methods use the same multi-attribute setter internally so the built-in shapes have a single, consistent path for applying initial geometry attributes.
+For repeated numeric or formatted writes, use `SvgAttrs` instead.  It owns a reusable scratch `String`, so display/format values do not require a fresh allocation each time:
+
+```rust,no_run
+let mut attrs = SvgAttrs::new();
+rect.attrs(&mut attrs)
+    .fill("steelblue")?
+    .stroke("white")?
+    .stroke_width(2.0)?
+    .fmt("transform", format_args!("translate({:.1}, {:.1})", x, y))?;
+```
+
+Element factory methods use `SvgAttrs` internally for initial numeric geometry attributes, so repeated shape creation reuses scratch storage instead of allocating a new formatting buffer per element.
 
 ## Allocation-light animation formatting
 

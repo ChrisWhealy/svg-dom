@@ -1,3 +1,4 @@
+pub mod attrs;
 pub mod batch;
 pub mod circle;
 pub mod group;
@@ -9,7 +10,6 @@ pub mod text;
 pub mod utils;
 
 use crate::error::Error;
-use std::fmt::Write;
 use web_sys::Document;
 
 pub(crate) const SVG_NS: &str = "http://www.w3.org/2000/svg";
@@ -22,22 +22,4 @@ pub(crate) fn document() -> Result<Document, Error> {
         .ok_or_else(|| Error::Dom("no available window".into()))?
         .document()
         .ok_or_else(|| Error::Dom("window has no document".into()))
-}
-
-pub(crate) fn set(el: &impl AsRef<web_sys::Element>, name: &str, value: &str) -> Result<(), Error> {
-    el.as_ref()
-        .set_attribute(name, value)
-        .map_err(|e| Error::Dom(format!("{e:?}")))
-}
-
-
-pub(crate) fn set_display<T: std::fmt::Display>(
-    el: &impl AsRef<web_sys::Element>,
-    name: &str,
-    value: T,
-    scratch: &mut String,
-) -> Result<(), Error> {
-    scratch.clear();
-    write!(scratch, "{value}").expect("writing Display output to String cannot fail");
-    set(el, name, scratch)
 }
