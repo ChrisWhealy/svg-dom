@@ -56,7 +56,9 @@ jobs:
         uses: jetli/wasm-pack-action@v0.4.0
 
       - name: wasm-pack build (the published web artifact)
-        run: wasm-pack build --target web --features demo
+        # `--features` is passed after `--` so it reaches cargo directly. Older wasm-pack versions
+        # (such as the one the action may install) don't accept `--features` as a wasm-pack flag.
+        run: wasm-pack build --target web -- --features demo
 
   browser-tests:
     name: wasm-pack test (${{ matrix.browser }})

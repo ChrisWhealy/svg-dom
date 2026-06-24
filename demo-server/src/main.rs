@@ -4,8 +4,8 @@
 //! ```sh
 //! cargo demo
 //! ```
-//! This rebuilds the wasm package (`wasm-pack build --target web --features demo`) and then serves the project root, so
-//! the demo lives at: <http://127.0.0.1:8080/demo/>.
+//! This rebuilds the wasm package (`wasm-pack build --target web -- --features demo`) and then serves the project root,
+//! so the demo lives at: <http://127.0.0.1:8080/demo/>.
 //!
 //! The port number can be overridden using the `PORT` environment variable, e.g. `PORT=9000 cargo demo`.
 
@@ -53,11 +53,13 @@ async fn main() -> std::io::Result<()> {
 /// Rebuilds the wasm package so the served `pkg/` is up to date.
 /// A failure here is fatal: rather than silently serving a stale `pkg/`, the error is reported and the process exits.
 fn build_wasm(root: &Path) {
-    println!("Building wasm package: wasm-pack build --target web --features demo");
+    println!("Building wasm package: wasm-pack build --target web -- --features demo");
 
+    // `--features` is passed after `--` so it reaches cargo directly; older wasm-pack versions do
+    // not accept it as a wasm-pack flag.
     match Command::new("wasm-pack")
         .current_dir(root)
-        .args(["build", "--target", "web", "--features", "demo"])
+        .args(["build", "--target", "web", "--", "--features", "demo"])
         .status()
     {
         Ok(status) if status.success() => {}
