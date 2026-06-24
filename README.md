@@ -62,7 +62,7 @@ The `svg-dom` crate acts as a thin wrapper for `web-sys` SVG DOM bindings that a
    - Any arbitrary attribute
    - Several attributes using `set_attrs`
    - Formatted values via `SvgAttrs`
-- Attach pointer/mouse event listeners (`click`, `pointerenter`, `pointerleave`) directly to individual elements
+- Attach pointer/mouse event listeners (`click`, `pointerenter`, `pointerleave`) directly to individual elements, with listener event names stored as `&'static str` (i.e. allocation-free)
 - Drive reactive updates through a `requestAnimationFrame` loop via `AnimationLoop`
 
 ## What this crate is NOT

@@ -9,6 +9,8 @@ This makes it natural to share a node between an event closure and the surroundi
 
 Listeners registered with `on_click` / `on_pointerenter` / `on_pointerleave` are stored inside the `SvgNode`'s `Rc`.
 Each stored entry keeps the event type together with its wasm-bindgen closure, so the DOM listener can be removed before the closure is dropped.
+
+The built-in listener helpers use fixed browser event names, so event types can be stored as `&'static str` values.
 They live exactly as long as the last clone of the node exists, so you never have to manage their lifetime separately.
 
 ## `requestAnimationFrame` self-rescheduling pattern

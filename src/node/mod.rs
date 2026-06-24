@@ -392,7 +392,7 @@ impl SvgNode {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fn add_mouse_listener<F: Fn(MouseEvent) + 'static>(
         &self,
-        event_type: &str,
+        event_type: &'static str,
         handler: F,
     ) -> Result<(), Error> {
         let closure = Closure::<dyn Fn(MouseEvent)>::new(handler);
@@ -406,7 +406,7 @@ impl SvgNode {
             .get_or_insert_with(|| Box::new(Vec::new()))
             .push(EventListener {
                 element: self.inner.element.clone(),
-                event_type: event_type.to_string(),
+                event_type,
                 closure: EventClosure::Mouse(closure),
             });
         Ok(())
@@ -414,7 +414,7 @@ impl SvgNode {
 
     fn add_pointer_listener<F: Fn(PointerEvent) + 'static>(
         &self,
-        event_type: &str,
+        event_type: &'static str,
         handler: F,
     ) -> Result<(), Error> {
         let closure = Closure::<dyn Fn(PointerEvent)>::new(handler);
@@ -428,7 +428,7 @@ impl SvgNode {
             .get_or_insert_with(|| Box::new(Vec::new()))
             .push(EventListener {
                 element: self.inner.element.clone(),
-                event_type: event_type.to_string(),
+                event_type,
                 closure: EventClosure::Pointer(closure),
             });
         Ok(())

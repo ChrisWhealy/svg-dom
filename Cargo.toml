@@ -7,7 +7,7 @@ default-members = ["."]
 [package]
 name = "svg-dom"
 authors = ["Chris Whealy <chris@whealy.com>"]
-version = "0.1.3"
+version = "0.1.4"
 edition = "2024"
 description = "A lightweight Rust/WebAssembly library for creating and mutating live SVG content directly in the browser DOM"
 keywords = ["svg", "wasm", "browser", "dom"]

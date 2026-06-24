@@ -1,6 +1,7 @@
 use wasm_bindgen::{JsCast, closure::Closure};
 use web_sys::{MouseEvent, PointerEvent, SvgElement};
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 pub enum EventClosure {
     Mouse(Closure<dyn Fn(MouseEvent)>),
     Pointer(Closure<dyn Fn(PointerEvent)>),
@@ -15,9 +16,10 @@ impl EventClosure {
     }
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 pub struct EventListener {
     pub element: SvgElement,
-    pub event_type: String,
+    pub event_type: &'static str,
     pub closure: EventClosure,
 }
 
@@ -28,6 +30,6 @@ impl Drop for EventListener {
         // that no longer exists in Rust-managed memory.
         let _ = self
             .element
-            .remove_event_listener_with_callback(&self.event_type, self.closure.callback_ref());
+            .remove_event_listener_with_callback(self.event_type, self.closure.callback_ref());
     }
 }
