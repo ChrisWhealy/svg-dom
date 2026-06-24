@@ -167,6 +167,38 @@ impl SvgNode {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// # Write an attribute only when it changes
+    ///
+    /// Reads the current value with `get_attribute` but writes it only if the value changes. This avoids redundant
+    /// browser-side work in high-frequency handlers where the same value is set over and over — for example a cursor
+    /// style or `opacity` flag updated on every `mousemove`/`pointermove`, where the value usually repeats between
+    /// frames.
+    ///
+    /// **WARNING**: This is not always a win: the `get_attribute` read has its own cost, so for attributes that change
+    /// on every call (such as a drag `transform`) the plain [`set_attr`](Self::set_attr) is cheaper. Reach for this
+    /// only on hot paths where the value frequently repeats — hover/drag cursor state, opacity flags, selected state,
+    /// and the like.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
+    /// let svg     = SvgRoot::attach("diagram")?;
+    /// let surface = svg.rect(Point::origin(), Size::new(100.0, 50.0))?;
+    ///
+    /// // Called many times per second from a pointermove handler; the DOM is only touched when the cursor
+    /// // actually needs to change.
+    /// surface.set_attr_if_changed("style", "cursor:grab")?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn set_attr_if_changed(&self, name: &str, value: &str) -> Result<(), Error> {
+        if self.inner.element.get_attribute(name).as_deref() == Some(value) {
+            return Ok(());
+        }
+        self.set_attr(name, value)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Binds a reusable [`SvgAttrs`] buffer to this node and returns a chainable attribute writer.
     ///
     /// Use this when setting several numeric or formatted attributes as it avoids the need to allocate a new `String`

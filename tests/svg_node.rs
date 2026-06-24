@@ -109,6 +109,42 @@ fn should_set_multiple_owned_string_attributes_in_one_call() -> Result<(), Strin
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// set_attr_if_changed
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `set_attr_if_changed` writes an attribute that was previously absent and the new value is readable back.
+#[wasm_bindgen_test]
+fn should_write_absent_attribute_with_set_attr_if_changed() -> Result<(), String> {
+    let rect = make_svg("node-set-attr-if-changed-absent")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    rect.set_attr_if_changed("style", "cursor:grab").map_err(|e| e.to_string())?;
+    common::check_eq(rect.attr("style"), Some("cursor:grab".into()))
+}
+
+/// `set_attr_if_changed` updates the attribute when the new value differs from the current one.
+#[wasm_bindgen_test]
+fn should_update_attribute_when_value_differs() -> Result<(), String> {
+    let rect = make_svg("node-set-attr-if-changed-update")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    rect.set_attr_if_changed("style", "cursor:grab").map_err(|e| e.to_string())?;
+    rect.set_attr_if_changed("style", "cursor:grabbing").map_err(|e| e.to_string())?;
+    common::check_eq(rect.attr("style"), Some("cursor:grabbing".into()))
+}
+
+/// Setting the same value again via `set_attr_if_changed` leaves the attribute unchanged and reports success.
+#[wasm_bindgen_test]
+fn should_leave_attribute_unchanged_when_value_matches() -> Result<(), String> {
+    let rect = make_svg("node-set-attr-if-changed-noop")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    rect.set_attr_if_changed("opacity", "0.5").map_err(|e| e.to_string())?;
+    rect.set_attr_if_changed("opacity", "0.5").map_err(|e| e.to_string())?;
+    common::check_eq(rect.attr("opacity"), Some("0.5".into()))
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // remove_attr
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
