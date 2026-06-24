@@ -1,3 +1,8 @@
 [alias]
 # Build the wasm demo and serve it via the Actix demo-server at http://127.0.0.1:8000/demo/
 demo = "run --release -p demo-server"
+# Measure coverage of the host-runnable tests and open the HTML report. Covers the
+# `error` and demo `highlight` modules; the DOM-bound code is covered by the browser
+# tests (`wasm-pack test`), which this cannot instrument. Needs `cargo-llvm-cov` and
+# the `llvm-tools-preview` rustup component installed.
+cov = "llvm-cov nextest --all-features --html --open"

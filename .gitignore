@@ -1,4 +1,5 @@
 /target
+/lcov.info
 /.claude
 /.idea
 /.tools

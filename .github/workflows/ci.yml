@@ -82,6 +82,39 @@ jobs:
       - name: Run the browser integration tests
         run: wasm-pack test --headless --${{ matrix.browser }}
 
+  coverage:
+    name: coverage (host tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov,cargo-nextest
+      - uses: Swatinem/rust-cache@v2
+
+      # llvm-cov instruments the host-runnable tests only (the `error` and demo
+      # `highlight` modules). The DOM-bound `root`/`node`/`animate` code is
+      # exercised by the wasm-pack browser tests in the `browser-tests` job,
+      # which cannot be instrumented here — so this figure reflects the
+      # host-testable subset of the crate, not the whole library.
+      - name: Measure coverage (host-runnable tests)
+        run: cargo llvm-cov nextest --all-features --no-report
+
+      - name: Emit lcov report
+        run: cargo llvm-cov report --lcov --output-path lcov.info
+
+      - name: Coverage summary (job log)
+        run: cargo llvm-cov report
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: lcov.info
+
   deny:
     name: cargo-deny (advisories · licenses · bans · sources)
     runs-on: ubuntu-latest
