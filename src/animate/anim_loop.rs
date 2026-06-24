@@ -5,6 +5,13 @@ use std::{
 };
 use wasm_bindgen::{JsCast, prelude::*};
 
+/// The per-frame closure registered with `requestAnimationFrame`.
+type FrameClosure = Closure<dyn FnMut(f64)>;
+/// Shared, self-referencing slot used by the closure to re-register itself each frame; cleared on `stop`.
+type SharedClosure = Rc<RefCell<Option<FrameClosure>>>;
+/// Shared cell holding the pending `requestAnimationFrame` handle so it can be cancelled.
+type RafHandle = Rc<Cell<i32>>;
+
 /// # A running `window.requestAnimationFrame` loop.
 ///
 /// `requestAnimationFrame` is the browser API that schedules a callback immediately before the browser paints the next
@@ -23,13 +30,6 @@ use wasm_bindgen::{JsCast, prelude::*};
 ///
 /// The `AnimationLoop` can be kept alive by storing it in a `static`, a `Closure` captured variable, or some other
 /// location whose lifespan outlives your animation.
-/// The per-frame closure registered with `requestAnimationFrame`.
-type FrameClosure = Closure<dyn FnMut(f64)>;
-/// Shared, self-referencing slot the closure uses to re-register itself each frame; cleared on `stop`.
-type SharedClosure = Rc<RefCell<Option<FrameClosure>>>;
-/// Shared cell holding the pending `requestAnimationFrame` handle so it can be cancelled.
-type RafHandle = Rc<Cell<i32>>;
-
 pub struct AnimationLoop {
     window: web_sys::Window,
     handle: RafHandle,

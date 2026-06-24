@@ -1,13 +1,27 @@
+/// The reusable attribute writer [`SvgAttrs`](crate::SvgAttrs) and chainable [`AttrWriter`](crate::AttrWriter).
 pub mod attrs;
+/// The [`SvgBatch`](crate::SvgBatch) builder that appends many elements to the DOM in one operation.
 pub mod batch;
+/// The [`SvgRoot::circle`](crate::SvgRoot::circle) factory.
 pub mod circle;
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Factories and helper types
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 pub(crate) mod factory;
+/// The [`SvgRoot::group`](crate::SvgRoot::group) factory.
 pub mod group;
+/// The [`SvgRoot::line`](crate::SvgRoot::line) factory.
 pub mod line;
+/// The [`SvgRoot::path`](crate::SvgRoot::path) factory.
 pub mod path;
+/// The [`SvgRoot::rect`](crate::SvgRoot::rect) factory.
 pub mod rect;
+/// The `<svg>` root wrapper [`SvgRoot`](crate::SvgRoot).
 pub mod svg_root;
+/// The [`SvgRoot::text`](crate::SvgRoot::text) factory.
 pub mod text;
+/// Geometry helper types [`Point`](utils::Point) and [`Size`](utils::Size).
 pub mod utils;
 
 use crate::error::Error;

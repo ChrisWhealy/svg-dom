@@ -26,10 +26,12 @@ use std::fmt::{self, Write};
 /// ```
 #[derive(Default)]
 pub struct AnimationFrame {
+    /// The reusable formatting buffer, exposed so callers can also write into it directly via [`scratch`](Self::scratch).
     pub scratch: String,
 }
 
 impl AnimationFrame {
+    /// Creates an `AnimationFrame` with an empty scratch buffer.
     pub fn new() -> Self {
         Self {
             scratch: String::new(),

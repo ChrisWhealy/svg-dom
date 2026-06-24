@@ -3,15 +3,19 @@
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Point {
+    /// Horizontal coordinate, in user units (usually pixels).
     pub x: f64,
+    /// Vertical coordinate, in user units (usually pixels).
     pub y: f64,
 }
 
 impl Point {
+    /// Returns the origin point `(0, 0)`.
     pub fn origin() -> Self {
         Self::new(0.0, 0.0)
     }
 
+    /// Creates a point at `(x, y)`.
     pub fn new(x: f64, y: f64) -> Self {
         Self { x, y }
     }
@@ -46,11 +50,14 @@ impl std::fmt::Display for Point {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Size {
+    /// Width in user units (usually pixels).
     pub width: f64,
+    /// Height in user units (usually pixels).
     pub height: f64,
 }
 
 impl Size {
+    /// Creates a size of `width` × `height`.
     pub fn new(width: f64, height: f64) -> Self {
         Self { width, height }
     }
@@ -73,6 +80,7 @@ impl Size {
         self.height.to_string()
     }
 
+    /// Returns the area (`width * height`), in square user units (usually pixels).
     pub fn get_area(&self) -> f64 {
         self.width * self.height
     }

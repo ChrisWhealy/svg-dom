@@ -15,6 +15,7 @@ use web_sys::{Document, SvgsvgElement};
 /// used to style it, move it, or attach event listeners.
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 pub struct SvgRoot {
+    /// The underlying `<svg>` element wrapped by this root.
     pub root: SvgsvgElement,
     pub(crate) document: Document,
     viewport: Cell<Size>,

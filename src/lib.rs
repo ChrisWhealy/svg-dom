@@ -48,12 +48,18 @@
 //! data without validating it first.
 
 #![cfg_attr(not(feature = "demo"), forbid(unsafe_code))]
+#![deny(missing_docs)]
 
+/// The [`AnimationLoop`] `requestAnimationFrame` driver and its per-frame [`AnimationFrame`] scratch buffer.
 pub mod animate;
+/// The crate's [`Error`] type, covering every failure mode of the DOM-facing API.
 pub mod error;
+/// The live element handle [`SvgNode`] and its attribute, text, transform, event, and tree-operation API.
 pub mod node;
+/// The `<svg>` root [`SvgRoot`], the element factories, batching, and the reusable attribute writer.
 pub mod root;
 
+/// Interactive browser element gallery, compiled only under the `demo` feature.
 #[cfg(feature = "demo")]
 pub mod demo;
 

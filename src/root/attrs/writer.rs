@@ -7,7 +7,9 @@ use crate::{Error, SvgNode};
 /// Obtain one from [`SvgAttrs::writer`] or [`SvgNode::attrs`](crate::SvgNode::attrs).  Each call returns `&mut Self`, so
 /// several attributes can be written in one expression while reusing the same scratch buffer.
 pub struct AttrWriter<'a> {
+    /// The reusable scratch buffer that backs the formatted writes.
     pub attrs: &'a mut SvgAttrs,
+    /// Every write in this chain applies to this node.
     pub node: &'a SvgNode,
 }
 

@@ -1,7 +1,7 @@
 # Gap Analysis
 
 This crate offers a working foundation for generating simple, flat SVG diagrams driven by a `requestAnimationFrame` (RAF) loop.
-However, it can't yet produce anything with gradients, filters, clipping, reusable symbols, touch input, or dynamic text.
+However, it can't yet produce anything with gradients, filters, clipping, or reusable symbols.
 
 These gaps will be filled in time, but for now, this crate must be treated as an MVP, not a general-purpose SVG library.
 
@@ -39,12 +39,19 @@ Prefer `pointerenter` / `pointerleave` for hover behaviour because they do not b
 
 Potential future event work is now mostly about ergonomics rather than coverage: typed helpers for less common browser events can be added when real SVG use-cases appear.
 
-# Missing attribute helpers
+# Attribute helpers
 
-- No transform helpers (translate, rotate, scale, matrix) — currently just `set_attr("transform", ...)`
-- No `viewBox` helper
+Already implemented:
+
+- Transform helpers — `set_translate`, `set_rotate`, `set_rotate_about`, `set_scale`, `set_scale_xy`, `set_translate_scale`, and `set_transform_fmt` for arbitrary transforms (all reuse a caller-owned scratch buffer)
+- Updating `<text>` content after creation — `set_text`, plus the buffer-reusing `set_text_fmt` / `set_text_display`
+- Allocation-light numeric attribute writes — `set_attr_display`, and the redundant-write helpers `set_attr_if_changed` / `CachedAttr`
+
+Still missing:
+
+- No `matrix(...)` transform helper specifically (use `set_transform_fmt` for now)
+- No `viewBox` helper (only `set_viewport`, which sets `width`/`height`)
 - No `classList` / CSS class manipulation
-- No way to update `<text>` content after creation
 - No `text_anchor`, `dominant_baseline`, `font_family`, `font_size` helpers
 
 # Missing geometry access
