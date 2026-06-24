@@ -89,7 +89,9 @@ Internally, those factories delegate to a shared `SvgFactory` implementation, so
 
 The only difference between the two paths is the append target: `SvgRoot` appends directly to the live `<svg>`, while `SvgBatch` appends to its `DocumentFragment` until `commit()` is called.
 
-## Considered and rejected: splitting `SvgNode` into passive and interactive types
+# Ideas Considered and rejected
+
+## Splitting `SvgNode` into passive and interactive types
 
 It was suggested that a benefit could be obtained by splitting `SvgNode` into passive and interactive types.
 Only the interactive type would carry the listener storage:
