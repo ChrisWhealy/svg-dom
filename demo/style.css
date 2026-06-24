@@ -166,3 +166,79 @@ figcaption strong {
     color: #f85149;
     font-size: 0.85rem;
 }
+
+/* Source-code frame injected below each demo by run_demo (see src/demo/mod.rs). The <code> holds the exact Rust
+   function that built the demo above it, embedded at compile time so it never drifts from the running code. */
+.source {
+    margin-top: 1.25rem;
+    max-width: 110ch;
+    border: 1px solid #21262d;
+    border-radius: 6px;
+    background: #161b22;
+}
+
+.source > summary {
+    cursor: pointer;
+    padding: 0.5rem 0.8rem;
+    color: #8b949e;
+    font-size: 0.8rem;
+    user-select: none;
+}
+
+.source > summary:hover {
+    color: #c9d1d9;
+}
+
+.source[open] > summary {
+    border-bottom: 1px solid #21262d;
+}
+
+.source pre {
+    margin: 0;
+    padding: 0.8rem;
+    overflow: auto;
+    max-height: 28rem;
+}
+
+.source code {
+    font-family: inherit;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: #c9d1d9;
+    white-space: pre;
+    tab-size: 4;
+}
+
+/* Syntax-highlight token colours emitted by rust_to_html (src/demo/highlight.rs). */
+.source code .com {
+    color: #8b949e;
+    font-style: italic;
+}
+
+.source code .kw {
+    color: #ff7b72;
+}
+
+.source code .str {
+    color: #a5d6ff;
+}
+
+.source code .num {
+    color: #79c0ff;
+}
+
+.source code .typ {
+    color: #ffa657;
+}
+
+.source code .mac {
+    color: #d2a8ff;
+}
+
+.source code .fnc {
+    color: #d2a8ff;
+}
+
+.source code .lif {
+    color: #ff7b72;
+}

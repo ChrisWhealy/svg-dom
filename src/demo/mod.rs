@@ -9,6 +9,7 @@
 //! The `demo` feature excludes this code from the normal library build.
 
 mod colours;
+mod highlight;
 
 use std::{
     cell::{Cell, RefCell},
@@ -85,7 +86,122 @@ pub fn run_demo() -> Result<(), JsValue> {
     demo_events_pointer_lifecycle().map_err(e)?;
     demo_events_keyboard_wheel().map_err(e)?;
     demo_events_drag_drop_touch().map_err(e)?;
+
+    // Below each demo, show the Rust source of the function that produced it.
+    inject_source_frames().map_err(e)?;
     Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Source-code frames
+//
+// Each demo panel gets a collapsible frame below its canvas showing the formatted Rust source of the function that
+// built it. The source is the crate's own demo module, embedded at compile time, so it is always in step with the code
+// actually running — there is nothing to keep manually in sync.
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// This module's own source, embedded at build time so each panel can display the exact code that drives it.
+const DEMO_SRC: &str = include_str!("mod.rs");
+
+/// `(panel id, demo function name)` for every demo, in menu order.
+/// The panel ids must match the <button class="menu-item"> elements listed in `demo/index.html` and the function names
+/// must match the functions in this module that implement that particular demo.
+/// 
+/// The function names are looked up in [`DEMO_SRC`].
+const DEMO_SOURCES: &[(&str, &str)] = &[
+    ("panel-rect", "demo_rect"),
+    ("panel-circle", "demo_circle"),
+    ("panel-line", "demo_line"),
+    ("panel-path", "demo_path"),
+    ("panel-text", "demo_text"),
+    ("panel-group", "demo_group"),
+    ("panel-anim", "demo_anim"),
+    ("panel-events-click", "demo_events_click"),
+    ("panel-events-colour", "demo_events_colour"),
+    ("panel-events-modifiers", "demo_events_modifiers"),
+    ("panel-events-press", "demo_events_press"),
+    ("panel-events-group", "demo_events_group"),
+    ("panel-events-pointer", "demo_events_pointer_lifecycle"),
+    ("panel-events-keyboard-wheel", "demo_events_keyboard_wheel"),
+    ("panel-events-drag-drop-touch", "demo_events_drag_drop_touch"),
+];
+
+/// Appends a source frame to every panel listed in [`DEMO_SOURCES`].
+fn inject_source_frames() -> Result<(), Error> {
+    let document = web_sys::window()
+        .and_then(|w| w.document())
+        .ok_or_else(|| Error::Dom("no document".into()))?;
+
+    for (panel_id, fn_name) in DEMO_SOURCES {
+        append_source_frame(&document, panel_id, fn_name)?;
+    }
+    Ok(())
+}
+
+/// Builds `<details class="source"><summary>…</summary><pre><code>…</code></pre></details>` and appends it to the
+/// panel `<section>`. A missing panel or missing function is skipped rather than treated as an error, so the gallery
+/// still renders if `index.html` and this module drift apart.
+fn append_source_frame(document: &web_sys::Document, panel_id: &str, fn_name: &str) -> Result<(), Error> {
+    let Some(section) = document.get_element_by_id(panel_id) else {
+        return Ok(());
+    };
+    let Some(source) = demo_fn_source(fn_name) else {
+        return Ok(());
+    };
+
+    let details = create_element(document, "details")?;
+    details.set_class_name("source");
+    details.set_attribute("open", "").map_err(dom_err)?;
+
+    let summary = create_element(document, "summary")?;
+    summary.set_text_content(Some(&format!("Rust source — fn {fn_name}")));
+    details.append_child(&summary).map_err(dom_err)?;
+
+    let pre = create_element(document, "pre")?;
+    let code = create_element(document, "code")?;
+    // `rust_to_html` returns `<span>`-wrapped, HTML-escaped tokens, so angle brackets and ampersands in the code still
+    // render verbatim while keywords, strings, etc. are coloured by the CSS classes.
+    code.set_inner_html(&highlight::rust_to_html(source));
+    pre.append_child(&code).map_err(dom_err)?;
+    details.append_child(&pre).map_err(dom_err)?;
+
+    section.append_child(&details).map_err(dom_err)?;
+    Ok(())
+}
+
+/// Returns the source text of the top-level `fn {name}` item in [`DEMO_SRC`], from the signature line through its
+/// closing brace, or `None` if it cannot be located.
+///
+/// This relies on `rustfmt`'s guarantee that a top-level item's closing brace sits in column 0 while every brace nested
+/// inside the body (including those inside `format!` strings such as `"translate({x}, {y})"`) is indented. Scanning for
+/// the first line that is exactly `}` after the signature therefore finds the function's end without having to parse
+/// string literals or balance braces.
+fn demo_fn_source(name: &str) -> Option<&'static str> {
+    let needle = format!("fn {name}(");
+    let hit = DEMO_SRC.find(&needle)?;
+    let start = DEMO_SRC[..hit].rfind('\n').map_or(0, |i| i + 1);
+
+    let tail = &DEMO_SRC[hit..];
+    let mut from = 0;
+    loop {
+        let rel = tail[from..].find("\n}")?;
+        let close = from + rel + 1; // index of the '}' within `tail`
+        let after = close + 1;
+        // A genuine top-level close: the '}' stands alone on its line (next byte is a newline or end of file).
+        if tail.as_bytes().get(after).is_none_or(|&b| b == b'\n') {
+            return Some(&DEMO_SRC[start..hit + after]);
+        }
+        from = after;
+    }
+}
+
+/// Creates an element, mapping any DOM failure into [`Error::Dom`].
+fn create_element(document: &web_sys::Document, tag: &str) -> Result<web_sys::Element, Error> {
+    document.create_element(tag).map_err(dom_err)
+}
+
+fn dom_err(e: JsValue) -> Error {
+    Error::Dom(format!("{e:?}"))
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
