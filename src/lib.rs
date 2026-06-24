@@ -43,7 +43,7 @@ pub mod demo;
 
 pub use animate::{anim_frame::AnimationFrame, anim_loop::AnimationLoop};
 pub use error::Error;
-pub use node::SvgNode;
+pub use node::{CachedAttr, SvgNode};
 pub use root::{
     attrs::{AttrWriter, SvgAttrs},
     batch::SvgBatch,

@@ -1,0 +1,89 @@
+//! Allocation-free redundant-write elision for high-frequency attribute updates.
+//!
+//! [`SvgNode::set_attr_if_changed`](crate::SvgNode::set_attr_if_changed) skips the DOM write when the value has not
+//! changed, but to decide that it calls `get_attribute` — which **allocates a fresh Rust `String` for the current value
+//! and crosses the wasm/JS boundary on every call**, even when it then writes nothing. On the exact "value usually
+//! repeats" hot path it is meant for (a cursor style or `opacity` flag touched on every `pointermove`), that is a
+//! per-event allocation plus a round-trip that buys only a comparison.
+//!
+//! `CachedAttr` removes both costs by remembering the last value it wrote on the **Rust** side. The no-op case becomes a
+//! plain `&str` comparison against an owned `String`: no allocation, and no call into JS at all. The DOM is touched only
+//! when the value genuinely changes, and even then the backing buffer is reused (`clear` + `push_str`) rather than
+//! reallocated.
+//!
+//! Like the transform scratch buffer, a `CachedAttr` is **caller-owned** and deliberately not stored inside `SvgNode`:
+//! passive nodes never animate, so they should not carry caching state. Keep one `CachedAttr` per attribute you update
+//! frequently — typically captured in an event handler's state — and dedicate it to a single attribute on a single node.
+//!
+//! # Example
+//!
+//! ```rust,no_run
+//! use svg_dom::{root::utils::{Point, Size}, CachedAttr, SvgRoot};
+//! let svg     = SvgRoot::attach("diagram")?;
+//! let surface = svg.rect(Point::origin(), Size::new(100.0, 50.0))?;
+//!
+//! // Lives in the handler's captured state, reused across every event.
+//! let mut cursor = CachedAttr::new();
+//!
+//! // Called many times per second; only the first call (and any real change) touches the DOM,
+//! // and the unchanged case allocates nothing and never calls into JS.
+//! cursor.set(&surface, "style", "cursor:grab")?;
+//! cursor.set(&surface, "style", "cursor:grab")?; // no-op: cheap Rust string compare
+//! Ok::<(), svg_dom::Error>(())
+//! ```
+
+use crate::{Error, SvgNode};
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// A caller-owned cache of the last value written to one attribute, used to elide redundant DOM writes.
+///
+/// Prefer this to [`SvgNode::set_attr_if_changed`](crate::SvgNode::set_attr_if_changed) on genuinely high-frequency
+/// paths: it remembers the last value on the Rust side, so the unchanged case is a plain string comparison with no
+/// allocation and no call into JS at all. See the module-level notes above for the full rationale.
+#[derive(Debug, Default)]
+pub struct CachedAttr {
+    last: String,
+    written: bool,
+}
+
+impl CachedAttr {
+    /// Creates an empty cache that has not yet written a value.
+    ///
+    /// The first [`set`](Self::set) call always writes, since there is no cached value to compare against.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Writes `value` to `name` on `node`, but only if it differs from the value this cache last wrote.
+    ///
+    /// When the value is unchanged this returns `Ok(())` without allocating and without calling into the browser. When
+    /// it changes, the attribute is written and the cached value is updated by reusing the existing buffer rather than
+    /// allocating a new one.
+    ///
+    /// Use one `CachedAttr` per attribute. Reusing a single cache for several different attributes (or several nodes)
+    /// would make its remembered value meaningless, since it tracks only the most recent write.
+    pub fn set(&mut self, node: &SvgNode, name: &str, value: &str) -> Result<(), Error> {
+        if self.written && self.last == value {
+            // The value is unchanged, so bail out
+        } else {
+            node.set_attr(name, value)?;
+            self.last.clear();
+            self.last.push_str(value);
+            self.written = true;
+        }
+
+        Ok(())
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Forgets the cached value so the next [`set`](Self::set) is guaranteed to write.
+    ///
+    /// Call this if the attribute was changed by some other code path (for example a plain `set_attr`, or an animation),
+    /// so the cache does not wrongly believe a stale value is still current and skip a needed write. The backing buffer's
+    /// capacity is retained.
+    pub fn invalidate(&mut self) {
+        self.last.clear();
+        self.written = false;
+    }
+}

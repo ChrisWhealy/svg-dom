@@ -145,6 +145,68 @@ fn should_leave_attribute_unchanged_when_value_matches() -> Result<(), String> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// CachedAttr
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// The first `CachedAttr::set` writes, since there is no remembered value to compare against.
+#[wasm_bindgen_test]
+fn should_write_first_cached_value() -> Result<(), String> {
+    let rect = make_svg("node-cached-attr-first")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    let mut cache = svg_dom::CachedAttr::new();
+    cache.set(&rect, "style", "cursor:grab").map_err(|e| e.to_string())?;
+    common::check_eq(rect.attr("style"), Some("cursor:grab".into()))
+}
+
+/// When the cached value is unchanged, `set` does not touch the DOM. We prove this by mutating the attribute behind the
+/// cache's back: a cached no-op must leave that external value in place rather than rewriting the cached one.
+#[wasm_bindgen_test]
+fn should_skip_dom_write_when_cached_value_unchanged() -> Result<(), String> {
+    let rect = make_svg("node-cached-attr-noop")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    let mut cache = svg_dom::CachedAttr::new();
+    cache.set(&rect, "style", "cursor:grab").map_err(|e| e.to_string())?;
+
+    // Change the attribute through a different path; the cache still believes "cursor:grab" is current.
+    rect.set_attr("style", "cursor:wait").map_err(|e| e.to_string())?;
+
+    // Same value as cached → no write, so the external "cursor:wait" survives.
+    cache.set(&rect, "style", "cursor:grab").map_err(|e| e.to_string())?;
+    common::check_eq(rect.attr("style"), Some("cursor:wait".into()))
+}
+
+/// A changed value writes through and updates the cache.
+#[wasm_bindgen_test]
+fn should_write_changed_cached_value() -> Result<(), String> {
+    let rect = make_svg("node-cached-attr-change")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    let mut cache = svg_dom::CachedAttr::new();
+    cache.set(&rect, "style", "cursor:grab").map_err(|e| e.to_string())?;
+    cache.set(&rect, "style", "cursor:grabbing").map_err(|e| e.to_string())?;
+    common::check_eq(rect.attr("style"), Some("cursor:grabbing".into()))
+}
+
+/// After `invalidate`, the next `set` writes even if the value matches what was last written.
+#[wasm_bindgen_test]
+fn should_write_after_invalidate() -> Result<(), String> {
+    let rect = make_svg("node-cached-attr-invalidate")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    let mut cache = svg_dom::CachedAttr::new();
+    cache.set(&rect, "style", "cursor:grab").map_err(|e| e.to_string())?;
+
+    rect.set_attr("style", "cursor:wait").map_err(|e| e.to_string())?;
+    cache.invalidate();
+
+    // Cache was invalidated, so this writes through and restores "cursor:grab".
+    cache.set(&rect, "style", "cursor:grab").map_err(|e| e.to_string())?;
+    common::check_eq(rect.attr("style"), Some("cursor:grab".into()))
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // transform helpers (set_translate / set_rotate / set_scale / ...)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

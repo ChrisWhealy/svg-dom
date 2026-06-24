@@ -63,9 +63,21 @@ In spite of the fact that writing into a `String` is infallible, `write!` is typ
 ## Redundant attribute writes are skipped on hot paths
 
 `set_attr_if_changed` reads the current value with `get_attribute` and writes only when it differs.
-This avoids redundant browser-side work in high-frequency handlers where the same value repeats between frames such as cursor style, `opacity` flags or selected state.
-It is not a universal win: the read has its own cost, so for values that change on every call (such as a drag `transform`) calling `set_attr` remains the cheaper option.
-Reach for this function only where the value frequently repeats.
+This avoids a redundant DOM write in high-frequency handlers where the same value repeats between frames such as cursor style, `opacity` flags or selected state.
+
+It is not a universal win and the cost can be bigger than it first appears: `get_attribute` **allocates a fresh `String` for the current value and crosses the wasm/JS boundary on every call**, even when it then writes nothing.
+So for values that change on every call (such as a drag `transform`) calling `set_attr` remains the cheaper option, keeping `set_attr_if_changed` as best kept for *occasional* de-duplication rather than a per-event hot path.
+
+## Caller-owned attribute cache for genuinely hot paths
+
+For a high-frequency path where the value usually repeats, such as a cursor style or `opacity` flag touched on every `pointermove`, `CachedAttr` (in `src/node/cached.rs`) is preferable to `set_attr_if_changed`.
+It remembers the last value it wrote on the **Rust** side, so the unchanged case is a plain `&str` comparison against an owned `String`: no allocation, and no call into JS at all.
+The DOM is touched only on a genuine change and even then, the backing buffer is reused (`clear` + `push_str`) rather than reallocated.
+
+This is the same design used for the transform scratch buffer: the cache is **caller-owned** and deliberately not stored inside `SvgNode`, so passive geometry nodes carry no caching state.
+Keep one `CachedAttr` per frequently-updated attribute (typically captured in an event handler's state), dedicated to a single attribute on a single node.
+
+If that attribute is changed by some other path, call `invalidate()` so the cache does not skip a needed write on the strength of a now-stale remembered value.
 
 ## Multi-attribute updates
 

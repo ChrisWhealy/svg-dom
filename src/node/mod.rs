@@ -1,5 +1,8 @@
+mod cached;
 mod event;
 mod transform;
+
+pub use cached::CachedAttr;
 
 use crate::{
     error::Error,
@@ -170,15 +173,23 @@ impl SvgNode {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// # Write an attribute only when it changes
     ///
-    /// Reads the current value with `get_attribute` but writes it only if the value changes. This avoids redundant
-    /// browser-side work in high-frequency handlers where the same value is set over and over — for example a cursor
-    /// style or `opacity` flag updated on every `mousemove`/`pointermove`, where the value usually repeats between
-    /// frames.
+    /// Reads the current value with `get_attribute` but writes it only if the value changes. This avoids a redundant DOM
+    /// write in handlers where a value that doesn't change very often might be arbitrarily rewritten by the event
+    /// handler. For example, a cursor style or `opacity` flag is updated on every `mousemove`/`pointermove`.
     ///
-    /// **WARNING**: This is not always a win: the `get_attribute` read has its own cost, so for attributes that change
-    /// on every call (such as a drag `transform`) the plain [`set_attr`](Self::set_attr) is cheaper. Reach for this
-    /// only on hot paths where the value frequently repeats — hover/drag cursor state, opacity flags, selected state,
-    /// and the like.
+    /// **WARNING** This is not free and does not always represent a win.
+    /// 
+    /// The read performed by `get_attribute` **allocates a fresh `String` for the current value which then crosses the
+    /// WASM/JS boundary on every call**, even if nothing is written.
+    /// 
+    /// So:
+    ///
+    /// * For attributes that change on *every* call (such as a drag `transform`), the plain [`set_attr`](Self::set_attr)
+    ///   is cheaper — skip this entirely.
+    /// * For *occasional* de-duplication it is fine as-is.
+    /// * For a *genuinely high-frequency* path where the value usually repeats, prefer [`CachedAttr`], which remembers
+    ///   the last value on the Rust side: the unchanged case is then a plain string comparison with no allocation and no
+    ///   call into JS at all.
     ///
     /// # Example
     ///
