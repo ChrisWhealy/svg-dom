@@ -1,0 +1,59 @@
+# cargo-deny configuration — supply-chain policy for the whole workspace.
+#
+# Run locally with:  cargo install cargo-deny && cargo deny check
+# CI runs the same checks via .github/workflows/ci.yml (the `deny` job).
+#
+# Scope note: the workspace includes the `demo-server` member (actix), so this
+# policy is evaluated against the full dependency tree, not just the library's
+# runtime deps. That is deliberate — we want advisories surfaced everywhere.
+
+# ----------------------------------------------------------------------------
+# Security advisories (RUSTSEC). This is the dependency security audit.
+# ----------------------------------------------------------------------------
+[advisories]
+# Vulnerabilities and unmaintained crates are denied by default in current
+# cargo-deny; we only need to opt into denying yanked crates explicitly.
+yanked = "deny"
+# Add RUSTSEC IDs here (with a comment justifying each) only when an advisory
+# cannot be acted on immediately. Keep this list empty whenever possible.
+ignore = []
+
+# ----------------------------------------------------------------------------
+# Licenses. Anything not in `allow` fails the build.
+# Derived from the licenses currently present in the dependency tree.
+# ----------------------------------------------------------------------------
+[licenses]
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "BSD-3-Clause",
+    "Unicode-3.0",
+    "BSL-1.0",
+    "Zlib",
+    "0BSD",
+    "Unlicense",
+]
+# SPDX expressions are accepted with at least this confidence from the license
+# text scan before a crate is considered to satisfy the policy.
+confidence-threshold = 0.8
+
+# ----------------------------------------------------------------------------
+# Bans — guard against problematic crates and dependency hygiene issues.
+# ----------------------------------------------------------------------------
+[bans]
+# The actix tree legitimately pulls several crates at multiple versions, so this
+# is a warning rather than a hard failure. Tighten to "deny" if the library's
+# own tree is ever audited in isolation.
+multiple-versions = "warn"
+# A literal `*` version requirement is never acceptable.
+wildcards = "deny"
+# Crates explicitly disallowed (name + reason) go here.
+deny = []
+
+# ----------------------------------------------------------------------------
+# Sources — only allow code from crates.io.
+# ----------------------------------------------------------------------------
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

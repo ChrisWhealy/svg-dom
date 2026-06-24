@@ -1,0 +1,23 @@
+version: 2
+updates:
+  # Rust crate dependencies (whole workspace, resolved via the root manifest).
+  - package-ecosystem: cargo
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    # Collapse the noisy wasm-bindgen family into a single PR — these crates are
+    # released in lockstep and must move together.
+    groups:
+      wasm-bindgen:
+        patterns:
+          - "wasm-bindgen*"
+          - "js-sys"
+          - "web-sys"
+
+  # Keep the GitHub Actions used by CI up to date too.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
