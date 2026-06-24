@@ -145,6 +145,33 @@ fn should_leave_attribute_unchanged_when_value_matches() -> Result<(), String> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// set_attr_display
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `set_attr_display` formats a numeric value through the scratch buffer and writes it as the named attribute.
+#[wasm_bindgen_test]
+fn should_write_numeric_attribute_via_set_attr_display() -> Result<(), String> {
+    let circle = make_svg("node-set-attr-display")
+        .circle(Point::new(50.0, 50.0), 20.0)
+        .map_err(|e| e.to_string())?;
+    let mut buf = String::new();
+    circle.set_attr_display(&mut buf, "stroke-width", 2.5).map_err(|e| e.to_string())?;
+    common::check_eq(circle.attr("stroke-width"), Some("2.5".into()))
+}
+
+/// The same scratch buffer can be reused across `set_attr_display` calls and the latest value wins.
+#[wasm_bindgen_test]
+fn should_reuse_buffer_across_set_attr_display_calls() -> Result<(), String> {
+    let circle = make_svg("node-set-attr-display-reuse")
+        .circle(Point::new(50.0, 50.0), 20.0)
+        .map_err(|e| e.to_string())?;
+    let mut buf = String::new();
+    circle.set_attr_display(&mut buf, "stroke-width", 1).map_err(|e| e.to_string())?;
+    circle.set_attr_display(&mut buf, "stroke-width", 4).map_err(|e| e.to_string())?;
+    common::check_eq(circle.attr("stroke-width"), Some("4".into()))
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // CachedAttr
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -204,6 +231,44 @@ fn should_write_after_invalidate() -> Result<(), String> {
     // Cache was invalidated, so this writes through and restores "cursor:grab".
     cache.set(&rect, "style", "cursor:grab").map_err(|e| e.to_string())?;
     common::check_eq(rect.attr("style"), Some("cursor:grab".into()))
+}
+
+/// `CachedAttr::set_text` writes the first value to the element's text content.
+#[wasm_bindgen_test]
+fn should_write_first_cached_text() -> Result<(), String> {
+    let label = make_svg("node-cached-text-first")
+        .text(Point::new(10.0, 20.0), "")
+        .map_err(|e| e.to_string())?;
+    let mut cache = svg_dom::CachedAttr::new();
+    cache.set_text(&label, "moving").map_err(|e| e.to_string())?;
+    common::check_eq(label.as_element().text_content(), Some("moving".into()))
+}
+
+/// When the cached text is unchanged, `set_text` does not touch the DOM (proved by a behind-the-cache mutation surviving).
+#[wasm_bindgen_test]
+fn should_skip_text_write_when_unchanged() -> Result<(), String> {
+    let label = make_svg("node-cached-text-noop")
+        .text(Point::new(10.0, 20.0), "")
+        .map_err(|e| e.to_string())?;
+    let mut cache = svg_dom::CachedAttr::new();
+    cache.set_text(&label, "moving").map_err(|e| e.to_string())?;
+
+    label.set_text("dropped"); // change behind the cache's back
+    cache.set_text(&label, "moving").map_err(|e| e.to_string())?; // same as cached → no write
+
+    common::check_eq(label.as_element().text_content(), Some("dropped".into()))
+}
+
+/// A changed value writes through and updates the text cache.
+#[wasm_bindgen_test]
+fn should_write_changed_cached_text() -> Result<(), String> {
+    let label = make_svg("node-cached-text-change")
+        .text(Point::new(10.0, 20.0), "")
+        .map_err(|e| e.to_string())?;
+    let mut cache = svg_dom::CachedAttr::new();
+    cache.set_text(&label, "moving").map_err(|e| e.to_string())?;
+    cache.set_text(&label, "dropped").map_err(|e| e.to_string())?;
+    common::check_eq(label.as_element().text_content(), Some("dropped".into()))
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

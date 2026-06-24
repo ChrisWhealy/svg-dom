@@ -11,9 +11,13 @@
 //! when the value genuinely changes, and even then the backing buffer is reused (`clear` + `push_str`) rather than
 //! reallocated.
 //!
+//! The same cache also covers text content via [`CachedAttr::set_text`] — a status readout rewritten with the same
+//! string on every `pointermove` is exactly the kind of redundant `set_text_content` it elides.
+//!
 //! Like the transform scratch buffer, a `CachedAttr` is **caller-owned** and deliberately not stored inside `SvgNode`:
-//! passive nodes never animate, so they should not carry caching state. Keep one `CachedAttr` per attribute you update
-//! frequently — typically captured in an event handler's state — and dedicate it to a single attribute on a single node.
+//! passive nodes never animate, so they should not carry caching state. Keep one `CachedAttr` per value you update
+//! frequently — typically captured in an event handler's state — and dedicate it to a single attribute (or the text
+//! content) of a single node.
 //!
 //! # Example
 //!
@@ -68,6 +72,29 @@ impl CachedAttr {
             // The value is unchanged, so bail out
         } else {
             node.set_attr(name, value)?;
+            self.last.clear();
+            self.last.push_str(value);
+            self.written = true;
+        }
+
+        Ok(())
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Replaces the text content of `node`, but only if it differs from the value this cache last wrote.
+    ///
+    /// The text-content analogue of [`set`](Self::set): a status readout updated on every `pointermove` typically shows
+    /// the same string frame after frame, and `set_text_content` marshals the string across the wasm/JS boundary on every
+    /// call. Caching the last value turns the unchanged case into a plain string comparison with no allocation and no
+    /// DOM work.
+    ///
+    /// Dedicate a `CachedAttr` to *either* an attribute (via [`set`](Self::set)) *or* text content — not both, since the
+    /// two would share, and so clobber, the single remembered value.
+    pub fn set_text(&mut self, node: &SvgNode, value: &str) -> Result<(), Error> {
+        if self.written && self.last == value {
+            // The value is unchanged, so bail out
+        } else {
+            node.set_text(value);
             self.last.clear();
             self.last.push_str(value);
             self.written = true;

@@ -16,10 +16,20 @@ impl Point {
         Self { x, y }
     }
 
+    /// Returns the `x` coordinate as a freshly allocated `String`.
+    ///
+    /// Convenient for one-off use, but should be avoided on hot paths (per-event or per-frame) since each call
+    /// allocates and then discards a String.
+    /// 
+    /// Instead, format through a reused buffer: see [`SvgNode::set_attr_display`](crate::SvgNode::set_attr_display)
+    /// or the [transform setters](crate::SvgNode::set_translate).
     pub fn get_x_str(&self) -> String {
         self.x.to_string()
     }
 
+    /// Returns the `y` coordinate as a freshly allocated `String`.
+    ///
+    /// See [`get_x_str`](Self::get_x_str) for the hot-path caveat.
     pub fn get_y_str(&self) -> String {
         self.y.to_string()
     }
@@ -45,10 +55,20 @@ impl Size {
         Self { width, height }
     }
 
+    /// Returns the width as a freshly allocated `String`.
+    ///
+    /// Convenient for one-off use, but should be avoided on hot paths (per-event or per-frame) since each call
+    /// allocates and then discards a String.
+    /// 
+    /// Instead, format through a reused buffer: see [`SvgNode::set_attr_display`](crate::SvgNode::set_attr_display)
+    /// or the [transform setters](crate::SvgNode::set_translate).
     pub fn get_width_str(&self) -> String {
         self.width.to_string()
     }
 
+    /// Returns the height as a freshly allocated `String`.
+    ///
+    /// See [`get_width_str`](Self::get_width_str) for the hot-path caveat.
     pub fn get_height_str(&self) -> String {
         self.height.to_string()
     }

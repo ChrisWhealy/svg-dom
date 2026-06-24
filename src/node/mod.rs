@@ -211,6 +211,40 @@ impl SvgNode {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// # Write a numeric (or otherwise [`Display`](std::fmt::Display)) attribute through a caller-owned buffer
+    ///
+    /// Formats `value` into the supplied scratch buffer and writes it as `name`, reusing the buffer's allocation across
+    /// calls. This is the allocation-light counterpart to the convenience numeric setters such as
+    /// [`set_stroke_width`](Self::set_stroke_width), which each allocate a short-lived `String` per call.
+    ///
+    /// Reach for this on hot paths that update a numeric attribute every event or frame — an animated `stroke-width`, a
+    /// live `rx`, `font-size`, `r`, and the like. Keep one buffer in the handler's state and pass it on every call, the
+    /// same pattern the [transform setters](Self::set_translate) use.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let ring = svg.circle(Point::new(50.0, 50.0), 20.0)?;
+    ///
+    /// let mut buf = String::new();
+    /// ring.set_attr_display(&mut buf, "stroke-width", 2.5)?; // no per-call String allocation
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn set_attr_display<T: std::fmt::Display>(
+        &self,
+        scratch: &mut String,
+        name: &str,
+        value: T,
+    ) -> Result<(), Error> {
+        use std::fmt::Write;
+        scratch.clear();
+        write!(scratch, "{value}")?;
+        self.set_attr(name, scratch)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Binds a reusable [`SvgAttrs`] buffer to this node and returns a chainable attribute writer.
     ///
     /// Use this when setting several numeric or formatted attributes as it avoids the need to allocate a new `String`
@@ -346,6 +380,11 @@ impl SvgNode {
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the `stroke-width` attribute in user units.
+    ///
+    /// This convenience setter formats `width` into a short-lived `String` that is allocated and dropped on each call —
+    /// fine for one-off styling. If you animate the stroke width on a hot path (a pulsing highlight, a hover/drag
+    /// emphasis), prefer [`set_attr_display`](Self::set_attr_display) with a reused buffer, or an
+    /// [`AttrWriter`]/[`SvgAttrs`], to avoid that per-call allocation.
     ///
     /// # Example
     ///

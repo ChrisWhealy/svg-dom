@@ -77,9 +77,12 @@ For a high-frequency path where an element's attribute value usually repeats (E.
 The DOM is touched only on a genuine change and even then, the `String` backing buffer is reused (`clear` + `push_str`) rather than reallocated.
 
 This is the same design used for the transform scratch buffer: the cache is **caller-owned** and deliberately not stored inside `SvgNode`, so passive geometry nodes carry no caching state.
-Keep one `CachedAttr` per frequently-updated attribute (typically captured in an event handler's state), dedicated to a single attribute on a single node.
+Keep one `CachedAttr` per frequently-updated value (typically captured in an event handler's state), dedicated to a single attribute on a single node.
 
 If that attribute is changed by some other path, call `invalidate()` so the cache does not skip a needed write on the strength of a now-stale remembered value.
+
+The same cache also covers text content via `CachedAttr::set_text`, for the equivalent case of a status readout rewritten with the same string on every `pointermove`.
+Dedicate a given `CachedAttr` to *either* an attribute or text content, not both, since they share the single remembered value.
 
 ## Multi-attribute updates
 
@@ -95,6 +98,10 @@ Use this in order to avoid the need to call `to_string()` or `format!` for numer
 
 The browser still receives one normal SVG `setAttribute` operation per attribute, but the Rust/WASM side reuses the formatting allocation.
 The built-in root and batch element factories use the same mechanism for initial numeric geometry attributes, so repeated element creation does not allocate a fresh formatting `String` per element.
+
+For a single numeric attribute updated on a hot path, `SvgNode::set_attr_display` is the lightweight counterpart taking a caller-owned `&mut String` directly (the same shape as the transform setters), without the ceremony of binding an `AttrWriter`.
+The convenience numeric setters such as `set_stroke_width` instead allocate a short-lived `String` per call; that is fine for one-off styling but should be swapped for `set_attr_display` (or an `AttrWriter`) when the value is animated.
+The same caveat applies to the `Point`/`Size` `get_*_str` helpers, which each allocate; they are documented as one-off conveniences, not for per-event or per-frame use.
 
 ## Shared element factory implementation
 
@@ -146,3 +153,19 @@ Against that small saving sit real costs:
 
 So the structurally "trivial" upgrade is semantically a fork of the very ownership the library deliberately unifies, in exchange for ~8 bytes per node.
 The lightweight-passive-node property is better served by the existing lazy `Option<Box<Vec>>`, and any need to signal interactivity is cheaper to meet with documentation than with a second concrete type.
+
+## A faster float-to-string crate (`ryu` / `itoa`)
+
+It was suggested that numeric formatting could be sped up by routing it through a dedicated crate such as `ryu` (floats) or `itoa` (integers) instead of the standard library's `Display`.
+This was evaluated and **will not** be pursued.
+
+Two things undercut it:
+
+* **It does not fit the hot path.**<br>
+  The high-frequency formatting in this crate is the transform setters, which use *fixed precision* (`{:.1}`, `{:.3}`). `ryu` emits the **shortest round-trip** representation, which is a different output, so it cannot replace that formatting at all. It would only touch the default `{value}` `Display` path used at element-creation time and in `set_attr_display` — not the per-event work it was meant to accelerate.
+
+* **The win over std is marginal.**<br>
+  Rust's standard `f64` `Display` is itself a shortest-round-trip (Ryū-derived) implementation, so the realistic saving is small and confined to creation-time formatting.
+
+Set against an added dependency in a published crate (which grows every downstream user's dependency tree), the trade is not worth it.
+The dominant per-call cost on any real hot path is the `set_attribute` boundary crossing, not the float-to-string conversion, so effort is better spent eliding redundant DOM writes (`CachedAttr`) and reusing format buffers (the transform setters and `set_attr_display`).
