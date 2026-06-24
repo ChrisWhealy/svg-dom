@@ -113,8 +113,15 @@ The demo gallery includes examples for the managed event wrappers. Interactive d
 use wasm_bindgen::prelude::*;
 use svg_dom::{AnimationLoop, SvgAttrs, SvgRoot, root::utils::{Point, Size}};
 
+// wasm-bindgen entry point. An exported function's error type must be `Into<JsValue>`, and
+// `svg_dom::Error` is not, so the boundary returns `Result<(), JsValue>` and converts there;
+// the actual work lives in `build`, which uses `?` with `svg_dom::Error` throughout.
 #[wasm_bindgen(start)]
-pub fn run() -> Result<(), svg_dom::Error> {
+pub fn run() -> Result<(), JsValue> {
+    build().map_err(|e| JsValue::from_str(&e.to_string()))
+}
+
+fn build() -> Result<(), svg_dom::Error> {
     // Attach to <svg id="diagram"> already present in index.html.
     let svg = SvgRoot::attach("diagram")?;
 
@@ -141,12 +148,16 @@ pub fn run() -> Result<(), svg_dom::Error> {
     group.append(&label)?;
 
     // Animate: pulse the circle radius each frame.
-    // The AnimationLoop must be kept alive (e.g. stored in a static or leaked) for
-    // the loop to continue — dropping it cancels the pending frame immediately.
-    let _loop = AnimationLoop::start_with_frame(move |ts, frame| {
+    //
+    // The AnimationLoop must outlive this function — dropping it cancels the pending frame
+    // immediately. Here we leak it with `std::mem::forget` so it runs for the lifetime of the
+    // page; a real app would instead store it somewhere lasting (a `static`, app state, or a
+    // field on a long-lived struct).
+    let anim = AnimationLoop::start_with_frame(move |ts, frame| {
         let r = 8.0 + 4.0 * (ts / 500.0).sin();
         let _ = frame.set_attr_fmt(&dot, "r", format_args!("{r}"));
     })?;
+    std::mem::forget(anim);
 
     Ok(())
 }
