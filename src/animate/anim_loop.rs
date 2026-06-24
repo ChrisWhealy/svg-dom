@@ -97,7 +97,7 @@ impl AnimationLoop {
         let window_inner = window.clone();
 
         // The closure holds an Rc to its own slot so it can re-register after each frame.
-        *closure.borrow_mut() = Some(Closure::new(move |ts: f64| {
+        let raf_closure: FrameClosure = Closure::new(move |ts: f64| {
             callback(ts);
 
             if let Some(c) = closure_inner.borrow().as_ref() {
@@ -106,12 +106,18 @@ impl AnimationLoop {
                     handle_inner.set(h);
                 }
             }
-        }));
+        });
 
+        // Schedule the first frame from the local binding, then hand the closure to the shared
+        // slot. Driving the initial call this way avoids re-borrowing the slot we just filled and
+        // the `unwrap` that would have required; on failure `?` drops the closure before anything
+        // was scheduled.
         let h = window
-            .request_animation_frame(closure.borrow().as_ref().unwrap().as_ref().unchecked_ref())
+            .request_animation_frame(raf_closure.as_ref().unchecked_ref())
             .map_err(|e| Error::Dom(format!("{e:?}")))?;
         handle.set(h);
+
+        *closure.borrow_mut() = Some(raf_closure);
 
         Ok(AnimationLoop {
             window,

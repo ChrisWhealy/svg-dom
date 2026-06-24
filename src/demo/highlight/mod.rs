@@ -114,11 +114,21 @@ pub fn rust_to_html(src: &str) -> String {
             continue;
         }
 
-        // Anything else (whitespace, punctuation, operators, non-ASCII in code) — pass through, escaped.
-        let ch = src[i..].chars().next().unwrap();
-        let len = ch.len_utf8();
-        escape_into(&mut out, &src[i..i + len]);
-        i += len;
+        // Anything else (whitespace, punctuation, operators, non-ASCII in code) — pass one UTF-8
+        // character through, escaped. The boundary guard keeps the lexer panic-free even if an
+        // earlier branch (e.g. a string escape) advanced `i` into the middle of a codepoint.
+        if !src.is_char_boundary(i) {
+            i += 1;
+            continue;
+        }
+        match src[i..].chars().next() {
+            Some(ch) => {
+                let len = ch.len_utf8();
+                escape_into(&mut out, &src[i..i + len]);
+                i += len;
+            }
+            None => break,
+        }
     }
 
     out
