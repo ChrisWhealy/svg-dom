@@ -1,4 +1,9 @@
-use crate::{SvgRoot, error::Error, node::SvgNode, root::utils::Point};
+use crate::{
+    SvgRoot,
+    error::Error,
+    node::SvgNode,
+    root::{factory::SvgFactory, utils::Point},
+};
 
 impl SvgRoot {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -24,16 +29,6 @@ impl SvgRoot {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn line(&self, start: Point, end: Point) -> Result<SvgNode, Error> {
-        let node = self.make_node("line")?;
-        {
-            let mut attrs = self.attrs.borrow_mut();
-            attrs.display(&node, "x1", start.x)?;
-            attrs.display(&node, "y1", start.y)?;
-            attrs.display(&node, "x2", end.x)?;
-            attrs.display(&node, "y2", end.y)?;
-        }
-        self.append_node(&node)?;
-        
-        Ok(node)
+        self.create_line(start, end)
     }
 }

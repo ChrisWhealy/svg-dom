@@ -1,14 +1,13 @@
 use crate::{
     Error, SvgNode, SvgRoot,
     root::{
-        SVG_NS,
         attrs::SvgAttrs,
+        factory::SvgFactory,
         utils::{Point, Size},
     },
 };
 use std::cell::RefCell;
-use wasm_bindgen::JsCast;
-use web_sys::{Document, DocumentFragment, SvgElement, SvgsvgElement};
+use web_sys::{Document, DocumentFragment, SvgsvgElement};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Builds several SVG elements in a [`DocumentFragment`] and appends them to the root in one DOM operation.
@@ -38,15 +37,6 @@ impl SvgBatch {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    pub(crate) fn make_element(&self, tag: &str) -> Result<SvgElement, Error> {
-        self.document
-            .create_element_ns(Some(SVG_NS), tag)
-            .map_err(|e| Error::Dom(format!("{e:?}")))?
-            .dyn_into::<SvgElement>()
-            .map_err(|_| Error::CastFailed("SvgElement"))
-    }
-
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Appends the whole batch to the SVG root in a single DOM operation.
     pub fn commit(self) -> Result<(), Error> {
         self.root
@@ -58,89 +48,55 @@ impl SvgBatch {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates a detached `<rect>` element in this batch and returns its [`SvgNode`] handle.
     pub fn rect(&self, top_left: Point, size: Size) -> Result<SvgNode, Error> {
-        let n = self.make_node("rect")?;
-        {
-            let mut attrs = self.attrs.borrow_mut();
-            attrs.display(&n, "x", top_left.x)?;
-            attrs.display(&n, "y", top_left.y)?;
-            attrs.display(&n, "width", size.width)?;
-            attrs.display(&n, "height", size.height)?;
-        }
-        self.append_node(&n)?;
-        Ok(n)
+        self.create_rect(top_left, size)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates a detached `<circle>` element in this batch and returns its [`SvgNode`] handle.
     pub fn circle(&self, centre: Point, radius: f64) -> Result<SvgNode, Error> {
-        let n = self.make_node("circle")?;
-        {
-            let mut attrs = self.attrs.borrow_mut();
-            attrs.display(&n, "cx", centre.x)?;
-            attrs.display(&n, "cy", centre.y)?;
-            attrs.display(&n, "r", radius)?;
-        }
-        self.append_node(&n)?;
-        Ok(n)
+        self.create_circle(centre, radius)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates a detached `<line>` element in this batch and returns its [`SvgNode`] handle.
     pub fn line(&self, start: Point, end: Point) -> Result<SvgNode, Error> {
-        let n = self.make_node("line")?;
-        {
-            let mut attrs = self.attrs.borrow_mut();
-            attrs.display(&n, "x1", start.x)?;
-            attrs.display(&n, "y1", start.y)?;
-            attrs.display(&n, "x2", end.x)?;
-            attrs.display(&n, "y2", end.y)?;
-        }
-        self.append_node(&n)?;
-        Ok(n)
+        self.create_line(start, end)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates a detached `<path>` element in this batch and returns its [`SvgNode`] handle.
     pub fn path(&self, d: &str) -> Result<SvgNode, Error> {
-        let n = self.make_node("path")?;
-        n.set_attr("d", d)?;
-        self.append_node(&n)?;
-        Ok(n)
+        self.create_path(d)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates a detached `<text>` element in this batch and returns its [`SvgNode`] handle.
     pub fn text(&self, anchored_at: Point, content: &str) -> Result<SvgNode, Error> {
-        let n = self.make_node("text")?;
-        {
-            let mut attrs = self.attrs.borrow_mut();
-            attrs.display(&n, "x", anchored_at.x)?;
-            attrs.display(&n, "y", anchored_at.y)?;
-        }
-        n.as_element().set_text_content(Some(content));
-        self.append_node(&n)?;
-        Ok(n)
+        self.create_text(anchored_at, content)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates a detached `<g>` element in this batch and returns its [`SvgNode`] handle.
     pub fn group(&self) -> Result<SvgNode, Error> {
-        let n = self.make_node("g")?;
-        self.append_node(&n)?;
-        Ok(n)
+        self.create_group()
+    }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+impl SvgFactory for SvgBatch {
+    fn document(&self) -> &Document {
+        &self.document
     }
 
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    fn attrs(&self) -> &RefCell<SvgAttrs> {
+        &self.attrs
+    }
+
     fn append_node(&self, node: &SvgNode) -> Result<(), Error> {
         self.fragment
             .append_child(node.as_element())
             .map(|_| ())
             .map_err(|e| Error::Dom(format!("{e:?}")))
-    }
-
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    fn make_node(&self, tag: &str) -> Result<SvgNode, Error> {
-        self.make_element(tag).map(SvgNode::new)
     }
 }
 

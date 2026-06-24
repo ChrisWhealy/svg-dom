@@ -33,6 +33,7 @@ This crate is still just an MVP and contains known functional gaps that will be 
 - [x] Implement multi-attribute setter for an SVG node
 - [x] Implement reusable `SvgAttrs` / `AttrWriter` for allocation-light attribute writing
 - [x] Implement batch-building API that allows elements to be added *en masse*
+- [x] Share factory implementation between `SvgRoot` and `SvgBatch`
 - [x] Build demo server to illustrate current functionality
 - Implement remaining SVG elements
   - [ ] `<ellipse>`

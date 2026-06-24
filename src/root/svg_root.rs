@@ -1,9 +1,9 @@
-use super::{SVG_NS, attrs::SvgAttrs, document, utils::Size};
+use super::{SVG_NS, attrs::SvgAttrs, document, factory::SvgFactory, utils::Size};
 use crate::{SvgNode, error::Error};
 
 use std::cell::{Cell, RefCell};
 use wasm_bindgen::JsCast;
-use web_sys::{Document, SvgElement, SvgsvgElement};
+use web_sys::{Document, SvgsvgElement};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Wraps the root `<svg>` element and acts as the factory for all child SVG elements.
@@ -181,32 +181,23 @@ impl SvgRoot {
         Ok(())
     }
 
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    // Local helpers
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    pub(crate) fn make_element(&self, tag: &str) -> Result<SvgElement, Error> {
-        self.document
-            .create_element_ns(Some(SVG_NS), tag)
-            .map_err(|e| Error::Dom(format!("{e:?}")))?
-            .dyn_into::<SvgElement>()
-            .map_err(|_| Error::CastFailed("SvgElement"))
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+impl SvgFactory for SvgRoot {
+    fn document(&self) -> &Document {
+        &self.document
     }
 
-    pub(crate) fn make_node(&self, tag: &str) -> Result<SvgNode, Error> {
-        self.make_element(tag).map(SvgNode::new)
+    fn attrs(&self) -> &RefCell<SvgAttrs> {
+        &self.attrs
     }
 
-    pub(crate) fn append_node(&self, node: &SvgNode) -> Result<(), Error> {
+    fn append_node(&self, node: &SvgNode) -> Result<(), Error> {
         self.root
             .append_child(node.as_element())
             .map(|_| ())
             .map_err(|e| Error::Dom(format!("{e:?}")))
-    }
-
-    pub(crate) fn append_new(&self, tag: &str) -> Result<SvgNode, Error> {
-        let node = self.make_node(tag)?;
-        self.append_node(&node)?;
-        Ok(node)
     }
 }
 

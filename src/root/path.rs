@@ -1,4 +1,4 @@
-use crate::{SvgRoot, error::Error, node::SvgNode};
+use crate::{error::Error, node::SvgNode, root::factory::SvgFactory, SvgRoot};
 
 impl SvgRoot {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -37,10 +37,6 @@ impl SvgRoot {
     /// # Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn path(&self, d: &str) -> Result<SvgNode, Error> {
-        let node = self.make_node("path")?;
-        node.set_attr("d", d)?;
-        self.append_node(&node)?;
-
-        Ok(node)
+        self.create_path(d)
     }
 }

@@ -1,6 +1,7 @@
 pub mod attrs;
 pub mod batch;
 pub mod circle;
+pub(crate) mod factory;
 pub mod group;
 pub mod line;
 pub mod path;

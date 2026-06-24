@@ -1,4 +1,12 @@
-use crate::{SvgRoot, error::Error, node::SvgNode, root::utils::{Point, Size}};
+use crate::{
+    error::Error,
+    node::SvgNode,
+    root::{
+        factory::SvgFactory,
+        utils::{Point, Size},
+    },
+    SvgRoot,
+};
 
 impl SvgRoot {
     /// Creates a `<rect>` element, appends it to the root, and returns its [`SvgNode`] handle.
@@ -21,16 +29,6 @@ impl SvgRoot {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn rect(&self, top_left: Point, size: Size) -> Result<SvgNode, Error> {
-        let node = self.make_node("rect")?;
-        {
-            let mut attrs = self.attrs.borrow_mut();
-            attrs.display(&node, "x", top_left.x)?;
-            attrs.display(&node, "y", top_left.y)?;
-            attrs.display(&node, "width", size.width)?;
-            attrs.display(&node, "height", size.height)?;
-        }
-        self.append_node(&node)?;
-
-        Ok(node)
+        self.create_rect(top_left, size)
     }
 }

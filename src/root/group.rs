@@ -1,4 +1,4 @@
-use crate::{SvgRoot, error::Error, node::SvgNode};
+use crate::{error::Error, node::SvgNode, root::factory::SvgFactory, SvgRoot};
 
 impl SvgRoot {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -27,6 +27,6 @@ impl SvgRoot {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn group(&self) -> Result<SvgNode, Error> {
-        self.append_new("g")
+        self.create_group()
     }
 }

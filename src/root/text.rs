@@ -1,4 +1,9 @@
-use crate::{SvgRoot, error::Error, node::SvgNode, root::utils::Point};
+use crate::{
+    error::Error,
+    node::SvgNode,
+    root::{factory::SvgFactory, utils::Point},
+    SvgRoot,
+};
 
 impl SvgRoot {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -23,15 +28,6 @@ impl SvgRoot {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn text(&self, anchored_at: Point, content: &str) -> Result<SvgNode, Error> {
-        let node = self.make_node("text")?;
-        {
-            let mut attrs = self.attrs.borrow_mut();
-            attrs.display(&node, "x", anchored_at.x)?;
-            attrs.display(&node, "y", anchored_at.y)?;
-        }
-        node.as_element().set_text_content(Some(content));
-        self.append_node(&node)?;
-
-        Ok(node)
+        self.create_text(anchored_at, content)
     }
 }

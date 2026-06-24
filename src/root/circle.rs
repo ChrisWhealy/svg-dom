@@ -1,4 +1,9 @@
-use crate::{SvgRoot, error::Error, node::SvgNode, root::utils::Point};
+use crate::{
+    error::Error,
+    node::SvgNode,
+    root::{factory::SvgFactory, utils::Point},
+    SvgRoot,
+};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 impl SvgRoot {
@@ -20,15 +25,6 @@ impl SvgRoot {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn circle(&self, centre: Point, radius: f64) -> Result<SvgNode, Error> {
-        let node = self.make_node("circle")?;
-        {
-            let mut attrs = self.attrs.borrow_mut();
-            attrs.display(&node, "cx", centre.x)?;
-            attrs.display(&node, "cy", centre.y)?;
-            attrs.display(&node, "r", radius)?;
-        }
-        self.append_node(&node)?;
-
-        Ok(node)
+        self.create_circle(centre, radius)
     }
 }
