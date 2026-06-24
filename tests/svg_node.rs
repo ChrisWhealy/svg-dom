@@ -2,8 +2,7 @@ use std::{cell::Cell, rc::Rc};
 use svg_dom::{SvgRoot, root::utils::*};
 use wasm_bindgen_test::*;
 use web_sys::{
-    DragEvent, Event, FocusEvent, KeyboardEvent, MouseEvent, PointerEvent, SvgElement, TouchEvent,
-    WheelEvent,
+    DragEvent, Event, FocusEvent, KeyboardEvent, MouseEvent, PointerEvent, SvgElement, WheelEvent,
 };
 
 mod common;
@@ -52,7 +51,10 @@ fn dispatch_element(element: &SvgElement, event_type: &str) -> Result<(), String
             .dispatch_event(&event)
             .map_err(|e| format!("{e:?}"))?;
     } else if event_type.starts_with("touch") {
-        let event = TouchEvent::new(event_type).map_err(|e| format!("{e:?}"))?;
+        // Desktop Firefox does not expose the `TouchEvent` constructor, so dispatch a generically-typed event carrying
+        // the touch type name. A listener fires on the event-type string regardless of the concrete event interface, so
+        // this still exercises the managed `on_touch*` wrappers in every browser.
+        let event = Event::new(event_type).map_err(|e| format!("{e:?}"))?;
         element
             .dispatch_event(&event)
             .map_err(|e| format!("{e:?}"))?;

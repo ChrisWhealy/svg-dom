@@ -39,10 +39,10 @@
 //!
 //! It is also safe by construction against script injection: text is written through `textContent`, never `innerHTML`,
 //! and there is no use of `eval`.
-//! 
+//!
 //! The one thing to be aware of is [`SvgNode::set_attr`](crate::SvgNode::set_attr) (and [`set_attrs`](crate::SvgNode::set_attrs)),
 //! write attribute names and values **verbatim** via `setAttribute`.
-//! 
+//!
 //! Passing attacker-controlled input there can introduce script — for example an `onclick` attribute, or an `href`
 //! whose value is `javascript:...`. Treat attribute names and values as you would any HTML sink: do not pass untrusted
 //! data without validating it first.
