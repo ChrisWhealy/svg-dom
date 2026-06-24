@@ -82,7 +82,7 @@ impl SvgAttrs {
         value: T,
     ) -> Result<(), Error> {
         self.scratch.clear();
-        write!(self.scratch, "{value}").expect("writing Display output to String cannot fail");
+        write!(self.scratch, "{value}")?;
         node.set_attr(name, &self.scratch)
     }
 
@@ -123,7 +123,7 @@ impl SvgAttrs {
         value: T,
     ) -> Result<(), Error> {
         self.scratch.clear();
-        write!(self.scratch, "{value}").expect("writing Display output to String cannot fail");
+        write!(self.scratch, "{value}")?;
         el.as_ref()
             .set_attribute(name, &self.scratch)
             .map_err(|e| Error::Dom(format!("{e:?}")))

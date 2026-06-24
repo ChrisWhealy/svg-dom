@@ -1,8 +1,8 @@
 use crate::{
+    SvgRoot,
     error::Error,
     node::SvgNode,
     root::{factory::SvgFactory, utils::Point},
-    SvgRoot,
 };
 
 impl SvgRoot {
@@ -13,8 +13,8 @@ impl SvgRoot {
     /// # Arguments
     ///
     /// * `anchored_at` — position of the text anchor point where the `y` coordinate is the **baseline** of the first
-    ///                   line of text, not the top left corner of the bounding box.
-    /// * `content`     — the visible text string.
+    ///   line of text, not the top left corner of the bounding box.
+    /// * `content` — the visible text string.
     ///
     /// # Example
     ///

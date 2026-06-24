@@ -9,11 +9,13 @@ name = "svg-dom"
 authors = ["Chris Whealy <chris@whealy.com>"]
 version = "0.1.12"
 edition = "2024"
+rust-version = "1.85"
 description = "A lightweight Rust/WebAssembly library for creating and mutating live SVG content directly in the browser DOM"
 keywords = ["svg", "wasm", "browser", "dom"]
 categories = ["wasm", "web-programming", "rendering"]
 repository = "https://github.com/ChrisWhealy/svg-dom"
 license = "MIT"
+readme = "README.md"
 
 [features]
 demo = []

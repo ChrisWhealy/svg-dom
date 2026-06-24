@@ -23,10 +23,17 @@ use wasm_bindgen::{JsCast, prelude::*};
 ///
 /// The `AnimationLoop` can be kept alive by storing it in a `static`, a `Closure` captured variable, or some other
 /// location whose lifespan outlives your animation.
+/// The per-frame closure registered with `requestAnimationFrame`.
+type FrameClosure = Closure<dyn FnMut(f64)>;
+/// Shared, self-referencing slot the closure uses to re-register itself each frame; cleared on `stop`.
+type SharedClosure = Rc<RefCell<Option<FrameClosure>>>;
+/// Shared cell holding the pending `requestAnimationFrame` handle so it can be cancelled.
+type RafHandle = Rc<Cell<i32>>;
+
 pub struct AnimationLoop {
     window: web_sys::Window,
-    handle: Rc<Cell<i32>>,
-    closure: Rc<RefCell<Option<Closure<dyn FnMut(f64)>>>>,
+    handle: RafHandle,
+    closure: SharedClosure,
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -81,8 +88,8 @@ impl AnimationLoop {
     fn start_inner<F: FnMut(f64) + 'static>(mut callback: F) -> Result<Self, Error> {
         let window = web_sys::window().ok_or_else(|| Error::Dom("no window".into()))?;
 
-        let handle: Rc<Cell<i32>> = Rc::new(Cell::new(0));
-        let closure: Rc<RefCell<Option<Closure<dyn FnMut(f64)>>>> = Rc::new(RefCell::new(None));
+        let handle: RafHandle = Rc::new(Cell::new(0));
+        let closure: SharedClosure = Rc::new(RefCell::new(None));
 
         // Clones moved into the closure so it can re-schedule itself.
         let handle_inner = handle.clone();
@@ -94,9 +101,9 @@ impl AnimationLoop {
             callback(ts);
 
             if let Some(c) = closure_inner.borrow().as_ref() {
-                match window_inner.request_animation_frame(c.as_ref().unchecked_ref()) {
-                    Ok(h) => handle_inner.set(h),
-                    Err(_) => {} // requestAnimationFrame failed — loop stops silently
+                // If requestAnimationFrame fails, the loop simply stops (no re-schedule).
+                if let Ok(h) = window_inner.request_animation_frame(c.as_ref().unchecked_ref()) {
+                    handle_inner.set(h);
                 }
             }
         }));

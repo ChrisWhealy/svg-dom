@@ -76,7 +76,13 @@ impl SvgNode {
     /// # `transform="rotate(angle, cx, cy)"`
     ///
     /// Sets a rotation (in degrees) about the point `(cx, cy)`, all formatted to one decimal place into `scratch`.
-    pub fn set_rotate_about(&self, scratch: &mut String, angle: f64, cx: f64, cy: f64) -> Result<(), Error> {
+    pub fn set_rotate_about(
+        &self,
+        scratch: &mut String,
+        angle: f64,
+        cx: f64,
+        cy: f64,
+    ) -> Result<(), Error> {
         scratch.clear();
         write!(scratch, "rotate({angle:.1}, {cx:.1}, {cy:.1})")?;
         self.set_attr("transform", scratch)
@@ -107,7 +113,13 @@ impl SvgNode {
     ///
     /// Sets a combined translate-then-scale transform, the common shape for pan/zoom code. The translation is formatted
     /// to one decimal place and the scale to three, into `scratch`.
-    pub fn set_translate_scale(&self, scratch: &mut String, tx: f64, ty: f64, scale: f64) -> Result<(), Error> {
+    pub fn set_translate_scale(
+        &self,
+        scratch: &mut String,
+        tx: f64,
+        ty: f64,
+        scale: f64,
+    ) -> Result<(), Error> {
         scratch.clear();
         write!(scratch, "translate({tx:.1}, {ty:.1}) scale({scale:.3})")?;
         self.set_attr("transform", scratch)
@@ -134,7 +146,11 @@ impl SvgNode {
     /// )?;
     /// Ok::<(), svg_dom::Error>(())
     /// ```
-    pub fn set_transform_fmt(&self, scratch: &mut String, args: std::fmt::Arguments<'_>) -> Result<(), Error> {
+    pub fn set_transform_fmt(
+        &self,
+        scratch: &mut String,
+        args: std::fmt::Arguments<'_>,
+    ) -> Result<(), Error> {
         scratch.clear();
         scratch.write_fmt(args)?;
         self.set_attr("transform", scratch)

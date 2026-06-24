@@ -163,6 +163,8 @@ fn build() -> Result<(), svg_dom::Error> {
 }
 ```
 
+> This example is mirrored in [`examples/readme_minimal.rs`](examples/readme_minimal.rs) and compiled for `wasm32` in CI, so it cannot silently fall out of step with the crate.
+
 ## Managed event handlers
 
 `SvgNode` owns the closures registered by its event helpers and removes the matching DOM listener before those closures are dropped. Use these helpers instead of registering raw `web-sys` callbacks and calling `Closure::forget`.

@@ -11,7 +11,7 @@ impl Point {
     pub fn origin() -> Self {
         Self::new(0.0, 0.0)
     }
-    
+
     pub fn new(x: f64, y: f64) -> Self {
         Self { x, y }
     }
@@ -20,7 +20,7 @@ impl Point {
     ///
     /// Convenient for one-off use, but should be avoided on hot paths (per-event or per-frame) since each call
     /// allocates and then discards a String.
-    /// 
+    ///
     /// Instead, format through a reused buffer: see [`SvgNode::set_attr_display`](crate::SvgNode::set_attr_display)
     /// or the [transform setters](crate::SvgNode::set_translate).
     pub fn get_x_str(&self) -> String {
@@ -59,7 +59,7 @@ impl Size {
     ///
     /// Convenient for one-off use, but should be avoided on hot paths (per-event or per-frame) since each call
     /// allocates and then discards a String.
-    /// 
+    ///
     /// Instead, format through a reused buffer: see [`SvgNode::set_attr_display`](crate::SvgNode::set_attr_display)
     /// or the [transform setters](crate::SvgNode::set_translate).
     pub fn get_width_str(&self) -> String {
@@ -83,4 +83,3 @@ impl std::fmt::Display for Size {
         write!(f, "{} {}", self.width, self.height)
     }
 }
-

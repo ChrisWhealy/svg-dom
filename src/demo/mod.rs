@@ -29,7 +29,7 @@ thread_local! {
     ///
     /// The library intentionally removes a DOM listener when the last `SvgNode` handle is dropped.  Browser demos are
     /// long-lived, so they keep listener-owning nodes here instead of leaking individual `Closure`s.
-    static LIVE_DEMO_NODES: RefCell<Vec<SvgNode>> = RefCell::new(Vec::new());
+    static LIVE_DEMO_NODES: RefCell<Vec<SvgNode>> = const { RefCell::new(Vec::new()) };
 }
 
 fn keep_demo_node(node: SvgNode) {
@@ -106,7 +106,7 @@ const DEMO_SRC: &str = include_str!("mod.rs");
 /// `(panel id, demo function name)` for every demo, in menu order.
 /// The panel ids must match the <button class="menu-item"> elements listed in `demo/index.html` and the function names
 /// must match the functions in this module that implement that particular demo.
-/// 
+///
 /// The function names are looked up in [`DEMO_SRC`].
 const DEMO_SOURCES: &[(&str, &str)] = &[
     ("panel-rect", "demo_rect"),
@@ -123,7 +123,10 @@ const DEMO_SOURCES: &[(&str, &str)] = &[
     ("panel-events-group", "demo_events_group"),
     ("panel-events-pointer", "demo_events_pointer_lifecycle"),
     ("panel-events-keyboard-wheel", "demo_events_keyboard_wheel"),
-    ("panel-events-drag-drop-touch", "demo_events_drag_drop_touch"),
+    (
+        "panel-events-drag-drop-touch",
+        "demo_events_drag_drop_touch",
+    ),
 ];
 
 /// Appends a source frame to every panel listed in [`DEMO_SOURCES`].
@@ -141,7 +144,11 @@ fn inject_source_frames() -> Result<(), Error> {
 /// Builds `<details class="source"><summary>…</summary><pre><code>…</code></pre></details>` and appends it to the
 /// panel `<section>`. A missing panel or missing function is skipped rather than treated as an error, so the gallery
 /// still renders if `index.html` and this module drift apart.
-fn append_source_frame(document: &web_sys::Document, panel_id: &str, fn_name: &str) -> Result<(), Error> {
+fn append_source_frame(
+    document: &web_sys::Document,
+    panel_id: &str,
+    fn_name: &str,
+) -> Result<(), Error> {
     let Some(section) = document.get_element_by_id(panel_id) else {
         return Ok(());
     };
@@ -643,10 +650,7 @@ fn demo_events_colour() -> Result<(), Error> {
             let hue = (dy.atan2(dx).to_degrees() + 360.0) % 360.0;
             let colour = format!("hsl({hue:.0},90%,50%)");
             let _ = mv_swatch.set_fill(&colour);
-            let _ = mv_marker.set_attrs([
-                ("cx", format!("{x:.1}")),
-                ("cy", format!("{y:.1}")),
-            ]);
+            let _ = mv_marker.set_attrs([("cx", format!("{x:.1}")), ("cy", format!("{y:.1}"))]);
             mv_readout.as_element().set_text_content(Some(&colour));
         } else {
             // Outside the wheel: park the marker but leave the last sampled colour on the swatch.
@@ -908,7 +912,10 @@ fn demo_events_pointer_lifecycle() -> Result<(), Error> {
     target.set_fill(DROP_ZONE_FILL)?;
     target.set_stroke(ACCENT_BLUE)?;
     target.set_stroke_width(2.0)?;
-    target.set_attrs([("rx", "10"), ("style", "cursor:crosshair; touch-action:none")])?;
+    target.set_attrs([
+        ("rx", "10"),
+        ("style", "cursor:crosshair; touch-action:none"),
+    ])?;
 
     let title = svg.text(Point::new(169.0, 58.0 + PAD_Y), "pointer target")?;
     title.set_fill(TEXT)?;
@@ -985,7 +992,10 @@ fn demo_events_keyboard_wheel() -> Result<(), Error> {
         ("style", "pointer-events:none"),
     ])?;
 
-    let readout = svg.text(Point::new(360.0, 58.0 + PAD_Y), "focus: no · key: — · wheel: 0")?;
+    let readout = svg.text(
+        Point::new(360.0, 58.0 + PAD_Y),
+        "focus: no · key: — · wheel: 0",
+    )?;
     readout.set_fill(TEXT)?;
     readout.set_attr("font-size", "14")?;
 
@@ -1130,7 +1140,10 @@ fn demo_events_drag_drop_touch() -> Result<(), Error> {
             e.prevent_default();
             let _ = card.as_element().set_pointer_capture(e.pointer_id());
             last_pointer.set(Some((e.client_x(), e.client_y())));
-            let _ = card.set_attr("style", "cursor:grabbing; touch-action:none; user-select:none");
+            let _ = card.set_attr(
+                "style",
+                "cursor:grabbing; touch-action:none; user-select:none",
+            );
             readout.set_text("last: pointerdown — moving box");
         })?;
     }
@@ -1154,7 +1167,10 @@ fn demo_events_drag_drop_touch() -> Result<(), Error> {
                 pos.set((nx, ny));
                 last_pointer.set(Some((e.client_x(), e.client_y())));
                 let _ = card.set_translate(&mut scratch.borrow_mut(), nx, ny);
-                let _ = coords.set_text_fmt(&mut scratch.borrow_mut(), format_args!("box: {nx:.0}, {ny:.0}"));
+                let _ = coords.set_text_fmt(
+                    &mut scratch.borrow_mut(),
+                    format_args!("box: {nx:.0}, {ny:.0}"),
+                );
                 readout.set_text("last: pointermove — moving box");
             }
         })?;
@@ -1187,7 +1203,10 @@ fn demo_events_drag_drop_touch() -> Result<(), Error> {
             } else {
                 pos.set(start);
                 let _ = card.set_translate(&mut scratch.borrow_mut(), start.0, start.1);
-                let _ = coords.set_text_fmt(&mut scratch.borrow_mut(), format_args!("box: {:.0}, {:.0}", start.0, start.1));
+                let _ = coords.set_text_fmt(
+                    &mut scratch.borrow_mut(),
+                    format_args!("box: {:.0}, {:.0}", start.0, start.1),
+                );
                 readout.set_text("last: pointerup — outside zone, returned to start");
             }
         };

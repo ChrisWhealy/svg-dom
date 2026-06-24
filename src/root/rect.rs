@@ -1,11 +1,11 @@
 use crate::{
+    SvgRoot,
     error::Error,
     node::SvgNode,
     root::{
         factory::SvgFactory,
         utils::{Point, Size},
     },
-    SvgRoot,
 };
 
 impl SvgRoot {

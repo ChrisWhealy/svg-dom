@@ -1,4 +1,4 @@
-use crate::{error::Error, node::SvgNode, root::factory::SvgFactory, SvgRoot};
+use crate::{SvgRoot, error::Error, node::SvgNode, root::factory::SvgFactory};
 
 impl SvgRoot {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

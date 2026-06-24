@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lint-test:
+    name: fmt · clippy · test · doc
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Formatting
+        run: cargo fmt --all --check
+
+      - name: Clippy (library + tests)
+        run: cargo clippy --lib --tests -- -D warnings
+
+      - name: Clippy (demo feature)
+        run: cargo clippy --lib --features demo -- -D warnings
+
+      - name: Unit tests + doctests
+        run: cargo test --all-features
+
+      - name: Docs (deny warnings)
+        run: cargo doc --no-deps --all-features
+        env:
+          RUSTDOCFLAGS: -D warnings
+
+  wasm:
+    name: wasm build · README example
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build demo for wasm32
+        run: cargo build --features demo --target wasm32-unknown-unknown
+
+      - name: Compile README minimal demo for wasm32
+        run: cargo build --example readme_minimal --target wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+
+      - name: wasm-pack build (the published web artifact)
+        run: wasm-pack build --target web --features demo
+
+  browser-tests:
+    name: wasm-pack test (${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    strategy:
+      # Don't let one engine failing cancel the other — we want to see which broke.
+      fail-fast: false
+      matrix:
+        # The two distinct engines available on Linux runners: Gecko (Firefox) and Blink
+        # (Chrome — also covers Edge and most mobile webviews). WebKit/Safari needs a macOS
+        # runner and lacks reliable headless support, so it is intentionally omitted.
+        browser: [firefox, chrome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+      - name: Run the browser integration tests
+        run: wasm-pack test --headless --${{ matrix.browser }}
+
+  msrv:
+    name: MSRV (1.85)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.85.0
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - name: Check the library builds on the declared MSRV
+        run: cargo check --lib --target wasm32-unknown-unknown

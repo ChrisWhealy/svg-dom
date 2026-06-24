@@ -6,9 +6,9 @@ use web_sys::{Document, SvgElement};
 use crate::{Error, SvgNode};
 
 use super::{
+    SVG_NS,
     attrs::SvgAttrs,
     utils::{Point, Size},
-    SVG_NS,
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

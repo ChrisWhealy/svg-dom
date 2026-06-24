@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-// each test binary uses a different subset of these helpers
+// Each test binary uses a different subset of these helpers
 
 // Shared helpers for all browser integration tests.
 //
@@ -35,9 +35,7 @@ pub fn div(id: &str) -> web_sys::Element {
 /// Use this when a test needs an `<svg>` to already exist in the document before
 /// calling `SvgRoot::attach`.
 pub fn svg(id: &str) -> web_sys::Element {
-    let el = document()
-        .create_element_ns(Some(SVG_NS), "svg")
-        .unwrap();
+    let el = document().create_element_ns(Some(SVG_NS), "svg").unwrap();
     el.set_id(id);
     body().append_child(&el).unwrap();
     el

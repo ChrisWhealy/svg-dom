@@ -11,7 +11,10 @@ use crate::{
 use event::*;
 use std::{cell::RefCell, rc::Rc};
 use wasm_bindgen::{JsCast, prelude::*};
-use web_sys::{DragEvent, Event, FocusEvent, KeyboardEvent, MouseEvent, PointerEvent, SvgElement, TouchEvent, WheelEvent};
+use web_sys::{
+    DragEvent, Event, FocusEvent, KeyboardEvent, MouseEvent, PointerEvent, SvgElement, TouchEvent,
+    WheelEvent,
+};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 struct SvgNodeInner {
@@ -23,6 +26,11 @@ struct SvgNodeInner {
     //
     // Each entry stores both the event type and the Closure so the listener can be removed from the DOM before the
     // Closure is dropped. This prevents a detached DOM callback from pointing at an invalid wasm-bindgen closure.
+    //
+    // The `Box` is deliberate: `Option<Box<Vec<_>>>` is one pointer wide (null when empty), so a passive node carries
+    // no inline `Vec` header and allocates nothing until its first listener. `clippy::box_collection` flags the
+    // `Box<Vec>` as redundant, but here it is the point — see docs/design_notes.md.
+    #[allow(clippy::box_collection)]
     listeners: RefCell<Option<Box<Vec<EventListener>>>>,
 }
 
@@ -169,7 +177,11 @@ impl SvgNode {
     /// readout.set_text_fmt(&mut buf, format_args!("box: {x:.0}, {y:.0}"))?; // no per-call String allocation
     /// Ok::<(), svg_dom::Error>(())
     /// ```
-    pub fn set_text_fmt(&self, scratch: &mut String, args: std::fmt::Arguments<'_>) -> Result<(), Error> {
+    pub fn set_text_fmt(
+        &self,
+        scratch: &mut String,
+        args: std::fmt::Arguments<'_>,
+    ) -> Result<(), Error> {
         use std::fmt::Write;
         scratch.clear();
         scratch.write_fmt(args)?;
@@ -194,7 +206,11 @@ impl SvgNode {
     /// label.set_text_display(&mut buf, 42)?; // live counter, no per-call allocation
     /// Ok::<(), svg_dom::Error>(())
     /// ```
-    pub fn set_text_display<T: std::fmt::Display>(&self, scratch: &mut String, value: T) -> Result<(), Error> {
+    pub fn set_text_display<T: std::fmt::Display>(
+        &self,
+        scratch: &mut String,
+        value: T,
+    ) -> Result<(), Error> {
         self.set_text_fmt(scratch, format_args!("{value}"))
     }
 
@@ -205,6 +221,12 @@ impl SvgNode {
     ///
     /// This is the low-level setter used by all the convenience methods such as `set_fill` and `set_stroke`, etc.
     /// Use it when you need to set an attribute not yet wrapped by a typed helper.
+    ///
+    /// # Security
+    ///
+    /// `name` and `value` are written **verbatim** via `setAttribute`. Setting an event-handler attribute (`onclick`,
+    /// `onload`, …) or an `href` of the form `javascript:…` from attacker-controlled input can execute script. Do not
+    /// pass untrusted data as an attribute name or value without validating it first.
     ///
     /// # Example
     ///
@@ -232,10 +254,10 @@ impl SvgNode {
     /// handler. For example, a cursor style or `opacity` flag is updated on every `mousemove`/`pointermove`.
     ///
     /// **WARNING** This is not free and does not always represent a win.
-    /// 
+    ///
     /// The read performed by `get_attribute` **allocates a fresh `String` for the current value which then crosses the
     /// WASM/JS boundary on every call**, even if nothing is written.
-    /// 
+    ///
     /// So:
     ///
     /// * For attributes that change on *every* call (such as a drag `transform`), the plain [`set_attr`](Self::set_attr)
@@ -319,6 +341,9 @@ impl SvgNode {
     /// If the browser rejects one of the attributes, this returns the first DOM error and stops. Attributes already set
     /// before that error are left in place, matching the behaviour you would get from issuing the same `set_attr` calls
     /// manually.
+    ///
+    /// The same security caveat as [`set_attr`](Self::set_attr) applies: names and values are written verbatim, so do
+    /// not pass untrusted input.
     ///
     /// # Example
     ///
@@ -544,35 +569,67 @@ impl SvgNode {
         Ok(())
     }
 
-    fn add_drag_listener<F: Fn(DragEvent) + 'static>(&self, event_type: &'static str, handler: F) -> Result<(), Error> {
+    fn add_drag_listener<F: Fn(DragEvent) + 'static>(
+        &self,
+        event_type: &'static str,
+        handler: F,
+    ) -> Result<(), Error> {
         self.store_listener(event_type, EventClosure::Drag(Closure::new(handler)))
     }
 
-    fn add_event_listener<F: Fn(Event) + 'static>(&self, event_type: &'static str, handler: F) -> Result<(), Error> {
+    fn add_event_listener<F: Fn(Event) + 'static>(
+        &self,
+        event_type: &'static str,
+        handler: F,
+    ) -> Result<(), Error> {
         self.store_listener(event_type, EventClosure::Event(Closure::new(handler)))
     }
 
-    fn add_focus_listener<F: Fn(FocusEvent) + 'static>(&self, event_type: &'static str, handler: F) -> Result<(), Error> {
+    fn add_focus_listener<F: Fn(FocusEvent) + 'static>(
+        &self,
+        event_type: &'static str,
+        handler: F,
+    ) -> Result<(), Error> {
         self.store_listener(event_type, EventClosure::Focus(Closure::new(handler)))
     }
 
-    fn add_keyboard_listener<F: Fn(KeyboardEvent) + 'static>(&self, event_type: &'static str, handler: F) -> Result<(), Error> {
+    fn add_keyboard_listener<F: Fn(KeyboardEvent) + 'static>(
+        &self,
+        event_type: &'static str,
+        handler: F,
+    ) -> Result<(), Error> {
         self.store_listener(event_type, EventClosure::Keyboard(Closure::new(handler)))
     }
 
-    fn add_mouse_listener<F: Fn(MouseEvent) + 'static>(&self, event_type: &'static str, handler: F) -> Result<(), Error> {
+    fn add_mouse_listener<F: Fn(MouseEvent) + 'static>(
+        &self,
+        event_type: &'static str,
+        handler: F,
+    ) -> Result<(), Error> {
         self.store_listener(event_type, EventClosure::Mouse(Closure::new(handler)))
     }
 
-    fn add_pointer_listener<F: Fn(PointerEvent) + 'static>(&self, event_type: &'static str, handler: F) -> Result<(), Error> {
+    fn add_pointer_listener<F: Fn(PointerEvent) + 'static>(
+        &self,
+        event_type: &'static str,
+        handler: F,
+    ) -> Result<(), Error> {
         self.store_listener(event_type, EventClosure::Pointer(Closure::new(handler)))
     }
 
-    fn add_touch_listener<F: Fn(TouchEvent) + 'static>(&self, event_type: &'static str, handler: F) -> Result<(), Error> {
+    fn add_touch_listener<F: Fn(TouchEvent) + 'static>(
+        &self,
+        event_type: &'static str,
+        handler: F,
+    ) -> Result<(), Error> {
         self.store_listener(event_type, EventClosure::Touch(Closure::new(handler)))
     }
 
-    fn add_wheel_listener<F: Fn(WheelEvent) + 'static>(&self, event_type: &'static str, handler: F) -> Result<(), Error> {
+    fn add_wheel_listener<F: Fn(WheelEvent) + 'static>(
+        &self,
+        event_type: &'static str,
+        handler: F,
+    ) -> Result<(), Error> {
         self.store_listener(event_type, EventClosure::Wheel(Closure::new(handler)))
     }
 
@@ -582,7 +639,11 @@ impl SvgNode {
     ///
     /// Prefer the typed convenience wrappers where available. Like the wrappers below, this keeps the closure owned by
     /// the node and removes the DOM listener automatically when the last `SvgNode` handle is dropped.
-    pub fn on_event<F: Fn(Event) + 'static>(&self, event_type: &'static str, handler: F) -> Result<(), Error> {
+    pub fn on_event<F: Fn(Event) + 'static>(
+        &self,
+        event_type: &'static str,
+        handler: F,
+    ) -> Result<(), Error> {
         self.add_event_listener(event_type, handler)
     }
 

@@ -21,7 +21,11 @@ impl<'a> AttrWriter<'a> {
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Formats a displayable value through the reusable scratch buffer and writes it as an attribute.
-    pub fn display<T: std::fmt::Display>(&mut self, name: &str, value: T) -> Result<&mut Self, Error> {
+    pub fn display<T: std::fmt::Display>(
+        &mut self,
+        name: &str,
+        value: T,
+    ) -> Result<&mut Self, Error> {
         self.attrs.display(self.node, name, value)?;
         Ok(self)
     }

@@ -1,6 +1,6 @@
 use std::{cell::Cell, rc::Rc};
-use wasm_bindgen_test::*;
 use svg_dom::AnimationLoop;
+use wasm_bindgen_test::*;
 
 mod common;
 
@@ -39,14 +39,16 @@ async fn wait_for_frames(n: u32) {
 /// Calling `stop()` synchronously cancels the handle before we ever yield.
 #[wasm_bindgen_test]
 async fn should_stop_all_callbacks_before_first_frame() -> Result<(), String> {
-    let count   = Rc::new(Cell::new(0u32));
+    let count = Rc::new(Cell::new(0u32));
     let count_c = count.clone();
 
-    let anim = AnimationLoop::start(move |_| { count_c.set(count_c.get() + 1); })
-        .map_err(|e| e.to_string())?;
+    let anim = AnimationLoop::start(move |_| {
+        count_c.set(count_c.get() + 1);
+    })
+    .map_err(|e| e.to_string())?;
 
-    anim.stop();                    // cancel before any frame fires
-    wait_for_frames(2).await;       // yield — callback must not fire
+    anim.stop(); // cancel before any frame fires
+    wait_for_frames(2).await; // yield — callback must not fire
 
     common::check_eq(count.get(), 0u32)
 }
@@ -60,20 +62,25 @@ async fn should_stop_all_callbacks_before_first_frame() -> Result<(), String> {
 /// re-scheduling even if the cancellation races with a frame boundary.
 #[wasm_bindgen_test]
 async fn should_freeze_callback_count_when_stop_called_after_running() -> Result<(), String> {
-    let count   = Rc::new(Cell::new(0u32));
+    let count = Rc::new(Cell::new(0u32));
     let count_c = count.clone();
 
-    let anim = AnimationLoop::start(move |_| { count_c.set(count_c.get() + 1); })
-        .map_err(|e| e.to_string())?;
+    let anim = AnimationLoop::start(move |_| {
+        count_c.set(count_c.get() + 1);
+    })
+    .map_err(|e| e.to_string())?;
 
-    wait_for_frames(2).await;       // let the loop fire at least once
+    wait_for_frames(2).await; // let the loop fire at least once
 
-    common::check(count.get() > 0, "loop should have fired at least once before stop()")?;
+    common::check(
+        count.get() > 0,
+        "loop should have fired at least once before stop()",
+    )?;
 
     anim.stop();
     let frozen = count.get();
 
-    wait_for_frames(2).await;       // yield again — count must not change
+    wait_for_frames(2).await; // yield again — count must not change
 
     common::check_eq(count.get(), frozen)
 }
@@ -86,14 +93,16 @@ async fn should_freeze_callback_count_when_stop_called_after_running() -> Result
 /// cancelling the pending RAF.  The callback is never invoked.
 #[wasm_bindgen_test]
 async fn should_inhibit_all_callbacks_if_dropped_before_first_frame() -> Result<(), String> {
-    let count   = Rc::new(Cell::new(0u32));
+    let count = Rc::new(Cell::new(0u32));
     let count_c = count.clone();
 
-    let anim = AnimationLoop::start(move |_| { count_c.set(count_c.get() + 1); })
-        .map_err(|e| e.to_string())?;
+    let anim = AnimationLoop::start(move |_| {
+        count_c.set(count_c.get() + 1);
+    })
+    .map_err(|e| e.to_string())?;
 
-    drop(anim);                     // Drop impl must call stop()
-    wait_for_frames(2).await;       // yield — callback must not fire
+    drop(anim); // Drop impl must call stop()
+    wait_for_frames(2).await; // yield — callback must not fire
 
     common::check_eq(count.get(), 0u32)
 }
@@ -103,20 +112,25 @@ async fn should_inhibit_all_callbacks_if_dropped_before_first_frame() -> Result<
 /// after the drop, confirming that `Drop` calls `stop()`.
 #[wasm_bindgen_test]
 async fn should_freeze_callback_count_when_drop_called_after_running() -> Result<(), String> {
-    let count   = Rc::new(Cell::new(0u32));
+    let count = Rc::new(Cell::new(0u32));
     let count_c = count.clone();
 
-    let anim = AnimationLoop::start(move |_| { count_c.set(count_c.get() + 1); })
-        .map_err(|e| e.to_string())?;
+    let anim = AnimationLoop::start(move |_| {
+        count_c.set(count_c.get() + 1);
+    })
+    .map_err(|e| e.to_string())?;
 
-    wait_for_frames(2).await;       // let the loop fire at least once
+    wait_for_frames(2).await; // let the loop fire at least once
 
-    common::check(count.get() > 0, "loop should have fired at least once before drop")?;
+    common::check(
+        count.get() > 0,
+        "loop should have fired at least once before drop",
+    )?;
 
     drop(anim);
     let frozen = count.get();
 
-    wait_for_frames(2).await;       // yield again — count must not change
+    wait_for_frames(2).await; // yield again — count must not change
 
     common::check_eq(count.get(), frozen)
 }

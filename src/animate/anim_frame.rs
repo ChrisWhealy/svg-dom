@@ -4,7 +4,8 @@ use std::fmt::{self, Write};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Scratch storage made available to an animation callback.
 ///
-/// Use this with [`AnimationLoop::start_with_frame`] when a callback needs to format SVG attribute values every frame.
+/// Use this with [`AnimationLoop::start_with_frame`](crate::AnimationLoop::start_with_frame) when a callback needs to
+/// format SVG attribute values every frame.
 /// The internal `String` is allocated once and then reused, avoiding the repeated short-lived allocations caused by
 /// `format!(...)` or `value.to_string()` inside a `requestAnimationFrame` loop.
 ///
@@ -23,6 +24,7 @@ use std::fmt::{self, Write};
 ///
 /// std::mem::forget(anim);
 /// ```
+#[derive(Default)]
 pub struct AnimationFrame {
     pub scratch: String,
 }
