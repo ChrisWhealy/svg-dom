@@ -3,9 +3,11 @@
 # Run locally with:  cargo install cargo-deny && cargo deny check
 # CI runs the same checks via .github/workflows/ci.yml (the `deny` job).
 #
-# Scope note: the workspace includes the `demo-server` member (actix), so this
-# policy is evaluated against the full dependency tree, not just the library's
-# runtime deps. That is deliberate — we want advisories surfaced everywhere.
+# Scope note: cargo-deny honours `default-members = ["."]` from Cargo.toml, so
+# these checks cover the published *library's* dependency tree only — the
+# demo-server (actix) member is excluded, just as it is from `cargo build`/`test`.
+# That is the right surface to police: it is what crate consumers actually pull
+# in. To additionally audit the demo tooling, run `cargo deny --workspace check`.
 
 # ----------------------------------------------------------------------------
 # Security advisories (RUSTSEC). This is the dependency security audit.
@@ -23,15 +25,13 @@ ignore = []
 # Derived from the licenses currently present in the dependency tree.
 # ----------------------------------------------------------------------------
 [licenses]
+# Exactly the licenses present in the library's dependency tree today. Keeping
+# this tight is the point of an allow-list: a new dependency on an unlisted
+# license fails CI and forces a deliberate review before it is accepted.
 allow = [
     "MIT",
     "Apache-2.0",
-    "BSD-3-Clause",
     "Unicode-3.0",
-    "BSL-1.0",
-    "Zlib",
-    "0BSD",
-    "Unlicense",
 ]
 # SPDX expressions are accepted with at least this confidence from the license
 # text scan before a crate is considered to satisfy the policy.
