@@ -89,7 +89,7 @@ Internally, those factories delegate to a shared `SvgFactory` implementation, so
 
 The only difference between the two paths is the append target: `SvgRoot` appends directly to the live `<svg>`, while `SvgBatch` appends to its `DocumentFragment` until `commit()` is called.
 
-# Ideas Considered and rejected
+# Ideas Considered and Rejected
 
 ## Splitting `SvgNode` into passive and interactive types
 
