@@ -31,16 +31,13 @@ The following elements all need to be implemented:
 - `insert_before()` — z-order control without rebuilding
 - No way to query children or find a node by attribute
 
-# Missing events
+# Event coverage
 
-Five mouse/pointer events are wrapped: `click`, `pointerenter`, `pointerleave`, and the legacy `mouseover` / `mouseout` wrappers kept for compatibility.
+Managed wrappers now cover the SVG interaction events expected by ordinary application code: click/double-click/context menu, mouse movement and button state, pointer lifecycle, wheel, touch, keyboard, focus/blur, drag-and-drop, and a generic `on_event` escape hatch.
 
-Prefer `pointerenter` / `pointerleave` for hover behaviour because they do not bubble through child elements.
-Wrappers for these events are still missing:
+Prefer `pointerenter` / `pointerleave` for hover behaviour because they do not bubble through child elements. The legacy `mouseover` / `mouseout` wrappers remain for compatibility.
 
-- `mousedown`, `mouseup`, `mousemove`
-- `wheel` (scroll/zoom)
-- Touch events (`touchstart`, `touchmove`, `touchend`) — important for mobile
+Potential future event work is now mostly about ergonomics rather than coverage: typed helpers for less common browser events can be added when real SVG use-cases appear.
 
 # Missing attribute helpers
 

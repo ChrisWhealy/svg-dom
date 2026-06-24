@@ -7,11 +7,15 @@ This makes it natural to share a node between an event closure and the surroundi
 
 ## Event listeners are owned by the node
 
-Listeners registered with `on_click` / `on_pointerenter` / `on_pointerleave` are stored inside the `SvgNode`'s `Rc`.
+Listeners registered through the managed helpers such as `on_click`, `on_mousedown`, `on_mousemove`, `on_contextmenu`, `on_pointerdown`, `on_pointermove`, `on_pointerenter`, `on_pointerleave`, `on_wheel`, `on_touchstart`, `on_keydown`, `on_focus`, and the drag-and-drop helpers are stored inside the `SvgNode`'s `Rc`.
 Each stored entry keeps the event type together with its wasm-bindgen closure, so the DOM listener can be removed before the closure is dropped.
 
 The built-in listener helpers use fixed browser event names, so event types can be stored as `&'static str` values.
-They live exactly as long as the last clone of the node exists, so you never have to manage their lifetime separately.
+They live exactly as long as the last clone of the node exists, so you never have to manage their lifetime separately or call `Closure::forget` for normal `SvgNode` interactions.
+
+This lifetime rule is important for long-lived browser demos and applications: if a function creates a DOM node, attaches a managed listener, and then drops every `SvgNode` handle before returning, the listener is deliberately removed. Keep at least one handle to every listener-owning node for as long as the interaction should remain active. The demo gallery does this with a small page-lifetime owner for interactive nodes.
+
+For uncommon browser events, `on_event` provides the same managed lifetime behaviour while using a generic `web_sys::Event`.
 
 ## `requestAnimationFrame` self-rescheduling pattern
 

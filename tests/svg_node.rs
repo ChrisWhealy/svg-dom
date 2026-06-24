@@ -1,6 +1,6 @@
 use std::{cell::Cell, rc::Rc};
 use wasm_bindgen_test::*;
-use web_sys::{MouseEvent, PointerEvent, SvgElement};
+use web_sys::{DragEvent, Event, FocusEvent, KeyboardEvent, MouseEvent, PointerEvent, SvgElement, TouchEvent, WheelEvent};
 use svg_dom::{SvgRoot, root::utils::*};
 
 mod common;
@@ -23,6 +23,24 @@ fn dispatch(node: &svg_dom::SvgNode, event_type: &str) -> Result<(), String> {
 fn dispatch_element(element: &SvgElement, event_type: &str) -> Result<(), String> {
     if event_type.starts_with("pointer") {
         let event = PointerEvent::new(event_type).map_err(|e| format!("{e:?}"))?;
+        element.dispatch_event(&event).map_err(|e| format!("{e:?}"))?;
+    } else if event_type.starts_with("key") {
+        let event = KeyboardEvent::new(event_type).map_err(|e| format!("{e:?}"))?;
+        element.dispatch_event(&event).map_err(|e| format!("{e:?}"))?;
+    } else if matches!(event_type, "focus" | "blur") {
+        let event = FocusEvent::new(event_type).map_err(|e| format!("{e:?}"))?;
+        element.dispatch_event(&event).map_err(|e| format!("{e:?}"))?;
+    } else if event_type == "wheel" {
+        let event = WheelEvent::new(event_type).map_err(|e| format!("{e:?}"))?;
+        element.dispatch_event(&event).map_err(|e| format!("{e:?}"))?;
+    } else if event_type.starts_with("touch") {
+        let event = TouchEvent::new(event_type).map_err(|e| format!("{e:?}"))?;
+        element.dispatch_event(&event).map_err(|e| format!("{e:?}"))?;
+    } else if event_type.starts_with("drag") || event_type == "drop" {
+        let event = DragEvent::new(event_type).map_err(|e| format!("{e:?}"))?;
+        element.dispatch_event(&event).map_err(|e| format!("{e:?}"))?;
+    } else if event_type == "custom-svg-dom-test" {
+        let event = Event::new(event_type).map_err(|e| format!("{e:?}"))?;
         element.dispatch_event(&event).map_err(|e| format!("{e:?}"))?;
     } else {
         let event = MouseEvent::new(event_type).map_err(|e| format!("{e:?}"))?;
@@ -221,6 +239,83 @@ fn should_fire_on_pointerleave_after_synthetic_pointerleave() -> Result<(), Stri
     rect.on_pointerleave(move |_| { fired_c.set(true); }).map_err(|e| e.to_string())?;
     dispatch(&rect, "pointerleave")?;
     common::check(fired.get(), "pointerleave handler did not fire")
+}
+
+/// Managed mouse wrappers cover common pointer-with-mouse APIs without needing raw `Closure::forget` listeners.
+#[wasm_bindgen_test]
+fn should_fire_managed_mouse_event_wrappers() -> Result<(), String> {
+    let rect  = make_svg("node-mouse-wrappers").rect(Point::origin(), Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let count = Rc::new(Cell::new(0u32));
+
+    let c = count.clone(); rect.on_dblclick(move |_| { c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+    let c = count.clone(); rect.on_contextmenu(move |e| { e.prevent_default(); c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+    let c = count.clone(); rect.on_mousedown(move |_| { c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+    let c = count.clone(); rect.on_mouseup(move |_| { c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+    let c = count.clone(); rect.on_mousemove(move |_| { c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+    let c = count.clone(); rect.on_mouseenter(move |_| { c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+    let c = count.clone(); rect.on_mouseleave(move |_| { c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+
+    for event_type in ["dblclick", "contextmenu", "mousedown", "mouseup", "mousemove", "mouseenter", "mouseleave"] {
+        dispatch(&rect, event_type)?;
+    }
+
+    common::check_eq(count.get(), 7)
+}
+
+/// Managed pointer wrappers cover the common SVG pointer interaction lifecycle.
+#[wasm_bindgen_test]
+fn should_fire_managed_pointer_event_wrappers() -> Result<(), String> {
+    let rect  = make_svg("node-pointer-wrappers").rect(Point::origin(), Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let count = Rc::new(Cell::new(0u32));
+
+    let c = count.clone(); rect.on_pointerdown(move |_| { c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+    let c = count.clone(); rect.on_pointerup(move |_| { c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+    let c = count.clone(); rect.on_pointermove(move |_| { c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+    let c = count.clone(); rect.on_pointercancel(move |_| { c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+    let c = count.clone(); rect.on_pointerover(move |_| { c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+    let c = count.clone(); rect.on_pointerout(move |_| { c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+
+    for event_type in ["pointerdown", "pointerup", "pointermove", "pointercancel", "pointerover", "pointerout"] {
+        dispatch(&rect, event_type)?;
+    }
+
+    common::check_eq(count.get(), 6)
+}
+
+/// Managed non-mouse wrappers cover keyboard, focus, wheel, drag-and-drop and generic events.
+#[wasm_bindgen_test]
+fn should_fire_managed_non_mouse_event_wrappers() -> Result<(), String> {
+    let rect  = make_svg("node-other-event-wrappers").rect(Point::origin(), Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    rect.set_attr("tabindex", "0").map_err(|e| e.to_string())?;
+    rect.set_attr("draggable", "true").map_err(|e| e.to_string())?;
+    let count = Rc::new(Cell::new(0u32));
+
+    let c = count.clone(); rect.on_wheel(move |_| { c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+    let c = count.clone(); rect.on_touchstart(move |_| { c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+    let c = count.clone(); rect.on_touchmove(move |_| { c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+    let c = count.clone(); rect.on_touchend(move |_| { c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+    let c = count.clone(); rect.on_touchcancel(move |_| { c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+    let c = count.clone(); rect.on_keydown(move |_| { c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+    let c = count.clone(); rect.on_keyup(move |_| { c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+    let c = count.clone(); rect.on_focus(move |_| { c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+    let c = count.clone(); rect.on_blur(move |_| { c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+    let c = count.clone(); rect.on_dragstart(move |_| { c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+    let c = count.clone(); rect.on_drag(move |_| { c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+    let c = count.clone(); rect.on_dragend(move |_| { c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+    let c = count.clone(); rect.on_dragenter(move |_| { c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+    let c = count.clone(); rect.on_dragleave(move |_| { c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+    let c = count.clone(); rect.on_dragover(move |e| { e.prevent_default(); c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+    let c = count.clone(); rect.on_drop(move |_| { c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+    let c = count.clone(); rect.on_event("custom-svg-dom-test", move |_| { c.set(c.get() + 1); }).map_err(|e| e.to_string())?;
+
+    for event_type in [
+        "wheel", "touchstart", "touchmove", "touchend", "touchcancel", "keydown", "keyup", "focus", "blur",
+        "dragstart", "drag", "dragend", "dragenter", "dragleave", "dragover", "drop", "custom-svg-dom-test",
+    ] {
+        dispatch(&rect, event_type)?;
+    }
+
+    common::check_eq(count.get(), 17)
 }
 
 /// Registering multiple handlers for the same event on the same node results in all of

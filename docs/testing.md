@@ -68,6 +68,8 @@ node.as_element().dispatch_event(&event)?;  // handler fires here, synchronously
 assert!(fired.get());
 ```
 
+Additional event wrapper tests dispatch representative synthetic mouse, pointer, wheel, touch, keyboard, focus, drag-and-drop and generic events. They verify that those managed wrappers fire synchronously too, so demo or application code does not need raw `Closure::forget` listeners for ordinary SVG interaction.
+
 ### Failure reporting
 
 All test functions return `Result<(), String>`.

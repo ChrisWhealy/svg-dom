@@ -29,7 +29,9 @@
             <button type="button" class="menu-item" data-target="panel-events-modifiers">Modifier keys</button>
             <button type="button" class="menu-item" data-target="panel-events-press">Press state</button>
             <button type="button" class="menu-item" data-target="panel-events-group">Bubbling</button>
-            <button type="button" class="menu-item" data-target="panel-events-drag">Drag &amp; drop</button>
+            <button type="button" class="menu-item" data-target="panel-events-pointer">Pointer lifecycle</button>
+            <button type="button" class="menu-item" data-target="panel-events-keyboard-wheel">Keyboard &amp; wheel</button>
+            <button type="button" class="menu-item" data-target="panel-events-drag-drop-touch">Native drag/touch</button>
         </nav>
 
         <!-- Title panel  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -214,6 +216,47 @@
                         <strong>mousemove</strong> repositions the card (clamped so it stays inside the dashed box),
                         and <strong>mouseup</strong> drops it. A single transparent surface captures the whole gesture
                         and hit-tests the card itself, so the pointer can move freely without outrunning it.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- pointer lifecycle -->
+            <section class="section" id="panel-events-pointer">
+                <h2>Pointer and mouse lifecycle wrappers</h2>
+                <figure>
+                    <div class="canvas" id="demo-events-pointer"></div>
+                    <figcaption>
+                        Move, press, release, leave and double-click the target.  This demo exercises the managed
+                        <strong>pointerover / pointerenter / pointerdown / pointermove / pointerup / pointercancel /
+                        pointerout / pointerleave</strong> handlers, plus <strong>mouseenter</strong>,
+                        <strong>mouseleave</strong> and <strong>dblclick</strong>.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- keyboard / wheel -->
+            <section class="section" id="panel-events-keyboard-wheel">
+                <h2>Focus, keyboard and wheel wrappers</h2>
+                <figure>
+                    <div class="canvas" id="demo-events-keyboard-wheel"></div>
+                    <figcaption>
+                        Click the focusable SVG rectangle, type a key, then use the mouse wheel over it.  The demo uses
+                        managed <strong>focus</strong>, <strong>blur</strong>, <strong>keydown</strong>,
+                        <strong>keyup</strong> and <strong>wheel</strong> handlers.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- native drag/drop + touch -->
+            <section class="section" id="panel-events-drag-drop-touch">
+                <h2>Native drag/drop, touch and generic events</h2>
+                <figure>
+                    <div class="canvas" id="demo-events-drag-drop-touch"></div>
+                    <figcaption>
+                        Drag the blue card: pointer capture keeps the box moving instead of selecting page text.
+                        The card and zone also exercise managed <strong>dragstart / drag / dragend / dragenter /
+                        dragleave / dragover / drop</strong>, <strong>touchstart / touchmove / touchend / touchcancel</strong>,
+                        and a generic <strong>on_event("auxclick")</strong> handler.
                     </figcaption>
                 </figure>
             </section>

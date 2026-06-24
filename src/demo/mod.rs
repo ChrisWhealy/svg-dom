@@ -10,15 +10,34 @@
 
 mod colours;
 
-use std::{cell::Cell, mem, rc::Rc};
-use wasm_bindgen::{JsCast, prelude::*};
-use web_sys::MouseEvent;
+use std::{
+    cell::{Cell, RefCell},
+    mem,
+    rc::Rc,
+};
+use wasm_bindgen::prelude::*;
 
 use crate::{
     AnimationLoop, Error, SvgAttrs, SvgNode, SvgRoot,
     root::utils::{Point, Size},
 };
 use colours::*;
+
+thread_local! {
+    /// Demo-only owner for interactive nodes whose managed listeners must remain attached after `run_demo` returns.
+    ///
+    /// The library intentionally removes a DOM listener when the last `SvgNode` handle is dropped.  Browser demos are
+    /// long-lived, so they keep listener-owning nodes here instead of leaking individual `Closure`s.
+    static LIVE_DEMO_NODES: RefCell<Vec<SvgNode>> = RefCell::new(Vec::new());
+}
+
+fn keep_demo_node(node: SvgNode) {
+    LIVE_DEMO_NODES.with(|nodes| nodes.borrow_mut().push(node));
+}
+
+fn event_label<E>(node: SvgNode, name: &'static str) -> impl Fn(E) + 'static {
+    move |_| node.set_text(&format!("last: {name}"))
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Constants
@@ -63,7 +82,9 @@ pub fn run_demo() -> Result<(), JsValue> {
     demo_events_modifiers().map_err(e)?;
     demo_events_press().map_err(e)?;
     demo_events_group().map_err(e)?;
-    demo_events_drag().map_err(e)?;
+    demo_events_pointer_lifecycle().map_err(e)?;
+    demo_events_keyboard_wheel().map_err(e)?;
+    demo_events_drag_drop_touch().map_err(e)?;
     Ok(())
 }
 
@@ -350,29 +371,6 @@ fn demo_anim() -> Result<(), Error> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// Event-handling helper
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-// `SvgNode` wraps `click`, `pointerenter` and `pointerleave` directly.  For every other event we drop down to the raw
-// `web-sys` element via [`SvgNode::as_element`] and register the listener ourselves.
-// The `Closure` is `forget`-ted so that it lives for the page's lifetime — exactly the same leak-on-purpose pattern
-// that `demo_anim` uses for its `AnimationLoop`.
-//
-// However, in a real application, you would store the `Closure` somewhere with a defined lifetime.
-fn on_raw<F: Fn(MouseEvent) + 'static>(
-    node: &SvgNode,
-    event: &str,
-    handler: F,
-) -> Result<(), Error> {
-    let closure = Closure::<dyn Fn(MouseEvent)>::new(handler);
-    node.as_element()
-        .add_event_listener_with_callback(event, closure.as_ref().unchecked_ref())
-        .map_err(|e| Error::Dom(format!("{e:?}")))?;
-    closure.forget();
-    Ok(())
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Events — click counter + reset button (two on_click handlers over shared state)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 //
@@ -448,11 +446,13 @@ fn demo_events_click() -> Result<(), Error> {
         400.0,
         "two on_click handlers sharing one Rc<Cell> counter",
     )?;
+    keep_demo_node(btn);
+    keep_demo_node(reset);
     Ok(())
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// Events — colour wheel (raw mousemove drives a second element's fill)
+// Events — colour wheel (managed on_mousemove drives a second element's fill)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 //
 // A single transparent rect on *top* of everything captures the pointer, and every decoration below it carries
@@ -506,7 +506,7 @@ fn demo_events_colour() -> Result<(), Error> {
     caption(
         &svg,
         450.0,
-        "Raw mousemove over the wheel sets the swatch fill (hue from pointer angle)",
+        "Managed on_mousemove over the wheel sets the swatch fill (hue from pointer angle)",
     )?;
 
     // The pointer-capture surface goes on last so it sits on top of everything above.
@@ -518,7 +518,7 @@ fn demo_events_colour() -> Result<(), Error> {
     let mv_swatch = swatch.clone();
     let mv_readout = readout.clone();
 
-    on_raw(&surface, "mousemove", move |e| {
+    surface.on_mousemove(move |e| {
         let (x, y) = (f64::from(e.offset_x()), f64::from(e.offset_y()));
         let (dx, dy) = (x - CX, y - CY);
 
@@ -538,11 +538,12 @@ fn demo_events_colour() -> Result<(), Error> {
         }
     })?;
 
+    keep_demo_node(surface);
     Ok(())
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// Events — modifier keys (on_click) + right-click (raw contextmenu, preventDefault)
+// Events — modifier keys (on_click) + right-click (on_contextmenu, preventDefault)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 fn demo_events_modifiers() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-events-modifiers", Size::new(W, H))?;
@@ -591,7 +592,7 @@ fn demo_events_modifiers() -> Result<(), Error> {
     // so the contextmenu event is the idiomatic hook for right-clicks.)
     let pad_ctx = pad.clone();
     let ro_ctx = readout.clone();
-    on_raw(&pad, "contextmenu", move |e| {
+    pad.on_contextmenu(move |e| {
         e.prevent_default();
         let _ = pad_ctx.set_fill(CRIMSON);
         ro_ctx
@@ -602,13 +603,14 @@ fn demo_events_modifiers() -> Result<(), Error> {
     caption(
         &svg,
         400.0,
-        "on_click reads modifier keys · raw contextmenu calls preventDefault()",
+        "on_click reads modifier keys · on_contextmenu calls preventDefault()",
     )?;
+    keep_demo_node(pad);
     Ok(())
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// Events — press state (raw mousedown / mouseup / pointerleave)
+// Events — press state (managed mousedown / mouseup / pointerleave)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 fn demo_events_press() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-events-press", Size::new(W, H))?;
@@ -657,7 +659,7 @@ fn demo_events_press() -> Result<(), Error> {
     // menu, which swallows the matching mouseup and would leave the state stuck on "pressed".
     // The `contextmenu` listener below is an OS-agnostic fix, which treats any context-menu trigger as a release.
     // The readout also lists any modifier keys held during the press.
-    on_raw(&pad, "mousedown", move |e| {
+    pad.on_mousedown(move |e| {
         if e.button() != 0 {
             return;
         }
@@ -684,21 +686,22 @@ fn demo_events_press() -> Result<(), Error> {
     })?;
 
     let release_up = release.clone();
-    on_raw(&pad, "mouseup", move |_| release_up())?;
+    pad.on_mouseup(move |_| release_up())?;
 
     // A context menu (right-click, or ctrl+click on macOS) interrupts the gesture consuming the mouseup event, so treat
     // it as a release so the button can never get stuck in the pressed state, whatever the platform.
     let release_ctx = release.clone();
-    on_raw(&pad, "contextmenu", move |_| release_ctx())?;
+    pad.on_contextmenu(move |_| release_ctx())?;
 
     // If the pointer leaves while still held, treat it as a release so the button cannot get stuck in the pressed state
-    on_raw(&pad, "pointerleave", move |_| release())?;
+    pad.on_pointerleave(move |_| release())?;
 
     caption(
         &svg,
         400.0,
-        "raw mousedown / mouseup / pointerleave · pressed-state tracking · reports held modifier keys",
+        "managed mousedown / mouseup / pointerleave · pressed-state tracking · reports held modifier keys",
     )?;
+    keep_demo_node(pad);
     Ok(())
 }
 
@@ -757,9 +760,9 @@ fn demo_events_group() -> Result<(), Error> {
             .as_element()
             .set_text_content(Some(&format!("fires: {n}")));
     })?;
-    // on_pointerenter stores its closure inside the node, so the node must outlive this function for the listener to keep
-    // working — leak it for the page's lifetime (just as demo_anim does with its AnimationLoop).
-    mem::forget(group1);
+    // Managed listeners are removed when their owning SvgNode is dropped, so keep this interactive node alive for the
+    // page lifetime.
+    keep_demo_node(group1);
 
     // group 2 — the same wrapper on another group, showing the behaviour is independent of the child shapes.
     let g2_count = labels(440.0, ACCENT_AMBER, "group 2: on_pointerenter")?;
@@ -772,152 +775,365 @@ fn demo_events_group() -> Result<(), Error> {
             .as_element()
             .set_text_content(Some(&format!("fires: {n}")));
     })?;
-    // on_pointerenter stores its closure inside the node, so the node must outlive this function for the listener to keep
-    // working — leak it for the page's lifetime (just as demo_anim does with its AnimationLoop).
-    mem::forget(group2);
+    // Managed listeners are removed when their owning SvgNode is dropped, so keep this interactive node alive for the
+    // page lifetime.
+    keep_demo_node(group2);
 
     Ok(())
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// Events — drag & drop a card within a parent bounding box (raw mousedown / mousemove / mouseup)
+// Events — pointer and mouse lifecycle wrappers
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+fn demo_events_pointer_lifecycle() -> Result<(), Error> {
+    let svg = SvgRoot::create_in("demo-events-pointer", Size::new(W, H))?;
 
-// A single transparent surface on *top* of everything captures every pointer event and hit-tests the card itself.
-// Keeping mousedown, mousemove and mouseup all on the one element means every offsetX/offsetY is read relative to the
-// surface, avoiding the cross-element offset mismatch you would get by putting mousedown on the card and mousemove on
-// the surface.
-fn demo_events_drag() -> Result<(), Error> {
-    const BX: f64 = 40.0; // bounding box
-    const BW: f64 = 720.0;
-    const BH: f64 = 86.0;
-    const BY: f64 = (H - BH) / 2.0; // vertically centred in the canvas
-    const OW: f64 = 96.0; // draggable card
-    const OH: f64 = 50.0;
+    let target = svg.rect(Point::new(54.0, 24.0 + PAD_Y), Size::new(230.0, 84.0))?;
+    target.set_fill(DROP_ZONE_FILL)?;
+    target.set_stroke(ACCENT_BLUE)?;
+    target.set_stroke_width(2.0)?;
+    target.set_attrs([("rx", "10"), ("style", "cursor:crosshair; touch-action:none")])?;
 
-    let svg = SvgRoot::create_in("demo-events-drag", Size::new(W, H))?;
+    let title = svg.text(Point::new(169.0, 58.0 + PAD_Y), "pointer target")?;
+    title.set_fill(TEXT)?;
+    title.set_attrs([
+        ("font-size", "15"),
+        ("font-weight", "bold"),
+        ("text-anchor", "middle"),
+        ("style", "pointer-events:none"),
+    ])?;
 
-    // The parent bounding box that constrains the card (a dashed "drop zone").
-    let bbox = svg.rect(Point::new(BX, BY), Size::new(BW, BH))?;
-    bbox.set_fill(DROP_ZONE_FILL)?;
-    bbox.set_stroke(DROP_ZONE_BORDER)?;
-    bbox.set_stroke_width(1.5)?;
-    bbox.set_attrs([("rx", "8"), ("stroke-dasharray", "6 4")])?;
+    let readout = svg.text(Point::new(330.0, 58.0 + PAD_Y), "last: none")?;
+    readout.set_fill(TEXT)?;
+    readout.set_attr("font-size", "14")?;
 
-    // The draggable card is a group (background + label) moved as a unit via its transform.
-    let card_bg = svg.rect(Point::new(0.0, 0.0), Size::new(OW, OH))?;
+    let coords = svg.text(Point::new(330.0, 84.0 + PAD_Y), "move inside the target")?;
+    coords.set_fill(TEXT_MUTED)?;
+    coords.set_attr("font-size", "12")?;
+
+    target.on_pointerover(event_label(readout.clone(), "pointerover"))?;
+    target.on_pointerenter(event_label(readout.clone(), "pointerenter"))?;
+    target.on_pointerdown(event_label(readout.clone(), "pointerdown"))?;
+    target.on_pointerup(event_label(readout.clone(), "pointerup"))?;
+    target.on_pointercancel(event_label(readout.clone(), "pointercancel"))?;
+    target.on_pointerout(event_label(readout.clone(), "pointerout"))?;
+    target.on_pointerleave(event_label(readout.clone(), "pointerleave"))?;
+    target.on_mouseenter(event_label(readout.clone(), "mouseenter"))?;
+    target.on_mouseleave(event_label(readout.clone(), "mouseleave"))?;
+    target.on_dblclick(event_label(readout.clone(), "dblclick"))?;
+
+    let move_readout = readout.clone();
+    let move_coords = coords.clone();
+    target.on_pointermove(move |e| {
+        move_readout.set_text("last: pointermove");
+        move_coords.set_text(&format!(
+            "x: {}  y: {}  id: {}  type: {}",
+            e.offset_x(),
+            e.offset_y(),
+            e.pointer_id(),
+            e.pointer_type(),
+        ));
+    })?;
+
+    caption(
+        &svg,
+        400.0,
+        "managed pointerover/enter/down/move/up/cancel/out/leave plus mouseenter/leave/dblclick",
+    )?;
+    keep_demo_node(target);
+    Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Events — keyboard, focus and wheel wrappers
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+fn demo_events_keyboard_wheel() -> Result<(), Error> {
+    let svg = SvgRoot::create_in("demo-events-keyboard-wheel", Size::new(W, H))?;
+
+    let pad = svg.rect(Point::new(50.0, 24.0 + PAD_Y), Size::new(270.0, 84.0))?;
+    pad.set_fill(SLATE_GRAY)?;
+    pad.set_stroke(ACCENT_AMBER)?;
+    pad.set_stroke_width(2.0)?;
+    pad.set_attrs([
+        ("rx", "10"),
+        ("tabindex", "0"),
+        ("style", "cursor:pointer; outline:none"),
+    ])?;
+
+    let label = svg.text(Point::new(185.0, 58.0 + PAD_Y), "click, type, or wheel")?;
+    label.set_fill(WHITE)?;
+    label.set_attrs([
+        ("font-size", "15"),
+        ("font-weight", "bold"),
+        ("text-anchor", "middle"),
+        ("style", "pointer-events:none"),
+    ])?;
+
+    let readout = svg.text(Point::new(360.0, 58.0 + PAD_Y), "focus: no · key: — · wheel: 0")?;
+    readout.set_fill(TEXT)?;
+    readout.set_attr("font-size", "14")?;
+
+    let wheel_total = Rc::new(Cell::new(0i32));
+
+    {
+        let readout = readout.clone();
+        pad.on_focus(move |_| readout.set_text("focus: yes · key: — · wheel: 0"))?;
+    }
+    {
+        let readout = readout.clone();
+        pad.on_blur(move |_| readout.set_text("focus: no · key: — · wheel: 0"))?;
+    }
+    {
+        let readout = readout.clone();
+        let wheel_total = wheel_total.clone();
+        pad.on_keydown(move |e| {
+            readout.set_text(&format!(
+                "focus: yes · keydown: {} · wheel: {}",
+                e.key(),
+                wheel_total.get(),
+            ));
+        })?;
+    }
+    {
+        let readout = readout.clone();
+        let wheel_total = wheel_total.clone();
+        pad.on_keyup(move |e| {
+            readout.set_text(&format!(
+                "focus: yes · keyup: {} · wheel: {}",
+                e.key(),
+                wheel_total.get(),
+            ));
+        })?;
+    }
+    {
+        let readout = readout.clone();
+        let wheel_total = wheel_total.clone();
+        pad.on_wheel(move |e| {
+            e.prevent_default();
+            let delta = if e.delta_y() < 0.0 { 1 } else { -1 };
+            let next = wheel_total.get() + delta;
+            wheel_total.set(next);
+            readout.set_text(&format!("focus: yes · key: — · wheel: {next}"));
+        })?;
+    }
+
+    caption(
+        &svg,
+        400.0,
+        "managed focus/blur · keydown/keyup · wheel with preventDefault()",
+    )?;
+    keep_demo_node(pad);
+    Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Events — browser drag/drop, touch and generic Event wrappers
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+fn demo_events_drag_drop_touch() -> Result<(), Error> {
+    const CARD_W: f64 = 130.0;
+    const CARD_H: f64 = 58.0;
+    const MIN_X: f64 = 34.0;
+    const MAX_X: f64 = 600.0;
+    const MIN_Y: f64 = 24.0 + PAD_Y;
+    const MAX_Y: f64 = 96.0 + PAD_Y;
+
+    // Drop-zone bounds — shared by the rect that draws it and the drop test that decides whether the card stays put.
+    const ZONE_X: f64 = 245.0;
+    const ZONE_Y: f64 = 24.0 + PAD_Y;
+    const ZONE_W: f64 = 220.0;
+    const ZONE_H: f64 = 84.0;
+
+    let svg = SvgRoot::create_in("demo-events-drag-drop-touch", Size::new(W, H))?;
+
+    let zone = svg.rect(Point::new(ZONE_X, ZONE_Y), Size::new(ZONE_W, ZONE_H))?;
+    zone.set_fill(DROP_ZONE_FILL)?;
+    zone.set_stroke(DROP_ZONE_BORDER)?;
+    zone.set_stroke_width(2.0)?;
+    zone.set_attrs([("rx", "10"), ("stroke-dasharray", "6 4")])?;
+
+    let zone_label = svg.text(Point::new(355.0, 72.0 + PAD_Y), "native drop zone")?;
+    zone_label.set_fill(TEXT_MUTED)?;
+    zone_label.set_attrs([
+        ("font-size", "14"),
+        ("text-anchor", "middle"),
+        ("style", "pointer-events:none; user-select:none"),
+    ])?;
+
+    // The blue rectangle is the hit target for the drag gesture.  A <g> has no geometry of its own, so the group's
+    // pointer listeners only fire when one of its children is hittable — hence the card background must NOT opt out of
+    // pointer events.  Only the text label below carries `pointer-events:none`.
+    let card_bg = svg.rect(Point::origin(), Size::new(CARD_W, CARD_H))?;
     card_bg.set_fill(ACCENT_BLUE)?;
     card_bg.set_attr("rx", "8")?;
 
-    let card_label = svg.text(Point::new(OW / 2.0, OH / 2.0 + 5.0), "drag me")?;
+    let card_label = svg.text(Point::new(CARD_W / 2.0, CARD_H / 2.0 + 5.0), "drag / touch")?;
     card_label.set_fill(INK)?;
     card_label.set_attrs([
-        ("font-size", "14"),
+        ("font-size", "13"),
         ("font-weight", "bold"),
         ("text-anchor", "middle"),
+        ("style", "pointer-events:none; user-select:none"),
     ])?;
 
     let card = svg.group()?;
     card.append(&card_bg)?;
     card.append(&card_label)?;
+    card.set_attrs([("style", "cursor:grab; touch-action:none; user-select:none")])?;
 
-    let start = (BX + 16.0, BY + (BH - OH) / 2.0);
+    let start = (50.0, 36.0 + PAD_Y);
     card.set_attr(
         "transform",
         &format!("translate({:.1}, {:.1})", start.0, start.1),
     )?;
 
-    let readout = svg.text(
-        Point::new(W - 12.0, BY - 6.0),
-        &format!("x: {:.0}  y: {:.0}", start.0, start.1),
+    let readout = svg.text(Point::new(500.0, 48.0 + PAD_Y), "last: none")?;
+    readout.set_fill(TEXT)?;
+    readout.set_attr("font-size", "14")?;
+
+    let coords = svg.text(
+        Point::new(500.0, 74.0 + PAD_Y),
+        &format!("box: {:.0}, {:.0}", start.0, start.1),
     )?;
-    readout.set_fill(TEXT_MUTED)?;
-    readout.set_attrs([("font-size", "12"), ("text-anchor", "end")])?;
+    coords.set_fill(TEXT_MUTED)?;
+    coords.set_attr("font-size", "12")?;
+
+    let pos = Rc::new(Cell::new(start));
+    let last_pointer: Rc<Cell<Option<(i32, i32)>>> = Rc::new(Cell::new(None));
+
+    {
+        let listener = card.clone();
+        let card = card.clone();
+        let readout = readout.clone();
+        let last_pointer = last_pointer.clone();
+        listener.on_pointerdown(move |e| {
+            e.prevent_default();
+            let _ = card.as_element().set_pointer_capture(e.pointer_id());
+            last_pointer.set(Some((e.client_x(), e.client_y())));
+            let _ = card.set_attr("style", "cursor:grabbing; touch-action:none; user-select:none");
+            readout.set_text("last: pointerdown — moving box");
+        })?;
+    }
+
+    {
+        let listener = card.clone();
+        let card = card.clone();
+        let coords = coords.clone();
+        let readout = readout.clone();
+        let pos = pos.clone();
+        let last_pointer = last_pointer.clone();
+        listener.on_pointermove(move |e| {
+            if let Some((last_x, last_y)) = last_pointer.get() {
+                e.prevent_default();
+                let dx = f64::from(e.client_x() - last_x);
+                let dy = f64::from(e.client_y() - last_y);
+                let (x, y) = pos.get();
+                let nx = (x + dx).clamp(MIN_X, MAX_X);
+                let ny = (y + dy).clamp(MIN_Y, MAX_Y);
+                pos.set((nx, ny));
+                last_pointer.set(Some((e.client_x(), e.client_y())));
+                let _ = card.set_attr("transform", &format!("translate({nx:.1}, {ny:.1})"));
+                coords.set_text(&format!("box: {nx:.0}, {ny:.0}"));
+                readout.set_text("last: pointermove — moving box");
+            }
+        })?;
+    }
+
+    {
+        let listener = card.clone();
+        let card = card.clone();
+        let readout = readout.clone();
+        let coords = coords.clone();
+        let pos = pos.clone();
+        let last_pointer = last_pointer.clone();
+        let finish = move |e: web_sys::PointerEvent| {
+            e.prevent_default();
+            let _ = card.as_element().release_pointer_capture(e.pointer_id());
+            last_pointer.set(None);
+            let _ = card.set_attr("style", "cursor:grab; touch-action:none; user-select:none");
+
+            // The card only counts as dropped if it is *fully* inside the zone; otherwise it snaps back to its
+            // original position.
+            let (x, y) = pos.get();
+            let fully_inside = x >= ZONE_X
+                && x + CARD_W <= ZONE_X + ZONE_W
+                && y >= ZONE_Y
+                && y + CARD_H <= ZONE_Y + ZONE_H;
+
+            if fully_inside {
+                readout.set_text("last: pointerup — dropped in zone");
+            } else {
+                pos.set(start);
+                let _ = card.set_attr("transform", &format!("translate({:.1}, {:.1})", start.0, start.1));
+                coords.set_text(&format!("box: {:.0}, {:.0}", start.0, start.1));
+                readout.set_text("last: pointerup — outside zone, returned to start");
+            }
+        };
+        listener.on_pointerup(finish)?;
+    }
+
+    {
+        let listener = card.clone();
+        let card = card.clone();
+        let readout = readout.clone();
+        let last_pointer = last_pointer.clone();
+        listener.on_pointercancel(move |e| {
+            let _ = card.as_element().release_pointer_capture(e.pointer_id());
+            last_pointer.set(None);
+            let _ = card.set_attr("style", "cursor:grab; touch-action:none; user-select:none");
+            readout.set_text("last: pointercancel");
+        })?;
+    }
+
+    // The blue card is moved using pointer events because native browser drag/drop reports a DragEvent but does not
+    // reposition SVG content for you.  These DragEvent wrappers are still attached so the demo logs any native drag
+    // events a browser chooses to emit for the element.
+    card.on_dragstart(event_label(readout.clone(), "dragstart"))?;
+    card.on_drag(event_label(readout.clone(), "drag"))?;
+    card.on_dragend(event_label(readout.clone(), "dragend"))?;
+    {
+        let readout = readout.clone();
+        card.on_touchstart(move |e| {
+            e.prevent_default();
+            readout.set_text("last: touchstart");
+        })?;
+    }
+    {
+        let readout = readout.clone();
+        card.on_touchmove(move |e| {
+            e.prevent_default();
+            readout.set_text("last: touchmove");
+        })?;
+    }
+    card.on_touchend(event_label(readout.clone(), "touchend"))?;
+    card.on_touchcancel(event_label(readout.clone(), "touchcancel"))?;
+
+    zone.on_dragenter(event_label(readout.clone(), "dragenter"))?;
+    zone.on_dragleave(event_label(readout.clone(), "dragleave"))?;
+    {
+        let readout = readout.clone();
+        zone.on_dragover(move |e| {
+            e.prevent_default();
+            readout.set_text("last: dragover (drop enabled)");
+        })?;
+    }
+    {
+        let readout = readout.clone();
+        zone.on_drop(move |e| {
+            e.prevent_default();
+            readout.set_text("last: drop");
+        })?;
+    }
+
+    // Generic Event wrapper: auxclick is deliberately handled as a plain Event, proving that callers are not forced
+    // back to raw Closure management when a typed convenience method is absent.
+    card.on_event("auxclick", event_label(readout.clone(), "generic auxclick"))?;
 
     caption(
         &svg,
         400.0,
-        "mousedown on the card, mousemove to drag, mouseup to drop — clamped to the box",
+        "managed pointer drag moves the box · touch wrappers prevent scrolling · drag/drop wrappers are logged",
     )?;
-
-    // Capture surface on top; it hit-tests the card and drives the whole gesture.
-    let surface = svg.rect(Point::origin(), Size::new(W, H))?;
-    surface.set_fill(TRANSPARENT)?;
-    surface.set_attr("style", "cursor:default")?;
-
-    // Shared state: the card's current top-left, and Some(grab-offset) while a drag is in progress.
-    let pos = Rc::new(Cell::new(start));
-    let grab: Rc<Cell<Option<(f64, f64)>>> = Rc::new(Cell::new(None));
-
-    // Top-left bounds that keep the whole card inside the box.
-    let max_x = BX + BW - OW;
-    let max_y = BY + BH - OH;
-    let on_card = |px: f64, py: f64, ox: f64, oy: f64| {
-        (ox..ox + OW).contains(&px) && (oy..oy + OH).contains(&py)
-    };
-
-    // mousedown → start dragging only if the press landed on the card.
-    {
-        let pos = pos.clone();
-        let grab = grab.clone();
-        let card = card.clone();
-        let surface_c = surface.clone();
-
-        on_raw(&surface, "mousedown", move |e| {
-            let (px, py) = (f64::from(e.offset_x()), f64::from(e.offset_y()));
-            let (ox, oy) = pos.get();
-            if on_card(px, py, ox, oy) {
-                grab.set(Some((px - ox, py - oy)));
-                let _ = card.set_attr("opacity", "0.85");
-                let _ = surface_c.set_attr("style", "cursor:grabbing");
-            }
-        })?;
-    }
-
-    // mousemove → drag the card (clamped) while held; otherwise just hint the cursor when hovering it.
-    {
-        let pos = pos.clone();
-        let grab = grab.clone();
-        let card = card.clone();
-        let readout = readout.clone();
-        let surface_c = surface.clone();
-
-        on_raw(&surface, "mousemove", move |e| {
-            let (px, py) = (f64::from(e.offset_x()), f64::from(e.offset_y()));
-            if let Some((gx, gy)) = grab.get() {
-                let (nx, ny) = ((px - gx).clamp(BX, max_x), (py - gy).clamp(BY, max_y));
-                pos.set((nx, ny));
-                let _ = card.set_attr("transform", &format!("translate({nx:.1}, {ny:.1})"));
-                readout
-                    .as_element()
-                    .set_text_content(Some(&format!("x: {nx:.0}  y: {ny:.0}")));
-            } else {
-                let (ox, oy) = pos.get();
-                let cursor = if on_card(px, py, ox, oy) {
-                    "cursor:grab"
-                } else {
-                    "cursor:default"
-                };
-                let _ = surface_c.set_attr("style", cursor);
-            }
-        })?;
-    }
-
-    // mouseup / pointerleave → drop the card (pointerleave guards against releasing outside the canvas).
-    {
-        let grab = grab.clone();
-        let card = card.clone();
-        let surface_c = surface.clone();
-        let drop = move || {
-            grab.set(None);
-            let _ = card.set_attr("opacity", "1");
-            let _ = surface_c.set_attr("style", "cursor:default");
-        };
-        let drop_up = drop.clone();
-
-        on_raw(&surface, "mouseup", move |_| drop_up())?;
-        on_raw(&surface, "pointerleave", move |_| drop())?;
-    }
-
+    keep_demo_node(card);
+    keep_demo_node(zone);
     Ok(())
 }

@@ -62,7 +62,7 @@ The `svg-dom` crate acts as a thin wrapper for `web-sys` SVG DOM bindings that a
    - Any arbitrary attribute
    - Several attributes using `set_attrs`
    - Formatted values via `SvgAttrs`
-- Attach pointer/mouse event listeners (`click`, `pointerenter`, `pointerleave`) directly to individual elements, with listener event names stored as `&'static str` (i.e. allocation-free)
+- Attach managed event listeners directly to individual elements — mouse, pointer, wheel, touch, keyboard, focus/blur, drag-and-drop, and generic `Event` handlers — with listener event names stored as `&'static str` (i.e. allocation-free)
 - Drive reactive updates through a `requestAnimationFrame` loop via `AnimationLoop`
 
 ## What this crate is NOT
@@ -91,7 +91,9 @@ To run a basic demo, start the demo Web Server using
 cargo demo
 ```
 
-Then visit <http://127.0.0.1:8000/demo>
+Then visit <http://127.0.0.1:8000/demo>.
+
+The demo gallery includes examples for the managed event wrappers. Interactive demo nodes are kept alive explicitly for the lifetime of the page because managed listeners are removed automatically when their owning `SvgNode` is dropped.
 
 # Quick start
 
@@ -148,6 +150,31 @@ pub fn run() -> Result<(), svg_dom::Error> {
 
     Ok(())
 }
+```
+
+## Managed event handlers
+
+`SvgNode` owns the closures registered by its event helpers and removes the matching DOM listener before those closures are dropped. Use these helpers instead of registering raw `web-sys` callbacks and calling `Closure::forget`.
+
+The managed wrappers cover common SVG interaction events: click/double-click/context menu, mouse down/up/move/enter/leave/over/out, pointer down/up/move/enter/leave/over/out/cancel, wheel, touch start/move/end/cancel, key down/up, focus/blur, and drag-and-drop. For less common events, `on_event("event-name", handler)` provides the same managed lifetime with a generic `web_sys::Event`.
+
+```rust,no_run
+let pad = svg.rect(Point::new(20.0, 20.0), Size::new(160.0, 80.0))?;
+pad.set_attrs([("tabindex", "0"), ("style", "cursor:pointer")])?;
+
+let pressed = pad.clone();
+pad.on_mousedown(move |evt| {
+    if evt.button() == 0 {
+        let _ = pressed.set_attr("transform", "translate(2,2)");
+    }
+})?;
+
+let released = pad.clone();
+pad.on_mouseup(move |_| {
+    let _ = released.set_attr("transform", "translate(0,0)");
+})?;
+
+pad.on_contextmenu(move |evt| evt.prevent_default())?;
 ```
 
 ## Setting several attributes at once
