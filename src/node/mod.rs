@@ -145,6 +145,60 @@ impl SvgNode {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// # Text content from `format_args!`, through a caller-owned buffer
+    ///
+    /// Formats `args` into the supplied scratch buffer and sets the result as this element's text content, reusing the
+    /// buffer's allocation across calls. This is the text-content counterpart to
+    /// [`set_attr_display`](Self::set_attr_display): use it for a label whose value changes on every event — a
+    /// coordinate or status readout updated on each `pointermove`, say — where `set_text(&format!(...))` would allocate
+    /// and drop a fresh `String` per event.
+    ///
+    /// Keep one buffer in the handler's state and pass it on every call. If instead the text usually *repeats* between
+    /// events, prefer [`CachedAttr::set_text`](crate::CachedAttr::set_text), which skips the DOM write entirely when the
+    /// value is unchanged.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{root::utils::Point, SvgRoot};
+    /// let svg     = SvgRoot::attach("diagram")?;
+    /// let readout = svg.text(Point::new(10.0, 20.0), "")?;
+    ///
+    /// let mut buf = String::new();
+    /// let (x, y) = (12.0, 34.0);
+    /// readout.set_text_fmt(&mut buf, format_args!("box: {x:.0}, {y:.0}"))?; // no per-call String allocation
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn set_text_fmt(&self, scratch: &mut String, args: std::fmt::Arguments<'_>) -> Result<(), Error> {
+        use std::fmt::Write;
+        scratch.clear();
+        scratch.write_fmt(args)?;
+        self.set_text(scratch);
+        Ok(())
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// # Text content from a [`Display`](std::fmt::Display) value, through a caller-owned buffer
+    ///
+    /// Convenience wrapper over [`set_text_fmt`](Self::set_text_fmt) for the common case of a single displayable value
+    /// (a counter, a measurement) rather than a formatted string.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{root::utils::Point, SvgRoot};
+    /// let svg   = SvgRoot::attach("diagram")?;
+    /// let label = svg.text(Point::new(10.0, 20.0), "")?;
+    ///
+    /// let mut buf = String::new();
+    /// label.set_text_display(&mut buf, 42)?; // live counter, no per-call allocation
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn set_text_display<T: std::fmt::Display>(&self, scratch: &mut String, value: T) -> Result<(), Error> {
+        self.set_text_fmt(scratch, format_args!("{value}"))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// # Attribute access
     ///
     /// Sets an arbitrary attribute on this element.

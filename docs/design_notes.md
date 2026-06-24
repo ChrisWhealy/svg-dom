@@ -103,6 +103,12 @@ For a single numeric attribute updated on a hot path, `SvgNode::set_attr_display
 The convenience numeric setters such as `set_stroke_width` instead allocate a short-lived `String` per call; that is fine for one-off styling but should be swapped for `set_attr_display` (or an `AttrWriter`) when the value is animated.
 The same caveat applies to the `Point`/`Size` `get_*_str` helpers, which each allocate; they are documented as one-off conveniences, not for per-event or per-frame use.
 
+`SvgNode::set_text_fmt` and the `set_text_display` convenience for a single value both format into a caller-owned `&mut String` and set the result as text content.
+For a label whose value changes on every event (E,G. a coordinate or status readout updated each time `pointermove` is handled) we now avoid allocating and discarding a `String` by calling `set_text(&format!(...))`.
+
+When the text instead *repeats* between events, `CachedAttr::set_text` is the better fit since, the DOM write is skipped entirely if the value is unchanged.
+The drag/touch demo uses `set_text_fmt` for its live coordinate readout, sharing one scratch buffer with the card's transform; its `last:` event readout has many interleaving writers (including native `drag` events that fire between `pointermove`s), so it is deliberately left uncached — partial caching there would skip a needed write.
+
 ## Shared element factory implementation
 
 `SvgRoot` and `SvgBatch` expose the same basic element factories (`rect`, `circle`, `line`, `path`, `text`, and `group`).
