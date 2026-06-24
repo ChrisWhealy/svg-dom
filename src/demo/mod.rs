@@ -1000,6 +1000,10 @@ fn demo_events_drag_drop_touch() -> Result<(), Error> {
     let pos = Rc::new(Cell::new(start));
     let last_pointer: Rc<Cell<Option<(i32, i32)>>> = Rc::new(Cell::new(None));
 
+    // One transform buffer reused across every pointermove and the snap-back on pointerup, so dragging the card does
+    // not allocate a fresh String per event. It lives outside the closures and is shared by clone.
+    let transform_buf = Rc::new(RefCell::new(String::new()));
+
     {
         let listener = card.clone();
         let card = card.clone();
@@ -1021,6 +1025,7 @@ fn demo_events_drag_drop_touch() -> Result<(), Error> {
         let readout = readout.clone();
         let pos = pos.clone();
         let last_pointer = last_pointer.clone();
+        let transform_buf = transform_buf.clone();
         listener.on_pointermove(move |e| {
             if let Some((last_x, last_y)) = last_pointer.get() {
                 e.prevent_default();
@@ -1031,7 +1036,7 @@ fn demo_events_drag_drop_touch() -> Result<(), Error> {
                 let ny = (y + dy).clamp(MIN_Y, MAX_Y);
                 pos.set((nx, ny));
                 last_pointer.set(Some((e.client_x(), e.client_y())));
-                let _ = card.set_attr("transform", &format!("translate({nx:.1}, {ny:.1})"));
+                let _ = card.set_translate(&mut transform_buf.borrow_mut(), nx, ny);
                 coords.set_text(&format!("box: {nx:.0}, {ny:.0}"));
                 readout.set_text("last: pointermove — moving box");
             }
@@ -1045,6 +1050,7 @@ fn demo_events_drag_drop_touch() -> Result<(), Error> {
         let coords = coords.clone();
         let pos = pos.clone();
         let last_pointer = last_pointer.clone();
+        let transform_buf = transform_buf.clone();
         let finish = move |e: web_sys::PointerEvent| {
             e.prevent_default();
             let _ = card.as_element().release_pointer_capture(e.pointer_id());
@@ -1063,7 +1069,7 @@ fn demo_events_drag_drop_touch() -> Result<(), Error> {
                 readout.set_text("last: pointerup — dropped in zone");
             } else {
                 pos.set(start);
-                let _ = card.set_attr("transform", &format!("translate({:.1}, {:.1})", start.0, start.1));
+                let _ = card.set_translate(&mut transform_buf.borrow_mut(), start.0, start.1);
                 coords.set_text(&format!("box: {:.0}, {:.0}", start.0, start.1));
                 readout.set_text("last: pointerup — outside zone, returned to start");
             }

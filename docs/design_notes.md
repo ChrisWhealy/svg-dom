@@ -32,6 +32,41 @@ Use these helpers for values that change every frame instead of writing `set_att
 
 The DOM still receives a normal `&str`, but on the Rust/WASM side, the same allocation is used across frames.
 
+## Transform setters reuse a caller-owned buffer
+
+`AnimationFrame`'s reusable buffer only helps callbacks that run *through* `AnimationLoop`.
+Event-driven handlers such as drag, pan/zoom, sliders, knobs, follow-the-pointer cursors, resize/selection handles etc. do not, yet they update `transform` just as often.
+Writing `set_attr("transform", &format!("translate({x:.1}, {y:.1})"))` inside a `pointermove` handler allocates and then drops a new `String` on every event - which adds up to unnecessary churn.
+
+`src/node/transform.rs` adds a set of helpers that take a caller-owned `&mut String` scratch buffer, clear it, format the new transform into it, and hand it to `set_attr`.
+These are
+
+* `set_translate`
+* `set_rotate`
+* `set_rotate_about`
+* `set_scale`
+* `set_scale_xy`
+* `set_translate_scale`
+* `set_transform_fmt`
+
+Reusing one buffer across calls means no new allocation happens unless the formatted text outgrows the buffer's capacity.
+For shapes that the typed helpers do not cover, your escape hatch is `set_transform_fmt`: it accepts `std::fmt::Arguments` so `format_args!(...)` can build any transform string without the heap allocation that `format!` would otherwise incur.
+
+The scratch buffer is deliberately **not** stored inside `SvgNode`.
+Most nodes are passive geometry that never animate, do folding formatting state into every node would cause them all to grow while benefiting only a few.
+Passive noeds can remain small by keeping the buffer external whilst hot paths can opt in explicitly.
+In an event handler, the buffer typically lives in an `Rc<RefCell<String>>` shared by the closures, as the drag/touch demo does.
+
+In spite of the fact that writing into a `String` is infallible, `write!` is typed to return `std::fmt::Error`.
+`Error` implements `From<std::fmt::Error>`, mapping to the existing `Error::Dom` variant so the helpers can use `?` without a dedicated error variant.
+
+## Redundant attribute writes are skipped on hot paths
+
+`set_attr_if_changed` reads the current value with `get_attribute` and writes only when it differs.
+This avoids redundant browser-side work in high-frequency handlers where the same value repeats between frames such as cursor style, `opacity` flags or selected state.
+It is not a universal win: the read has its own cost, so for values that change on every call (such as a drag `transform`) calling `set_attr` remains the cheaper option.
+Reach for this function only where the value frequently repeats.
+
 ## Multi-attribute updates
 
 `SvgNode::set_attrs` accepts any `IntoIterator` of `(name, value)` pairs where both sides implement `AsRef<str>`.

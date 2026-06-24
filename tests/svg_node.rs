@@ -145,6 +145,85 @@ fn should_leave_attribute_unchanged_when_value_matches() -> Result<(), String> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// transform helpers (set_translate / set_rotate / set_scale / ...)
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `set_translate` writes a `translate(x, y)` transform formatted to one decimal place.
+#[wasm_bindgen_test]
+fn should_write_translate_transform() -> Result<(), String> {
+    let node = make_svg("node-set-translate").group().map_err(|e| e.to_string())?;
+    let mut buf = String::new();
+    node.set_translate(&mut buf, 100.0, 50.0).map_err(|e| e.to_string())?;
+    common::check_eq(node.attr("transform"), Some("translate(100.0, 50.0)".into()))
+}
+
+/// The same scratch buffer can be reused across calls and the latest value wins.
+#[wasm_bindgen_test]
+fn should_reuse_scratch_buffer_across_translate_calls() -> Result<(), String> {
+    let node = make_svg("node-translate-reuse").group().map_err(|e| e.to_string())?;
+    let mut buf = String::new();
+    node.set_translate(&mut buf, 1.0, 2.0).map_err(|e| e.to_string())?;
+    node.set_translate(&mut buf, 33.0, 44.0).map_err(|e| e.to_string())?;
+    common::check_eq(node.attr("transform"), Some("translate(33.0, 44.0)".into()))
+}
+
+/// `set_rotate` writes a single-argument `rotate(angle)` transform.
+#[wasm_bindgen_test]
+fn should_write_rotate_transform() -> Result<(), String> {
+    let node = make_svg("node-set-rotate").group().map_err(|e| e.to_string())?;
+    let mut buf = String::new();
+    node.set_rotate(&mut buf, 45.0).map_err(|e| e.to_string())?;
+    common::check_eq(node.attr("transform"), Some("rotate(45.0)".into()))
+}
+
+/// `set_rotate_about` writes a `rotate(angle, cx, cy)` transform.
+#[wasm_bindgen_test]
+fn should_write_rotate_about_transform() -> Result<(), String> {
+    let node = make_svg("node-set-rotate-about").group().map_err(|e| e.to_string())?;
+    let mut buf = String::new();
+    node.set_rotate_about(&mut buf, 90.0, 10.0, 20.0).map_err(|e| e.to_string())?;
+    common::check_eq(node.attr("transform"), Some("rotate(90.0, 10.0, 20.0)".into()))
+}
+
+/// `set_scale` writes a uniform `scale(s)` transform formatted to three decimal places.
+#[wasm_bindgen_test]
+fn should_write_uniform_scale_transform() -> Result<(), String> {
+    let node = make_svg("node-set-scale").group().map_err(|e| e.to_string())?;
+    let mut buf = String::new();
+    node.set_scale(&mut buf, 1.5).map_err(|e| e.to_string())?;
+    common::check_eq(node.attr("transform"), Some("scale(1.500)".into()))
+}
+
+/// `set_scale_xy` writes a non-uniform `scale(x, y)` transform.
+#[wasm_bindgen_test]
+fn should_write_non_uniform_scale_transform() -> Result<(), String> {
+    let node = make_svg("node-set-scale-xy").group().map_err(|e| e.to_string())?;
+    let mut buf = String::new();
+    node.set_scale_xy(&mut buf, 2.0, 0.5).map_err(|e| e.to_string())?;
+    common::check_eq(node.attr("transform"), Some("scale(2.000, 0.500)".into()))
+}
+
+/// `set_translate_scale` writes the combined `translate(...) scale(...)` shape used by pan/zoom code.
+#[wasm_bindgen_test]
+fn should_write_translate_scale_transform() -> Result<(), String> {
+    let node = make_svg("node-set-translate-scale").group().map_err(|e| e.to_string())?;
+    let mut buf = String::new();
+    node.set_translate_scale(&mut buf, 12.0, 34.0, 2.0).map_err(|e| e.to_string())?;
+    common::check_eq(node.attr("transform"), Some("translate(12.0, 34.0) scale(2.000)".into()))
+}
+
+/// `set_transform_fmt` writes an arbitrary transform built from `format_args!`.
+#[wasm_bindgen_test]
+fn should_write_arbitrary_transform_via_fmt() -> Result<(), String> {
+    let node = make_svg("node-set-transform-fmt").group().map_err(|e| e.to_string())?;
+    let mut buf = String::new();
+    let (x, y, angle) = (10.0, 20.0, 45.0);
+    node.set_transform_fmt(&mut buf, format_args!("translate({x:.1}, {y:.1}) rotate({angle:.1})"))
+        .map_err(|e| e.to_string())?;
+    common::check_eq(node.attr("transform"), Some("translate(10.0, 20.0) rotate(45.0)".into()))
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // remove_attr
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

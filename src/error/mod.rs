@@ -31,6 +31,19 @@ pub enum Error {
     CastFailed(&'static str),
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+impl From<std::fmt::Error> for Error {
+    /// Maps a formatting failure into [`Error::Dom`].
+    ///
+    /// Writing into a `String` scratch buffer (as the `set_translate`/`set_transform_fmt` helpers do) is infallible in
+    /// practice, but `write!` is typed to return `std::fmt::Error`. So this conversion lets those helpers use `?`
+    /// without a dedicated error variant.
+    fn from(e: std::fmt::Error) -> Self {
+        Error::Dom(e.to_string())
+    }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
