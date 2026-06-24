@@ -70,9 +70,11 @@ So for values that change on every call (such as a drag `transform`) calling `se
 
 ## Caller-owned attribute cache for genuinely hot paths
 
-For a high-frequency path where the value usually repeats, such as a cursor style or `opacity` flag touched on every `pointermove`, `CachedAttr` (in `src/node/cached.rs`) is preferable to `set_attr_if_changed`.
-It remembers the last value it wrote on the **Rust** side, so the unchanged case is a plain `&str` comparison against an owned `String`: no allocation, and no call into JS at all.
-The DOM is touched only on a genuine change and even then, the backing buffer is reused (`clear` + `push_str`) rather than reallocated.
+For a high-frequency path where an element's attribute value usually repeats (E.G. a cursor style or `opacity` flag touched on every `pointermove`), using `CachedAttr` (in `src/node/cached.rs`) is preferable to calling `set_attr_if_changed`.
+
+`CachedAttr` remembers the last value it wrote on the **Rust** side, so the unchanged case is a plain `&str` comparison against an owned `String`: I.E. no allocation takes place and no call into JS.
+
+The DOM is touched only on a genuine change and even then, the `String` backing buffer is reused (`clear` + `push_str`) rather than reallocated.
 
 This is the same design used for the transform scratch buffer: the cache is **caller-owned** and deliberately not stored inside `SvgNode`, so passive geometry nodes carry no caching state.
 Keep one `CachedAttr` per frequently-updated attribute (typically captured in an event handler's state), dedicated to a single attribute on a single node.
