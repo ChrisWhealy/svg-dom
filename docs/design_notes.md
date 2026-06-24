@@ -88,3 +88,45 @@ The built-in root and batch element factories use the same mechanism for initial
 Internally, those factories delegate to a shared `SvgFactory` implementation, so shape-specific creation logic and initial attribute writes exist in one place only.
 
 The only difference between the two paths is the append target: `SvgRoot` appends directly to the live `<svg>`, while `SvgBatch` appends to its `DocumentFragment` until `commit()` is called.
+
+## Considered and rejected: splitting `SvgNode` into passive and interactive types
+
+It was suggested that a benefit could be obtained by splitting `SvgNode` into passive and interactive types.
+Only the interactive type would carry the listener storage:
+
+```rust
+struct SvgNode {
+    element: SvgElement
+}
+
+struct InteractiveSvgNode {
+    node: SvgNode,
+    listeners: RefCell<Vec<EventListener>>
+}
+```
+
+The motivation was to stop passive geometry nodes from carrying listener state they never use.
+This option has been evaluated and **will not** be pursued.
+
+The memory win is tiny because the common case is already optimised.
+The listeners field is `RefCell<Option<Box<Vec<EventListener>>>>`, and `store_listener` only allocates the `Vec` lazily on the first `on_*` call (`get_or_insert_with`).
+A passive node therefore allocates **no** listener `Vec`; it pays only for the inline field, that is, on `wasm32`, the `RefCell` borrow flag (4 bytes) plus a niche-optimised `Option<Box<…>>` pointer that is `null` when empty (4 bytes), so the saving adds up to on;ly ~8 bytes.
+
+Splitting removes those ~8 inline bytes per node and zero heap allocations, which is negligible next to the `Rc` strong/weak counts and allocation header every node carries regardless.
+
+Against that small saving sit real costs:
+
+* **API surface.**<br>
+   Callers must choose passive vs interactive up front.
+
+   Every factory (`rect`, `circle`, `line`, `path`, `text`, `group`) lives in the shared `SvgFactory` used by both `SvgRoot` and `SvgBatch`, so either each factory is duplicated, gaining an `.interactive()` upgrade step, or becomes generic - rippling through two factory surfaces.
+
+   To avoid re-declaring every attribute setter, `InteractiveSvgNode` would also need to `Deref` to `SvgNode`, which is `Deref`-as-inheritance.
+
+* **It breaks the single-identity model.**<br>
+  `SvgNode` is `Rc<SvgNodeInner>`, therefore all clones share one ownership root and the listener-lifetime contract ("keep at least one handle alive and the listeners stay alive") depends on that.
+
+  Putting `listeners` on the outer `InteractiveSvgNode` places it *outside* the shared `Rc`, so an "upgrade" forks ownership: the interactive handle owns the listeners independently of any passive clone of the same element. Drop the interactive handle while a passive clone is still alive and the listeners die — exactly the footgun the single-type design eliminates. Restoring shared semantics would require a second `Rc` layer.
+
+So the structurally "trivial" upgrade is semantically a fork of the very ownership the library deliberately unifies, in exchange for ~8 bytes per node.
+The lightweight-passive-node property is better served by the existing lazy `Option<Box<Vec>>`, and any need to signal interactivity is cheaper to meet with documentation than with a second concrete type.
