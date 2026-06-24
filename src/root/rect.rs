@@ -22,12 +22,11 @@ impl SvgRoot {
     /// ```
     pub fn rect(&self, top_left: Point, size: Size) -> Result<SvgNode, Error> {
         let n = self.make_node("rect")?;
-        n.set_attrs([
-            ("x", top_left.get_x_str()),
-            ("y", top_left.get_y_str()),
-            ("width", size.get_width_str()),
-            ("height", size.get_height_str()),
-        ])?;
+        let mut scratch = String::new();
+        n.set_attr_display("x", top_left.x, &mut scratch)?;
+        n.set_attr_display("y", top_left.y, &mut scratch)?;
+        n.set_attr_display("width", size.width, &mut scratch)?;
+        n.set_attr_display("height", size.height, &mut scratch)?;
         self.append_node(&n)?;
         Ok(n)
     }

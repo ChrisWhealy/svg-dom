@@ -2,7 +2,7 @@ mod event;
 
 use event::*;
 
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, fmt::Write, rc::Rc};
 use wasm_bindgen::{JsCast, prelude::*};
 use web_sys::{MouseEvent, PointerEvent, SvgElement};
 
@@ -165,6 +165,17 @@ impl SvgNode {
             .map_err(|e| Error::Dom(format!("{e:?}")))
     }
 
+    pub(crate) fn set_attr_display<T: std::fmt::Display>(
+        &self,
+        name: &str,
+        value: T,
+        scratch: &mut String,
+    ) -> Result<(), Error> {
+        scratch.clear();
+        write!(scratch, "{value}").expect("that's weird - writing Display output to String cannot fail");
+        self.set_attr(name, scratch)
+    }
+
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// # Multi-attribute setter
     ///
@@ -304,7 +315,10 @@ impl SvgNode {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn set_stroke_width(&self, width: f64) -> Result<(), Error> {
-        self.set_attr("stroke-width", &width.to_string())
+        {
+            let mut scratch = String::new();
+            self.set_attr_display("stroke-width", width, &mut scratch)
+        }
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

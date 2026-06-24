@@ -1,4 +1,4 @@
-use super::{SVG_NS, utils::Size, document, set};
+use super::{document, set_display, utils::Size, SVG_NS};
 use crate::{SvgNode, error::Error};
 
 use std::cell::Cell;
@@ -98,8 +98,9 @@ impl SvgRoot {
             .dyn_into::<SvgsvgElement>()
             .map_err(|_| Error::CastFailed("SvgsvgElement"))?;
 
-        set(&svg, "width", &size.get_width_str())?;
-        set(&svg, "height", &size.get_height_str())?;
+        let mut scratch = String::new();
+        set_display(&svg, "width", size.width, &mut scratch)?;
+        set_display(&svg, "height", size.height, &mut scratch)?;
 
         parent
             .append_child(&svg)
@@ -170,8 +171,9 @@ impl SvgRoot {
     /// ```
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     pub fn set_viewport(&self, size: Size) -> Result<(), Error> {
-        set(&self.root, "width", &size.get_width_str())?;
-        set(&self.root, "height", &size.get_height_str())?;
+        let mut scratch = String::new();
+        set_display(&self.root, "width", size.width, &mut scratch)?;
+        set_display(&self.root, "height", size.height, &mut scratch)?;
         self.viewport.set(size);
         Ok(())
     }

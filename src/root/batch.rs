@@ -52,12 +52,11 @@ impl SvgBatch {
     /// Creates a detached `<rect>` element in this batch and returns its [`SvgNode`] handle.
     pub fn rect(&self, top_left: Point, size: Size) -> Result<SvgNode, Error> {
         let n = self.make_node("rect")?;
-        n.set_attrs([
-            ("x", top_left.get_x_str()),
-            ("y", top_left.get_y_str()),
-            ("width", size.get_width_str()),
-            ("height", size.get_height_str()),
-        ])?;
+        let mut scratch = String::new();
+        n.set_attr_display("x", top_left.x, &mut scratch)?;
+        n.set_attr_display("y", top_left.y, &mut scratch)?;
+        n.set_attr_display("width", size.width, &mut scratch)?;
+        n.set_attr_display("height", size.height, &mut scratch)?;
         self.append_node(&n)?;
         Ok(n)
     }
@@ -65,11 +64,10 @@ impl SvgBatch {
     /// Creates a detached `<circle>` element in this batch and returns its [`SvgNode`] handle.
     pub fn circle(&self, centre: Point, radius: f64) -> Result<SvgNode, Error> {
         let n = self.make_node("circle")?;
-        n.set_attrs([
-            ("cx", centre.get_x_str()),
-            ("cy", centre.get_y_str()),
-            ("r", radius.to_string()),
-        ])?;
+        let mut scratch = String::new();
+        n.set_attr_display("cx", centre.x, &mut scratch)?;
+        n.set_attr_display("cy", centre.y, &mut scratch)?;
+        n.set_attr_display("r", radius, &mut scratch)?;
         self.append_node(&n)?;
         Ok(n)
     }
@@ -77,12 +75,11 @@ impl SvgBatch {
     /// Creates a detached `<line>` element in this batch and returns its [`SvgNode`] handle.
     pub fn line(&self, start: Point, end: Point) -> Result<SvgNode, Error> {
         let n = self.make_node("line")?;
-        n.set_attrs([
-            ("x1", start.get_x_str()),
-            ("y1", start.get_y_str()),
-            ("x2", end.get_x_str()),
-            ("y2", end.get_y_str()),
-        ])?;
+        let mut scratch = String::new();
+        n.set_attr_display("x1", start.x, &mut scratch)?;
+        n.set_attr_display("y1", start.y, &mut scratch)?;
+        n.set_attr_display("x2", end.x, &mut scratch)?;
+        n.set_attr_display("y2", end.y, &mut scratch)?;
         self.append_node(&n)?;
         Ok(n)
     }
@@ -98,10 +95,9 @@ impl SvgBatch {
     /// Creates a detached `<text>` element in this batch and returns its [`SvgNode`] handle.
     pub fn text(&self, anchored_at: Point, content: &str) -> Result<SvgNode, Error> {
         let n = self.make_node("text")?;
-        n.set_attrs([
-            ("x", anchored_at.get_x_str()),
-            ("y", anchored_at.get_y_str()),
-        ])?;
+        let mut scratch = String::new();
+        n.set_attr_display("x", anchored_at.x, &mut scratch)?;
+        n.set_attr_display("y", anchored_at.y, &mut scratch)?;
         n.as_element().set_text_content(Some(content));
         self.append_node(&n)?;
         Ok(n)
