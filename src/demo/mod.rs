@@ -18,7 +18,7 @@ use std::{
 use wasm_bindgen::prelude::*;
 
 use crate::{
-    AnimationLoop, Error, SvgAttrs, SvgNode, SvgRoot,
+    AnimationLoop, CachedAttr, Error, SvgAttrs, SvgNode, SvgRoot,
     root::utils::{Point, Size},
 };
 use colours::*;
@@ -708,20 +708,27 @@ fn demo_events_colour() -> Result<(), Error> {
     let mv_swatch = swatch.clone();
     let mv_readout = readout.clone();
 
+    // Reusable buffers so this per-move handler allocates nothing: `SvgAttrs` formats the attributes and a scratch
+    // `String` backs the readout text. Both are shared into the closure via `Rc<RefCell<…>>`.
+    let attr_scratch = Rc::new(RefCell::new(SvgAttrs::new()));
+    let text_scratch = Rc::new(RefCell::new(String::new()));
+
     surface.on_mousemove(move |e| {
         let (x, y) = (f64::from(e.offset_x()), f64::from(e.offset_y()));
         let (dx, dy) = (x - CX, y - CY);
+        let mut attrs = attr_scratch.borrow_mut();
 
         if dx * dx + dy * dy <= R * R {
             // Inside the wheel: hue is the pointer's angle about the centre.
             let hue = (dy.atan2(dx).to_degrees() + 360.0) % 360.0;
-            let colour = format!("hsl({hue:.0},90%,50%)");
-            let _ = mv_swatch.set_fill(&colour);
-            let _ = mv_marker.set_attrs([("cx", format!("{x:.1}")), ("cy", format!("{y:.1}"))]);
-            mv_readout.as_element().set_text_content(Some(&colour));
+            let _ = attrs.fmt(&mv_swatch, "fill", format_args!("hsl({hue:.0},90%,50%)"));
+            let _ = attrs.fmt(&mv_marker, "cx", format_args!("{x:.1}"));
+            let _ = attrs.fmt(&mv_marker, "cy", format_args!("{y:.1}"));
+            let _ = mv_readout.set_text_fmt(&mut text_scratch.borrow_mut(), format_args!("hsl({hue:.0},90%,50%)"));
         } else {
             // Outside the wheel: park the marker but leave the last sampled colour on the swatch.
-            let _ = mv_marker.set_attrs([("cx", "-20"), ("cy", "-20")]);
+            let _ = attrs.set(&mv_marker, "cx", "-20");
+            let _ = attrs.set(&mv_marker, "cy", "-20");
         }
     })?;
 
@@ -979,28 +986,47 @@ fn demo_events_pointer_lifecycle() -> Result<(), Error> {
     coords.set_fill(TEXT_MUTED)?;
     coords.set_attr("font-size", "12")?;
 
-    target.on_pointerover(event_label(readout.clone(), "pointerover"))?;
-    target.on_pointerenter(event_label(readout.clone(), "pointerenter"))?;
-    target.on_pointerdown(event_label(readout.clone(), "pointerdown"))?;
-    target.on_pointerup(event_label(readout.clone(), "pointerup"))?;
-    target.on_pointercancel(event_label(readout.clone(), "pointercancel"))?;
-    target.on_pointerout(event_label(readout.clone(), "pointerout"))?;
-    target.on_pointerleave(event_label(readout.clone(), "pointerleave"))?;
-    target.on_mouseenter(event_label(readout.clone(), "mouseenter"))?;
-    target.on_mouseleave(event_label(readout.clone(), "mouseleave"))?;
-    target.on_dblclick(event_label(readout.clone(), "dblclick"))?;
+    // Every "last: …" readout write goes through one shared CachedAttr: a burst of identical labels (a stream of
+    // pointermove events) then skips the DOM write after the first. Routing *all* writers through the same cache is
+    // what keeps it from going stale when the event type changes.
+    let label_cache = Rc::new(RefCell::new(CachedAttr::new()));
+
+    // Cache-aware, event-type-generic version of `event_label` for the discrete transitions.
+    fn cached_label<E>(readout: SvgNode, cache: Rc<RefCell<CachedAttr>>, name: &'static str) -> impl Fn(E) + 'static {
+        move |_| {
+            let _ = cache.borrow_mut().set_text(&readout, &format!("last: {name}"));
+        }
+    }
+
+    target.on_pointerover(cached_label(readout.clone(), label_cache.clone(), "pointerover"))?;
+    target.on_pointerenter(cached_label(readout.clone(), label_cache.clone(), "pointerenter"))?;
+    target.on_pointerdown(cached_label(readout.clone(), label_cache.clone(), "pointerdown"))?;
+    target.on_pointerup(cached_label(readout.clone(), label_cache.clone(), "pointerup"))?;
+    target.on_pointercancel(cached_label(readout.clone(), label_cache.clone(), "pointercancel"))?;
+    target.on_pointerout(cached_label(readout.clone(), label_cache.clone(), "pointerout"))?;
+    target.on_pointerleave(cached_label(readout.clone(), label_cache.clone(), "pointerleave"))?;
+    target.on_mouseenter(cached_label(readout.clone(), label_cache.clone(), "mouseenter"))?;
+    target.on_mouseleave(cached_label(readout.clone(), label_cache.clone(), "mouseleave"))?;
+    target.on_dblclick(cached_label(readout.clone(), label_cache.clone(), "dblclick"))?;
 
     let move_readout = readout.clone();
     let move_coords = coords.clone();
+    let move_cache = label_cache.clone();
+    let coords_scratch = Rc::new(RefCell::new(String::new()));
     target.on_pointermove(move |e| {
-        move_readout.set_text("last: pointermove");
-        move_coords.set_text(&format!(
-            "x: {}  y: {}  id: {}  type: {}",
-            e.offset_x(),
-            e.offset_y(),
-            e.pointer_id(),
-            e.pointer_type(),
-        ));
+        // Constant label through the shared cache: no allocation, and the DOM write is skipped on repeat moves.
+        let _ = move_cache.borrow_mut().set_text(&move_readout, "last: pointermove");
+        // Coordinates change every move: format them through a reusable scratch buffer.
+        let _ = move_coords.set_text_fmt(
+            &mut coords_scratch.borrow_mut(),
+            format_args!(
+                "x: {}  y: {}  id: {}  type: {}",
+                e.offset_x(),
+                e.offset_y(),
+                e.pointer_id(),
+                e.pointer_type(),
+            ),
+        );
     })?;
 
     caption(
