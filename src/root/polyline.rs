@@ -13,6 +13,9 @@ impl SvgRoot {
     /// closed (the last point is not joined back to the first). It is still filled by default, so set `fill` to
     /// `"none"` for an open multi-segment line.
     ///
+    /// To update the vertices later without allocating a new string each time (e.g. an animated polyline), use
+    /// [`SvgAttrs::points`](crate::SvgAttrs::points).
+    ///
     /// # Example
     ///
     /// ```rust,no_run

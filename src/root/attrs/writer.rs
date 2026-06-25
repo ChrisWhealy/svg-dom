@@ -1,5 +1,5 @@
 use super::SvgAttrs;
-use crate::{Error, SvgNode};
+use crate::{Error, SvgNode, root::utils::Point};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Chainable attribute writer bound to a single [`SvgNode`].
@@ -69,5 +69,14 @@ impl<'a> AttrWriter<'a> {
     /// Convenience wrapper for path-data `d`.
     pub fn d(&mut self, path: &str) -> Result<&mut Self, Error> {
         self.set("d", path)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Writes a `<polyline>` / `<polygon>` `points` list through the reusable scratch buffer.
+    ///
+    /// See [`SvgAttrs::points`] for the allocation-light, animation-friendly rationale.
+    pub fn points(&mut self, points: &[Point]) -> Result<&mut Self, Error> {
+        self.attrs.points(self.node, points)?;
+        Ok(self)
     }
 }

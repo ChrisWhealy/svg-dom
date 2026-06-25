@@ -2,7 +2,7 @@ mod writer;
 
 pub use writer::AttrWriter;
 
-use crate::{Error, SvgNode};
+use crate::{Error, SvgNode, root::utils::Point};
 use std::fmt::{self, Write};
 use web_sys::Element;
 
@@ -89,6 +89,39 @@ impl SvgAttrs {
             .write_fmt(args)
             .map_err(|_| Error::Dom("failed to format SVG attribute".into()))?;
         node.set_attr(name, &self.scratch)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Formats `points` into the reusable scratch buffer as an SVG `points` list (`"x,y x,y …"`) and writes it as the
+    /// node's `points` attribute.
+    ///
+    /// This is the allocation-light way to set or update the vertices of a `<polyline>` or `<polygon>` — for instance
+    /// a shape whose points are recomputed every animation frame. Reusing one `SvgAttrs` buffer across calls avoids
+    /// the fresh `String` that [`SvgRoot::polyline`](crate::SvgRoot::polyline) /
+    /// [`SvgRoot::polygon`](crate::SvgRoot::polygon) would otherwise build per call.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgAttrs, SvgRoot, root::utils::Point};
+    ///
+    /// let svg = SvgRoot::attach("diagram")?;
+    /// let poly = svg.polyline(&[Point::origin()])?;
+    ///
+    /// let mut attrs = SvgAttrs::new();
+    /// // Re-point the polyline without allocating a new string each time.
+    /// attrs.points(&poly, &[Point::new(0.0, 0.0), Point::new(20.0, 40.0), Point::new(40.0, 0.0)])?;
+    /// # Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn points(&mut self, node: &SvgNode, points: &[Point]) -> Result<(), Error> {
+        self.scratch.clear();
+        for (i, p) in points.iter().enumerate() {
+            if i > 0 {
+                self.scratch.push(' ');
+            }
+            write!(self.scratch, "{},{}", p.x, p.y)?;
+        }
+        node.set_attr("points", &self.scratch)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

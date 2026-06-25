@@ -1131,3 +1131,26 @@ fn should_set_attributes_with_reusable_attr_writer() -> Result<(), String> {
     common::check_eq(rect.attr("transform"), Some("translate(10, 20)".into()))?;
     common::check(attrs.capacity() >= 64, "SvgAttrs should retain its scratch allocation")
 }
+
+/// `AttrWriter::points` updates a polyline's `points` attribute through the reusable buffer, and the same buffer can be
+/// reused for a second update (the latest value wins) — the allocation-light animation path.
+#[wasm_bindgen_test]
+fn should_update_points_via_reusable_buffer() -> Result<(), String> {
+    let svg = make_svg("node-points");
+    let poly = svg
+        .polyline(&[Point::new(0.0, 0.0), Point::new(10.0, 10.0)])
+        .map_err(|e| e.to_string())?;
+    common::check_eq(poly.attr("points"), Some("0,0 10,10".into()))?;
+
+    let mut attrs = svg_dom::SvgAttrs::new();
+    poly.attrs(&mut attrs)
+        .points(&[Point::new(1.0, 2.0), Point::new(3.0, 4.0), Point::new(5.0, 6.0)])
+        .map_err(|e| e.to_string())?;
+    common::check_eq(poly.attr("points"), Some("1,2 3,4 5,6".into()))?;
+
+    // Reuse the same buffer for another update.
+    poly.attrs(&mut attrs)
+        .points(&[Point::new(7.0, 8.0)])
+        .map_err(|e| e.to_string())?;
+    common::check_eq(poly.attr("points"), Some("7,8".into()))
+}

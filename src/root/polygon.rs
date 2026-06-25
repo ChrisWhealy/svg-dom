@@ -12,6 +12,9 @@ impl SvgRoot {
     /// A polygon is like a [`polyline`](Self::polyline) except the final point is automatically joined back to the
     /// first, producing a closed, fillable shape.
     ///
+    /// To update the vertices later without allocating a new string each time (e.g. an animated polygon), use
+    /// [`SvgAttrs::points`](crate::SvgAttrs::points).
+    ///
     /// # Example
     ///
     /// ```rust,no_run
