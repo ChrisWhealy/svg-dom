@@ -6,11 +6,11 @@ pub mod batch;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Factories and helper types
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-pub(crate) mod factory;
 /// The [`SvgRoot::circle`](crate::SvgRoot::circle) factory.
 pub mod circle;
 /// The [`SvgRoot::ellipse`](crate::SvgRoot::ellipse) factory.
 pub mod ellipse;
+pub(crate) mod factory;
 /// The [`SvgRoot::group`](crate::SvgRoot::group) factory.
 pub mod group;
 /// The [`SvgRoot::line`](crate::SvgRoot::line) factory.
