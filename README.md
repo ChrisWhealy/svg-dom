@@ -205,9 +205,11 @@ A larger app would instead hold the loop in its own long-lived state: maybe an a
 
 ## Managed event handlers
 
-`SvgNode` owns the closures registered by its event helpers and removes the matching DOM listener before those closures are dropped. Use these helpers instead of registering raw `web-sys` callbacks and calling `Closure::forget`.
+`SvgNode` owns the closures registered by its event helpers and removes the matching DOM listener before those closures are dropped.
+Use these helpers instead of registering raw `web-sys` callbacks and calling `Closure::forget`.
 
-The managed wrappers cover common SVG interaction events: click/double-click/context menu, mouse down/up/move/enter/leave/over/out, pointer down/up/move/enter/leave/over/out/cancel, wheel, touch start/move/end/cancel, key down/up, focus/blur, and drag-and-drop. For less common events, `on_event("event-name", handler)` provides the same managed lifetime with a generic `web_sys::Event`.
+The managed wrappers cover common SVG interaction events: click/double-click/context menu, mouse down/up/move/enter/leave/over/out, pointer down/up/move/enter/leave/over/out/cancel, wheel, touch start/move/end/cancel, key down/up, focus/blur, and drag-and-drop.
+For less common events, `on_event("event-name", handler)` provides the same managed lifetime with a generic `web_sys::Event`.
 
 ```rust
 let pad = svg.rect(Point::new(20.0, 20.0), Size::new(160.0, 80.0))?;
@@ -243,7 +245,8 @@ rect.set_attrs([
 ])?;
 ```
 
-For repeated numeric or formatted writes, use `SvgAttrs` instead.  It owns a reusable scratch `String`, so display/format values do not require a fresh allocation each time:
+For repeated numeric or formatted writes, use `SvgAttrs` instead.
+It owns a reusable scratch `String`, so display/format values do not require a fresh allocation each time:
 
 ```rust
 let mut attrs = SvgAttrs::new();

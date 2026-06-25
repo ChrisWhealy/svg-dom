@@ -68,10 +68,10 @@ node.as_element().dispatch_event(&event)?;  // handler fires here, synchronously
 assert!(fired.get());
 ```
 
-Additional event wrapper tests dispatch representative synthetic mouse, pointer, wheel, touch, keyboard, focus, drag-and-drop and generic events. They verify that those managed wrappers fire synchronously too, so demo or application code does not need raw `Closure::forget` listeners for ordinary SVG interaction.
+Additional event wrapper tests dispatch representative synthetic mouse, pointer, wheel, touch, keyboard, focus, drag-and-drop and generic events.
+They verify that those managed wrappers fire synchronously too, so demo or application code does not need raw `Closure::forget` listeners for ordinary SVG interaction.
 
 ### Failure reporting
 
 All test functions return `Result<(), String>`.
-If a test fails, `wasm-bindgen-test` displays the `String` message directly without a stack trace, making failures easier to read
-in the terminal.
+If a test fails, `wasm-bindgen-test` displays the `String` message directly without a stack trace, making failures easier to read in the terminal.

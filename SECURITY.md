@@ -42,7 +42,8 @@ We ask that you give us a reasonable opportunity to release a fix before any pub
 
 ## Scope
 
-This policy covers the `svg-dom` library crate itself. Note that:
+This policy covers the `svg-dom` library crate itself.
+Note that:
 
 - The crate contains **no `unsafe` code** in its library build (enforced with `#![forbid(unsafe_code)]`), and its dependency tree is audited in CI with [`cargo-deny`](https://github.com/EmbarkStudios/cargo-deny) (advisories, licenses, bans, and sources).
 - Vulnerabilities in **upstream dependencies** (e.g. `wasm-bindgen`, `web-sys`, `js-sys`) should be reported to those projects; if one affects `svg-dom` users, we will respond by updating the affected dependency.
