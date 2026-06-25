@@ -7,9 +7,8 @@ default-members = ["."]
 [package]
 name = "svg-dom"
 authors = ["Chris Whealy <chris@whealy.com>"]
-version = "0.1.20"
+version = "0.1.21"
 edition = "2024"
-style_edition = "2024"
 rust-version = "1.85"
 description = "A lightweight Rust/WebAssembly library for creating and mutating live SVG content directly in the browser DOM"
 keywords = ["svg", "wasm", "browser", "dom"]
@@ -58,4 +57,19 @@ wasm-bindgen-test = "0.3"
 
 [dev-dependencies.web-sys]
 version = "0.3"
-features = ["Document", "DocumentFragment", "DragEvent", "Element", "Event", "EventTarget", "FocusEvent", "KeyboardEvent", "MouseEvent", "Node", "PointerEvent", "TouchEvent", "Window", "WheelEvent"]
+features = [
+    "Document",
+    "DocumentFragment",
+    "DragEvent",
+    "Element",
+    "Event",
+    "EventTarget",
+    "FocusEvent",
+    "KeyboardEvent",
+    "MouseEvent",
+    "Node",
+    "PointerEvent",
+    "TouchEvent",
+    "Window",
+    "WheelEvent",
+]

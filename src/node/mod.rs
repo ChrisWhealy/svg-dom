@@ -601,6 +601,68 @@ impl SvgNode {
             .map_err(|e| Error::Dom(format!("{e:?}")))
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Removes all child nodes of this node, leaving it empty. On a `<text>` node this clears the text.
+    ///
+    /// This is the bulk counterpart to [`remove`](Self::remove): the idiomatic way to wipe a container such as a `<g>`
+    /// before rebuilding its contents. Any `SvgNode` handles the caller still holds for the removed children remain
+    /// valid but detached.
+    ///
+    /// Calling [`clear`](Self::clear) is idempotent. That is, calling it on a node that has no children is a harmless
+    /// no-op. 
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
+    /// let svg = SvgRoot::attach("diagram")?;
+    /// let group = svg.group()?;
+    /// group.append(&svg.rect(Point::origin(), Size::new(10.0, 10.0))?)?;
+    /// group.append(&svg.circle(Point::new(20.0, 20.0), 5.0)?)?;
+    ///
+    /// group.clear(); // the <g> is now empty, ready to be rebuilt
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn clear(&self) {
+        // Setting text content to nothing detaches every existing child node.
+        self.inner.element.set_text_content(None);
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Remove the current node in the DOM and replace it with `replacement`, which then occupies the same sibling
+    /// position as the node it replaced.
+    ///
+    /// Use this to swap one element for another without disturbing the surrounding paint order. After the call this
+    /// node is detached (its handle remains valid) and `replacement` occupies its former place.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Dom`] if this node has no parent, since a detached or root node cannot be replaced in place.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
+    /// let svg = SvgRoot::attach("diagram")?;
+    /// let placeholder = svg.rect(Point::origin(), Size::new(40.0, 40.0))?;
+    ///
+    /// // Swap the placeholder rect for a circle in the same spot.
+    /// let circle = svg.circle(Point::new(20.0, 20.0), 20.0)?;
+    /// placeholder.replace_with(&circle)?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn replace_with(&self, replacement: &SvgNode) -> Result<(), Error> {
+        let parent = self
+            .inner
+            .element
+            .parent_node()
+            .ok_or_else(|| Error::Dom("cannot replace a node that has no parent".into()))?;
+        parent
+            .replace_child(&replacement.inner.element, &self.inner.element)
+            .map(|_| ())
+            .map_err(|e| Error::Dom(format!("{e:?}")))
+    }
+
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // Event handlers
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -31,11 +31,11 @@ Implemented:
 
 - `remove()` — detach a node from the DOM
 - `insert_before()` — z-order control without rebuilding
+- `clear()` — remove all children of a node (e.g. to redraw a `<g>` from scratch)
+- `replace_with()` — swap one node for another in place
 
 Still missing:
 
-- No `replace_with()` — swap one node for another in place
-- No `clear()` — remove all children of a node (e.g. to redraw a `<g>` from scratch)
 - No `parent()` / child navigation
 - No way to query children or find a node by attribute (`query_selector` and friends)
 

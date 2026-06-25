@@ -1,4 +1,4 @@
-use wasm_bindgen::{JsCast, closure::Closure};
+use wasm_bindgen::{closure::Closure, JsCast};
 use web_sys::{
     DragEvent, Event, FocusEvent, KeyboardEvent, MouseEvent, PointerEvent, SvgElement, TouchEvent, WheelEvent,
 };

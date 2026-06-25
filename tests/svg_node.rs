@@ -578,6 +578,77 @@ fn should_error_when_reference_is_not_a_child() -> Result<(), String> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// clear
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `clear` removes every child of a node, leaving it empty.
+#[wasm_bindgen_test]
+fn should_remove_all_children_after_clear() -> Result<(), String> {
+    let svg = make_svg("node-clear");
+    let group = svg.group().map_err(|e| e.to_string())?;
+
+    let rect = svg.rect(Point::origin(), Size::new(10.0, 10.0)).map_err(|e| e.to_string())?;
+    let circle = svg.circle(Point::new(20.0, 20.0), 5.0).map_err(|e| e.to_string())?;
+    group.append(&rect).map_err(|e| e.to_string())?;
+    group.append(&circle).map_err(|e| e.to_string())?;
+    common::check_eq(group.as_element().child_element_count(), 2)?;
+
+    group.clear();
+    common::check_eq(group.as_element().child_element_count(), 0)
+}
+
+/// Calling `clear` on a node that has no children is idempotent.
+#[wasm_bindgen_test]
+fn should_succeed_when_clearing_empty_node() -> Result<(), String> {
+    let group = make_svg("node-clear-empty").group().map_err(|e| e.to_string())?;
+    group.clear();
+    common::check_eq(group.as_element().child_element_count(), 0)
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// replace_with
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `replace_with` swaps a node for another in the same position; the replacement keeps the old node's place and the
+/// child count is unchanged.
+#[wasm_bindgen_test]
+fn should_swap_node_for_replacement() -> Result<(), String> {
+    let svg = make_svg("node-replace-with");
+    let group = svg.group().map_err(|e| e.to_string())?;
+
+    let placeholder = svg.rect(Point::origin(), Size::new(10.0, 10.0)).map_err(|e| e.to_string())?;
+    placeholder.set_attr("id", "placeholder").map_err(|e| e.to_string())?;
+    group.append(&placeholder).map_err(|e| e.to_string())?;
+
+    let circle = svg.circle(Point::new(5.0, 5.0), 5.0).map_err(|e| e.to_string())?;
+    circle.set_attr("id", "circle").map_err(|e| e.to_string())?;
+    group.append(&circle).map_err(|e| e.to_string())?;
+
+    // Swap the placeholder (first child) for a brand-new rect.
+    let replacement = svg.rect(Point::origin(), Size::new(10.0, 10.0)).map_err(|e| e.to_string())?;
+    replacement.set_attr("id", "replacement").map_err(|e| e.to_string())?;
+    placeholder.replace_with(&replacement).map_err(|e| e.to_string())?;
+
+    common::check_eq(group.as_element().child_element_count(), 2)?;
+    let first_id = group.as_element().first_element_child().map(|e| e.id());
+    common::check_eq(first_id, Some("replacement".into()))
+}
+
+/// `replace_with` fails on a node that has no parent (nothing to replace it within).
+#[wasm_bindgen_test]
+fn should_error_when_replacing_parentless_node() -> Result<(), String> {
+    let svg = make_svg("node-replace-with-parentless");
+    let orphan = svg.rect(Point::origin(), Size::new(10.0, 10.0)).map_err(|e| e.to_string())?;
+    orphan.remove(); // detach it, so it now has no parent
+
+    let replacement = svg.rect(Point::origin(), Size::new(10.0, 10.0)).map_err(|e| e.to_string())?;
+    common::check(
+        orphan.replace_with(&replacement).is_err(),
+        "replace_with should error when the node has no parent",
+    )
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Event handlers
 //
 // `EventTarget::dispatch_event` is synchronous: the browser fires the handler inline before `dispatch_event` returns.

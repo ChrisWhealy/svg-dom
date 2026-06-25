@@ -59,5 +59,9 @@ pub fn check_eq<T: PartialEq + std::fmt::Debug>(got: T, expected: T) -> Result<(
 
 /// Returns `Err(msg)` when `condition` is `false`.
 pub fn check(condition: bool, msg: &str) -> Result<(), String> {
-    if condition { Ok(()) } else { Err(msg.into()) }
+    if condition {
+        Ok(())
+    } else {
+        Err(msg.into())
+    }
 }

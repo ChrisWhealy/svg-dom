@@ -3,10 +3,7 @@
 # rustfmt : v1.9.0-stable
 # ----------------------------------------------------------------------------------------------------------------------
 # unstable_features = true                                 # true, *false
-# 
-# Both edition and style_edition should be picked up from Cargo.toml
-# edition = "2015"                                         # *"2015", "2018", "2021", "2024"
-# style_edition = "2015"                                   # *"2015", "2018", "2021", "2024", "2027" (unstable)
+# edition = "2015"                                         # *"2015", "2018", "2021", "2024" <-- Picked up from Cargo.toml
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Stable options
@@ -33,6 +30,7 @@ single_line_if_else_max_width = 80                         # *50, or any integer
 single_line_let_else_max_width = 80                        # *50, or any integer <= max_width
 struct_lit_width = 30                                      # *18, or any integer <= max_width
 struct_variant_width = 50                                  # *35, or any integer <= max_width
+style_edition = "2024"                                     # *"2015", "2018", "2021", "2024", "2027" (unstable)
 tab_spaces = 4                                             # *4
 use_field_init_shorthand = true                            # true, *false
 use_small_heuristics = "Default"                           # *"Default", "Off", "Max"
