@@ -155,3 +155,20 @@ This idea cannot be implemented because it does not apply to Rust libraries &mda
   `wasm-pack` already runs `wasm-opt` on release builds, configurable through `[package.metadata.wasm-pack.profile.release]`, so the size lever for the demo already exists in the toolchain.
 
 This recommendation does however contain a useful kernel — *how to minimise wasm size* — but it belongs as guidance for application authors (set the size-optimised profile in **your** app and let `wasm-pack`/`wasm-opt` run), not in any configuration of the library manifest.
+
+## 7) Pre-reserving capacity in `write_points`
+
+It was suggested that `write_points` (in `src/root/utils.rs`) call `out.reserve(...)` with an estimated byte size before its formatting loop, so a first write of a large `<polyline>`/`<polygon>` does not grow the `String` repeatedly.
+
+* **The buffer is reused, so steady state is already allocation-free.**<br>
+  `write_points` starts with `out.clear()`, which keeps the existing capacity, and every caller (`SvgAttrs::points`, `AttrWriter::points`, `AnimationFrame::set_points`, and the factories) holds *one* buffer reused across calls.
+  Once it has been sized by the first write, a same-or-smaller polyline never reallocates again — so an animated polyline (the situation for which the points API exists) sees no per-frame growth regardless.
+
+* **It optimises only the first write, and that cost is already tiny.**<br>
+  The reserve would help only the very first write (or a later write that grows past the high-water mark), which is a one-time, setup-shaped event.
+  `String` growth is geometric (doubling), so even a 10,000-point polyline reallocates a handful of times totalling a couple of `memcpy`s of the final size — microseconds, paid once.
+
+* **The proposed estimate is heuristic and partly wrong.**<br>
+  The full-precision (`None`) constant of 24 bytes per point undershoots real `f64` `Display` output, which, when using full decimal precision, can exceed 30 bytes per coordinate pair, so the reserve would *still* leave the buffer to grow in exactly the case it was meant to cover — while adding per-call arithmetic and two magic constants to an otherwise clean shared helper.
+
+If a profile ever showed first-write reallocation as a genuine bottleneck for enormous polylines, a single plain `reserve(points.len() * k)` could be revisited — but the buffer-reuse design already makes it moot for any repeated or animated use, which is the only hot path here.
