@@ -1,5 +1,5 @@
 use svg_dom::{
-    Error, SvgRoot,
+    Error, SvgNode, SvgRoot,
     root::utils::{Point, Size},
 };
 use wasm_bindgen_test::*;
@@ -350,4 +350,64 @@ fn should_not_commit_batch_when_closure_errors() -> Result<(), String> {
     common::check(result.is_err(), "the closure error should propagate")?;
     // The batched child lived only in the (now-dropped) fragment, so the group stays empty.
     common::check_eq(group.as_element().child_element_count(), 0)
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// SvgRoot / SvgBatch factory parity
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// Asserts a node built via `SvgRoot` and one built via `SvgBatch` have the same tag and the same value for each named
+/// attribute. Guards against the two factory surfaces drifting apart.
+fn assert_parity(
+    label: &str,
+    root: Result<SvgNode, Error>,
+    batch: Result<SvgNode, Error>,
+    attrs: &[&str],
+) -> Result<(), String> {
+    let root = root.map_err(|e| e.to_string())?;
+    let batch = batch.map_err(|e| e.to_string())?;
+
+    let (root_tag, batch_tag) = (root.as_element().tag_name(), batch.as_element().tag_name());
+    if root_tag != batch_tag {
+        return Err(format!("{label}: tag differs (root `{root_tag}` vs batch `{batch_tag}`)"));
+    }
+    for name in attrs {
+        let (r, b) = (root.attr(name), batch.attr(name));
+        if r != b {
+            return Err(format!("{label}: attr `{name}` differs (root {r:?} vs batch {b:?})"));
+        }
+    }
+    Ok(())
+}
+
+/// Every supported element must be creatable through both `SvgRoot` and `SvgBatch`, producing equivalent DOM.
+///
+/// This also fails to *compile* if a factory is ever added to one path but not the other — the structural guard the
+/// shared `SvgFactory` is meant to provide.
+#[wasm_bindgen_test]
+fn should_create_equivalent_elements_via_root_and_batch() -> Result<(), String> {
+    common::div("factory-parity");
+    let svg = SvgRoot::create_in("factory-parity", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let batch = svg.batch();
+
+    let p = Point::new(10.0, 20.0);
+    let q = Point::new(110.0, 120.0);
+    let s = Size::new(120.0, 60.0);
+    let pts = [Point::new(0.0, 0.0), Point::new(20.0, 40.0), Point::new(40.0, 0.0)];
+
+    assert_parity("rect", svg.rect(p, s), batch.rect(p, s), &["x", "y", "width", "height"])?;
+    assert_parity("circle", svg.circle(p, 25.0), batch.circle(p, 25.0), &["cx", "cy", "r"])?;
+    assert_parity("ellipse", svg.ellipse(p, s), batch.ellipse(p, s), &["cx", "cy", "rx", "ry"])?;
+    assert_parity("line", svg.line(p, q), batch.line(p, q), &["x1", "y1", "x2", "y2"])?;
+    assert_parity("path", svg.path("M 0 0 L 10 10"), batch.path("M 0 0 L 10 10"), &["d"])?;
+    assert_parity("polyline", svg.polyline(&pts), batch.polyline(&pts), &["points"])?;
+    assert_parity("polygon", svg.polygon(&pts), batch.polygon(&pts), &["points"])?;
+    assert_parity("group", svg.group(), batch.group(), &[])?;
+
+    // text also carries text content, which the attribute comparison above does not cover.
+    let r_text = svg.text(p, "parity").map_err(|e| e.to_string())?;
+    let b_text = batch.text(p, "parity").map_err(|e| e.to_string())?;
+    common::check_eq(r_text.attr("x"), b_text.attr("x"))?;
+    common::check_eq(r_text.attr("y"), b_text.attr("y"))?;
+    common::check_eq(r_text.as_element().text_content(), b_text.as_element().text_content())
 }
