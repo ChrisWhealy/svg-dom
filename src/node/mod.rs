@@ -37,10 +37,13 @@ struct SvgNodeInner {
 
 impl Drop for SvgNodeInner {
     fn drop(&mut self) {
-        // Drop the listener storage explicitly while the SVG element is still alive.
-        // Each EventListener removes its own DOM callback before its Closure field is
-        // freed.
-        let _ = self.listeners.get_mut().take();
+        // Listeners no longer hold their own element handle, so detach every browser-side callback here — using the
+        // node's still-live element — *before* the store (and its closures) is dropped. Detaching first stops the DOM
+        // from briefly retaining a callback that points at a freed wasm-bindgen closure. Dropping the node is the only
+        // path that drops listeners, so this single call is the complete cleanup.
+        if let Some(store) = self.listeners.get_mut().take() {
+            store.detach_all(&self.element);
+        }
     }
 }
 
@@ -802,11 +805,7 @@ impl SvgNode {
             .element
             .add_event_listener_with_callback(event_type, closure.callback_ref())
             .map_err(|e| Error::Dom(format!("{e:?}")))?;
-        let listener = EventListener {
-            element: self.inner.element.clone(),
-            event_type,
-            closure,
-        };
+        let listener = EventListener { event_type, closure };
         let mut guard = self.inner.listeners.borrow_mut();
         match guard.as_deref_mut() {
             // First listener: store it inline (one allocation), no Vec yet.

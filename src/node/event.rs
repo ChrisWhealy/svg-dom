@@ -31,20 +31,21 @@ impl EventClosure {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// A single managed listener: the browser event name plus the wasm-bindgen closure registered for it.
+///
+/// It deliberately does **not** store its own element handle. Detaching the browser-side callback is the owning
+/// node's responsibility — `SvgNodeInner::drop` calls [`ListenerStore::detach_all`] with the node's element before
+/// the closures are dropped. Because dropping the node is the only path that drops listeners, that single call is
+/// sufficient, and it avoids cloning an `SvgElement` (a wasm/JS ref-clone, plus a held JS-table slot) per listener.
 pub struct EventListener {
-    pub element: SvgElement,
     pub event_type: &'static str,
     pub closure: EventClosure,
 }
 
-impl Drop for EventListener {
-    fn drop(&mut self) {
-        // Remove the browser-side listener before the wasm-bindgen Closure field is
-        // dropped. Otherwise the DOM can retain a callback reference to a closure
-        // that no longer exists in Rust-managed memory.
-        let _ = self
-            .element
-            .remove_event_listener_with_callback(self.event_type, self.closure.callback_ref());
+impl EventListener {
+    /// Removes this listener's browser-side callback from `element` (supplied by the owning node).
+    fn detach(&self, element: &SvgElement) {
+        let _ = element.remove_event_listener_with_callback(self.event_type, self.closure.callback_ref());
     }
 }
 
@@ -71,5 +72,20 @@ impl ListenerStore {
                 ListenerStore::Many(many)
             },
         };
+    }
+
+    /// Detaches every listener's browser-side callback from `element`.
+    ///
+    /// Must run before the store (and its closures) is dropped, so the DOM never retains a callback that points at a
+    /// freed wasm-bindgen closure. `SvgNodeInner::drop` is the sole caller — and the only place listeners are dropped.
+    pub fn detach_all(&self, element: &SvgElement) {
+        match self {
+            ListenerStore::One(listener) => listener.detach(element),
+            ListenerStore::Many(listeners) => {
+                for listener in listeners {
+                    listener.detach(element);
+                }
+            },
+        }
     }
 }
