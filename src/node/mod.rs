@@ -554,7 +554,7 @@ impl SvgNode {
     ///
     /// The `SvgNode` handle remains valid after removal — it simply points at an element that is no longer part of the
     /// document tree, so it can be re-inserted later with [`append`](Self::append) or [`insert_before`](Self::insert_before).
-    /// 
+    ///
     /// Any managed event listeners stay registered on the (now detached) element and are still removed when the last
     /// handle is dropped.
     ///
@@ -579,7 +579,7 @@ impl SvgNode {
     ///
     /// This is the tree operation for **z-order control**: SVG paints children in document order, so inserting a node
     /// before an existing sibling places it *behind* that sibling without rebuilding the rest of the tree.
-    /// 
+    ///
     /// To have the new child appear at the top of the visibility stack, use [`append`](Self::append) instead.
     ///
     /// # Errors
