@@ -187,7 +187,8 @@ fn build() -> Result<(), svg_dom::Error> {
 
 > This example is mirrored in [`examples/readme_minimal.rs`](examples/readme_minimal.rs) and compiled for `wasm32` in CI, so it cannot silently fall out of step with the crate.
 
-**Keeping the loop alive.**
+### Keeping the loop alive
+
 An `AnimationLoop` stops as soon as its handle is dropped, so it must be held somewhere that lives as long as the animation should run.
 This example parks it in a [`thread_local!`](https://doc.rust-lang.org/std/macro.thread_local.html) slot.
 Thread-local storage is a variable with one independent instance *per thread*, created lazily the first time that thread touches it.
