@@ -9,7 +9,10 @@ use crate::{
     root::attrs::{AttrWriter, SvgAttrs},
 };
 use event::*;
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::RefCell,
+    rc::{Rc, Weak},
+};
 use wasm_bindgen::{JsCast, prelude::*};
 use web_sys::{
     DragEvent, Event, FocusEvent, KeyboardEvent, MouseEvent, PointerEvent, SvgElement, TouchEvent, WheelEvent,
@@ -70,6 +73,62 @@ pub struct SvgNode {
     inner: Rc<SvgNodeInner>,
 }
 
+/// A non-owning handle to the same DOM element as an [`SvgNode`].
+///
+/// `WeakSvgNode` holds a [`Weak`] reference, so it does **not** keep the node alive.
+///
+/// To obtain a `WeakSvgNode`, use [`SvgNode::downgrade`].  It can then be turned back into a live [`SvgNode`] with
+/// [`upgrade`](Self::upgrade), which yields `None` once every strong handle to the node has been dropped.
+///
+/// # Why this exists: To avoid a reference cycle
+///
+/// A managed event listener is *owned by the node it is registered on*. If that listener's closure also captures a
+/// **strong** [`SvgNode`] clone of the same node, the node ends up owning a reference to itself:
+///
+/// ```text
+/// SvgNodeInner ─▶ EventListener ─▶ Closure ─▶ SvgNode (Rc) ─▶ the same SvgNodeInner
+/// ```
+///
+/// That cycle keeps the node's strong count above zero even after every external handle is dropped, so the node is
+/// never freed and its managed listener is never removed from the DOM. For a node that lives for the whole page this
+/// is harmless (it was never going to be dropped anyway), but for a node you create, knowing that it will be discarded
+/// later, this is a genuine leak that defeats the crate's automatic listener cleanup.
+///
+/// Capturing a `WeakSvgNode` instead breaks the cycle: the closure no longer keeps the node alive, so dropping the last
+/// strong handle frees the node and removes its listener as expected. Inside the closure call [`upgrade`](Self::upgrade)
+/// to obtain a temporary live handle for the duration of the event.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
+/// let svg = SvgRoot::attach("diagram")?;
+/// let rect = svg.rect(Point::new(10.0, 10.0), Size::new(80.0, 40.0))?;
+///
+/// // Capture a *weak* handle so the listener does not keep `rect` alive.
+/// let rect_weak = rect.downgrade();
+/// rect.on_pointerenter(move |_| {
+///     if let Some(rect) = rect_weak.upgrade() {
+///         let _ = rect.set_fill("gold");
+///     }
+/// })?;
+/// Ok::<(), svg_dom::Error>(())
+/// ```
+#[derive(Clone)]
+pub struct WeakSvgNode {
+    inner: Weak<SvgNodeInner>,
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+impl WeakSvgNode {
+    /// Attempts to obtain a live [`SvgNode`] from this weak handle.
+    ///
+    /// Returns `None` once the node has been dropped — that is, after the last strong [`SvgNode`] handle is gone.
+    pub fn upgrade(&self) -> Option<SvgNode> {
+        self.inner.upgrade().map(|inner| SvgNode { inner })
+    }
+}
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 impl SvgNode {
     pub(crate) fn new(element: SvgElement) -> Self {
@@ -102,6 +161,20 @@ impl SvgNode {
     /// ```
     pub fn as_element(&self) -> &SvgElement {
         &self.inner.element
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// # Weak handle
+    ///
+    /// Returns a non-owning [`WeakSvgNode`] for this element.
+    ///
+    /// Use this when a managed event listener on a node must refer back to that **same** node: capturing a strong
+    /// [`clone`](Self::clone) in such a closure creates a reference cycle that keeps the node (and its DOM listener)
+    /// alive forever. See [`WeakSvgNode`] for the full explanation and an example.
+    pub fn downgrade(&self) -> WeakSvgNode {
+        WeakSvgNode {
+            inner: Rc::downgrade(&self.inner),
+        }
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -804,6 +877,14 @@ impl SvgNode {
     ///
     /// Prefer the typed convenience wrappers where available. Like the wrappers below, this keeps the closure owned by
     /// the node and removes the DOM listener automatically when the last `SvgNode` handle is dropped.
+    ///
+    /// **Cycle caveat:**
+    ///
+    /// If the handler needs to mutate the *same* node it is attached to, capture a [`downgrade`](Self::downgrade)d
+    /// [`WeakSvgNode`] and [`upgrade`](WeakSvgNode::upgrade) it inside the closure, rather than a strong [`clone`](Self::clone).
+    ///
+    /// A strong self-capture forms a reference cycle that keeps the node alive forever and prevents this automatic
+    /// listener cleanup. See [`WeakSvgNode`] for details.
     pub fn on_event<F: Fn(Event) + 'static>(&self, event_type: &'static str, handler: F) -> Result<(), Error> {
         self.add_event_listener(event_type, handler)
     }

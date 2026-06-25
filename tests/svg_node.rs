@@ -1041,6 +1041,69 @@ fn should_remove_dom_listener_when_final_node_handle_is_dropped() -> Result<(), 
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Self-referential listeners — strong cycle vs WeakSvgNode
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// A listener that captures a *weak* self-handle does not keep its node alive: dropping the last strong handle frees
+/// the node and removes the listener, which is exactly what `downgrade` is for.
+#[wasm_bindgen_test]
+fn should_drop_node_when_listener_captures_weak_self() -> Result<(), String> {
+    let rect = make_svg("node-weak-self")
+        .rect(Point::origin(), Size::new(200.0, 200.0))
+        .map_err(|e| e.to_string())?;
+    let elem = rect.as_element().clone();
+    let count = Rc::new(Cell::new(0u32));
+
+    let seen = count.clone();
+    let rect_weak = rect.downgrade();
+    rect.on_click(move |_| {
+        seen.set(seen.get() + 1);
+        if let Some(rect) = rect_weak.upgrade() {
+            let _ = rect.set_fill("gold");
+        }
+    })
+    .map_err(|e| e.to_string())?;
+
+    dispatch_element(&elem, "click")?;
+    common::check_eq(count.get(), 1)?;
+
+    // The closure holds only a Weak, so `rect` is the last strong handle. Dropping it frees the node and removes the
+    // listener, so a further event must not fire.
+    drop(rect);
+    dispatch_element(&elem, "click")?;
+    common::check_eq(count.get(), 1)
+}
+
+/// Documents the footgun that [`svg_dom::WeakSvgNode`] exists to avoid: a listener capturing a *strong* clone of its
+/// own node forms a reference cycle, so dropping the "last" external handle does **not** free the node — the listener
+/// stays live and keeps firing. Self-mutating listeners should capture a weak handle instead (see the test above).
+#[wasm_bindgen_test]
+fn should_leak_when_listener_captures_strong_self() -> Result<(), String> {
+    let rect = make_svg("node-strong-self")
+        .rect(Point::origin(), Size::new(200.0, 200.0))
+        .map_err(|e| e.to_string())?;
+    let elem = rect.as_element().clone();
+    let count = Rc::new(Cell::new(0u32));
+
+    let seen = count.clone();
+    let rect_strong = rect.clone(); // strong self-capture — this is the cycle
+    rect.on_click(move |_| {
+        seen.set(seen.get() + 1);
+        let _ = rect_strong.set_fill("gold");
+    })
+    .map_err(|e| e.to_string())?;
+
+    dispatch_element(&elem, "click")?;
+    common::check_eq(count.get(), 1)?;
+
+    // Dropping the external handle does NOT free the node: the closure still owns a strong clone of it, so the listener
+    // remains attached and fires again. This is the leak that capturing a WeakSvgNode would prevent.
+    drop(rect);
+    dispatch_element(&elem, "click")?;
+    common::check_eq(count.get(), 2)
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // SvgAttrs / AttrWriter
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

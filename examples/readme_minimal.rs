@@ -35,7 +35,10 @@ fn build() -> Result<(), svg_dom::Error> {
     let mut attrs = SvgAttrs::new();
     rect.attrs(&mut attrs).fill("steelblue")?.stroke("white")?.stroke_width(2.0)?;
 
-    // Clone the handle so the event closure can refer to the same DOM node.
+    // Clone the handle so the event closure can mutate the same DOM node. A *strong* clone here also keeps `rect` (and
+    // its listeners) alive for the page after `build` returns, which is what we want for a permanent element. A node
+    // you intend to *discard* later should instead capture `rect.downgrade()` and `upgrade()` inside the closure, so
+    // it does not form a reference cycle that keeps the node alive forever — see `svg_dom::WeakSvgNode`.
     let rect_out = rect.clone();
     rect.on_pointerenter(move |_evt| {
         let _ = rect_out.set_fill("gold");
