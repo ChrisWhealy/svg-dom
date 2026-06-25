@@ -189,7 +189,8 @@ fn build() -> Result<(), svg_dom::Error> {
 
 ### Keeping the loop alive
 
-An `AnimationLoop` stops as soon as its handle is dropped, so it must be held somewhere that lives as long as the animation should run.
+An `AnimationLoop` stops as soon as its handle is dropped, so it must be held somewhere that lives for as long as the animation should run.
+
 This example parks it in a [`thread_local!`](https://doc.rust-lang.org/std/macro.thread_local.html) slot.
 Thread-local storage is a variable with one independent instance *per thread*, created lazily the first time that thread touches it.
 A wasm page runs on a single thread, so in practice this is one page-global slot that is initialised on first use and then lives for the lifetime of the page.
