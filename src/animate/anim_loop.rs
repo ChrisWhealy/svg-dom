@@ -58,6 +58,7 @@ impl AnimationLoop {
     ///
     /// ```rust,no_run
     /// use std::cell::RefCell;
+    /// use std::fmt::Write;
     /// use svg_dom::{AnimationLoop, SvgRoot};
     ///
     /// // One page-lifetime slot to hold the running loop (a wasm page is single-threaded).
@@ -68,10 +69,15 @@ impl AnimationLoop {
     /// let svg = SvgRoot::attach("vis").unwrap();
     /// let path = svg.path("M 0 50 L 200 50").unwrap();
     ///
+    /// // The callback is `FnMut`, so it can own a reusable buffer and format into it rather than
+    /// // allocating a fresh `String` each frame. (For a crate-managed buffer, see `start_with_frame`.)
+    /// let mut d = String::new();
     /// let anim = AnimationLoop::start(move |ts| {
     ///     // Animate the midpoint of the path upward and downward.
     ///     let y = 50.0 + 30.0 * (ts / 600.0).sin();
-    ///     let _ = path.set_d(&format!("M 0 50 Q 100 {y} 200 50"));
+    ///     d.clear();
+    ///     let _ = write!(d, "M 0 50 Q 100 {y} 200 50");
+    ///     let _ = path.set_d(&d);
     /// }).unwrap();
     ///
     /// // Keep the loop alive for the page's lifetime; dropping it would stop it via `Drop`.

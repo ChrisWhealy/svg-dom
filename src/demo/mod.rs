@@ -620,7 +620,7 @@ fn demo_events_click() -> Result<(), Error> {
         inc_count.set(n);
         let _ = inc_btn.set_fill(&format!("hsl({},60%,45%)", (n * 40) % 360));
         let _ = inc_reset.set_fill(TOMATO); // reset now has something to do
-        inc_readout.as_element().set_text_content(Some(&format!("clicks: {n}")));
+        inc_readout.set_text(&format!("clicks: {n}"));
     })?;
 
     // Reset click → zero the count and restore the resting colours.
@@ -632,7 +632,7 @@ fn demo_events_click() -> Result<(), Error> {
         rst_count.set(0);
         let _ = rst_btn.set_fill(STEELBLUE);
         let _ = rst_reset.set_fill(RESET_IDLE);
-        rst_readout.as_element().set_text_content(Some("clicks: 0"));
+        rst_readout.set_text("clicks: 0");
     })?;
 
     caption(&svg, 400.0, "two on_click handlers sharing one Rc<Cell> counter")?;
@@ -775,7 +775,7 @@ fn demo_events_modifiers() -> Result<(), Error> {
             ("plain click", SLATE_BLUE)
         };
         let _ = pad_click.set_fill(colour);
-        ro_click.as_element().set_text_content(Some(&format!("last: {label}")));
+        ro_click.set_text(&format!("last: {label}"));
     })?;
 
     // Right-click → suppress the browser context menu and report it.  ('click' never fires for the secondary button,
@@ -785,9 +785,7 @@ fn demo_events_modifiers() -> Result<(), Error> {
     pad.on_contextmenu(move |e| {
         e.prevent_default();
         let _ = pad_ctx.set_fill(CRIMSON);
-        ro_ctx
-            .as_element()
-            .set_text_content(Some("last: right-click (context menu suppressed)"));
+        ro_ctx.set_text("last: right-click (context menu suppressed)");
     })?;
 
     caption(
@@ -825,7 +823,7 @@ fn demo_events_press() -> Result<(), Error> {
         move |mods: &str| {
             let _ = pad.set_fill(TEAL_PRESSED); // darken while held
             let _ = pad.set_attr("transform", "translate(2,2)");
-            readout.as_element().set_text_content(Some(&format!("state: pressed{mods}")));
+            readout.set_text(&format!("state: pressed{mods}"));
         }
     };
     let release = {
@@ -834,7 +832,7 @@ fn demo_events_press() -> Result<(), Error> {
         move || {
             let _ = pad.set_fill(TEAL);
             let _ = pad.set_attr("transform", "translate(0,0)");
-            readout.as_element().set_text_content(Some("state: idle"));
+            readout.set_text("state: idle");
         }
     };
 
@@ -940,7 +938,7 @@ fn demo_events_group() -> Result<(), Error> {
     group1.on_pointerenter(move |_| {
         let n = c1.get() + 1;
         c1.set(n);
-        g1_count.as_element().set_text_content(Some(&format!("fires: {n}")));
+        g1_count.set_text(&format!("fires: {n}"));
     })?;
     // Managed listeners are removed when their owning SvgNode is dropped, so keep this interactive node alive for the
     // page lifetime.
@@ -953,7 +951,7 @@ fn demo_events_group() -> Result<(), Error> {
     group2.on_pointerenter(move |_| {
         let n = c2.get() + 1;
         c2.set(n);
-        g2_count.as_element().set_text_content(Some(&format!("fires: {n}")));
+        g2_count.set_text(&format!("fires: {n}"));
     })?;
     // Managed listeners are removed when their owning SvgNode is dropped, so keep this interactive node alive for the
     // page lifetime.
