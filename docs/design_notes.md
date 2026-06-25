@@ -104,6 +104,9 @@ If that attribute is changed by some other path, call `invalidate()` so the cach
 The same cache also covers text content via `CachedAttr::set_text`, for the equivalent case of a status readout rewritten with the same string on every `pointermove`.
 Dedicate a given `CachedAttr` to *either* an attribute or text content, not both, since they share the single remembered value.
 
+For a *formatted* cached value, `CachedAttr::set_fmt` / `set_text_fmt` format into a caller-owned `&mut String` scratch and then cache, so a frequently-touched but rarely-changing formatted readout (a grid-snapped coordinate, a zoom percentage) avoids both the per-call `format!` allocation and the redundant DOM write.
+The scratch is a *separate* buffer from the cache, because the cache's own buffer holds the last-written value the new one is compared against.
+
 ## Multi-attribute updates
 
 `SvgNode::set_attrs` accepts any `IntoIterator` of `(name, value)` pairs where both sides implement `AsRef<str>`.

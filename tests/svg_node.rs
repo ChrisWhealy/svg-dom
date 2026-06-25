@@ -326,6 +326,58 @@ fn should_write_changed_cached_text() -> Result<(), String> {
     common::check_eq(label.as_element().text_content(), Some("dropped".into()))
 }
 
+/// `CachedAttr::set_text_fmt` formats through a caller-owned scratch buffer, then caches: an unchanged formatted value
+/// skips the DOM write (no allocation either), and a changed one writes through.
+#[wasm_bindgen_test]
+fn should_cache_formatted_text_via_set_text_fmt() -> Result<(), String> {
+    let label = make_svg("node-cached-text-fmt")
+        .text(Point::new(10.0, 20.0), "")
+        .map_err(|e| e.to_string())?;
+    let mut cache = svg_dom::CachedAttr::new();
+    let mut scratch = String::new();
+
+    cache
+        .set_text_fmt(&label, &mut scratch, format_args!("row: {}", 5))
+        .map_err(|e| e.to_string())?;
+    common::check_eq(label.as_element().text_content(), Some("row: 5".into()))?;
+
+    // Same formatted value → cache skips the write (proved by a behind-the-cache change surviving).
+    label.set_text("changed");
+    cache
+        .set_text_fmt(&label, &mut scratch, format_args!("row: {}", 5))
+        .map_err(|e| e.to_string())?;
+    common::check_eq(label.as_element().text_content(), Some("changed".into()))?;
+
+    // A different formatted value writes through.
+    cache
+        .set_text_fmt(&label, &mut scratch, format_args!("row: {}", 6))
+        .map_err(|e| e.to_string())?;
+    common::check_eq(label.as_element().text_content(), Some("row: 6".into()))
+}
+
+/// `CachedAttr::set_fmt` does the same for an attribute: formats through the scratch buffer, then elides the redundant
+/// write when the formatted value repeats.
+#[wasm_bindgen_test]
+fn should_cache_formatted_attribute_via_set_fmt() -> Result<(), String> {
+    let rect = make_svg("node-cached-attr-fmt")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    let mut cache = svg_dom::CachedAttr::new();
+    let mut scratch = String::new();
+
+    cache
+        .set_fmt(&rect, "opacity", &mut scratch, format_args!("{:.1}", 0.5))
+        .map_err(|e| e.to_string())?;
+    common::check_eq(rect.attr("opacity"), Some("0.5".into()))?;
+
+    // Same value → skipped (a behind-the-cache change survives).
+    rect.set_attr("opacity", "0.9").map_err(|e| e.to_string())?;
+    cache
+        .set_fmt(&rect, "opacity", &mut scratch, format_args!("{:.1}", 0.5))
+        .map_err(|e| e.to_string())?;
+    common::check_eq(rect.attr("opacity"), Some("0.9".into()))
+}
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // transform helpers (set_translate / set_rotate / set_scale / ...)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

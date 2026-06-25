@@ -37,6 +37,7 @@
 //! ```
 
 use crate::{Error, SvgNode};
+use std::fmt::{self, Write};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// A caller-owned cache of the last value written to one attribute, used to elide redundant DOM writes.
@@ -101,6 +102,45 @@ impl CachedAttr {
         }
 
         Ok(())
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Formats `args` into the caller-owned `scratch` buffer and writes it via [`set`](Self::set).
+    ///
+    /// This is the allocation-light counterpart to `set(node, name, &format!(...))`: the candidate value is formatted
+    /// into a reused buffer instead of a fresh `String` each call, so a frequently-touched but rarely-changing
+    /// *formatted* attribute (a grid-snapped coordinate, a zoom percentage, etc) costs no per-call allocation **and**
+    /// no DOM write while it is unchanged.
+    ///
+    /// `scratch` must be a buffer you own *separately* from the cache: the cache's own buffer holds the last-written
+    /// value it compares against, so the new value needs somewhere else to be built. Reuse one `scratch` across calls
+    /// (typically captured alongside the cache in the handler's state).
+    pub fn set_fmt(
+        &mut self,
+        node: &SvgNode,
+        name: &str,
+        scratch: &mut String,
+        args: fmt::Arguments<'_>,
+    ) -> Result<(), Error> {
+        scratch.clear();
+        scratch
+            .write_fmt(args)
+            .map_err(|_| Error::Dom("failed to format SVG attribute".into()))?;
+        self.set(node, name, scratch)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Formats `args` into the caller-owned `scratch` buffer and writes it via [`set_text`](Self::set_text).
+    ///
+    /// The text-content counterpart to [`set_fmt`](Self::set_fmt): use it for a formatted status readout updated on
+    /// every event but usually showing the same text, to avoid both the per-call `format!` allocation and the redundant
+    /// `set_text_content`. See [`set_fmt`](Self::set_fmt) for the caller-owned `scratch` requirement.
+    pub fn set_text_fmt(&mut self, node: &SvgNode, scratch: &mut String, args: fmt::Arguments<'_>) -> Result<(), Error> {
+        scratch.clear();
+        scratch
+            .write_fmt(args)
+            .map_err(|_| Error::Dom("failed to format SVG text".into()))?;
+        self.set_text(node, scratch)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
