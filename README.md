@@ -193,7 +193,7 @@ An `AnimationLoop` stops as soon as its handle is dropped, so it must be held so
 
 This example parks it in a [`thread_local!`](https://doc.rust-lang.org/std/macro.thread_local.html) slot.
 Thread-local storage is a variable with one independent instance *per thread*, created lazily the first time that thread touches it.
-A wasm page runs on a single thread, so in practice this is one page-global slot that is initialised on first use and then lives for the lifetime of the page.
+A WASM page runs on a single thread, so in practice this is one page-global slot that is initialised on first use and then lives for the lifetime of the page.
 
 This approach is preferable to calling `std::mem::forget(anim)`, since forgetting the loop leaks it permanently and throws away the crate's `Drop`-based stop; whereas a stored loop can be cleared (or replaced) later to stop it cleanly.
 
