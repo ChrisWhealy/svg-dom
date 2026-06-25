@@ -194,7 +194,7 @@ This recommendation has been evaluated and **will not** be pursued.
 * **The saved string is dwarfed by what the factory already does.**<br>
   Every factory call already performs a `create_element_ns` (a wasm/JS boundary crossing that allocates a live DOM node) and a DOM append.
   A caller's `format!` for the `d`/text is negligible beside those, so nothing measurable is changed by removing it. 
-  The same "the boundary crossing dominates" reasoning as was used to reject the use of the `ryu` crate.
+  The same "the cost of boundary crossing dominates" reasoning as was used to reject the use of the `ryu` crate.
 
 * **The hot case is already covered.**<br>
   A path or label whose `d` or text *changes over time* should be created once and then mutated on the live node with `AnimationFrame::set_d_fmt` / `set_text_fmt` (inside a RAF loop) or `SvgAttrs::fmt` / `SvgNode::set_text_fmt` (in an event handler) — never recreated.
@@ -203,3 +203,30 @@ This recommendation has been evaluated and **will not** be pursued.
 Against those, the cost is four new public methods (`path_fmt` / `text_fmt` on both `SvgRoot` and `SvgBatch`), each carrying documentation and tests under `#![deny(missing_docs)]`, simple to remove a single setup-time allocation.
 Callers who format at creation time can simply write `svg.path(&format!(...))`.
 If a future profile ever shows element-creation churn dominating (for example frequent full rebuilds), the right response is to mutate existing nodes, not to add creation-time formatting helpers.
+
+## Handle-light factories for large static scenes (`static_rect`, raw `SvgElement`)
+
+It was suggested that for scenes containing thousands of static elements whose handles are discarded immediately, the per-element allocation of an `Rc<SvgNodeInner>` should be avoided.
+The factories could skip constructing a managed `SvgNode` by implementing functions such as `static_rect(...)` or `static_path(...)` and return a "naked" `web_sys::SvgElement` instead of a wrapped `SvgNode`.
+
+This recommendation has been evaluated and **will not** be pursued.
+
+* **The `Rc` is dwarfed by the per-element DOM cost.**<br>
+  Every factory call already creates a real browser DOM node via `create_element_ns` (thus crossing the wasm/JS boundary) and makes one `set_attribute` crossing per attribute.
+  A single `Rc::new` of a two-field struct is noise beside that, and is a one-time setup cost rather than occurring on a hot path.
+
+  This is the same "the cost of boundary crossing dominates" reasoning used to reject `ryu`/`itoa` and the `path_fmt` helpers above.
+
+* **The real cost of bulk creation is already addressed.**<br>
+  `SvgBatch` (`build_batch` / `build_batch_into`) appends many elements through a single `DocumentFragment` operation, which targets the DOM-mutation and reflow cost that actually scales with element count.
+  A `static_*` variant cannot remove the cost of boundary crossing &mdash; each element and its attributes still have to be created &mdash; so it would only shave off a negligible handle allocation on top of the work `SvgBatch` already minimises.
+
+* **It bifurcates the API for a speculative gain.**<br>
+  A `static_*` form of every factory across both `SvgRoot` and `SvgBatch` is a large, permanent public surface (with docs and tests under `#![deny(missing_docs)]`), plus a "which one do I use?" decision forced on every caller.
+  The recommendation is itself conditional ("if this crate will be used for thousands of static elements"), and no profile shows the handle as a bottleneck.
+
+* **It re-exposes raw `web-sys`.**<br>
+  Returning a bare `web_sys::SvgElement` (or nothing) discards the cheap-to-clone live handle that is the crate's reason to exist, and leaves a caller who later wants to mutate the element with no `SvgNode`.
+  The rare need to reach raw `web-sys` is already met, after the fact, by [`SvgNode::as_element`](../src/node/mod.rs).
+
+If a real workload ever proves the handle allocation to be a measurable bottleneck, this can be revisited — but the DOM-node and `set_attribute` costs will still dominate, so the saving would remain marginal.
