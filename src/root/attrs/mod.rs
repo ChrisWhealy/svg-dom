@@ -3,7 +3,7 @@ mod writer;
 pub use writer::AttrWriter;
 
 use crate::{
-    Error, SvgNode,
+    Error, SvgNode, dom_err,
     root::utils::{Point, write_points},
 };
 use std::fmt::{self, Write};
@@ -157,8 +157,6 @@ impl SvgAttrs {
     ) -> Result<(), Error> {
         self.scratch.clear();
         write!(self.scratch, "{value}")?;
-        el.as_ref()
-            .set_attribute(name, &self.scratch)
-            .map_err(|e| Error::Dom(format!("{e:?}")))
+        el.as_ref().set_attribute(name, &self.scratch).map_err(dom_err)
     }
 }

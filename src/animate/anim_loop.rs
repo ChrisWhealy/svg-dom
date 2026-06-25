@@ -1,4 +1,4 @@
-use crate::{animate::anim_frame::AnimationFrame, error::Error};
+use crate::{animate::anim_frame::AnimationFrame, dom_err, error::Error};
 use std::{
     cell::{Cell, RefCell},
     rc::Rc,
@@ -126,7 +126,7 @@ impl AnimationLoop {
         // was scheduled.
         let h = window
             .request_animation_frame(raf_closure.as_ref().unchecked_ref())
-            .map_err(|e| Error::Dom(format!("{e:?}")))?;
+            .map_err(dom_err)?;
         handle.set(h);
 
         *closure.borrow_mut() = Some(raf_closure);

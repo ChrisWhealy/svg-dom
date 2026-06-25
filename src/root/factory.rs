@@ -1,12 +1,10 @@
 use std::cell::RefCell;
 
-use wasm_bindgen::JsCast;
 use web_sys::{Document, SvgElement};
 
 use crate::{Error, SvgNode};
 
 use super::{
-    SVG_NS,
     attrs::SvgAttrs,
     utils::{Point, Size},
 };
@@ -23,11 +21,7 @@ pub(crate) trait SvgFactory {
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fn make_element(&self, tag: &str) -> Result<SvgElement, Error> {
-        self.document()
-            .create_element_ns(Some(SVG_NS), tag)
-            .map_err(|e| Error::Dom(format!("{e:?}")))?
-            .dyn_into::<SvgElement>()
-            .map_err(|_| Error::CastFailed("SvgElement"))
+        super::create_svg_element(self.document(), tag, "SvgElement")
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

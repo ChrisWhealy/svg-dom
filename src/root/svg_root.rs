@@ -1,5 +1,5 @@
-use super::{SVG_NS, attrs::SvgAttrs, document, factory::SvgFactory, utils::Size};
-use crate::{SvgNode, error::Error};
+use super::{attrs::SvgAttrs, document, factory::SvgFactory, utils::Size};
+use crate::{SvgNode, dom_err, error::Error};
 
 use std::cell::{Cell, RefCell};
 use wasm_bindgen::JsCast;
@@ -95,17 +95,13 @@ impl SvgRoot {
             .get_element_by_id(parent_id)
             .ok_or_else(|| Error::ElementNotFound(parent_id.into()))?;
 
-        let svg = document
-            .create_element_ns(Some(SVG_NS), "svg")
-            .map_err(|e| Error::Dom(format!("{e:?}")))?
-            .dyn_into::<SvgsvgElement>()
-            .map_err(|_| Error::CastFailed("SvgsvgElement"))?;
+        let svg: SvgsvgElement = super::create_svg_element(&document, "svg", "SvgsvgElement")?;
 
         let mut attrs = SvgAttrs::new();
         attrs.display_element(&svg, "width", size.width)?;
         attrs.display_element(&svg, "height", size.height)?;
 
-        parent.append_child(&svg).map_err(|e| Error::Dom(format!("{e:?}")))?;
+        parent.append_child(&svg).map_err(dom_err)?;
 
         Ok(SvgRoot {
             root: svg,
@@ -206,10 +202,7 @@ impl SvgFactory for SvgRoot {
     }
 
     fn append_node(&self, node: &SvgNode) -> Result<(), Error> {
-        self.root
-            .append_child(node.as_element())
-            .map(|_| ())
-            .map_err(|e| Error::Dom(format!("{e:?}")))
+        self.root.append_child(node.as_element()).map(|_| ()).map_err(dom_err)
     }
 }
 

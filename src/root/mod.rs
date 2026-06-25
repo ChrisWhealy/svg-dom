@@ -30,7 +30,8 @@ pub mod text;
 /// Geometry helper types [`Point`](utils::Point) and [`Size`](utils::Size).
 pub mod utils;
 
-use crate::error::Error;
+use crate::{dom_err, error::Error};
+use wasm_bindgen::JsCast;
 use web_sys::Document;
 
 pub(crate) const SVG_NS: &str = "http://www.w3.org/2000/svg";
@@ -43,4 +44,22 @@ pub(crate) fn document() -> Result<Document, Error> {
         .ok_or_else(|| Error::Dom("no available window".into()))?
         .document()
         .ok_or_else(|| Error::Dom("window has no document".into()))
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Creates a namespaced SVG element `tag` and casts it to `T`, mapping the two failure modes to [`Error::Dom`] /
+/// [`Error::CastFailed`] (`type_name` names the target type).
+///
+/// Centralises the create-and-cast pattern shared by [`SvgFactory::make_element`](factory::SvgFactory) and
+/// [`SvgRoot::create_in`](svg_root::SvgRoot::create_in).
+pub(crate) fn create_svg_element<T: JsCast>(
+    document: &Document,
+    tag: &str,
+    type_name: &'static str,
+) -> Result<T, Error> {
+    document
+        .create_element_ns(Some(SVG_NS), tag)
+        .map_err(dom_err)?
+        .dyn_into::<T>()
+        .map_err(|_| Error::CastFailed(type_name))
 }

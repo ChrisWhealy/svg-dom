@@ -5,6 +5,7 @@ mod transform;
 pub use cached::CachedAttr;
 
 use crate::{
+    dom_err,
     error::Error,
     root::attrs::{AttrWriter, SvgAttrs},
 };
@@ -306,10 +307,7 @@ impl SvgNode {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn set_attr(&self, name: &str, value: &str) -> Result<(), Error> {
-        self.inner
-            .element
-            .set_attribute(name, value)
-            .map_err(|e| Error::Dom(format!("{e:?}")))
+        self.inner.element.set_attribute(name, value).map_err(dom_err)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -475,10 +473,7 @@ impl SvgNode {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn remove_attr(&self, name: &str) -> Result<(), Error> {
-        self.inner
-            .element
-            .remove_attribute(name)
-            .map_err(|e| Error::Dom(format!("{e:?}")))
+        self.inner.element.remove_attribute(name).map_err(dom_err)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -612,7 +607,7 @@ impl SvgNode {
             .element
             .append_child(&child.inner.element)
             .map(|_| ())
-            .map_err(|e| Error::Dom(format!("{e:?}")))
+            .map_err(dom_err)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -673,7 +668,7 @@ impl SvgNode {
             .element
             .insert_before(&new_child.inner.element, Some(reference_node))
             .map(|_| ())
-            .map_err(|e| Error::Dom(format!("{e:?}")))
+            .map_err(dom_err)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -735,7 +730,7 @@ impl SvgNode {
         parent
             .replace_child(&replacement.inner.element, &self.inner.element)
             .map(|_| ())
-            .map_err(|e| Error::Dom(format!("{e:?}")))
+            .map_err(dom_err)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -804,7 +799,7 @@ impl SvgNode {
         self.inner
             .element
             .add_event_listener_with_callback(event_type, closure.callback_ref())
-            .map_err(|e| Error::Dom(format!("{e:?}")))?;
+            .map_err(dom_err)?;
         let listener = EventListener { event_type, closure };
         let mut guard = self.inner.listeners.borrow_mut();
         match guard.as_deref_mut() {

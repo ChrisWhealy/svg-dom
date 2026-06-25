@@ -1,5 +1,5 @@
 use crate::{
-    Error, SvgNode, SvgRoot,
+    Error, SvgNode, SvgRoot, dom_err,
     root::{
         attrs::SvgAttrs,
         factory::SvgFactory,
@@ -42,10 +42,7 @@ impl SvgBatch {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Appends the whole batch to its target parent in a single DOM operation.
     pub fn commit(self) -> Result<(), Error> {
-        self.target
-            .append_child(&self.fragment)
-            .map(|_| ())
-            .map_err(|e| Error::Dom(format!("{e:?}")))
+        self.target.append_child(&self.fragment).map(|_| ()).map_err(dom_err)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -114,10 +111,7 @@ impl SvgFactory for SvgBatch {
     }
 
     fn append_node(&self, node: &SvgNode) -> Result<(), Error> {
-        self.fragment
-            .append_child(node.as_element())
-            .map(|_| ())
-            .map_err(|e| Error::Dom(format!("{e:?}")))
+        self.fragment.append_child(node.as_element()).map(|_| ()).map_err(dom_err)
     }
 }
 
