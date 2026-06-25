@@ -111,7 +111,9 @@ impl SvgRoot {
             root: svg,
             document,
             viewport: Cell::new(size),
-            attrs: RefCell::new(SvgAttrs::new()),
+            // Reuse the buffer just used for width/height rather than discarding it for a fresh empty one; each
+            // write clears the scratch first, so its leftover contents do not matter.
+            attrs: RefCell::new(attrs),
         })
     }
 
