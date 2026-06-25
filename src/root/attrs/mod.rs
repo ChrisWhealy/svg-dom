@@ -117,7 +117,20 @@ impl SvgAttrs {
     /// # Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn points(&mut self, node: &SvgNode, points: &[Point]) -> Result<(), Error> {
-        write_points(&mut self.scratch, points);
+        write_points(&mut self.scratch, points, None);
+        node.set_attr("points", &self.scratch)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Like [`points`](Self::points), but writes each coordinate with `dps` fixed decimal places.
+    ///
+    /// Use this for large or animated `<polyline>`/`<polygon>` geometry where sub-pixel precision is less important
+    /// than performance: it shortens the `points` string meaning less data crosses the WASM/JS boundary and uses less
+    /// DOM attribute storage.
+    ///
+    /// Prefer [`points`](Self::points) when exact coordinates matter.
+    pub fn points_fixed(&mut self, node: &SvgNode, points: &[Point], dps: usize) -> Result<(), Error> {
+        write_points(&mut self.scratch, points, Some(dps));
         node.set_attr("points", &self.scratch)
     }
 

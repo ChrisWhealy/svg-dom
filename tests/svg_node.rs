@@ -1172,3 +1172,25 @@ fn should_update_points_via_animation_frame() -> Result<(), String> {
     frame.set_points(&poly, &[Point::new(5.0, 6.0)]).map_err(|e| e.to_string())?;
     common::check_eq(poly.attr("points"), Some("5,6".into()))
 }
+
+/// `points_fixed` writes each coordinate at the requested fixed precision (rounding), trimming the `points` string;
+/// `AnimationFrame::set_points_fixed` produces the same output through the frame buffer.
+#[wasm_bindgen_test]
+fn should_write_fixed_precision_points() -> Result<(), String> {
+    let svg = make_svg("node-points-fixed");
+    let poly = svg.polyline(&[Point::origin()]).map_err(|e| e.to_string())?;
+
+    // Via the chainable writer (also exercises SvgAttrs::points_fixed): 1 decimal place, with rounding.
+    let mut attrs = svg_dom::SvgAttrs::new();
+    poly.attrs(&mut attrs)
+        .points_fixed(&[Point::new(1.23456, 2.0), Point::new(3.0, 4.98765)], 1)
+        .map_err(|e| e.to_string())?;
+    common::check_eq(poly.attr("points"), Some("1.2,2.0 3.0,5.0".into()))?;
+
+    // The AnimationFrame counterpart, at 0 decimals (integer rounding).
+    let mut frame = svg_dom::AnimationFrame::new();
+    frame
+        .set_points_fixed(&poly, &[Point::new(1.6, 2.4)], 0)
+        .map_err(|e| e.to_string())?;
+    common::check_eq(poly.attr("points"), Some("2,2".into()))
+}

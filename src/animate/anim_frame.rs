@@ -105,7 +105,17 @@ impl AnimationFrame {
     /// `<polyline>` or `<polygon>` from inside an [`AnimationLoop::start_with_frame`](crate::AnimationLoop::start_with_frame)
     /// callback without allocating a fresh string each frame.
     pub fn set_points(&mut self, node: &SvgNode, points: &[Point]) -> Result<(), Error> {
-        write_points(&mut self.scratch, points);
+        write_points(&mut self.scratch, points, None);
+        node.set_attr("points", &self.scratch)
+    }
+
+    /// Like [`set_points`](Self::set_points), but writes each coordinate with `decimals` fixed decimal places.
+    ///
+    /// Shorter per-frame output for large animated `<polyline>`/`<polygon>` geometry, where the full-precision string
+    /// would otherwise dominate the data crossing the WASM/JS boundary each frame. See
+    /// [`SvgAttrs::points_fixed`](crate::SvgAttrs::points_fixed).
+    pub fn set_points_fixed(&mut self, node: &SvgNode, points: &[Point], decimals: usize) -> Result<(), Error> {
+        write_points(&mut self.scratch, points, Some(decimals));
         node.set_attr("points", &self.scratch)
     }
 }

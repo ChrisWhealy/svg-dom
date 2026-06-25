@@ -79,4 +79,13 @@ impl<'a> AttrWriter<'a> {
         self.attrs.points(self.node, points)?;
         Ok(self)
     }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Writes a `points` list with each coordinate at `dps` fixed decimal places.
+    ///
+    /// See [`SvgAttrs::points_fixed`].
+    pub fn points_fixed(&mut self, points: &[Point], dps: usize) -> Result<&mut Self, Error> {
+        self.attrs.points_fixed(self.node, points, dps)?;
+        Ok(self)
+    }
 }

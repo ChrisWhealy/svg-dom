@@ -95,10 +95,13 @@ impl std::fmt::Display for Size {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Formats `points` into `out` as an SVG `points` list (`"x,y x,y …"`), replacing any previous contents.
 ///
-/// Shared by [`SvgAttrs::points`](crate::SvgAttrs::points) and
-/// [`AnimationFrame::set_points`](crate::AnimationFrame::set_points) so both produce identical output from one reusable
-/// buffer.
-pub(crate) fn write_points(out: &mut String, points: &[Point]) {
+/// `dps` selects the per-coordinate precision: `None` uses the default shortest round-trip `Display`, while `Some(n)`
+/// writes each coordinate with `n` fixed decimal places. Fixed precision yields a shorter string for large animated
+/// polylines, where the full-precision text would otherwise dominate the per-frame data crossing the WASM/JS boundary.
+///
+/// Shared by the `points` / `points_fixed` methods on [`SvgAttrs`](crate::SvgAttrs) / [`AttrWriter`](crate::AttrWriter)
+/// and [`AnimationFrame`](crate::AnimationFrame), so all of them produce identical output from one reusable buffer.
+pub(crate) fn write_points(out: &mut String, points: &[Point], dps: Option<usize>) {
     use std::fmt::Write;
     out.clear();
     for (i, p) in points.iter().enumerate() {
@@ -106,6 +109,9 @@ pub(crate) fn write_points(out: &mut String, points: &[Point]) {
             out.push(' ');
         }
         // Writing to a `String` is infallible.
-        let _ = write!(out, "{},{}", p.x, p.y);
+        let _ = match dps {
+            Some(n) => write!(out, "{:.*},{:.*}", n, p.x, n, p.y),
+            None => write!(out, "{},{}", p.x, p.y),
+        };
     }
 }
