@@ -116,7 +116,7 @@ pub(crate) trait SvgFactory {
             attrs.display(&node, "x", anchored_at.x)?;
             attrs.display(&node, "y", anchored_at.y)?;
         }
-        node.as_element().set_text_content(Some(content));
+        node.set_text(content);
         self.append_node(&node)?;
         Ok(node)
     }
