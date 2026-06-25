@@ -57,17 +57,25 @@ impl AnimationLoop {
     /// # Example
     ///
     /// ```rust,no_run
+    /// use std::cell::RefCell;
     /// use svg_dom::{AnimationLoop, SvgRoot};
+    ///
+    /// // One page-lifetime slot to hold the running loop (a wasm page is single-threaded).
+    /// thread_local! {
+    ///     static ANIM: RefCell<Option<AnimationLoop>> = const { RefCell::new(None) };
+    /// }
+    ///
     /// let svg = SvgRoot::attach("vis").unwrap();
     /// let path = svg.path("M 0 50 L 200 50").unwrap();
     ///
-    /// let _loop = AnimationLoop::start(move |ts| {
+    /// let anim = AnimationLoop::start(move |ts| {
     ///     // Animate the midpoint of the path upward and downward.
     ///     let y = 50.0 + 30.0 * (ts / 600.0).sin();
     ///     let _ = path.set_d(&format!("M 0 50 Q 100 {y} 200 50"));
     /// }).unwrap();
     ///
-    /// std::mem::forget(_loop); // keep alive for the lifetime of the page
+    /// // Keep the loop alive for the page's lifetime; dropping it would stop it via `Drop`.
+    /// ANIM.with(|slot| *slot.borrow_mut() = Some(anim));
     /// ```
     pub fn start<F: FnMut(f64) + 'static>(callback: F) -> Result<Self, Error> {
         Self::start_inner(callback)

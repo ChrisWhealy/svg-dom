@@ -12,7 +12,13 @@ use std::fmt::{self, Write};
 /// # Example
 ///
 /// ```rust,no_run
+/// use std::cell::RefCell;
 /// use svg_dom::{AnimationLoop, SvgRoot, root::utils::{Point, Size}};
+///
+/// // One page-lifetime slot to hold the running loop (a wasm page is single-threaded).
+/// thread_local! {
+///     static ANIM: RefCell<Option<AnimationLoop>> = const { RefCell::new(None) };
+/// }
 ///
 /// let svg = SvgRoot::attach("diagram").unwrap();
 /// let rect = svg.rect(Point::new(10.0, 10.0), Size::new(80.0, 40.0)).unwrap();
@@ -22,7 +28,8 @@ use std::fmt::{self, Write};
 ///     let _ = frame.set_attr_fmt(&rect, "opacity", format_args!("{alpha:.3}"));
 /// }).unwrap();
 ///
-/// std::mem::forget(anim);
+/// // Keep the loop alive for the page's lifetime; dropping it would stop it via `Drop`.
+/// ANIM.with(|slot| *slot.borrow_mut() = Some(anim));
 /// ```
 #[derive(Default)]
 pub struct AnimationFrame {
