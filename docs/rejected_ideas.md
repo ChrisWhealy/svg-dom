@@ -20,7 +20,6 @@ struct InteractiveSvgNode {
 ```
 
 The motivation was to stop passive geometry nodes from carrying listener state they never use.
-This option has been evaluated and **will not** be pursued.
 
 The memory win is tiny because the common case is already optimised.
 
@@ -54,7 +53,6 @@ The lightweight-passive-node property is better served by the existing lazy `Opt
 ## 2) A faster float-to-string crate (`ryu` / `itoa`)
 
 It was suggested that numeric formatting could be sped up by routing it through a dedicated crate such as `ryu` (floats) or `itoa` (integers) instead of the standard library's `Display`.
-This was evaluated and **will not** be pursued.
 
 Two things undercut it:
 
@@ -73,8 +71,6 @@ The dominant per-call cost on any real hot path is the `set_attribute` boundary 
 
 It was suggested that the factories accept `std::fmt::Arguments` directly — `path_fmt(format_args!(...))` and `text_fmt(...)`, plus the `SvgBatch` equivalents — so a caller building a computed `d` or label string need not allocate a `String` before the factory sets the attribute (instead of today's `svg.path(&format!(...))`).
 The new methods would format into the factory's existing `SvgAttrs` scratch buffer.
-
-This recommendation has been evaluated and **will not** be pursued.
 
 * **It optimises a cold path.**<br>
   Element creation runs at setup time, not per frame or per event.
@@ -98,8 +94,6 @@ If a future profile ever shows element-creation churn dominating (for example fr
 
 It was suggested that for scenes containing thousands of static elements whose handles are discarded immediately, the per-element allocation of an `Rc<SvgNodeInner>` should be avoided.
 The factories could skip constructing a managed `SvgNode` by implementing functions such as `static_rect(...)` or `static_path(...)` and return a "naked" `web_sys::SvgElement` instead of a wrapped `SvgNode`.
-
-This recommendation has been evaluated and **will not** be pursued.
 
 * **The `Rc` is dwarfed by the per-element DOM cost.**<br>
   Every factory call already creates a real browser DOM node via `create_element_ns` (thus crossing the wasm/JS boundary) and makes one `set_attribute` crossing per attribute.
@@ -125,7 +119,7 @@ If a real workload ever proves the handle allocation to be a measurable bottlene
 
 It was suggested that `EventListener` store the event name as an enum (`Click`, `PointerMove`, … plus `Raw(&'static str)`) rather than a `&'static str`, on the grounds that an enum would be smaller than a fat string pointer, with `Drop` calling `event_name.as_str()`.
 
-This recommendation has been evaluated and **will not** be pursued on the grounds that the premise is incorrect.
+The premise upon which this idea is based is incorrect.
 
 * **The enum is larger, not smaller.**<br>
   The `Raw(&'static str)` variant is mandatory as it is what backs the `on_event` escape hatch for arbitrary event names; so the enum must not only be able to hold a `&'static str`, it must also be able to distinguish it from the ~30 builtin named variants.
@@ -146,7 +140,7 @@ The recommendation sat behind the caveat that it is "only worth doing if listene
 
 It was suggested that the crate add a wasm-shrinking release profile (`lto = true`, `codegen-units = 1`, `opt-level = "z"`, `panic = "abort"`, `strip = true`) and run `wasm-opt -Oz` as part of packaging, to reduce download and instantiation size for production builds.
 
-This recommendation has been evaluated and **will not** be baked into the crate because a Rust library cannot set this for its consumers.
+This idea cannot be implemented because it does not apply to Rust libraries &mdash; only to applications.
 
 * **A dependency's `[profile.release]` is ignored.**<br>
   `svg-dom` is a library, so a `[profile.release]` here would govern only builds where `svg-dom` itself is the root — i.e. the demo's own wasm build — and never a downstream application's production build, which is the thing the recommendation wants to shrink.
