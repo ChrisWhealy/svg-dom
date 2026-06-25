@@ -33,10 +33,7 @@ fn build() -> Result<(), svg_dom::Error> {
     // Add a rectangle and give it a colour.
     let rect = svg.rect(Point::new(20.0, 20.0), Size::new(160.0, 80.0))?;
     let mut attrs = SvgAttrs::new();
-    rect.attrs(&mut attrs)
-        .fill("steelblue")?
-        .stroke("white")?
-        .stroke_width(2.0)?;
+    rect.attrs(&mut attrs).fill("steelblue")?.stroke("white")?.stroke_width(2.0)?;
 
     // Clone the handle so the event closure can refer to the same DOM node.
     let rect_out = rect.clone();

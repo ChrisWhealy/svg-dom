@@ -20,10 +20,7 @@ async fn wait_for_frames(n: u32) {
         // Promise::new provides `resolve` as a js_sys::Function; RAF calls it with the timestamp, fulfilling the
         // promise and resuming our await.
         let promise = js_sys::Promise::new(&mut |resolve, _| {
-            web_sys::window()
-                .unwrap()
-                .request_animation_frame(&resolve)
-                .unwrap();
+            web_sys::window().unwrap().request_animation_frame(&resolve).unwrap();
         });
         wasm_bindgen_futures::JsFuture::from(promise).await.unwrap();
     }
@@ -72,10 +69,7 @@ async fn should_freeze_callback_count_when_stop_called_after_running() -> Result
 
     wait_for_frames(2).await; // let the loop fire at least once
 
-    common::check(
-        count.get() > 0,
-        "loop should have fired at least once before stop()",
-    )?;
+    common::check(count.get() > 0, "loop should have fired at least once before stop()")?;
 
     anim.stop();
     let frozen = count.get();
@@ -122,10 +116,7 @@ async fn should_freeze_callback_count_when_drop_called_after_running() -> Result
 
     wait_for_frames(2).await; // let the loop fire at least once
 
-    common::check(
-        count.get() > 0,
-        "loop should have fired at least once before drop",
-    )?;
+    common::check(count.get() > 0, "loop should have fired at least once before drop")?;
 
     drop(anim);
     let frozen = count.get();

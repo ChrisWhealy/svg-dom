@@ -33,9 +33,7 @@ pub struct AnimationFrame {
 impl AnimationFrame {
     /// Creates an `AnimationFrame` with an empty scratch buffer.
     pub fn new() -> Self {
-        Self {
-            scratch: String::new(),
-        }
+        Self { scratch: String::new() }
     }
 
     /// Returns the reusable backing buffer used by this frame.
@@ -57,12 +55,7 @@ impl AnimationFrame {
     /// # let x = 1.0;
     /// node.set_attr("transform", &format!("translate({x:.1}, 0)"));
     /// ```
-    pub fn set_attr_fmt(
-        &mut self,
-        node: &SvgNode,
-        name: &str,
-        args: fmt::Arguments<'_>,
-    ) -> Result<(), Error> {
+    pub fn set_attr_fmt(&mut self, node: &SvgNode, name: &str, args: fmt::Arguments<'_>) -> Result<(), Error> {
         self.scratch.clear();
         self.scratch
             .write_fmt(args)
@@ -71,12 +64,7 @@ impl AnimationFrame {
     }
 
     /// Writes a displayable value into the reusable buffer and sets `name` on `node`.
-    pub fn set_attr<T: fmt::Display>(
-        &mut self,
-        node: &SvgNode,
-        name: &str,
-        value: T,
-    ) -> Result<(), Error> {
+    pub fn set_attr<T: fmt::Display>(&mut self, node: &SvgNode, name: &str, value: T) -> Result<(), Error> {
         self.set_attr_fmt(node, name, format_args!("{value}"))
     }
 

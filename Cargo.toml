@@ -9,6 +9,7 @@ name = "svg-dom"
 authors = ["Chris Whealy <chris@whealy.com>"]
 version = "0.1.20"
 edition = "2024"
+style_edition = "2024"
 rust-version = "1.85"
 description = "A lightweight Rust/WebAssembly library for creating and mutating live SVG content directly in the browser DOM"
 keywords = ["svg", "wasm", "browser", "dom"]

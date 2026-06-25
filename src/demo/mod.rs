@@ -133,10 +133,7 @@ const DEMO_SOURCES: &[(&str, &str)] = &[
     ("panel-events-group", "demo_events_group"),
     ("panel-events-pointer", "demo_events_pointer_lifecycle"),
     ("panel-events-keyboard-wheel", "demo_events_keyboard_wheel"),
-    (
-        "panel-events-drag-drop-touch",
-        "demo_events_drag_drop_touch",
-    ),
+    ("panel-events-drag-drop-touch", "demo_events_drag_drop_touch"),
 ];
 
 /// Appends a source frame to every panel listed in [`DEMO_SOURCES`].
@@ -154,11 +151,7 @@ fn inject_source_frames() -> Result<(), Error> {
 /// Builds `<details class="source"><summary>…</summary><pre><code>…</code></pre></details>` and appends it to the
 /// panel `<section>`. A missing panel or missing function is skipped rather than treated as an error, so the gallery
 /// still renders if `index.html` and this module drift apart.
-fn append_source_frame(
-    document: &web_sys::Document,
-    panel_id: &str,
-    fn_name: &str,
-) -> Result<(), Error> {
+fn append_source_frame(document: &web_sys::Document, panel_id: &str, fn_name: &str) -> Result<(), Error> {
     let Some(section) = document.get_element_by_id(panel_id) else {
         return Ok(());
     };
@@ -248,10 +241,7 @@ fn demo_rect() -> Result<(), Error> {
     // 2. Stroke-only (no fill)
     let r2 = svg.rect(Point::new(155.0, 10.0 + PAD_Y), Size::new(130.0, 90.0))?;
     let mut attrs = SvgAttrs::new();
-    r2.attrs(&mut attrs)
-        .fill(NONE)?
-        .stroke(CORAL)?
-        .stroke_width(3.0)?;
+    r2.attrs(&mut attrs).fill(NONE)?.stroke(CORAL)?.stroke_width(3.0)?;
     caption(&svg, 220.0, "stroke")?;
 
     // 3. Rounded corners via rx attribute
@@ -332,28 +322,19 @@ fn demo_line() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-line", Size::new(W, H))?;
 
     // Horizontal
-    let l1 = svg.line(
-        Point::new(10.0, 55.0 + PAD_Y),
-        Point::new(230.0, 55.0 + PAD_Y),
-    )?;
+    let l1 = svg.line(Point::new(10.0, 55.0 + PAD_Y), Point::new(230.0, 55.0 + PAD_Y))?;
     l1.set_stroke(WIRE)?;
     l1.set_stroke_width(2.0)?;
     caption(&svg, 120.0, "horizontal")?;
 
     // Diagonal
-    let l2 = svg.line(
-        Point::new(270.0, 10.0 + PAD_Y),
-        Point::new(470.0, 110.0 + PAD_Y),
-    )?;
+    let l2 = svg.line(Point::new(270.0, 10.0 + PAD_Y), Point::new(470.0, 110.0 + PAD_Y))?;
     l2.set_stroke(CORAL)?;
     l2.set_stroke_width(2.0)?;
     caption(&svg, 370.0, "diagonal")?;
 
     // Thick
-    let l3 = svg.line(
-        Point::new(510.0, 55.0 + PAD_Y),
-        Point::new(790.0, 55.0 + PAD_Y),
-    )?;
+    let l3 = svg.line(Point::new(510.0, 55.0 + PAD_Y), Point::new(790.0, 55.0 + PAD_Y))?;
     l3.set_stroke(GOLDENROD)?;
     l3.set_stroke_width(18.0)?;
     caption(&svg, 650.0, "thick stroke")?;
@@ -442,10 +423,7 @@ fn demo_group() -> Result<(), Error> {
     g1.set_attr("transform", &format!("translate(40, {})", 25.0 + PAD_Y))?;
 
     // Dashed connector
-    let conn = svg.line(
-        Point::new(190.0, 65.0 + PAD_Y),
-        Point::new(280.0, 65.0 + PAD_Y),
-    )?;
+    let conn = svg.line(Point::new(190.0, 65.0 + PAD_Y), Point::new(280.0, 65.0 + PAD_Y))?;
     conn.set_stroke(GUIDE)?;
     conn.set_stroke_width(2.0)?;
     conn.set_attr("stroke-dasharray", "5 4")?;
@@ -522,11 +500,7 @@ fn demo_events_click() -> Result<(), Error> {
     // The label sits on top of the button; `pointer-events:none` lets clicks fall through to the rect beneath.
     let btn_label = svg.text(Point::new(115.0, 66.0 + PAD_Y), "click me")?;
     btn_label.set_fill(WHITE)?;
-    btn_label.set_attrs([
-        ("font-size", "16"),
-        ("text-anchor", "middle"),
-        ("style", "pointer-events:none"),
-    ])?;
+    btn_label.set_attrs([("font-size", "16"), ("text-anchor", "middle"), ("style", "pointer-events:none")])?;
 
     // Reset button — greyed out until there is actually something to reset.
     let reset = svg.rect(Point::new(210.0, 30.0 + PAD_Y), Size::new(110.0, 60.0))?;
@@ -535,11 +509,7 @@ fn demo_events_click() -> Result<(), Error> {
 
     let reset_label = svg.text(Point::new(265.0, 66.0 + PAD_Y), "reset")?;
     reset_label.set_fill(WHITE)?;
-    reset_label.set_attrs([
-        ("font-size", "15"),
-        ("text-anchor", "middle"),
-        ("style", "pointer-events:none"),
-    ])?;
+    reset_label.set_attrs([("font-size", "15"), ("text-anchor", "middle"), ("style", "pointer-events:none")])?;
 
     let readout = svg.text(Point::new(350.0, 66.0 + PAD_Y), "clicks: 0")?;
     readout.set_fill(TEXT)?;
@@ -558,9 +528,7 @@ fn demo_events_click() -> Result<(), Error> {
         inc_count.set(n);
         let _ = inc_btn.set_fill(&format!("hsl({},60%,45%)", (n * 40) % 360));
         let _ = inc_reset.set_fill(TOMATO); // reset now has something to do
-        inc_readout
-            .as_element()
-            .set_text_content(Some(&format!("clicks: {n}")));
+        inc_readout.as_element().set_text_content(Some(&format!("clicks: {n}")));
     })?;
 
     // Reset click → zero the count and restore the resting colours.
@@ -575,11 +543,7 @@ fn demo_events_click() -> Result<(), Error> {
         rst_readout.as_element().set_text_content(Some("clicks: 0"));
     })?;
 
-    caption(
-        &svg,
-        400.0,
-        "two on_click handlers sharing one Rc<Cell> counter",
-    )?;
+    caption(&svg, 400.0, "two on_click handlers sharing one Rc<Cell> counter")?;
     keep_demo_node(btn);
     keep_demo_node(reset);
     Ok(())
@@ -685,16 +649,9 @@ fn demo_events_modifiers() -> Result<(), Error> {
 
     let hint = svg.text(Point::new(160.0, 70.0 + PAD_Y), "click me")?;
     hint.set_fill(WHITE)?;
-    hint.set_attrs([
-        ("font-size", "15"),
-        ("text-anchor", "middle"),
-        ("style", "pointer-events:none"),
-    ])?;
+    hint.set_attrs([("font-size", "15"), ("text-anchor", "middle"), ("style", "pointer-events:none")])?;
 
-    let readout = svg.text(
-        Point::new(310.0, 70.0 + PAD_Y),
-        "try: click · shift · ctrl · alt · right-click",
-    )?;
+    let readout = svg.text(Point::new(310.0, 70.0 + PAD_Y), "try: click · shift · ctrl · alt · right-click")?;
     readout.set_fill(TEXT)?;
     readout.set_attr("font-size", "14")?;
 
@@ -714,9 +671,7 @@ fn demo_events_modifiers() -> Result<(), Error> {
             ("plain click", SLATE_BLUE)
         };
         let _ = pad_click.set_fill(colour);
-        ro_click
-            .as_element()
-            .set_text_content(Some(&format!("last: {label}")));
+        ro_click.as_element().set_text_content(Some(&format!("last: {label}")));
     })?;
 
     // Right-click → suppress the browser context menu and report it.  ('click' never fires for the secondary button,
@@ -752,11 +707,7 @@ fn demo_events_press() -> Result<(), Error> {
 
     let label = svg.text(Point::new(160.0, 70.0 + PAD_Y), "press & hold")?;
     label.set_fill(WHITE)?;
-    label.set_attrs([
-        ("font-size", "15"),
-        ("text-anchor", "middle"),
-        ("style", "pointer-events:none"),
-    ])?;
+    label.set_attrs([("font-size", "15"), ("text-anchor", "middle"), ("style", "pointer-events:none")])?;
 
     let readout = svg.text(Point::new(320.0, 70.0 + PAD_Y), "state: idle")?;
     readout.set_fill(TEXT)?;
@@ -770,9 +721,7 @@ fn demo_events_press() -> Result<(), Error> {
         move |mods: &str| {
             let _ = pad.set_fill(TEAL_PRESSED); // darken while held
             let _ = pad.set_attr("transform", "translate(2,2)");
-            readout
-                .as_element()
-                .set_text_content(Some(&format!("state: pressed{mods}")));
+            readout.as_element().set_text_content(Some(&format!("state: pressed{mods}")));
         }
     };
     let release = {
@@ -887,9 +836,7 @@ fn demo_events_group() -> Result<(), Error> {
     group1.on_pointerenter(move |_| {
         let n = c1.get() + 1;
         c1.set(n);
-        g1_count
-            .as_element()
-            .set_text_content(Some(&format!("fires: {n}")));
+        g1_count.as_element().set_text_content(Some(&format!("fires: {n}")));
     })?;
     // Managed listeners are removed when their owning SvgNode is dropped, so keep this interactive node alive for the
     // page lifetime.
@@ -902,9 +849,7 @@ fn demo_events_group() -> Result<(), Error> {
     group2.on_pointerenter(move |_| {
         let n = c2.get() + 1;
         c2.set(n);
-        g2_count
-            .as_element()
-            .set_text_content(Some(&format!("fires: {n}")));
+        g2_count.as_element().set_text_content(Some(&format!("fires: {n}")));
     })?;
     // Managed listeners are removed when their owning SvgNode is dropped, so keep this interactive node alive for the
     // page lifetime.
@@ -923,10 +868,7 @@ fn demo_events_pointer_lifecycle() -> Result<(), Error> {
     target.set_fill(DROP_ZONE_FILL)?;
     target.set_stroke(ACCENT_BLUE)?;
     target.set_stroke_width(2.0)?;
-    target.set_attrs([
-        ("rx", "10"),
-        ("style", "cursor:crosshair; touch-action:none"),
-    ])?;
+    target.set_attrs([("rx", "10"), ("style", "cursor:crosshair; touch-action:none")])?;
 
     let title = svg.text(Point::new(169.0, 58.0 + PAD_Y), "pointer target")?;
     title.set_fill(TEXT)?;
@@ -988,11 +930,7 @@ fn demo_events_keyboard_wheel() -> Result<(), Error> {
     pad.set_fill(SLATE_GRAY)?;
     pad.set_stroke(ACCENT_AMBER)?;
     pad.set_stroke_width(2.0)?;
-    pad.set_attrs([
-        ("rx", "10"),
-        ("tabindex", "0"),
-        ("style", "cursor:pointer; outline:none"),
-    ])?;
+    pad.set_attrs([("rx", "10"), ("tabindex", "0"), ("style", "cursor:pointer; outline:none")])?;
 
     let label = svg.text(Point::new(185.0, 58.0 + PAD_Y), "click, type, or wheel")?;
     label.set_fill(WHITE)?;
@@ -1003,10 +941,7 @@ fn demo_events_keyboard_wheel() -> Result<(), Error> {
         ("style", "pointer-events:none"),
     ])?;
 
-    let readout = svg.text(
-        Point::new(360.0, 58.0 + PAD_Y),
-        "focus: no · key: — · wheel: 0",
-    )?;
+    let readout = svg.text(Point::new(360.0, 58.0 + PAD_Y), "focus: no · key: — · wheel: 0")?;
     readout.set_fill(TEXT)?;
     readout.set_attr("font-size", "14")?;
 
@@ -1024,22 +959,14 @@ fn demo_events_keyboard_wheel() -> Result<(), Error> {
         let readout = readout.clone();
         let wheel_total = wheel_total.clone();
         pad.on_keydown(move |e| {
-            readout.set_text(&format!(
-                "focus: yes · keydown: {} · wheel: {}",
-                e.key(),
-                wheel_total.get(),
-            ));
+            readout.set_text(&format!("focus: yes · keydown: {} · wheel: {}", e.key(), wheel_total.get(),));
         })?;
     }
     {
         let readout = readout.clone();
         let wheel_total = wheel_total.clone();
         pad.on_keyup(move |e| {
-            readout.set_text(&format!(
-                "focus: yes · keyup: {} · wheel: {}",
-                e.key(),
-                wheel_total.get(),
-            ));
+            readout.set_text(&format!("focus: yes · keyup: {} · wheel: {}", e.key(), wheel_total.get(),));
         })?;
     }
     {
@@ -1054,11 +981,7 @@ fn demo_events_keyboard_wheel() -> Result<(), Error> {
         })?;
     }
 
-    caption(
-        &svg,
-        400.0,
-        "managed focus/blur · keydown/keyup · wheel with preventDefault()",
-    )?;
+    caption(&svg, 400.0, "managed focus/blur · keydown/keyup · wheel with preventDefault()")?;
     keep_demo_node(pad);
     Ok(())
 }
@@ -1118,19 +1041,13 @@ fn demo_events_drag_drop_touch() -> Result<(), Error> {
     card.set_attrs([("style", "cursor:grab; touch-action:none; user-select:none")])?;
 
     let start = (50.0, 36.0 + PAD_Y);
-    card.set_attr(
-        "transform",
-        &format!("translate({:.1}, {:.1})", start.0, start.1),
-    )?;
+    card.set_attr("transform", &format!("translate({:.1}, {:.1})", start.0, start.1))?;
 
     let readout = svg.text(Point::new(500.0, 48.0 + PAD_Y), "last: none")?;
     readout.set_fill(TEXT)?;
     readout.set_attr("font-size", "14")?;
 
-    let coords = svg.text(
-        Point::new(500.0, 74.0 + PAD_Y),
-        &format!("box: {:.0}, {:.0}", start.0, start.1),
-    )?;
+    let coords = svg.text(Point::new(500.0, 74.0 + PAD_Y), &format!("box: {:.0}, {:.0}", start.0, start.1))?;
     coords.set_fill(TEXT_MUTED)?;
     coords.set_attr("font-size", "12")?;
 
@@ -1151,10 +1068,7 @@ fn demo_events_drag_drop_touch() -> Result<(), Error> {
             e.prevent_default();
             let _ = card.as_element().set_pointer_capture(e.pointer_id());
             last_pointer.set(Some((e.client_x(), e.client_y())));
-            let _ = card.set_attr(
-                "style",
-                "cursor:grabbing; touch-action:none; user-select:none",
-            );
+            let _ = card.set_attr("style", "cursor:grabbing; touch-action:none; user-select:none");
             readout.set_text("last: pointerdown — moving box");
         })?;
     }
@@ -1178,10 +1092,7 @@ fn demo_events_drag_drop_touch() -> Result<(), Error> {
                 pos.set((nx, ny));
                 last_pointer.set(Some((e.client_x(), e.client_y())));
                 let _ = card.set_translate(&mut scratch.borrow_mut(), nx, ny);
-                let _ = coords.set_text_fmt(
-                    &mut scratch.borrow_mut(),
-                    format_args!("box: {nx:.0}, {ny:.0}"),
-                );
+                let _ = coords.set_text_fmt(&mut scratch.borrow_mut(), format_args!("box: {nx:.0}, {ny:.0}"));
                 readout.set_text("last: pointermove — moving box");
             }
         })?;
@@ -1204,20 +1115,16 @@ fn demo_events_drag_drop_touch() -> Result<(), Error> {
             // The card only counts as dropped if it is *fully* inside the zone; otherwise it snaps back to its
             // original position.
             let (x, y) = pos.get();
-            let fully_inside = x >= ZONE_X
-                && x + CARD_W <= ZONE_X + ZONE_W
-                && y >= ZONE_Y
-                && y + CARD_H <= ZONE_Y + ZONE_H;
+            let fully_inside =
+                x >= ZONE_X && x + CARD_W <= ZONE_X + ZONE_W && y >= ZONE_Y && y + CARD_H <= ZONE_Y + ZONE_H;
 
             if fully_inside {
                 readout.set_text("last: pointerup — dropped in zone");
             } else {
                 pos.set(start);
                 let _ = card.set_translate(&mut scratch.borrow_mut(), start.0, start.1);
-                let _ = coords.set_text_fmt(
-                    &mut scratch.borrow_mut(),
-                    format_args!("box: {:.0}, {:.0}", start.0, start.1),
-                );
+                let _ =
+                    coords.set_text_fmt(&mut scratch.borrow_mut(), format_args!("box: {:.0}, {:.0}", start.0, start.1));
                 readout.set_text("last: pointerup — outside zone, returned to start");
             }
         };

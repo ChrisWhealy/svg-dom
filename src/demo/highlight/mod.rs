@@ -52,7 +52,7 @@ pub fn rust_to_html(src: &str) -> String {
                     b'"' => {
                         i += 1;
                         break;
-                    }
+                    },
                     _ => i += 1,
                 }
             }
@@ -126,7 +126,7 @@ pub fn rust_to_html(src: &str) -> String {
                 let len = ch.len_utf8();
                 escape_into(&mut out, &src[i..i + len]);
                 i += len;
-            }
+            },
             None => break,
         }
     }

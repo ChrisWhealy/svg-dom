@@ -105,9 +105,7 @@ impl SvgRoot {
         attrs.display_element(&svg, "width", size.width)?;
         attrs.display_element(&svg, "height", size.height)?;
 
-        parent
-            .append_child(&svg)
-            .map_err(|e| Error::Dom(format!("{e:?}")))?;
+        parent.append_child(&svg).map_err(|e| Error::Dom(format!("{e:?}")))?;
 
         Ok(SvgRoot {
             root: svg,
@@ -203,15 +201,10 @@ impl SvgFactory for SvgRoot {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 fn read_viewport(root: &SvgsvgElement) -> Size {
-    Size::new(
-        read_number_attr(root, "width"),
-        read_number_attr(root, "height"),
-    )
+    Size::new(read_number_attr(root, "width"), read_number_attr(root, "height"))
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 fn read_number_attr(root: &SvgsvgElement, name: &str) -> f64 {
-    root.get_attribute(name)
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(0.0)
+    root.get_attribute(name).and_then(|s| s.parse().ok()).unwrap_or(0.0)
 }

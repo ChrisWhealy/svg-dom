@@ -12,8 +12,7 @@ use event::*;
 use std::{cell::RefCell, rc::Rc};
 use wasm_bindgen::{JsCast, prelude::*};
 use web_sys::{
-    DragEvent, Event, FocusEvent, KeyboardEvent, MouseEvent, PointerEvent, SvgElement, TouchEvent,
-    WheelEvent,
+    DragEvent, Event, FocusEvent, KeyboardEvent, MouseEvent, PointerEvent, SvgElement, TouchEvent, WheelEvent,
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -177,11 +176,7 @@ impl SvgNode {
     /// readout.set_text_fmt(&mut buf, format_args!("box: {x:.0}, {y:.0}"))?; // no per-call String allocation
     /// Ok::<(), svg_dom::Error>(())
     /// ```
-    pub fn set_text_fmt(
-        &self,
-        scratch: &mut String,
-        args: std::fmt::Arguments<'_>,
-    ) -> Result<(), Error> {
+    pub fn set_text_fmt(&self, scratch: &mut String, args: std::fmt::Arguments<'_>) -> Result<(), Error> {
         use std::fmt::Write;
         scratch.clear();
         scratch.write_fmt(args)?;
@@ -206,11 +201,7 @@ impl SvgNode {
     /// label.set_text_display(&mut buf, 42)?; // live counter, no per-call allocation
     /// Ok::<(), svg_dom::Error>(())
     /// ```
-    pub fn set_text_display<T: std::fmt::Display>(
-        &self,
-        scratch: &mut String,
-        value: T,
-    ) -> Result<(), Error> {
+    pub fn set_text_display<T: std::fmt::Display>(&self, scratch: &mut String, value: T) -> Result<(), Error> {
         self.set_text_fmt(scratch, format_args!("{value}"))
     }
 
@@ -630,19 +621,11 @@ impl SvgNode {
         Ok(())
     }
 
-    fn add_drag_listener<F: Fn(DragEvent) + 'static>(
-        &self,
-        event_type: &'static str,
-        handler: F,
-    ) -> Result<(), Error> {
+    fn add_drag_listener<F: Fn(DragEvent) + 'static>(&self, event_type: &'static str, handler: F) -> Result<(), Error> {
         self.store_listener(event_type, EventClosure::Drag(Closure::new(handler)))
     }
 
-    fn add_event_listener<F: Fn(Event) + 'static>(
-        &self,
-        event_type: &'static str,
-        handler: F,
-    ) -> Result<(), Error> {
+    fn add_event_listener<F: Fn(Event) + 'static>(&self, event_type: &'static str, handler: F) -> Result<(), Error> {
         self.store_listener(event_type, EventClosure::Event(Closure::new(handler)))
     }
 
@@ -700,11 +683,7 @@ impl SvgNode {
     ///
     /// Prefer the typed convenience wrappers where available. Like the wrappers below, this keeps the closure owned by
     /// the node and removes the DOM listener automatically when the last `SvgNode` handle is dropped.
-    pub fn on_event<F: Fn(Event) + 'static>(
-        &self,
-        event_type: &'static str,
-        handler: F,
-    ) -> Result<(), Error> {
+    pub fn on_event<F: Fn(Event) + 'static>(&self, event_type: &'static str, handler: F) -> Result<(), Error> {
         self.add_event_listener(event_type, handler)
     }
 

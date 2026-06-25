@@ -75,12 +75,7 @@ impl SvgAttrs {
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Formats a displayable value into the reusable scratch buffer and writes it as an attribute.
-    pub fn display<T: fmt::Display>(
-        &mut self,
-        node: &SvgNode,
-        name: &str,
-        value: T,
-    ) -> Result<(), Error> {
+    pub fn display<T: fmt::Display>(&mut self, node: &SvgNode, name: &str, value: T) -> Result<(), Error> {
         self.scratch.clear();
         write!(self.scratch, "{value}")?;
         node.set_attr(name, &self.scratch)
@@ -88,12 +83,7 @@ impl SvgAttrs {
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Formats `args` into the reusable scratch buffer and writes it as an attribute.
-    pub fn fmt(
-        &mut self,
-        node: &SvgNode,
-        name: &str,
-        args: fmt::Arguments<'_>,
-    ) -> Result<(), Error> {
+    pub fn fmt(&mut self, node: &SvgNode, name: &str, args: fmt::Arguments<'_>) -> Result<(), Error> {
         self.scratch.clear();
         self.scratch
             .write_fmt(args)

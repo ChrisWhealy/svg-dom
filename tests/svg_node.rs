@@ -1,9 +1,7 @@
 use std::{cell::Cell, rc::Rc};
 use svg_dom::{SvgRoot, root::utils::*};
 use wasm_bindgen_test::*;
-use web_sys::{
-    DragEvent, Event, FocusEvent, KeyboardEvent, MouseEvent, PointerEvent, SvgElement, WheelEvent,
-};
+use web_sys::{DragEvent, Event, FocusEvent, KeyboardEvent, MouseEvent, PointerEvent, SvgElement, WheelEvent};
 
 mod common;
 
@@ -13,14 +11,7 @@ wasm_bindgen_test_configure!(run_in_browser);
 // Using a unique `container_id` per test prevents DOM id collisions.
 fn make_svg(container_id: &str) -> SvgRoot {
     common::div(container_id);
-    SvgRoot::create_in(
-        container_id,
-        Size {
-            width: 200.0,
-            height: 200.0,
-        },
-    )
-    .unwrap()
+    SvgRoot::create_in(container_id, Size { width: 200.0, height: 200.0 }).unwrap()
 }
 
 // Helper: dispatch a synthetic mouse/pointer event directly to a node's underlying element.
@@ -32,47 +23,31 @@ fn dispatch(node: &svg_dom::SvgNode, event_type: &str) -> Result<(), String> {
 fn dispatch_element(element: &SvgElement, event_type: &str) -> Result<(), String> {
     if event_type.starts_with("pointer") {
         let event = PointerEvent::new(event_type).map_err(|e| format!("{e:?}"))?;
-        element
-            .dispatch_event(&event)
-            .map_err(|e| format!("{e:?}"))?;
+        element.dispatch_event(&event).map_err(|e| format!("{e:?}"))?;
     } else if event_type.starts_with("key") {
         let event = KeyboardEvent::new(event_type).map_err(|e| format!("{e:?}"))?;
-        element
-            .dispatch_event(&event)
-            .map_err(|e| format!("{e:?}"))?;
+        element.dispatch_event(&event).map_err(|e| format!("{e:?}"))?;
     } else if matches!(event_type, "focus" | "blur") {
         let event = FocusEvent::new(event_type).map_err(|e| format!("{e:?}"))?;
-        element
-            .dispatch_event(&event)
-            .map_err(|e| format!("{e:?}"))?;
+        element.dispatch_event(&event).map_err(|e| format!("{e:?}"))?;
     } else if event_type == "wheel" {
         let event = WheelEvent::new(event_type).map_err(|e| format!("{e:?}"))?;
-        element
-            .dispatch_event(&event)
-            .map_err(|e| format!("{e:?}"))?;
+        element.dispatch_event(&event).map_err(|e| format!("{e:?}"))?;
     } else if event_type.starts_with("touch") {
         // Desktop Firefox does not expose the `TouchEvent` constructor, so dispatch a generically-typed event carrying
         // the touch type name. A listener fires on the event-type string regardless of the concrete event interface, so
         // this still exercises the managed `on_touch*` wrappers in every browser.
         let event = Event::new(event_type).map_err(|e| format!("{e:?}"))?;
-        element
-            .dispatch_event(&event)
-            .map_err(|e| format!("{e:?}"))?;
+        element.dispatch_event(&event).map_err(|e| format!("{e:?}"))?;
     } else if event_type.starts_with("drag") || event_type == "drop" {
         let event = DragEvent::new(event_type).map_err(|e| format!("{e:?}"))?;
-        element
-            .dispatch_event(&event)
-            .map_err(|e| format!("{e:?}"))?;
+        element.dispatch_event(&event).map_err(|e| format!("{e:?}"))?;
     } else if event_type == "custom-svg-dom-test" {
         let event = Event::new(event_type).map_err(|e| format!("{e:?}"))?;
-        element
-            .dispatch_event(&event)
-            .map_err(|e| format!("{e:?}"))?;
+        element.dispatch_event(&event).map_err(|e| format!("{e:?}"))?;
     } else {
         let event = MouseEvent::new(event_type).map_err(|e| format!("{e:?}"))?;
-        element
-            .dispatch_event(&event)
-            .map_err(|e| format!("{e:?}"))?;
+        element.dispatch_event(&event).map_err(|e| format!("{e:?}"))?;
     }
     Ok(())
 }
@@ -107,12 +82,8 @@ fn should_set_multiple_attributes_in_one_call() -> Result<(), String> {
         .rect(Point::origin(), Size::new(50.0, 50.0))
         .map_err(|e| e.to_string())?;
 
-    rect.set_attrs([
-        ("fill", "steelblue"),
-        ("stroke", "white"),
-        ("stroke-width", "2"),
-    ])
-    .map_err(|e| e.to_string())?;
+    rect.set_attrs([("fill", "steelblue"), ("stroke", "white"), ("stroke-width", "2")])
+        .map_err(|e| e.to_string())?;
 
     common::check_eq(rect.attr("fill"), Some("steelblue".into()))?;
     common::check_eq(rect.attr("stroke"), Some("white".into()))?;
@@ -150,8 +121,7 @@ fn should_write_absent_attribute_with_set_attr_if_changed() -> Result<(), String
     let rect = make_svg("node-set-attr-if-changed-absent")
         .rect(Point::origin(), Size::new(50.0, 50.0))
         .map_err(|e| e.to_string())?;
-    rect.set_attr_if_changed("style", "cursor:grab")
-        .map_err(|e| e.to_string())?;
+    rect.set_attr_if_changed("style", "cursor:grab").map_err(|e| e.to_string())?;
     common::check_eq(rect.attr("style"), Some("cursor:grab".into()))
 }
 
@@ -161,8 +131,7 @@ fn should_update_attribute_when_value_differs() -> Result<(), String> {
     let rect = make_svg("node-set-attr-if-changed-update")
         .rect(Point::origin(), Size::new(50.0, 50.0))
         .map_err(|e| e.to_string())?;
-    rect.set_attr_if_changed("style", "cursor:grab")
-        .map_err(|e| e.to_string())?;
+    rect.set_attr_if_changed("style", "cursor:grab").map_err(|e| e.to_string())?;
     rect.set_attr_if_changed("style", "cursor:grabbing")
         .map_err(|e| e.to_string())?;
     common::check_eq(rect.attr("style"), Some("cursor:grabbing".into()))
@@ -174,10 +143,8 @@ fn should_leave_attribute_unchanged_when_value_matches() -> Result<(), String> {
     let rect = make_svg("node-set-attr-if-changed-noop")
         .rect(Point::origin(), Size::new(50.0, 50.0))
         .map_err(|e| e.to_string())?;
-    rect.set_attr_if_changed("opacity", "0.5")
-        .map_err(|e| e.to_string())?;
-    rect.set_attr_if_changed("opacity", "0.5")
-        .map_err(|e| e.to_string())?;
+    rect.set_attr_if_changed("opacity", "0.5").map_err(|e| e.to_string())?;
+    rect.set_attr_if_changed("opacity", "0.5").map_err(|e| e.to_string())?;
     common::check_eq(rect.attr("opacity"), Some("0.5".into()))
 }
 
@@ -196,10 +163,7 @@ fn should_write_text_content_via_set_text_fmt() -> Result<(), String> {
     label
         .set_text_fmt(&mut buf, format_args!("box: {x:.0}, {y:.0}"))
         .map_err(|e| e.to_string())?;
-    common::check_eq(
-        label.as_element().text_content(),
-        Some("box: 12, 34".into()),
-    )
+    common::check_eq(label.as_element().text_content(), Some("box: 12, 34".into()))
 }
 
 /// The same scratch buffer can be reused across `set_text_fmt` calls and the latest value wins.
@@ -215,10 +179,7 @@ fn should_reuse_buffer_across_set_text_fmt_calls() -> Result<(), String> {
     label
         .set_text_fmt(&mut buf, format_args!("box: {}, {}", 30, 40))
         .map_err(|e| e.to_string())?;
-    common::check_eq(
-        label.as_element().text_content(),
-        Some("box: 30, 40".into()),
-    )
+    common::check_eq(label.as_element().text_content(), Some("box: 30, 40".into()))
 }
 
 /// `set_text_display` writes a single displayable value as text content.
@@ -228,9 +189,7 @@ fn should_write_display_value_via_set_text_display() -> Result<(), String> {
         .text(Point::new(10.0, 20.0), "")
         .map_err(|e| e.to_string())?;
     let mut buf = String::new();
-    label
-        .set_text_display(&mut buf, 42)
-        .map_err(|e| e.to_string())?;
+    label.set_text_display(&mut buf, 42).map_err(|e| e.to_string())?;
     common::check_eq(label.as_element().text_content(), Some("42".into()))
 }
 
@@ -278,9 +237,7 @@ fn should_write_first_cached_value() -> Result<(), String> {
         .rect(Point::origin(), Size::new(50.0, 50.0))
         .map_err(|e| e.to_string())?;
     let mut cache = svg_dom::CachedAttr::new();
-    cache
-        .set(&rect, "style", "cursor:grab")
-        .map_err(|e| e.to_string())?;
+    cache.set(&rect, "style", "cursor:grab").map_err(|e| e.to_string())?;
     common::check_eq(rect.attr("style"), Some("cursor:grab".into()))
 }
 
@@ -292,18 +249,13 @@ fn should_skip_dom_write_when_cached_value_unchanged() -> Result<(), String> {
         .rect(Point::origin(), Size::new(50.0, 50.0))
         .map_err(|e| e.to_string())?;
     let mut cache = svg_dom::CachedAttr::new();
-    cache
-        .set(&rect, "style", "cursor:grab")
-        .map_err(|e| e.to_string())?;
+    cache.set(&rect, "style", "cursor:grab").map_err(|e| e.to_string())?;
 
     // Change the attribute through a different path; the cache still believes "cursor:grab" is current.
-    rect.set_attr("style", "cursor:wait")
-        .map_err(|e| e.to_string())?;
+    rect.set_attr("style", "cursor:wait").map_err(|e| e.to_string())?;
 
     // Same value as cached → no write, so the external "cursor:wait" survives.
-    cache
-        .set(&rect, "style", "cursor:grab")
-        .map_err(|e| e.to_string())?;
+    cache.set(&rect, "style", "cursor:grab").map_err(|e| e.to_string())?;
     common::check_eq(rect.attr("style"), Some("cursor:wait".into()))
 }
 
@@ -314,12 +266,8 @@ fn should_write_changed_cached_value() -> Result<(), String> {
         .rect(Point::origin(), Size::new(50.0, 50.0))
         .map_err(|e| e.to_string())?;
     let mut cache = svg_dom::CachedAttr::new();
-    cache
-        .set(&rect, "style", "cursor:grab")
-        .map_err(|e| e.to_string())?;
-    cache
-        .set(&rect, "style", "cursor:grabbing")
-        .map_err(|e| e.to_string())?;
+    cache.set(&rect, "style", "cursor:grab").map_err(|e| e.to_string())?;
+    cache.set(&rect, "style", "cursor:grabbing").map_err(|e| e.to_string())?;
     common::check_eq(rect.attr("style"), Some("cursor:grabbing".into()))
 }
 
@@ -330,18 +278,13 @@ fn should_write_after_invalidate() -> Result<(), String> {
         .rect(Point::origin(), Size::new(50.0, 50.0))
         .map_err(|e| e.to_string())?;
     let mut cache = svg_dom::CachedAttr::new();
-    cache
-        .set(&rect, "style", "cursor:grab")
-        .map_err(|e| e.to_string())?;
+    cache.set(&rect, "style", "cursor:grab").map_err(|e| e.to_string())?;
 
-    rect.set_attr("style", "cursor:wait")
-        .map_err(|e| e.to_string())?;
+    rect.set_attr("style", "cursor:wait").map_err(|e| e.to_string())?;
     cache.invalidate();
 
     // Cache was invalidated, so this writes through and restores "cursor:grab".
-    cache
-        .set(&rect, "style", "cursor:grab")
-        .map_err(|e| e.to_string())?;
+    cache.set(&rect, "style", "cursor:grab").map_err(|e| e.to_string())?;
     common::check_eq(rect.attr("style"), Some("cursor:grab".into()))
 }
 
@@ -352,9 +295,7 @@ fn should_write_first_cached_text() -> Result<(), String> {
         .text(Point::new(10.0, 20.0), "")
         .map_err(|e| e.to_string())?;
     let mut cache = svg_dom::CachedAttr::new();
-    cache
-        .set_text(&label, "moving")
-        .map_err(|e| e.to_string())?;
+    cache.set_text(&label, "moving").map_err(|e| e.to_string())?;
     common::check_eq(label.as_element().text_content(), Some("moving".into()))
 }
 
@@ -365,14 +306,10 @@ fn should_skip_text_write_when_unchanged() -> Result<(), String> {
         .text(Point::new(10.0, 20.0), "")
         .map_err(|e| e.to_string())?;
     let mut cache = svg_dom::CachedAttr::new();
-    cache
-        .set_text(&label, "moving")
-        .map_err(|e| e.to_string())?;
+    cache.set_text(&label, "moving").map_err(|e| e.to_string())?;
 
     label.set_text("dropped"); // change behind the cache's back
-    cache
-        .set_text(&label, "moving")
-        .map_err(|e| e.to_string())?; // same as cached → no write
+    cache.set_text(&label, "moving").map_err(|e| e.to_string())?; // same as cached → no write
 
     common::check_eq(label.as_element().text_content(), Some("dropped".into()))
 }
@@ -384,12 +321,8 @@ fn should_write_changed_cached_text() -> Result<(), String> {
         .text(Point::new(10.0, 20.0), "")
         .map_err(|e| e.to_string())?;
     let mut cache = svg_dom::CachedAttr::new();
-    cache
-        .set_text(&label, "moving")
-        .map_err(|e| e.to_string())?;
-    cache
-        .set_text(&label, "dropped")
-        .map_err(|e| e.to_string())?;
+    cache.set_text(&label, "moving").map_err(|e| e.to_string())?;
+    cache.set_text(&label, "dropped").map_err(|e| e.to_string())?;
     common::check_eq(label.as_element().text_content(), Some("dropped".into()))
 }
 
@@ -400,38 +333,26 @@ fn should_write_changed_cached_text() -> Result<(), String> {
 /// `set_translate` writes a `translate(x, y)` transform formatted to one decimal place.
 #[wasm_bindgen_test]
 fn should_write_translate_transform() -> Result<(), String> {
-    let node = make_svg("node-set-translate")
-        .group()
-        .map_err(|e| e.to_string())?;
+    let node = make_svg("node-set-translate").group().map_err(|e| e.to_string())?;
     let mut buf = String::new();
-    node.set_translate(&mut buf, 100.0, 50.0)
-        .map_err(|e| e.to_string())?;
-    common::check_eq(
-        node.attr("transform"),
-        Some("translate(100.0, 50.0)".into()),
-    )
+    node.set_translate(&mut buf, 100.0, 50.0).map_err(|e| e.to_string())?;
+    common::check_eq(node.attr("transform"), Some("translate(100.0, 50.0)".into()))
 }
 
 /// The same scratch buffer can be reused across calls and the latest value wins.
 #[wasm_bindgen_test]
 fn should_reuse_scratch_buffer_across_translate_calls() -> Result<(), String> {
-    let node = make_svg("node-translate-reuse")
-        .group()
-        .map_err(|e| e.to_string())?;
+    let node = make_svg("node-translate-reuse").group().map_err(|e| e.to_string())?;
     let mut buf = String::new();
-    node.set_translate(&mut buf, 1.0, 2.0)
-        .map_err(|e| e.to_string())?;
-    node.set_translate(&mut buf, 33.0, 44.0)
-        .map_err(|e| e.to_string())?;
+    node.set_translate(&mut buf, 1.0, 2.0).map_err(|e| e.to_string())?;
+    node.set_translate(&mut buf, 33.0, 44.0).map_err(|e| e.to_string())?;
     common::check_eq(node.attr("transform"), Some("translate(33.0, 44.0)".into()))
 }
 
 /// `set_rotate` writes a single-argument `rotate(angle)` transform.
 #[wasm_bindgen_test]
 fn should_write_rotate_transform() -> Result<(), String> {
-    let node = make_svg("node-set-rotate")
-        .group()
-        .map_err(|e| e.to_string())?;
+    let node = make_svg("node-set-rotate").group().map_err(|e| e.to_string())?;
     let mut buf = String::new();
     node.set_rotate(&mut buf, 45.0).map_err(|e| e.to_string())?;
     common::check_eq(node.attr("transform"), Some("rotate(45.0)".into()))
@@ -440,24 +361,16 @@ fn should_write_rotate_transform() -> Result<(), String> {
 /// `set_rotate_about` writes a `rotate(angle, cx, cy)` transform.
 #[wasm_bindgen_test]
 fn should_write_rotate_about_transform() -> Result<(), String> {
-    let node = make_svg("node-set-rotate-about")
-        .group()
-        .map_err(|e| e.to_string())?;
+    let node = make_svg("node-set-rotate-about").group().map_err(|e| e.to_string())?;
     let mut buf = String::new();
-    node.set_rotate_about(&mut buf, 90.0, 10.0, 20.0)
-        .map_err(|e| e.to_string())?;
-    common::check_eq(
-        node.attr("transform"),
-        Some("rotate(90.0, 10.0, 20.0)".into()),
-    )
+    node.set_rotate_about(&mut buf, 90.0, 10.0, 20.0).map_err(|e| e.to_string())?;
+    common::check_eq(node.attr("transform"), Some("rotate(90.0, 10.0, 20.0)".into()))
 }
 
 /// `set_scale` writes a uniform `scale(s)` transform formatted to three decimal places.
 #[wasm_bindgen_test]
 fn should_write_uniform_scale_transform() -> Result<(), String> {
-    let node = make_svg("node-set-scale")
-        .group()
-        .map_err(|e| e.to_string())?;
+    let node = make_svg("node-set-scale").group().map_err(|e| e.to_string())?;
     let mut buf = String::new();
     node.set_scale(&mut buf, 1.5).map_err(|e| e.to_string())?;
     common::check_eq(node.attr("transform"), Some("scale(1.500)".into()))
@@ -466,47 +379,30 @@ fn should_write_uniform_scale_transform() -> Result<(), String> {
 /// `set_scale_xy` writes a non-uniform `scale(x, y)` transform.
 #[wasm_bindgen_test]
 fn should_write_non_uniform_scale_transform() -> Result<(), String> {
-    let node = make_svg("node-set-scale-xy")
-        .group()
-        .map_err(|e| e.to_string())?;
+    let node = make_svg("node-set-scale-xy").group().map_err(|e| e.to_string())?;
     let mut buf = String::new();
-    node.set_scale_xy(&mut buf, 2.0, 0.5)
-        .map_err(|e| e.to_string())?;
+    node.set_scale_xy(&mut buf, 2.0, 0.5).map_err(|e| e.to_string())?;
     common::check_eq(node.attr("transform"), Some("scale(2.000, 0.500)".into()))
 }
 
 /// `set_translate_scale` writes the combined `translate(...) scale(...)` shape used by pan/zoom code.
 #[wasm_bindgen_test]
 fn should_write_translate_scale_transform() -> Result<(), String> {
-    let node = make_svg("node-set-translate-scale")
-        .group()
-        .map_err(|e| e.to_string())?;
+    let node = make_svg("node-set-translate-scale").group().map_err(|e| e.to_string())?;
     let mut buf = String::new();
-    node.set_translate_scale(&mut buf, 12.0, 34.0, 2.0)
-        .map_err(|e| e.to_string())?;
-    common::check_eq(
-        node.attr("transform"),
-        Some("translate(12.0, 34.0) scale(2.000)".into()),
-    )
+    node.set_translate_scale(&mut buf, 12.0, 34.0, 2.0).map_err(|e| e.to_string())?;
+    common::check_eq(node.attr("transform"), Some("translate(12.0, 34.0) scale(2.000)".into()))
 }
 
 /// `set_transform_fmt` writes an arbitrary transform built from `format_args!`.
 #[wasm_bindgen_test]
 fn should_write_arbitrary_transform_via_fmt() -> Result<(), String> {
-    let node = make_svg("node-set-transform-fmt")
-        .group()
-        .map_err(|e| e.to_string())?;
+    let node = make_svg("node-set-transform-fmt").group().map_err(|e| e.to_string())?;
     let mut buf = String::new();
     let (x, y, angle) = (10.0, 20.0, 45.0);
-    node.set_transform_fmt(
-        &mut buf,
-        format_args!("translate({x:.1}, {y:.1}) rotate({angle:.1})"),
-    )
-    .map_err(|e| e.to_string())?;
-    common::check_eq(
-        node.attr("transform"),
-        Some("translate(10.0, 20.0) rotate(45.0)".into()),
-    )
+    node.set_transform_fmt(&mut buf, format_args!("translate({x:.1}, {y:.1}) rotate({angle:.1})"))
+        .map_err(|e| e.to_string())?;
+    common::check_eq(node.attr("transform"), Some("translate(10.0, 20.0) rotate(45.0)".into()))
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -597,11 +493,8 @@ fn should_update_stroke_width_attribute_after_calling_set_stroke_width() -> Resu
 /// `set_d` replaces the `d` attribute of a `<path>` element.
 #[wasm_bindgen_test]
 fn should_update_path_data_after_calling_set_d() -> Result<(), String> {
-    let path = make_svg("node-set-d")
-        .path("M 0 0 L 50 50")
-        .map_err(|e| e.to_string())?;
-    path.set_d("M 10 10 Q 50 0 90 10")
-        .map_err(|e| e.to_string())?;
+    let path = make_svg("node-set-d").path("M 0 0 L 50 50").map_err(|e| e.to_string())?;
+    path.set_d("M 10 10 Q 50 0 90 10").map_err(|e| e.to_string())?;
     common::check_eq(path.attr("d"), Some("M 10 10 Q 50 0 90 10".into()))
 }
 
@@ -614,9 +507,7 @@ fn should_update_path_data_after_calling_set_d() -> Result<(), String> {
 fn should_append_element_to_group() -> Result<(), String> {
     let svg = make_svg("node-append");
     let group = svg.group().map_err(|e| e.to_string())?;
-    let rect = svg
-        .rect(Point::origin(), Size::new(50.0, 50.0))
-        .map_err(|e| e.to_string())?;
+    let rect = svg.rect(Point::origin(), Size::new(50.0, 50.0)).map_err(|e| e.to_string())?;
     group.append(&rect).map_err(|e| e.to_string())?;
     common::check_eq(group.as_element().child_element_count(), 1)
 }
@@ -630,9 +521,7 @@ fn should_append_element_to_group() -> Result<(), String> {
 fn should_detach_node_after_remove() -> Result<(), String> {
     let svg = make_svg("node-remove");
     let group = svg.group().map_err(|e| e.to_string())?;
-    let rect = svg
-        .rect(Point::origin(), Size::new(50.0, 50.0))
-        .map_err(|e| e.to_string())?;
+    let rect = svg.rect(Point::origin(), Size::new(50.0, 50.0)).map_err(|e| e.to_string())?;
     group.append(&rect).map_err(|e| e.to_string())?;
     common::check_eq(group.as_element().child_element_count(), 1)?;
 
@@ -661,19 +550,13 @@ fn should_insert_child_before_reference() -> Result<(), String> {
     let svg = make_svg("node-insert-before");
     let group = svg.group().map_err(|e| e.to_string())?;
 
-    let front = svg
-        .rect(Point::origin(), Size::new(10.0, 10.0))
-        .map_err(|e| e.to_string())?;
+    let front = svg.rect(Point::origin(), Size::new(10.0, 10.0)).map_err(|e| e.to_string())?;
     front.set_attr("id", "front").map_err(|e| e.to_string())?;
     group.append(&front).map_err(|e| e.to_string())?;
 
-    let behind = svg
-        .rect(Point::origin(), Size::new(10.0, 10.0))
-        .map_err(|e| e.to_string())?;
+    let behind = svg.rect(Point::origin(), Size::new(10.0, 10.0)).map_err(|e| e.to_string())?;
     behind.set_attr("id", "behind").map_err(|e| e.to_string())?;
-    group
-        .insert_before(&behind, &front)
-        .map_err(|e| e.to_string())?;
+    group.insert_before(&behind, &front).map_err(|e| e.to_string())?;
 
     common::check_eq(group.as_element().child_element_count(), 2)?;
     let first_id = group.as_element().first_element_child().map(|e| e.id());
@@ -686,12 +569,8 @@ fn should_error_when_reference_is_not_a_child() -> Result<(), String> {
     let svg = make_svg("node-insert-before-bad-ref");
     let group = svg.group().map_err(|e| e.to_string())?;
     // `stranger` is appended to the <svg> root by the factory, not to `group`.
-    let stranger = svg
-        .rect(Point::origin(), Size::new(10.0, 10.0))
-        .map_err(|e| e.to_string())?;
-    let newcomer = svg
-        .rect(Point::origin(), Size::new(10.0, 10.0))
-        .map_err(|e| e.to_string())?;
+    let stranger = svg.rect(Point::origin(), Size::new(10.0, 10.0)).map_err(|e| e.to_string())?;
+    let newcomer = svg.rect(Point::origin(), Size::new(10.0, 10.0)).map_err(|e| e.to_string())?;
     common::check(
         group.insert_before(&newcomer, &stranger).is_err(),
         "insert_before should error when the reference is not a child of the target",
@@ -799,13 +678,7 @@ fn should_fire_managed_mouse_event_wrappers() -> Result<(), String> {
     .map_err(|e| e.to_string())?;
 
     for event_type in [
-        "dblclick",
-        "contextmenu",
-        "mousedown",
-        "mouseup",
-        "mousemove",
-        "mouseenter",
-        "mouseleave",
+        "dblclick", "contextmenu", "mousedown", "mouseup", "mousemove", "mouseenter", "mouseleave",
     ] {
         dispatch(&rect, event_type)?;
     }
@@ -853,12 +726,7 @@ fn should_fire_managed_pointer_event_wrappers() -> Result<(), String> {
     .map_err(|e| e.to_string())?;
 
     for event_type in [
-        "pointerdown",
-        "pointerup",
-        "pointermove",
-        "pointercancel",
-        "pointerover",
-        "pointerout",
+        "pointerdown", "pointerup", "pointermove", "pointercancel", "pointerover", "pointerout",
     ] {
         dispatch(&rect, event_type)?;
     }
@@ -873,8 +741,7 @@ fn should_fire_managed_non_mouse_event_wrappers() -> Result<(), String> {
         .rect(Point::origin(), Size::new(200.0, 200.0))
         .map_err(|e| e.to_string())?;
     rect.set_attr("tabindex", "0").map_err(|e| e.to_string())?;
-    rect.set_attr("draggable", "true")
-        .map_err(|e| e.to_string())?;
+    rect.set_attr("draggable", "true").map_err(|e| e.to_string())?;
     let count = Rc::new(Cell::new(0u32));
 
     let c = count.clone();
@@ -1031,10 +898,7 @@ fn should_fire_original_handler_when_dispatched_via_clone() -> Result<(), String
     })
     .map_err(|e| e.to_string())?;
     dispatch(&clone, "click")?;
-    common::check(
-        fired.get(),
-        "click handler did not fire when dispatched via clone",
-    )
+    common::check(fired.get(), "click handler did not fire when dispatched via clone")
 }
 
 /// Dropping the final `SvgNode` handle removes its registered listener from the DOM before
@@ -1089,8 +953,5 @@ fn should_set_attributes_with_reusable_attr_writer() -> Result<(), String> {
     common::check_eq(rect.attr("stroke"), Some("white".into()))?;
     common::check_eq(rect.attr("stroke-width"), Some("2.5".into()))?;
     common::check_eq(rect.attr("transform"), Some("translate(10, 20)".into()))?;
-    common::check(
-        attrs.capacity() >= 64,
-        "SvgAttrs should retain its scratch allocation",
-    )
+    common::check(attrs.capacity() >= 64, "SvgAttrs should retain its scratch allocation")
 }

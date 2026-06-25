@@ -78,9 +78,7 @@ impl AnimationLoop {
     /// This is intended for hot animation paths that update attributes such as `x`, `y`, `transform`, `d`, or text every
     /// frame.  Instead of allocating a fresh `String` via `format!(...)` on each frame, write the formatted value into
     /// the provided buffer with methods such as [`AnimationFrame::set_attr_fmt`].
-    pub fn start_with_frame<F: FnMut(f64, &mut AnimationFrame) + 'static>(
-        mut callback: F,
-    ) -> Result<Self, Error> {
+    pub fn start_with_frame<F: FnMut(f64, &mut AnimationFrame) + 'static>(mut callback: F) -> Result<Self, Error> {
         let mut frame = AnimationFrame::new();
         Self::start_inner(move |ts| callback(ts, &mut frame))
     }
@@ -119,11 +117,7 @@ impl AnimationLoop {
 
         *closure.borrow_mut() = Some(raf_closure);
 
-        Ok(AnimationLoop {
-            window,
-            handle,
-            closure,
-        })
+        Ok(AnimationLoop { window, handle, closure })
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

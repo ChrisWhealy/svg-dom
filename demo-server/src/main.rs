@@ -31,10 +31,7 @@ async fn main() -> std::io::Result<()> {
     // Run wasm-pack
     build_wasm(&root);
 
-    let port: u16 = std::env::var("PORT")
-        .ok()
-        .and_then(|p| p.parse().ok())
-        .unwrap_or(DEFAULT_PORT);
+    let port: u16 = std::env::var("PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(DEFAULT_PORT);
     let addr = ("127.0.0.1", port);
 
     println!("\n  svg-dom demo running on http://127.0.0.1:{port}/demo/\n");
@@ -62,14 +59,14 @@ fn build_wasm(root: &Path) {
         .args(["build", "--target", "web", "--", "--features", "demo"])
         .status()
     {
-        Ok(status) if status.success() => {}
+        Ok(status) if status.success() => {},
         Ok(status) => {
             eprintln!("aborting: wasm-pack exited with {status}");
             process::exit(1);
-        }
+        },
         Err(err) => {
             eprintln!("aborting: could not run wasm-pack ({err})");
             process::exit(1);
-        }
+        },
     }
 }
