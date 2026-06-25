@@ -36,7 +36,7 @@ That said, all reasonable, conventional steps have been taken to provide a secur
 - [x] Implement batch-building API that allows elements to be added *en masse*
 - [x] Share factory implementation between `SvgRoot` and `SvgBatch`
 - [x] Build demo server to illustrate current functionality
-- [x] Run `cargo-deny` as a scheduled `cron` job
+- [x] Schedule `cargo-deny` to run as a weekly `cron` job
 - Implement remaining SVG elements
   - [ ] `<ellipse>`
   - [ ] `<polyline>` / `<polygon>`
