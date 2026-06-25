@@ -25,11 +25,19 @@ The following elements all need to be implemented:
 | `<textPath>` | Allows text to follow a curve
 | `<filter>` and primitives | Drop shadows, blur, colour matrix, compositing etc
 
-# Missing tree operations
+# Tree operations
+
+Implemented:
 
 - `remove()` — detach a node from the DOM
 - `insert_before()` — z-order control without rebuilding
-- No way to query children or find a node by attribute
+
+Still missing:
+
+- No `replace_with()` — swap one node for another in place
+- No `clear()` — remove all children of a node (e.g. to redraw a `<g>` from scratch)
+- No `parent()` / child navigation
+- No way to query children or find a node by attribute (`query_selector` and friends)
 
 # Event coverage
 
@@ -45,7 +53,8 @@ Managed wrappers now cover the SVG interaction events expected by ordinary appli
 * drag-and-drop, and 
 * a generic `on_event` escape hatch.
 
-Prefer `pointerenter` / `pointerleave` for hover behaviour because they do not bubble through child elements. The legacy `mouseover` / `mouseout` wrappers remain for compatibility.
+Prefer `pointerenter` / `pointerleave` for hover behaviour because they do not bubble through child elements.
+The legacy `mouseover` / `mouseout` wrappers remain for compatibility.
 
 Potential future event work is now mostly about ergonomics rather than coverage: typed helpers for less common browser events can be added when real SVG use-cases appear.
 

@@ -549,6 +549,67 @@ impl SvgNode {
             .map_err(|e| Error::Dom(format!("{e:?}")))
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Detaches this node from its parent in the DOM.
+    ///
+    /// The `SvgNode` handle remains valid after removal — it simply points at an element that is no longer part of the
+    /// document tree, so it can be re-inserted later with [`append`](Self::append) or [`insert_before`](Self::insert_before).
+    /// 
+    /// Any managed event listeners stay registered on the (now detached) element and are still removed when the last
+    /// handle is dropped.
+    ///
+    /// Removing a node is idempotent. That is, removing an already-detached node or a node that was never attached is a
+    /// harmless no-op.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
+    /// let svg = SvgRoot::attach("diagram")?;
+    /// let rect = svg.rect(Point::new(0.0, 0.0), Size::new(40.0, 40.0))?;
+    /// rect.remove(); // the <rect> is taken out of the document
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn remove(&self) {
+        self.inner.element.remove();
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Inserts the `SvgNode` called `new_child` immediately before the existing `SvgNode` called `reference`.
+    ///
+    /// This is the tree operation for **z-order control**: SVG paints children in document order, so inserting a node
+    /// before an existing sibling places it *behind* that sibling without rebuilding the rest of the tree.
+    /// 
+    /// To have the new child appear at the top of the visibility stack, use [`append`](Self::append) instead.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Dom`] if `reference` is not a child of this node, mirroring the underlying `Node.insertBefore`
+    /// DOM call.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
+    /// let svg = SvgRoot::attach("diagram")?;
+    /// let group = svg.group()?;
+    /// let front = svg.rect(Point::new(0.0, 0.0), Size::new(40.0, 40.0))?;
+    /// group.append(&front)?;
+    ///
+    /// // Slip a new rect behind `front` in the group's paint order.
+    /// let behind = svg.rect(Point::new(10.0, 10.0), Size::new(40.0, 40.0))?;
+    /// group.insert_before(&behind, &front)?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn insert_before(&self, new_child: &SvgNode, reference: &SvgNode) -> Result<(), Error> {
+        let reference_node: &web_sys::Node = &reference.inner.element;
+        self.inner
+            .element
+            .insert_before(&new_child.inner.element, Some(reference_node))
+            .map(|_| ())
+            .map_err(|e| Error::Dom(format!("{e:?}")))
+    }
+
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // Event handlers
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

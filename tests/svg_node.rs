@@ -622,6 +622,83 @@ fn should_append_element_to_group() -> Result<(), String> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// remove
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `remove` detaches a node so its former parent no longer counts it as a child.
+#[wasm_bindgen_test]
+fn should_detach_node_after_remove() -> Result<(), String> {
+    let svg = make_svg("node-remove");
+    let group = svg.group().map_err(|e| e.to_string())?;
+    let rect = svg
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    group.append(&rect).map_err(|e| e.to_string())?;
+    common::check_eq(group.as_element().child_element_count(), 1)?;
+
+    rect.remove();
+    common::check_eq(group.as_element().child_element_count(), 0)
+}
+
+/// Calling `remove` on an already-detached node is idempotent.
+#[wasm_bindgen_test]
+fn should_succeed_when_removing_already_detached_node() -> Result<(), String> {
+    let rect = make_svg("node-remove-detached")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    rect.remove();
+    rect.remove(); // a node with no parent: still no panic, still no error
+    Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// insert_before
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `insert_before` places the new child ahead of the reference child in document (paint) order.
+#[wasm_bindgen_test]
+fn should_insert_child_before_reference() -> Result<(), String> {
+    let svg = make_svg("node-insert-before");
+    let group = svg.group().map_err(|e| e.to_string())?;
+
+    let front = svg
+        .rect(Point::origin(), Size::new(10.0, 10.0))
+        .map_err(|e| e.to_string())?;
+    front.set_attr("id", "front").map_err(|e| e.to_string())?;
+    group.append(&front).map_err(|e| e.to_string())?;
+
+    let behind = svg
+        .rect(Point::origin(), Size::new(10.0, 10.0))
+        .map_err(|e| e.to_string())?;
+    behind.set_attr("id", "behind").map_err(|e| e.to_string())?;
+    group
+        .insert_before(&behind, &front)
+        .map_err(|e| e.to_string())?;
+
+    common::check_eq(group.as_element().child_element_count(), 2)?;
+    let first_id = group.as_element().first_element_child().map(|e| e.id());
+    common::check_eq(first_id, Some("behind".into()))
+}
+
+/// `insert_before` fails when the reference node is not a child of the target node.
+#[wasm_bindgen_test]
+fn should_error_when_reference_is_not_a_child() -> Result<(), String> {
+    let svg = make_svg("node-insert-before-bad-ref");
+    let group = svg.group().map_err(|e| e.to_string())?;
+    // `stranger` is appended to the <svg> root by the factory, not to `group`.
+    let stranger = svg
+        .rect(Point::origin(), Size::new(10.0, 10.0))
+        .map_err(|e| e.to_string())?;
+    let newcomer = svg
+        .rect(Point::origin(), Size::new(10.0, 10.0))
+        .map_err(|e| e.to_string())?;
+    common::check(
+        group.insert_before(&newcomer, &stranger).is_err(),
+        "insert_before should error when the reference is not a child of the target",
+    )
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Event handlers
 //
 // `EventTarget::dispatch_event` is synchronous: the browser fires the handler inline before `dispatch_event` returns.
