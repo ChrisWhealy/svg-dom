@@ -33,6 +33,9 @@ The demo gallery does this with a small page-lifetime owner for interactive node
 
 For uncommon browser events, `on_event` provides the same managed lifetime behaviour while using a generic `web_sys::Event`.
 
+Handlers are bound as `FnMut`, not `Fn`, so a handler can own and mutate captured state directly — typically a reusable `SvgAttrs` or `String` scratch buffer for a hot `pointermove`/`mousemove` path — without an `Rc<RefCell<…>>` wrapper.
+The only constraint, inherited from wasm-bindgen's `Closure<dyn FnMut>`, is that a handler must not run re-entrantly (synchronously dispatching the same event to the same node from inside the handler), which will cause a panic — the same outcome a re-entrant `RefCell` borrow would produce.
+
 ## `requestAnimationFrame` self-rescheduling pattern
 
 `AnimationLoop` uses the standard WASM self-referencing closure pattern: the closure holds an `Rc` to itself so it can re-register with `requestAnimationFrame` after each frame.
@@ -71,7 +74,8 @@ For shapes that the typed helpers do not cover, your escape hatch is `set_transf
 The scratch buffer is deliberately **not** stored inside `SvgNode`.
 Most nodes are passive geometry that never animate, do folding formatting state into every node would cause them all to grow while benefiting only a few.
 Passive noeds can remain small by keeping the buffer external whilst hot paths can opt in explicitly.
-In an event handler, the buffer typically lives in an `Rc<RefCell<String>>` shared by the closures, as the drag/touch demo does.
+Because managed handlers are `FnMut`, a handler that is the sole user of a buffer can simply own it (`let mut buf = String::new()` captured by the closure), as the colour-wheel demo does.
+An `Rc<RefCell<String>>` is needed only when one buffer is *shared across several* closures, as the drag/touch demo does for its coordinate readout.
 
 In spite of the fact that writing into a `String` is infallible, `write!` is typed to return `std::fmt::Error`.
 `Error` implements `From<std::fmt::Error>`, mapping to the existing `Error::Dom` variant so the helpers can use `?` without a dedicated error variant.

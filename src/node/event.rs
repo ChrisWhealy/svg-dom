@@ -5,14 +5,14 @@ use web_sys::{
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 pub enum EventClosure {
-    Drag(Closure<dyn Fn(DragEvent)>),
-    Event(Closure<dyn Fn(Event)>),
-    Focus(Closure<dyn Fn(FocusEvent)>),
-    Keyboard(Closure<dyn Fn(KeyboardEvent)>),
-    Mouse(Closure<dyn Fn(MouseEvent)>),
-    Pointer(Closure<dyn Fn(PointerEvent)>),
-    Touch(Closure<dyn Fn(TouchEvent)>),
-    Wheel(Closure<dyn Fn(WheelEvent)>),
+    Drag(Closure<dyn FnMut(DragEvent)>),
+    Event(Closure<dyn FnMut(Event)>),
+    Focus(Closure<dyn FnMut(FocusEvent)>),
+    Keyboard(Closure<dyn FnMut(KeyboardEvent)>),
+    Mouse(Closure<dyn FnMut(MouseEvent)>),
+    Pointer(Closure<dyn FnMut(PointerEvent)>),
+    Touch(Closure<dyn FnMut(TouchEvent)>),
+    Wheel(Closure<dyn FnMut(WheelEvent)>),
 }
 
 impl EventClosure {

@@ -708,15 +708,15 @@ fn demo_events_colour() -> Result<(), Error> {
     let mv_swatch = swatch.clone();
     let mv_readout = readout.clone();
 
-    // Reusable buffers so this per-move handler allocates nothing: `SvgAttrs` formats the attributes and a scratch
-    // `String` backs the readout text. Both are shared into the closure via `Rc<RefCell<…>>`.
-    let attr_scratch = Rc::new(RefCell::new(SvgAttrs::new()));
-    let text_scratch = Rc::new(RefCell::new(String::new()));
+    // Managed handlers are `FnMut`, so this per-move handler can *own* its reusable buffers directly — no
+    // `Rc<RefCell<…>>`, no runtime borrow on every `mousemove`. `SvgAttrs` formats the attributes; a scratch `String`
+    // backs the readout text.
+    let mut attrs = SvgAttrs::new();
+    let mut text = String::new();
 
     surface.on_mousemove(move |e| {
         let (x, y) = (f64::from(e.offset_x()), f64::from(e.offset_y()));
         let (dx, dy) = (x - CX, y - CY);
-        let mut attrs = attr_scratch.borrow_mut();
 
         if dx * dx + dy * dy <= R * R {
             // Inside the wheel: hue is the pointer's angle about the centre.
@@ -724,7 +724,7 @@ fn demo_events_colour() -> Result<(), Error> {
             let _ = attrs.fmt(&mv_swatch, "fill", format_args!("hsl({hue:.0},90%,50%)"));
             let _ = attrs.fmt(&mv_marker, "cx", format_args!("{x:.1}"));
             let _ = attrs.fmt(&mv_marker, "cy", format_args!("{y:.1}"));
-            let _ = mv_readout.set_text_fmt(&mut text_scratch.borrow_mut(), format_args!("hsl({hue:.0},90%,50%)"));
+            let _ = mv_readout.set_text_fmt(&mut text, format_args!("hsl({hue:.0},90%,50%)"));
         } else {
             // Outside the wheel: park the marker but leave the last sampled colour on the swatch.
             let _ = attrs.set(&mv_marker, "cx", "-20");
@@ -1011,14 +1011,16 @@ fn demo_events_pointer_lifecycle() -> Result<(), Error> {
 
     let move_readout = readout.clone();
     let move_coords = coords.clone();
+    // The `last: …` readout is shared with the discrete handlers above, so its cache stays in an `Rc<RefCell<…>>`.
+    // The coordinate buffer is used only here, so this `FnMut` handler can simply own it.
     let move_cache = label_cache.clone();
-    let coords_scratch = Rc::new(RefCell::new(String::new()));
+    let mut coords_buf = String::new();
     target.on_pointermove(move |e| {
         // Constant label through the shared cache: no allocation, and the DOM write is skipped on repeat moves.
         let _ = move_cache.borrow_mut().set_text(&move_readout, "last: pointermove");
-        // Coordinates change every move: format them through a reusable scratch buffer.
+        // Coordinates change every move: format them through the owned scratch buffer.
         let _ = move_coords.set_text_fmt(
-            &mut coords_scratch.borrow_mut(),
+            &mut coords_buf,
             format_args!(
                 "x: {}  y: {}  id: {}  type: {}",
                 e.offset_x(),
