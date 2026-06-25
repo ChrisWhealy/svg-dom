@@ -22,18 +22,17 @@ use web_sys::{
 struct SvgNodeInner {
     element: SvgElement,
 
-    // Listener storage is allocated only for interactive nodes.
-    // Most SVG elements are passive geometry, so keeping the listener Vec behind an Option<Box<_>> avoids carrying an
-    // empty Vec in every SvgNodeInner.
+    // Listener storage is allocated only for interactive nodes. Most SVG elements are passive geometry, so keeping the
+    // store behind `Option<Box<_>>` means a passive node carries no inline collection and allocates nothing until its
+    // first listener — the `Option<Box<…>>` is a single null pointer when empty.
+    //
+    // `ListenerStore` then holds the first listener inline (`One`), so registering one listener is a single heap
+    // allocation (the `Box`) rather than the two an empty `Vec` would need (its own box plus an element buffer on the
+    // first push). A second listener upgrades `One` into `Many(Vec)`. See docs/design_notes.md.
     //
     // Each entry stores both the event type and the Closure so the listener can be removed from the DOM before the
     // Closure is dropped. This prevents a detached DOM callback from pointing at an invalid wasm-bindgen closure.
-    //
-    // The `Box` is deliberate: `Option<Box<Vec<_>>>` is one pointer wide (null when empty), so a passive node carries
-    // no inline `Vec` header and allocates nothing until its first listener. `clippy::box_collection` flags the
-    // `Box<Vec>` as redundant, but here it is the point — see docs/design_notes.md.
-    #[allow(clippy::box_collection)]
-    listeners: RefCell<Option<Box<Vec<EventListener>>>>,
+    listeners: RefCell<Option<Box<ListenerStore>>>,
 }
 
 impl Drop for SvgNodeInner {
@@ -803,15 +802,18 @@ impl SvgNode {
             .element
             .add_event_listener_with_callback(event_type, closure.callback_ref())
             .map_err(|e| Error::Dom(format!("{e:?}")))?;
-        self.inner
-            .listeners
-            .borrow_mut()
-            .get_or_insert_with(|| Box::new(Vec::new()))
-            .push(EventListener {
-                element: self.inner.element.clone(),
-                event_type,
-                closure,
-            });
+        let listener = EventListener {
+            element: self.inner.element.clone(),
+            event_type,
+            closure,
+        };
+        let mut guard = self.inner.listeners.borrow_mut();
+        match guard.as_deref_mut() {
+            // First listener: store it inline (one allocation), no Vec yet.
+            None => *guard = Some(Box::new(ListenerStore::One(listener))),
+            // Subsequent listeners: push, upgrading `One` to `Many` on the second.
+            Some(store) => store.push(listener),
+        }
         Ok(())
     }
 

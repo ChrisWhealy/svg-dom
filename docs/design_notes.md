@@ -138,8 +138,11 @@ The motivation was to stop passive geometry nodes from carrying listener state t
 This option has been evaluated and **will not** be pursued.
 
 The memory win is tiny because the common case is already optimised.
-The listeners field is `RefCell<Option<Box<Vec<EventListener>>>>`, and `store_listener` only allocates the `Vec` lazily on the first `on_*` call (`get_or_insert_with`).
-A passive node therefore allocates **no** listener `Vec`; it pays only for the inline field, that is, on `wasm32`, the `RefCell` borrow flag (4 bytes) plus a niche-optimised `Option<Box<…>>` pointer that is `null` when empty (4 bytes), so the saving adds up to on;ly ~8 bytes.
+
+The listeners field is `RefCell<Option<Box<ListenerStore>>>`, and `store_listener` only allocates on the first `on_*` call.
+A passive node therefore allocates **no** listener storage at all; it pays only for the inline field, that is, on `wasm32`, the `RefCell` borrow flag (4 bytes) plus a niche-optimised `Option<Box<…>>` pointer that is `null` when empty (4 bytes), so the saving adds up to only ~8 bytes.
+
+`ListenerStore` is a `One(EventListener)` / `Many(Vec<EventListener>)` enum: the first listener is held inline in the `Box`, so a single-listener node makes one heap allocation rather than the two an empty `Vec` would (the `Box<Vec>` itself plus the element buffer on first push); a second listener upgrades `One` to `Many`. Registration is a setup-time path, so this is a modest leanness win rather than a hot-path one.
 
 Splitting removes those ~8 inline bytes per node and zero heap allocations, which is negligible next to the `Rc` strong/weak counts and allocation header every node carries regardless.
 

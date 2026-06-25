@@ -47,3 +47,29 @@ impl Drop for EventListener {
             .remove_event_listener_with_callback(self.event_type, self.closure.callback_ref());
     }
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// A node's managed-listener storage, sized for the common case.
+///
+/// The first listener is held inline as `One`, so registering it costs a single heap allocation (the surrounding
+/// `Box<ListenerStore>`) instead of the two an empty `Vec` would need — one for the `Box<Vec>` and another for the
+/// element buffer on first `push`. A second listener upgrades the store to `Many`. Most interactive nodes have only
+/// one or two listeners, so this keeps the common case lean while still supporting any number.
+pub enum ListenerStore {
+    One(EventListener),
+    Many(Vec<EventListener>),
+}
+
+impl ListenerStore {
+    /// Adds a listener, upgrading a single-listener `One` store into a `Many` on the second insert.
+    pub fn push(&mut self, listener: EventListener) {
+        // Swap in a non-allocating placeholder so the existing contents can be moved out by value (no panic path).
+        *self = match std::mem::replace(self, ListenerStore::Many(Vec::new())) {
+            ListenerStore::One(first) => ListenerStore::Many(vec![first, listener]),
+            ListenerStore::Many(mut many) => {
+                many.push(listener);
+                ListenerStore::Many(many)
+            },
+        };
+    }
+}
