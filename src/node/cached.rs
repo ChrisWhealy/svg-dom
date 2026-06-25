@@ -135,7 +135,12 @@ impl CachedAttr {
     /// The text-content counterpart to [`set_fmt`](Self::set_fmt): use it for a formatted status readout updated on
     /// every event but usually showing the same text, to avoid both the per-call `format!` allocation and the redundant
     /// `set_text_content`. See [`set_fmt`](Self::set_fmt) for the caller-owned `scratch` requirement.
-    pub fn set_text_fmt(&mut self, node: &SvgNode, scratch: &mut String, args: fmt::Arguments<'_>) -> Result<(), Error> {
+    pub fn set_text_fmt(
+        &mut self,
+        node: &SvgNode,
+        scratch: &mut String,
+        args: fmt::Arguments<'_>,
+    ) -> Result<(), Error> {
         scratch.clear();
         scratch
             .write_fmt(args)
