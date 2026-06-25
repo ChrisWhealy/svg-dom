@@ -21,6 +21,7 @@ use web_sys::{Document, DocumentFragment, Node};
 /// detached, and the whole fragment is appended to the target once. Building straight into a `<g>` this way also
 /// avoids the append-to-root-then-move round-trip you would otherwise incur by creating elements on the root and
 /// re-parenting them into the group with [`SvgNode::append`](crate::SvgNode::append).
+#[must_use = "an SvgBatch builds elements in a detached fragment; call commit() to add them to the document"]
 pub struct SvgBatch {
     target: Node,
     document: Document,

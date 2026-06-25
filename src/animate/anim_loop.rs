@@ -30,6 +30,7 @@ type RafHandle = Rc<Cell<i32>>;
 ///
 /// The `AnimationLoop` can be kept alive by storing it in a `static`, a `Closure` captured variable, or some other
 /// location whose lifespan outlives your animation.
+#[must_use = "dropping the AnimationLoop stops the requestAnimationFrame loop — store the handle for as long as the animation should run"]
 pub struct AnimationLoop {
     window: web_sys::Window,
     handle: RafHandle,
