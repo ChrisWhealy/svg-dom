@@ -660,21 +660,26 @@ fn demo_events_colour() -> Result<(), Error> {
     // `pointer-events:none` on the <g> apply to every wedge at once.
     let wheel = svg.group()?;
     wheel.set_attr("pointer-events", NONE)?;
-    let mut a: f64 = 0.0;
 
-    while a < 360.0 {
-        let (r0, r1) = (a.to_radians(), (a + STEP).to_radians());
-        let wedge = svg.path(&format!(
-            "M {CX} {CY} L {:.2} {:.2} A {R} {R} 0 0 1 {:.2} {:.2} Z",
-            CX + R * r0.cos(),
-            CY + R * r0.sin(),
-            CX + R * r1.cos(),
-            CY + R * r1.sin(),
-        ))?;
-        wedge.set_fill(&format!("hsl({:.0},90%,50%)", a + STEP / 2.0))?;
-        wheel.append(&wedge)?;
-        a += STEP;
-    }
+    // Build all ~180 wedges straight into the <g> through a detached fragment, committed in one DOM operation.
+    // Creating each with `svg.path(...)` and then `wheel.append(...)` would instead append every wedge to the live
+    // root and immediately move it into the group — a lot of avoidable setup-time DOM churn.
+    svg.build_batch_into(&wheel, |b| {
+        let mut a: f64 = 0.0;
+        while a < 360.0 {
+            let (r0, r1) = (a.to_radians(), (a + STEP).to_radians());
+            let wedge = b.path(&format!(
+                "M {CX} {CY} L {:.2} {:.2} A {R} {R} 0 0 1 {:.2} {:.2} Z",
+                CX + R * r0.cos(),
+                CY + R * r0.sin(),
+                CX + R * r1.cos(),
+                CY + R * r1.sin(),
+            ))?;
+            wedge.set_fill(&format!("hsl({:.0},90%,50%)", a + STEP / 2.0))?;
+            a += STEP;
+        }
+        Ok(())
+    })?;
 
     // A hollow ring that marks the sampled point on the wheel; parked off-canvas until the pointer arrives.
     let marker = svg.circle(Point::new(-20.0, -20.0), 6.0)?;
