@@ -7,11 +7,19 @@
 //! Keep this in sync with the README. The empty `main` exists only so cargo can build this as an example binary; the
 //! real entry point is the `#[wasm_bindgen(start)]` function, exactly as a real app would write it.
 
+use std::cell::RefCell;
 use svg_dom::{
     AnimationLoop, SvgAttrs, SvgRoot,
     root::utils::{Point, Size},
 };
 use wasm_bindgen::prelude::*;
+
+// An app must keep its AnimationLoop alive somewhere lasting, or it stops the moment the handle is dropped.
+// `thread_local!` provides exactly one such slot per thread (a wasm page is single-threaded), initialised lazily on
+// first access — the idiomatic place to park page-lifetime state in a `#[wasm_bindgen(start)]` app.
+thread_local! {
+    static ANIM: RefCell<Option<AnimationLoop>> = const { RefCell::new(None) };
+}
 
 #[wasm_bindgen(start)]
 pub fn run() -> Result<(), JsValue> {
@@ -48,12 +56,14 @@ fn build() -> Result<(), svg_dom::Error> {
     group.append(&dot)?;
     group.append(&label)?;
 
-    // Animate: pulse the circle radius each frame. The AnimationLoop must outlive this function, so it is leaked.
+    // Animate: pulse the circle radius each frame. The AnimationLoop must outlive this function — dropping it cancels
+    // the pending frame immediately — so park it in the thread-local slot for the page's lifetime. Because
+    // AnimationLoop stops on Drop, clearing or replacing that slot later stops the animation cleanly.
     let anim = AnimationLoop::start_with_frame(move |ts, frame| {
         let r = 8.0 + 4.0 * (ts / 500.0).sin();
         let _ = frame.set_attr_fmt(&dot, "r", format_args!("{r}"));
     })?;
-    std::mem::forget(anim);
+    ANIM.with(|slot| *slot.borrow_mut() = Some(anim));
 
     Ok(())
 }

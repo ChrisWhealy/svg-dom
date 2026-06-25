@@ -13,7 +13,6 @@ mod highlight;
 
 use std::{
     cell::{Cell, RefCell},
-    mem,
     rc::Rc,
 };
 use wasm_bindgen::prelude::*;
@@ -30,10 +29,21 @@ thread_local! {
     /// The library intentionally removes a DOM listener when the last `SvgNode` handle is dropped.  Browser demos are
     /// long-lived, so they keep listener-owning nodes here instead of leaking individual `Closure`s.
     static LIVE_DEMO_NODES: RefCell<Vec<SvgNode>> = const { RefCell::new(Vec::new()) };
+
+    /// Demo-only owner for the running `AnimationLoop`.
+    ///
+    /// `AnimationLoop` stops on `Drop`, so the demo parks it here to keep it running for the page's lifetime.  Storing
+    /// it (rather than leaking it with `mem::forget`) keeps it cancellable: clearing or replacing this slot stops the
+    /// animation cleanly.
+    static LIVE_DEMO_ANIM: RefCell<Option<AnimationLoop>> = const { RefCell::new(None) };
 }
 
 fn keep_demo_node(node: SvgNode) {
     LIVE_DEMO_NODES.with(|nodes| nodes.borrow_mut().push(node));
+}
+
+fn keep_demo_anim(anim: AnimationLoop) {
+    LIVE_DEMO_ANIM.with(|slot| *slot.borrow_mut() = Some(anim));
 }
 
 fn event_label<E>(node: SvgNode, name: &'static str) -> impl Fn(E) + 'static {
@@ -488,8 +498,9 @@ fn demo_anim() -> Result<(), Error> {
         let _ = frame.set_fill_fmt(&hue_rect, format_args!("hsl({hue:.0},70%,50%)"));
     })?;
 
-    // The loop must outlive this function — leak it for the page's lifetime.
-    mem::forget(anim);
+    // The loop must outlive this function. Park it in thread-local state so it keeps running for the page's lifetime;
+    // because `AnimationLoop` stops on `Drop`, this stays cancellable, unlike `mem::forget`.
+    keep_demo_anim(anim);
     Ok(())
 }
 

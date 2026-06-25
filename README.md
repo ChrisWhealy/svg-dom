@@ -7,17 +7,6 @@ That said, all reasonable, conventional steps have been taken to provide a secur
 
 ***IMPORTANT***<br>This crate targets WebAssembly only.
 
-# Table of Contents
-
-- [What this crate is](#what-this-crate-is)
-- [What this crate is NOT](#what-this-crate-is-not)
-- [Building](#building)
-- [Demo Server](#demo-server)
-- [Quick start](#quick-start)
-- [Testing](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/testing.md)
-- [Design Notes](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/design_notes.md)
-- [Gap Analysis](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/gaps.md)
-
 ## ToDo List
 
 - [x] Define custom `Error` object suitable for handling browser DOM errors
@@ -51,29 +40,49 @@ That said, all reasonable, conventional steps have been taken to provide a secur
   - [ ] `<textPath>`
   - [ ] `<filter>` and `<fe>` elements
 
+# Table of Contents
+
+- [What this crate is](#what-this-crate-is)
+- [What this crate is NOT](#what-this-crate-is-not)
+- [Building](#building)
+- [Demo Server](#demo-server)
+- [Quick start](#quick-start)
+- [Testing](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/testing.md)
+- [Design Notes](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/design_notes.md)
+- [Gap Analysis](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/gaps.md)
+
 ## What this crate is
 
 The `svg-dom` crate acts as a thin wrapper for `web-sys` SVG DOM bindings that allows you to:
 
 - Attach to an existing `<svg>` element in your HTML page
 - Create new `<svg>` element programmatically
-- Add a basic set of SVG elements using helper functions (`<rect>`, `<circle>`, `<line>`, `<path>`, `<text>`, `<g>`)
+- Add a basic set of SVG elements:
+   - Helper function exist for `<rect>`, `<circle>`, `<line>`, `<path>`, `<text>`, `<g>`
    - You get back a cheap-to-clone handle (`SvgNode`) that holds a live reference to the real DOM node
-- Using the element's handle, you can mutate attributes without the need to rebuild or diff the DOM tree
+- Using the element's handle, you can mutate individual, multiple or arbitrary attributes:
+   - without the need to rebuild or diff the DOM tree
    - via helpers such as `fill`, `stroke`, `d`
-   - Any arbitrary attribute
-   - Several attributes using `set_attrs`
-   - Formatted values via `SvgAttrs`
-- Attach managed event listeners directly to individual elements — mouse, pointer, wheel, touch, keyboard, focus/blur, drag-and-drop, and generic `Event` handlers — with listener event names stored as `&'static str` (i.e. allocation-free)
+   - using `set_attrs` (multiple attributes in one call)
+   - formatted values via `SvgAttrs` (allocation free call)
+- Attach managed event listeners directly to individual elements (listener event names are stored as `&'static str` making them allocation-free)
+   - `mouse`
+   - `pointer`
+   - `wheel`
+   - `touch`
+   - `keyboard`
+   - `focus/blur`
+   - `drag-and-drop`
+   - and generic `Event` handlers
 - Drive reactive updates through a `requestAnimationFrame` loop via `AnimationLoop`
 
 ## What this crate is NOT
 
 This crate does not use an HTML `<canvas>` element!
 
-The `<canvas>` element offers a pixel-based, bitmap drawing API which, although it gives you the highest performance ceiling, requires you to take ownership of the entire layout, the render loop and hit-testing.
+Whilst the `<canvas>` element offers a pixel-based, bitmap drawing API that gives you the highest performance ceiling, it also requires you to take ownership of the entire layout, the render loop and hit-testing.
 
-Not only is the implementation cost of such functionality high, it becomes somewhat redundant in light of the fact that the SVG DOM is already a persistent tree of vector elements that can be individually updated and with which JavaScript (via `web-sys`) can already interact.
+Not only is the implementation cost of such functionality high, it becomes somewhat redundant in light of the fact that the SVG DOM is already a persistent tree of DOM elements that can be individually updated and with which JavaScript (via `web-sys`) can already interact.
 
 Consequently, this crate works exclusively with the SVG DOM.
 
@@ -95,7 +104,10 @@ cargo demo
 
 Then visit <http://127.0.0.1:8000/demo>.
 
-The demo gallery includes examples for the managed event wrappers. Interactive demo nodes are kept alive explicitly for the lifetime of the page because managed listeners are removed automatically when their owning `SvgNode` is dropped.
+The demo gallery includes examples for the managed event wrappers.
+Interactive demo nodes are kept alive explicitly for the lifetime of the page because managed listeners are removed automatically when their owning `SvgNode` is dropped.
+
+The coding used in the actual demo implementation is shown beneath each example.
 
 # Quick start
 
@@ -112,8 +124,16 @@ The demo gallery includes examples for the managed event wrappers. Interactive d
 ## Minimal Demo
 
 ```rust,no_run
+use std::cell::RefCell;
 use wasm_bindgen::prelude::*;
 use svg_dom::{AnimationLoop, SvgAttrs, SvgRoot, root::utils::{Point, Size}};
+
+// An app must keep its AnimationLoop alive somewhere lasting, or it stops the moment the
+// handle is dropped. `thread_local!` gives us exactly one such slot per thread (a wasm page
+// is single-threaded), initialised lazily on first access.
+thread_local! {
+    static ANIM: RefCell<Option<AnimationLoop>> = const { RefCell::new(None) };
+}
 
 // wasm-bindgen entry point. An exported function's error type must be `Into<JsValue>`, and
 // `svg_dom::Error` is not, so the boundary returns `Result<(), JsValue>` and converts there;
@@ -152,20 +172,30 @@ fn build() -> Result<(), svg_dom::Error> {
     // Animate: pulse the circle radius each frame.
     //
     // The AnimationLoop must outlive this function — dropping it cancels the pending frame
-    // immediately. Here we leak it with `std::mem::forget` so it runs for the lifetime of the
-    // page; a real app would instead store it somewhere lasting (a `static`, app state, or a
-    // field on a long-lived struct).
+    // immediately. Park it in the thread-local slot so it runs for the page's lifetime; because
+    // AnimationLoop stops on Drop, clearing or replacing that slot later stops the animation
+    // cleanly (whereas `std::mem::forget` would simply leak it).
     let anim = AnimationLoop::start_with_frame(move |ts, frame| {
         let r = 8.0 + 4.0 * (ts / 500.0).sin();
         let _ = frame.set_attr_fmt(&dot, "r", format_args!("{r}"));
     })?;
-    std::mem::forget(anim);
+    ANIM.with(|slot| *slot.borrow_mut() = Some(anim));
 
     Ok(())
 }
 ```
 
 > This example is mirrored in [`examples/readme_minimal.rs`](examples/readme_minimal.rs) and compiled for `wasm32` in CI, so it cannot silently fall out of step with the crate.
+
+**Keeping the loop alive.**
+An `AnimationLoop` stops as soon as its handle is dropped, so it must be held somewhere that lives as long as the animation should run.
+This example parks it in a [`thread_local!`](https://doc.rust-lang.org/std/macro.thread_local.html) slot.
+Thread-local storage is a variable with one independent instance *per thread*, created lazily the first time that thread touches it.
+A wasm page runs on a single thread, so in practice this is one page-global slot that is initialised on first use and then lives for the lifetime of the page.
+
+This approach is preferable to calling `std::mem::forget(anim)`, since forgetting the loop leaks it permanently and throws away the crate's `Drop`-based stop; whereas a stored loop can be cleared (or replaced) later to stop it cleanly.
+
+A larger app would instead hold the loop in its own long-lived state: maybe an application struct, a framework component, or some similar structure, rather than a free-standing slot in `thread_local!`.
 
 ## Managed event handlers
 
