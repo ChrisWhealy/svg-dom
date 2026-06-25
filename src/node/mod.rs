@@ -609,7 +609,7 @@ impl SvgNode {
     /// valid but detached.
     ///
     /// Calling [`clear`](Self::clear) is idempotent. That is, calling it on a node that has no children is a harmless
-    /// no-op. 
+    /// no-op.
     ///
     /// # Example
     ///
