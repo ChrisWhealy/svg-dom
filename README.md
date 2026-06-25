@@ -2,7 +2,8 @@
 
 A lightweight Rust/WebAssembly library for creating and mutating live SVG content directly in the browser DOM.
 
-This crate is still just an MVP and contains known functional gaps that will be filled in time&hellip;
+This crate is an MVP and contains known functional gaps that will be filled in time.
+That said, all reasonable, conventional steps have been taken to provide a secure, stable, and robust foundation for the development of future functionality.
 
 ***IMPORTANT***<br>This crate targets WebAssembly only.
 
@@ -35,6 +36,7 @@ This crate is still just an MVP and contains known functional gaps that will be 
 - [x] Implement batch-building API that allows elements to be added *en masse*
 - [x] Share factory implementation between `SvgRoot` and `SvgBatch`
 - [x] Build demo server to illustrate current functionality
+- [x] Run `cargo-deny` as a scheduled `cron` job
 - Implement remaining SVG elements
   - [ ] `<ellipse>`
   - [ ] `<polyline>` / `<polygon>`
