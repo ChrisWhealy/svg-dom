@@ -146,6 +146,36 @@ fn should_update_viewport_width_and_height() -> Result<(), String> {
     common::check_eq(svg.height(), 1080.0)
 }
 
+/// `set_viewport` with the same size as the cached viewport writes nothing to the DOM (a duplicate resize is a no-op).
+#[wasm_bindgen_test]
+fn should_skip_viewport_write_when_size_unchanged() -> Result<(), String> {
+    common::div("set-viewport-noop");
+    let svg = SvgRoot::create_in("set-viewport-noop", Size::new(100.0, 100.0)).map_err(|e| e.to_string())?;
+    let el = svg_element("set-viewport-noop");
+
+    // Mutate the width behind the cache's back.
+    el.set_attribute("width", "999").unwrap();
+
+    // Same size as the cached viewport → no DOM write, so the external "999" survives.
+    svg.set_viewport(Size::new(100.0, 100.0)).map_err(|e| e.to_string())?;
+    common::check_eq(el.get_attribute("width"), Some("999".into()))
+}
+
+/// `set_viewport` writes only the axis that changed: an unchanged width is not rewritten, a changed height is.
+#[wasm_bindgen_test]
+fn should_write_only_changed_viewport_axis() -> Result<(), String> {
+    common::div("set-viewport-partial");
+    let svg = SvgRoot::create_in("set-viewport-partial", Size::new(100.0, 100.0)).map_err(|e| e.to_string())?;
+    let el = svg_element("set-viewport-partial");
+
+    el.set_attribute("width", "999").unwrap(); // mutate width behind the cache
+
+    // Width unchanged (100 → 100) so it is not rewritten ("999" survives); height changed (100 → 200) so it is.
+    svg.set_viewport(Size::new(100.0, 200.0)).map_err(|e| e.to_string())?;
+    common::check_eq(el.get_attribute("width"), Some("999".into()))?;
+    common::check_eq(el.get_attribute("height"), Some("200".into()))
+}
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Element factories
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

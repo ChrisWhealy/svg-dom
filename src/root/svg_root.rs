@@ -175,9 +175,21 @@ impl SvgRoot {
     /// ```
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     pub fn set_viewport(&self, size: Size) -> Result<(), Error> {
+        // The cached viewport is authoritative (so are `width()`/`height()`), so use it to skip redundant DOM writes:
+        // a duplicate resize notification with the same size writes nothing, and a one-axis change writes only the axis
+        // that moved.
+        let old = self.viewport.get();
+        if old == size {
+            return Ok(());
+        }
+
         let mut attrs = self.attrs.borrow_mut();
-        attrs.display_element(&self.root, "width", size.width)?;
-        attrs.display_element(&self.root, "height", size.height)?;
+        if old.width != size.width {
+            attrs.display_element(&self.root, "width", size.width)?;
+        }
+        if old.height != size.height {
+            attrs.display_element(&self.root, "height", size.height)?;
+        }
         self.viewport.set(size);
         Ok(())
     }
