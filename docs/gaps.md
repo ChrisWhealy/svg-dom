@@ -32,11 +32,12 @@ Implemented:
 - `insert_before()` — z-order control without rebuilding
 - `clear()` — remove all children of a node (e.g. to redraw a `<g>` from scratch)
 - `replace_with()` — swap one node for another in place
+- `parent()` — navigate up to the containing SVG element (returns an independent, non-factory handle)
 
 Still missing:
 
-- No `parent()` / child navigation
-- No way to query children or find a node by attribute (`query_selector` and friends)
+- No downward/child navigation (`children()`, `first_child`, …)
+- No way to query the tree or find a node by attribute (`query_selector` and friends)
 
 # Event coverage
 

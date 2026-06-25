@@ -649,6 +649,48 @@ fn should_error_when_replacing_parentless_node() -> Result<(), String> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// parent
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `parent` returns a handle to the containing element after a node is appended into a group.
+#[wasm_bindgen_test]
+fn should_return_parent_after_append() -> Result<(), String> {
+    let svg = make_svg("node-parent");
+    let group = svg.group().map_err(|e| e.to_string())?;
+    let rect = svg.rect(Point::origin(), Size::new(10.0, 10.0)).map_err(|e| e.to_string())?;
+    group.append(&rect).map_err(|e| e.to_string())?;
+
+    let parent = rect.parent().ok_or("expected a parent handle")?;
+    common::check_eq(parent.as_element().tag_name(), "g".to_string())
+}
+
+/// `parent` returns `None` for a node that has been detached from the DOM.
+#[wasm_bindgen_test]
+fn should_return_none_parent_for_detached_node() -> Result<(), String> {
+    let rect = make_svg("node-parent-detached")
+        .rect(Point::origin(), Size::new(10.0, 10.0))
+        .map_err(|e| e.to_string())?;
+    rect.remove();
+    common::check(rect.parent().is_none(), "a detached node should have no parent")
+}
+
+/// The handle returned by `parent` points at the same DOM element: a mutation made through it is visible via a
+/// separately held handle to that same parent. (It is, however, an independent handle with its own listener storage.)
+#[wasm_bindgen_test]
+fn should_return_parent_handle_to_same_element() -> Result<(), String> {
+    let svg = make_svg("node-parent-same");
+    let group = svg.group().map_err(|e| e.to_string())?;
+    let rect = svg.rect(Point::origin(), Size::new(10.0, 10.0)).map_err(|e| e.to_string())?;
+    group.append(&rect).map_err(|e| e.to_string())?;
+
+    let parent = rect.parent().ok_or("expected a parent handle")?;
+    parent.set_attr("data-tag", "via-parent").map_err(|e| e.to_string())?;
+
+    // Observed through the original `group` handle — same underlying element.
+    common::check_eq(group.attr("data-tag"), Some("via-parent".into()))
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Event handlers
 //
 // `EventTarget::dispatch_event` is synchronous: the browser fires the handler inline before `dispatch_event` returns.

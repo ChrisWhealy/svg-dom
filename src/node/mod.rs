@@ -663,6 +663,65 @@ impl SvgNode {
             .map_err(|e| Error::Dom(format!("{e:?}")))
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Returns a handle to this node's parent element, or `None` if it either has no parent or the parent is not an SVG
+    /// element.
+    ///
+    /// `None` is returned when either:
+    /// - the node is detached (it currently has no parent), or
+    /// - the parent exists but is not an SVG element - for example the root `<svg>`, whose parent is the surrounding
+    ///   HTML container, not another SVG element.
+    ///
+    /// # ⚠️ The returned handle is **not** a factory handle
+    ///
+    /// Every other [`SvgNode`] you hold was produced by a factory method ([`SvgRoot::rect`](crate::SvgRoot::rect) and
+    /// friends) or is a [`clone`](Self::clone) of one. The handle returned here is different in kind: it wraps an
+    /// element that `svg-dom` almost certainly did **not** create, so it is a brand-new, *independent owner* of that
+    /// element rather than another reference to an existing owner.
+    ///
+    /// This fact has practical and potentially significant consequences:
+    ///
+    /// - **Its managed-listener storage is empty.**
+    ///
+    ///   Managed event listeners (the `on_*` helpers) are tracked per *handle lineage* — a handle together with its
+    ///   clones — and **not** per DOM element. This handle therefore does not share listener storage with whatever
+    ///   handle originally created or manages the parent, and it cannot see, remove, or otherwise interact with any
+    ///   listeners that were registered through those other handles.
+    ///
+    /// - **If you register a listener through this handle, this handle owns it**, with the usual lifetime: the listener
+    ///   is detached when the last clone of *this* handle is dropped. So, just as for a factory handle, you must keep
+    ///   this handle alive (store it somewhere lasting) if you want a listener registered on it to persist.
+    ///
+    /// - It is otherwise an ordinary handle: it points at the same live DOM element, so reading or mutating its
+    ///   attributes and text takes effect immediately and is visible through any other handle to that element.
+    ///
+    /// Consequently, treat `parent()` as **read-only navigation** - for example, walking up to a containing `<g>`
+    /// from inside an event callback, rather than as a way to re-acquire listener ownership of an element that is
+    /// already managed elsewhere. Where you can, keep and reuse the factory handles you already hold instead.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
+    /// let svg = SvgRoot::attach("diagram")?;
+    /// let group = svg.group()?;
+    /// let rect = svg.rect(Point::origin(), Size::new(40.0, 40.0))?;
+    /// group.append(&rect)?;
+    ///
+    /// // Walk up to the containing <g>. Note this is a fresh, independent handle to that element.
+    /// if let Some(parent) = rect.parent() {
+    ///     parent.set_attr("transform", "translate(10, 10)")?;
+    /// }
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn parent(&self) -> Option<SvgNode> {
+        self.inner
+            .element
+            .parent_node()
+            .and_then(|n| n.dyn_into::<SvgElement>().ok())
+            .map(SvgNode::new)
+    }
+
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // Event handlers
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
