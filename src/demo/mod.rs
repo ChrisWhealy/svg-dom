@@ -497,15 +497,20 @@ fn demo_text() -> Result<(), Error> {
 fn demo_group() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-group", Size::new(W, H))?;
 
-    // Group A — steelblue block, positioned with translate
+    // Group A — steelblue block, positioned with translate.
+    //
+    // `build_batch_into` creates the block and label straight inside the <g> via a detached fragment, so they never
+    // touch the root and are not re-parented afterwards — unlike `svg.rect(...)` + `g.append(...)`, which would append
+    // each child to the root first and then move it.
     let g1 = svg.group()?;
-    let b1 = svg.rect(Point::new(0.0, 0.0), Size::new(150.0, 80.0))?;
-    b1.set_fill(STEELBLUE)?;
-    let l1 = svg.text(Point::new(75.0, 47.0), "Group A")?;
-    l1.set_fill(WHITE)?;
-    l1.set_attrs([("font-size", "15"), ("text-anchor", "middle")])?;
-    g1.append(&b1)?;
-    g1.append(&l1)?;
+    svg.build_batch_into(&g1, |b| {
+        let block = b.rect(Point::new(0.0, 0.0), Size::new(150.0, 80.0))?;
+        block.set_fill(STEELBLUE)?;
+        let label = b.text(Point::new(75.0, 47.0), "Group A")?;
+        label.set_fill(WHITE)?;
+        label.set_attrs([("font-size", "15"), ("text-anchor", "middle")])?;
+        Ok(())
+    })?;
     g1.set_attr("transform", &format!("translate(40, {})", 25.0 + PAD_Y))?;
 
     // Dashed connector
@@ -514,15 +519,16 @@ fn demo_group() -> Result<(), Error> {
     conn.set_stroke_width(2.0)?;
     conn.set_attr("stroke-dasharray", "5 4")?;
 
-    // Group B — darkorange block, different translate
+    // Group B — darkorange block, different translate (built the same batched way)
     let g2 = svg.group()?;
-    let b2 = svg.rect(Point::new(0.0, 0.0), Size::new(150.0, 80.0))?;
-    b2.set_fill(DARK_ORANGE)?;
-    let l2 = svg.text(Point::new(75.0, 47.0), "Group B")?;
-    l2.set_fill(WHITE)?;
-    l2.set_attrs([("font-size", "15"), ("text-anchor", "middle")])?;
-    g2.append(&b2)?;
-    g2.append(&l2)?;
+    svg.build_batch_into(&g2, |b| {
+        let block = b.rect(Point::new(0.0, 0.0), Size::new(150.0, 80.0))?;
+        block.set_fill(DARK_ORANGE)?;
+        let label = b.text(Point::new(75.0, 47.0), "Group B")?;
+        label.set_fill(WHITE)?;
+        label.set_attrs([("font-size", "15"), ("text-anchor", "middle")])?;
+        Ok(())
+    })?;
     g2.set_attr("transform", &format!("translate(280, {})", 25.0 + PAD_Y))?;
 
     Ok(())

@@ -7,19 +7,22 @@ use crate::{
     },
 };
 use std::cell::RefCell;
-use web_sys::{Document, DocumentFragment, SvgsvgElement};
+use web_sys::{Document, DocumentFragment, Node};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Builds several SVG elements in a [`DocumentFragment`] and appends them to the root in one DOM operation.
+/// Builds several SVG elements in a [`DocumentFragment`] and appends them to a single parent in one DOM operation.
 ///
-/// Create a batch with [`SvgRoot::batch`], call the same element factory methods you would normally call on
+/// Create a batch with [`SvgRoot::batch`] (to build into the `<svg>` root) or [`SvgRoot::batch_into`] (to build into
+/// any existing element, such as a `<g>`), call the same element factory methods you would normally call on
 /// [`SvgRoot`], then call [`commit`](Self::commit).  Each factory returns a live [`SvgNode`] handle immediately, but
 /// the element is not attached to the rendered SVG tree until the batch is committed.
 ///
 /// This is useful when constructing many elements at once: attributes and text content are set while each element is
-/// detached, and the whole fragment is appended to the `<svg>` root once.
+/// detached, and the whole fragment is appended to the target once. Building straight into a `<g>` this way also
+/// avoids the append-to-root-then-move round-trip you would otherwise incur by creating elements on the root and
+/// re-parenting them into the group with [`SvgNode::append`](crate::SvgNode::append).
 pub struct SvgBatch {
-    root: SvgsvgElement,
+    target: Node,
     document: Document,
     fragment: DocumentFragment,
     attrs: RefCell<SvgAttrs>,
@@ -27,9 +30,9 @@ pub struct SvgBatch {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 impl SvgBatch {
-    pub(crate) fn new(root: SvgsvgElement, document: Document, fragment: DocumentFragment) -> Self {
+    pub(crate) fn new(target: Node, document: Document, fragment: DocumentFragment) -> Self {
         Self {
-            root,
+            target,
             document,
             fragment,
             attrs: RefCell::new(SvgAttrs::new()),
@@ -37,9 +40,9 @@ impl SvgBatch {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Appends the whole batch to the SVG root in a single DOM operation.
+    /// Appends the whole batch to its target parent in a single DOM operation.
     pub fn commit(self) -> Result<(), Error> {
-        self.root
+        self.target
             .append_child(&self.fragment)
             .map(|_| ())
             .map_err(|e| Error::Dom(format!("{e:?}")))
@@ -144,14 +147,14 @@ impl SvgRoot {
     /// ```
     pub fn batch(&self) -> SvgBatch {
         SvgBatch::new(
-            self.root.clone(),
+            self.root.clone().into(),
             self.document.clone(),
             self.document.create_document_fragment(),
         )
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Builds and commits a [`SvgBatch`] in one call.
+    /// Builds and commits a [`SvgBatch`] into the root in one call.
     ///
     /// If the closure returns an error, the fragment is dropped without being appended to the root.
     pub fn build_batch<F>(&self, build: F) -> Result<(), Error>
@@ -159,6 +162,65 @@ impl SvgRoot {
         F: FnOnce(&SvgBatch) -> Result<(), Error>,
     {
         let batch = self.batch();
+        build(&batch)?;
+        batch.commit()
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Creates a batch builder that commits into `parent` (any existing element, typically a `<g>`) rather than the
+    /// root.
+    ///
+    /// Children created through the returned [`SvgBatch`] are appended to a detached [`DocumentFragment`], and
+    /// [`SvgBatch::commit`] appends that fragment to `parent` in a single DOM operation. Compared with creating
+    /// elements on the root and re-parenting them with [`SvgNode::append`](crate::SvgNode::append), this avoids the
+    /// extra "append to root, then move into the group" DOM mutation for every child.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::{Point, Size}};
+    ///
+    /// let svg = SvgRoot::attach("diagram")?;
+    /// let group = svg.group()?;
+    /// let batch = svg.batch_into(&group);
+    /// batch.rect(Point::origin(), Size::new(80.0, 40.0))?;
+    /// batch.text(Point::new(8.0, 26.0), "XOR")?;
+    /// batch.commit()?; // both children land directly inside <g>, never on the root
+    /// # Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn batch_into(&self, parent: &SvgNode) -> SvgBatch {
+        SvgBatch::new(
+            parent.as_element().clone().into(),
+            self.document.clone(),
+            self.document.create_document_fragment(),
+        )
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Builds and commits a [`SvgBatch`] into `parent` in one call.
+    ///
+    /// The closure-based counterpart to [`batch_into`](Self::batch_into); see also [`build_batch`](Self::build_batch).
+    /// If the closure returns an error, the fragment is dropped without being appended to `parent`.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::{Point, Size}};
+    ///
+    /// let svg = SvgRoot::attach("diagram")?;
+    /// let group = svg.group()?;
+    /// svg.build_batch_into(&group, |b| {
+    ///     b.rect(Point::origin(), Size::new(80.0, 40.0))?;
+    ///     b.text(Point::new(8.0, 26.0), "XOR")?;
+    ///     Ok(())
+    /// })?;
+    /// # Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn build_batch_into<F>(&self, parent: &SvgNode, build: F) -> Result<(), Error>
+    where
+        F: FnOnce(&SvgBatch) -> Result<(), Error>,
+    {
+        let batch = self.batch_into(parent);
         build(&batch)?;
         batch.commit()
     }

@@ -253,3 +253,71 @@ fn should_create_g_element() -> Result<(), String> {
     let group = svg.group().map_err(|e| e.to_string())?;
     common::check_eq(group.as_element().tag_name(), "g".to_string())
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Batching (build_batch / build_batch_into)
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// Returns the `<svg>` root element created inside the container `id`, for asserting on its children directly.
+fn svg_element(id: &str) -> web_sys::Element {
+    web_sys::window()
+        .unwrap()
+        .document()
+        .unwrap()
+        .get_element_by_id(id)
+        .unwrap()
+        .first_element_child()
+        .unwrap()
+}
+
+/// `build_batch` commits every element it creates to the root in one operation.
+#[wasm_bindgen_test]
+fn should_build_batch_into_root() -> Result<(), String> {
+    common::div("batch-root");
+    let svg = SvgRoot::create_in("batch-root", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    svg.build_batch(|b| {
+        b.rect(Point::origin(), Size::new(20.0, 20.0))?;
+        b.rect(Point::new(30.0, 0.0), Size::new(20.0, 20.0))?;
+        Ok(())
+    })
+    .map_err(|e| e.to_string())?;
+
+    common::check_eq(svg_element("batch-root").child_element_count(), 2)
+}
+
+/// `build_batch_into` puts the created children directly inside the target group; the root's only child is the group
+/// itself (the children never land on the root).
+#[wasm_bindgen_test]
+fn should_build_batch_into_group() -> Result<(), String> {
+    common::div("batch-into");
+    let svg = SvgRoot::create_in("batch-into", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let group = svg.group().map_err(|e| e.to_string())?;
+
+    svg.build_batch_into(&group, |b| {
+        b.rect(Point::origin(), Size::new(20.0, 20.0))?;
+        b.circle(Point::new(10.0, 10.0), 5.0)?;
+        Ok(())
+    })
+    .map_err(|e| e.to_string())?;
+
+    common::check_eq(group.as_element().child_element_count(), 2)?;
+    // The <svg> root has exactly one element child: the <g> (not the batched shapes).
+    common::check_eq(svg_element("batch-into").child_element_count(), 1)
+}
+
+/// When the build closure errors, the fragment is dropped and nothing is appended to the target.
+#[wasm_bindgen_test]
+fn should_not_commit_batch_when_closure_errors() -> Result<(), String> {
+    common::div("batch-err");
+    let svg = SvgRoot::create_in("batch-err", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let group = svg.group().map_err(|e| e.to_string())?;
+
+    let result = svg.build_batch_into(&group, |b| {
+        b.rect(Point::origin(), Size::new(10.0, 10.0))?;
+        Err(Error::Dom("deliberate failure".into()))
+    });
+
+    common::check(result.is_err(), "the closure error should propagate")?;
+    // The batched child lived only in the (now-dropped) fragment, so the group stays empty.
+    common::check_eq(group.as_element().child_element_count(), 0)
+}
