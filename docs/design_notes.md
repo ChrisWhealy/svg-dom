@@ -178,3 +178,28 @@ Two things undercut it:
 
 Set against an added dependency in a published crate (which grows every downstream user's dependency tree), the trade is not worth it.
 The dominant per-call cost on any real hot path is the `set_attribute` boundary crossing, not the float-to-string conversion, so effort is better spent eliding redundant DOM writes (`CachedAttr`) and reusing format buffers (the transform setters and `set_attr_display`).
+
+## `path_fmt` / `text_fmt` factory helpers
+
+It was suggested that the factories accept `std::fmt::Arguments` directly — `path_fmt(format_args!(...))` and `text_fmt(...)`, plus the `SvgBatch` equivalents — so a caller building a computed `d` or label string need not allocate a `String` before the factory sets the attribute (instead of today's `svg.path(&format!(...))`).
+The new methods would format into the factory's existing `SvgAttrs` scratch buffer.
+
+This recommendation has been evaluated and **will not** be pursued.
+
+* **It optimises a cold path.**<br>
+  Element creation runs at setup time, not per frame or per event.
+  Every allocation-light helper in this crate — `AnimationFrame::set_*_fmt`, the transform setters, `SvgAttrs`/`AttrWriter` — exists to remove churn from genuinely *hot* paths; one allocation at creation is not that.
+  This is the same distinction noted for the `ryu`/`itoa` idea above.
+
+* **The saved string is dwarfed by what the factory already does.**<br>
+  Every factory call already performs a `create_element_ns` (a wasm/JS boundary crossing that allocates a live DOM node) and a DOM append.
+  A caller's `format!` for the `d`/text is negligible beside those, so nothing measurable is changed by removing it. 
+  The same "the boundary crossing dominates" reasoning as was used to reject the use of the `ryu` crate.
+
+* **The hot case is already covered.**<br>
+  A path or label whose `d` or text *changes over time* should be created once and then mutated on the live node with `AnimationFrame::set_d_fmt` / `set_text_fmt` (inside a RAF loop) or `SvgAttrs::fmt` / `SvgNode::set_text_fmt` (in an event handler) — never recreated.
+  The crate's model is mutating live nodes rather than rebuilding the tree, so per-frame element re-creation is already a non-goal.
+
+Against those, the cost is four new public methods (`path_fmt` / `text_fmt` on both `SvgRoot` and `SvgBatch`), each carrying documentation and tests under `#![deny(missing_docs)]`, simple to remove a single setup-time allocation.
+Callers who format at creation time can simply write `svg.path(&format!(...))`.
+If a future profile ever shows element-creation churn dominating (for example frequent full rebuilds), the right response is to mutate existing nodes, not to add creation-time formatting helpers.
