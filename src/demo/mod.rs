@@ -81,7 +81,9 @@ pub fn run_demo() -> Result<(), JsValue> {
     let e = |err: Error| JsValue::from_str(&err.to_string());
     demo_rect().map_err(e)?;
     demo_circle().map_err(e)?;
+    demo_ellipse().map_err(e)?;
     demo_line().map_err(e)?;
+    demo_poly().map_err(e)?;
     demo_path().map_err(e)?;
     demo_text().map_err(e)?;
     demo_group().map_err(e)?;
@@ -121,7 +123,9 @@ const DEMO_SRC: &str = include_str!("mod.rs");
 const DEMO_SOURCES: &[(&str, &str)] = &[
     ("panel-rect", "demo_rect"),
     ("panel-circle", "demo_circle"),
+    ("panel-ellipse", "demo_ellipse"),
     ("panel-line", "demo_line"),
+    ("panel-poly", "demo_poly"),
     ("panel-path", "demo_path"),
     ("panel-text", "demo_text"),
     ("panel-group", "demo_group"),
@@ -316,6 +320,47 @@ fn demo_circle() -> Result<(), Error> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// ellipse
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+fn demo_ellipse() -> Result<(), Error> {
+    let svg = SvgRoot::create_in("demo-ellipse", Size::new(W, H))?;
+
+    // 1. Wide ellipse — independent radii (rx > ry), something <circle> cannot do
+    let e1 = svg.ellipse(Point::new(110.0, 57.0 + PAD_Y), Size::new(90.0, 45.0))?;
+    e1.set_fill(MEDIUM_ORCHID)?;
+    caption(&svg, 110.0, "wide (rx > ry)")?;
+
+    // 2. Tall ellipse, stroke only
+    let e2 = svg.ellipse(Point::new(320.0, 57.0 + PAD_Y), Size::new(45.0, 52.0))?;
+    e2.set_fill(NONE)?;
+    e2.set_stroke(LIGHT_SKY_BLUE)?;
+    e2.set_stroke_width(4.0)?;
+    caption(&svg, 320.0, "tall stroke (ry > rx)")?;
+
+    // 3. Hover: both radii grow on pointerenter and shrink back on pointerleave.
+    //
+    // The hover ellipse (90 x 55) fully contains the resting one (60 x 35), so the boundary only ever moves *outward*
+    // under the pointer. A hover effect that instead shrank a radius would pull the edge back past a stationary pointer
+    // — re-triggering pointerleave, then pointerenter as it grew again — and the ellipse would flicker between states.
+    let e3 = svg.ellipse(Point::new(560.0, 57.0 + PAD_Y), Size::new(60.0, 35.0))?;
+    e3.set_fill(GOLDENROD)?;
+    e3.set_attr("style", "cursor:pointer")?;
+    let e3b = e3.clone();
+    e3.on_pointerenter(move |_| {
+        let _ = e3b.set_attr("rx", "90");
+        let _ = e3b.set_attr("ry", "55");
+    })?;
+    let e3c = e3.clone();
+    e3.on_pointerleave(move |_| {
+        let _ = e3c.set_attr("rx", "60");
+        let _ = e3c.set_attr("ry", "35");
+    })?;
+    caption(&svg, 560.0, "hover (grow radii)")?;
+
+    Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // line
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 fn demo_line() -> Result<(), Error> {
@@ -326,7 +371,6 @@ fn demo_line() -> Result<(), Error> {
     l1.set_stroke(WIRE)?;
     l1.set_stroke_width(2.0)?;
     caption(&svg, 120.0, "horizontal")?;
-
     // Diagonal
     let l2 = svg.line(Point::new(270.0, 10.0 + PAD_Y), Point::new(470.0, 110.0 + PAD_Y))?;
     l2.set_stroke(CORAL)?;
@@ -338,6 +382,48 @@ fn demo_line() -> Result<(), Error> {
     l3.set_stroke(GOLDENROD)?;
     l3.set_stroke_width(18.0)?;
     caption(&svg, 650.0, "thick stroke")?;
+
+    Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// polygon / polyline
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+fn demo_poly() -> Result<(), Error> {
+    let svg = SvgRoot::create_in("demo-poly", Size::new(W, H))?;
+
+    // 1. Polygon — closed, filled triangle (last point auto-joins to the first)
+    let tri = svg.polygon(&[
+        Point::new(110.0, 12.0 + PAD_Y),
+        Point::new(175.0, 100.0 + PAD_Y),
+        Point::new(45.0, 100.0 + PAD_Y),
+    ])?;
+    tri.set_fill(STEELBLUE)?;
+    caption(&svg, 110.0, "polygon (closed)")?;
+
+    // 2. Polyline — open zig-zag: stroked, fill explicitly "none"
+    let zig = svg.polyline(&[
+        Point::new(290.0, 100.0 + PAD_Y),
+        Point::new(320.0, 20.0 + PAD_Y),
+        Point::new(350.0, 100.0 + PAD_Y),
+        Point::new(380.0, 20.0 + PAD_Y),
+        Point::new(410.0, 100.0 + PAD_Y),
+    ])?;
+    zig.set_fill(NONE)?;
+    zig.set_stroke(TEAL)?;
+    zig.set_stroke_width(3.0)?;
+    caption(&svg, 350.0, "polyline (open, fill:none)")?;
+
+    // 3. Polyline — same shape, but left to fill: the open path is filled as if closed
+    let filled = svg.polyline(&[
+        Point::new(530.0, 100.0 + PAD_Y),
+        Point::new(560.0, 20.0 + PAD_Y),
+        Point::new(590.0, 100.0 + PAD_Y),
+        Point::new(620.0, 20.0 + PAD_Y),
+        Point::new(650.0, 100.0 + PAD_Y),
+    ])?;
+    filled.set_fill(CORAL)?;
+    caption(&svg, 590.0, "polyline (filled)")?;
 
     Ok(())
 }

@@ -175,6 +175,42 @@ fn should_create_circle_with_correct_attributes() -> Result<(), String> {
     common::check_eq(circle.attr("r"), Some("25".into()))
 }
 
+/// `ellipse` creates an `<ellipse>` child with the correct centre and independent radii.
+#[wasm_bindgen_test]
+fn should_create_ellipse_with_correct_attributes() -> Result<(), String> {
+    common::div("ellipse-factory");
+    let svg = SvgRoot::create_in("ellipse-factory", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let ellipse = svg
+        .ellipse(Point::new(80.0, 60.0), Size::new(40.0, 25.0))
+        .map_err(|e| e.to_string())?;
+    common::check_eq(ellipse.attr("cx"), Some("80".into()))?;
+    common::check_eq(ellipse.attr("cy"), Some("60".into()))?;
+    common::check_eq(ellipse.attr("rx"), Some("40".into()))?;
+    common::check_eq(ellipse.attr("ry"), Some("25".into()))
+}
+
+/// `polyline` creates a `<polyline>` child whose `points` attribute lists each vertex as `x,y`.
+#[wasm_bindgen_test]
+fn should_create_polyline_with_points_attribute() -> Result<(), String> {
+    common::div("polyline-factory");
+    let svg = SvgRoot::create_in("polyline-factory", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let polyline = svg
+        .polyline(&[Point::new(0.0, 0.0), Point::new(20.0, 40.0), Point::new(40.0, 0.0)])
+        .map_err(|e| e.to_string())?;
+    common::check_eq(polyline.attr("points"), Some("0,0 20,40 40,0".into()))
+}
+
+/// `polygon` creates a `<polygon>` child whose `points` attribute lists each vertex as `x,y`.
+#[wasm_bindgen_test]
+fn should_create_polygon_with_points_attribute() -> Result<(), String> {
+    common::div("polygon-factory");
+    let svg = SvgRoot::create_in("polygon-factory", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let polygon = svg
+        .polygon(&[Point::new(50.0, 0.0), Point::new(100.0, 80.0), Point::new(0.0, 80.0)])
+        .map_err(|e| e.to_string())?;
+    common::check_eq(polygon.attr("points"), Some("50,0 100,80 0,80".into()))
+}
+
 /// `line` creates a `<line>` child with the correct endpoint attributes.
 #[wasm_bindgen_test]
 fn should_create_line_with_correct_endpoints() -> Result<(), String> {

@@ -2,19 +2,25 @@
 pub mod attrs;
 /// The [`SvgBatch`](crate::SvgBatch) builder that appends many elements to the DOM in one operation.
 pub mod batch;
-/// The [`SvgRoot::circle`](crate::SvgRoot::circle) factory.
-pub mod circle;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Factories and helper types
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 pub(crate) mod factory;
+/// The [`SvgRoot::circle`](crate::SvgRoot::circle) factory.
+pub mod circle;
+/// The [`SvgRoot::ellipse`](crate::SvgRoot::ellipse) factory.
+pub mod ellipse;
 /// The [`SvgRoot::group`](crate::SvgRoot::group) factory.
 pub mod group;
 /// The [`SvgRoot::line`](crate::SvgRoot::line) factory.
 pub mod line;
 /// The [`SvgRoot::path`](crate::SvgRoot::path) factory.
 pub mod path;
+/// The [`SvgRoot::polygon`](crate::SvgRoot::polygon) factory.
+pub mod polygon;
+/// The [`SvgRoot::polyline`](crate::SvgRoot::polyline) factory.
+pub mod polyline;
 /// The [`SvgRoot::rect`](crate::SvgRoot::rect) factory.
 pub mod rect;
 /// The `<svg>` root wrapper [`SvgRoot`](crate::SvgRoot).

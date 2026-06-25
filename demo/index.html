@@ -17,7 +17,9 @@
             <div class="menu-group">Shapes</div>
             <button type="button" class="menu-item" data-target="panel-rect">rect</button>
             <button type="button" class="menu-item" data-target="panel-circle">circle</button>
+            <button type="button" class="menu-item" data-target="panel-ellipse">ellipse</button>
             <button type="button" class="menu-item" data-target="panel-line">line</button>
+            <button type="button" class="menu-item" data-target="panel-poly">polygon / polyline</button>
             <button type="button" class="menu-item" data-target="panel-path">path</button>
             <button type="button" class="menu-item" data-target="panel-text">text</button>
             <button type="button" class="menu-item" data-target="panel-group">group</button>
@@ -75,6 +77,19 @@
                 </figure>
             </section>
 
+            <!-- ellipse -->
+            <section class="section" id="panel-ellipse">
+                <h2><code>&lt;ellipse&gt;</code></h2>
+                <figure>
+                    <div class="canvas" id="demo-ellipse"></div>
+                    <figcaption>
+                        <strong>wide</strong> (rx &gt; ry) · <strong>tall stroke-only</strong> (ry &gt; rx) ·
+                        <strong>hover</strong> (both radii grow on pointerenter) — independent radii are what set
+                        <code>&lt;ellipse&gt;</code> apart from <code>&lt;circle&gt;</code>
+                    </figcaption>
+                </figure>
+            </section>
+
             <!-- line -->
             <section class="section" id="panel-line">
                 <h2><code>&lt;line&gt;</code></h2>
@@ -82,6 +97,19 @@
                     <div class="canvas" id="demo-line"></div>
                     <figcaption>
                         <strong>horizontal</strong> · <strong>diagonal</strong> · <strong>thick stroke</strong>
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- polygon / polyline -->
+            <section class="section" id="panel-poly">
+                <h2><code>&lt;polygon&gt;</code> / <code>&lt;polyline&gt;</code></h2>
+                <figure>
+                    <div class="canvas" id="demo-poly"></div>
+                    <figcaption>
+                        <strong>polygon</strong> (closed, filled triangle) ·
+                        <strong>polyline</strong> (open zig-zag, <code>fill:none</code>) ·
+                        <strong>polyline</strong> (filled — an open polyline is filled as if closed)
                     </figcaption>
                 </figure>
             </section>

@@ -12,6 +12,21 @@ use super::{
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Formats a slice of points into the `points="x,y x,y …"` attribute string shared by `<polyline>` and `<polygon>`.
+fn points_attr(points: &[Point]) -> String {
+    use std::fmt::Write;
+    let mut out = String::with_capacity(points.len() * 12);
+    for (i, p) in points.iter().enumerate() {
+        if i > 0 {
+            out.push(' ');
+        }
+        // Writing to a String is infallible.
+        let _ = write!(out, "{},{}", p.x, p.y);
+    }
+    out
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Shared implementation used by both [`SvgRoot`](crate::SvgRoot) and [`SvgBatch`](crate::SvgBatch).
 ///
 /// The destination differs — `SvgRoot` appends directly to the live `<svg>`, whereas `SvgBatch` appends to a
@@ -63,6 +78,20 @@ pub(crate) trait SvgFactory {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    fn create_ellipse(&self, centre: Point, radii: Size) -> Result<SvgNode, Error> {
+        let node = self.make_node("ellipse")?;
+        {
+            let mut attrs = self.attrs().borrow_mut();
+            attrs.display(&node, "cx", centre.x)?;
+            attrs.display(&node, "cy", centre.y)?;
+            attrs.display(&node, "rx", radii.width)?;
+            attrs.display(&node, "ry", radii.height)?;
+        }
+        self.append_node(&node)?;
+        Ok(node)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fn create_line(&self, start: Point, end: Point) -> Result<SvgNode, Error> {
         let node = self.make_node("line")?;
         {
@@ -80,6 +109,22 @@ pub(crate) trait SvgFactory {
     fn create_path(&self, d: &str) -> Result<SvgNode, Error> {
         let node = self.make_node("path")?;
         node.set_attr("d", d)?;
+        self.append_node(&node)?;
+        Ok(node)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    fn create_polyline(&self, points: &[Point]) -> Result<SvgNode, Error> {
+        let node = self.make_node("polyline")?;
+        node.set_attr("points", &points_attr(points))?;
+        self.append_node(&node)?;
+        Ok(node)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    fn create_polygon(&self, points: &[Point]) -> Result<SvgNode, Error> {
+        let node = self.make_node("polygon")?;
+        node.set_attr("points", &points_attr(points))?;
         self.append_node(&node)?;
         Ok(node)
     }

@@ -58,6 +58,12 @@ impl SvgBatch {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Creates a detached `<ellipse>` element in this batch and returns its [`SvgNode`] handle.
+    pub fn ellipse(&self, centre: Point, radii: Size) -> Result<SvgNode, Error> {
+        self.create_ellipse(centre, radii)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates a detached `<line>` element in this batch and returns its [`SvgNode`] handle.
     pub fn line(&self, start: Point, end: Point) -> Result<SvgNode, Error> {
         self.create_line(start, end)
@@ -67,6 +73,18 @@ impl SvgBatch {
     /// Creates a detached `<path>` element in this batch and returns its [`SvgNode`] handle.
     pub fn path(&self, d: &str) -> Result<SvgNode, Error> {
         self.create_path(d)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Creates a detached `<polyline>` element in this batch and returns its [`SvgNode`] handle.
+    pub fn polyline(&self, points: &[Point]) -> Result<SvgNode, Error> {
+        self.create_polyline(points)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Creates a detached `<polygon>` element in this batch and returns its [`SvgNode`] handle.
+    pub fn polygon(&self, points: &[Point]) -> Result<SvgNode, Error> {
+        self.create_polygon(points)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

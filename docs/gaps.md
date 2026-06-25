@@ -7,13 +7,12 @@ These gaps will be filled in time, but for now, this crate must be treated as an
 
 # Missing SVG elements
 
-The six SVG elements currently supported (`rect`, `circle`, `line`, `path`, `text` and `g`) are the most commonly used ones.
-The following elements all need to be implemented:
+The following SVG elements are supported: `rect`, `circle`, `ellipse`, `line`, `polyline`, `polygon`, `path`, `text` and `g`.
+
+The following SVG elements all need to be implemented:
 
 | Missing Element | Why it matters
 |---|---|
-| `<ellipse>` | Offers independent `x,y` radii.  Something `<circle>` can't substitute
-| `<polyline>` / `<polygon>` | Efficient multi-segment lines and filled shapes without using the `path` syntax
 | `<defs>` | Container for reusable assets. Gradients, patterns, clip-paths all live here
 | `<linearGradient>` / `<radialGradient>` | Gradient fills that are not possible without `<defs>`
 | `<pattern>` | Tiled fill patterns

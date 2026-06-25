@@ -15,9 +15,12 @@ That said, all reasonable, conventional steps have been taken to provide a secur
 - [x] Define `AnimationLoop` object
 - Implement helper functions for basic SVG shapes
   - [x] `<circle>`
+  - [x] `<ellipse>`
   - [x] `<group>`
   - [x] `<line>`
   - [x] `<path>`
+  - [x] `<polygon>`
+  - [x] `<polyline>`
   - [x] `<rect>`
   - [x] `<text>`
 - [x] Implement multi-attribute setter for an SVG node
@@ -27,8 +30,6 @@ That said, all reasonable, conventional steps have been taken to provide a secur
 - [x] Build demo server to illustrate current functionality
 - [x] Schedule `cargo-deny` to run as a weekly `cron` job
 - Implement remaining SVG elements
-  - [ ] `<ellipse>`
-  - [ ] `<polyline>` / `<polygon>`
   - [ ] `<defs>`
   - [ ] `<linearGradient>` / `<radialGradient>`
   - [ ] `<pattern>`
@@ -58,7 +59,7 @@ The `svg-dom` crate acts as a thin wrapper for `web-sys` SVG DOM bindings that a
 - Attach to an existing `<svg>` element in your HTML page
 - Create new `<svg>` element programmatically
 - Add a basic set of SVG elements:
-   - Helper function exist for `<rect>`, `<circle>`, `<line>`, `<path>`, `<text>`, `<g>`
+   - Helper function exist for `<rect>`, `<circle>`, `<ellipse>`, `<line>`, `<polyline>`, `<polygon>`, `<path>`, `<text>`, `<g>`
    - You get back a cheap-to-clone handle (`SvgNode`) that holds a live reference to the real DOM node
 - Using the element's handle, you can mutate individual, multiple or arbitrary attributes:
    - without the need to rebuild or diff the DOM tree
