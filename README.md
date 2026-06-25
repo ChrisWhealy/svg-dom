@@ -123,7 +123,7 @@ The coding used in the actual demo implementation is shown beneath each example.
 
 ## Minimal Demo
 
-```rust,no_run
+```rust
 use std::cell::RefCell;
 use wasm_bindgen::prelude::*;
 use svg_dom::{AnimationLoop, SvgAttrs, SvgRoot, root::utils::{Point, Size}};
@@ -203,7 +203,7 @@ A larger app would instead hold the loop in its own long-lived state: maybe an a
 
 The managed wrappers cover common SVG interaction events: click/double-click/context menu, mouse down/up/move/enter/leave/over/out, pointer down/up/move/enter/leave/over/out/cancel, wheel, touch start/move/end/cancel, key down/up, focus/blur, and drag-and-drop. For less common events, `on_event("event-name", handler)` provides the same managed lifetime with a generic `web_sys::Event`.
 
-```rust,no_run
+```rust
 let pad = svg.rect(Point::new(20.0, 20.0), Size::new(160.0, 80.0))?;
 pad.set_attrs([("tabindex", "0"), ("style", "cursor:pointer")])?;
 
@@ -227,7 +227,7 @@ pad.on_contextmenu(move |evt| evt.prevent_default())?;
 Use `SvgNode::set_attrs` when a geometry or style update naturally changes several attributes together.
 It accepts string literals and owned `String` values, so it is convenient both for fixed style values and computed geometry:
 
-```rust,no_run
+```rust
 let rect = svg.rect(Point::origin(), Size::new(80.0, 40.0))?;
 rect.set_attrs([
     ("fill", "steelblue"),
@@ -239,7 +239,7 @@ rect.set_attrs([
 
 For repeated numeric or formatted writes, use `SvgAttrs` instead.  It owns a reusable scratch `String`, so display/format values do not require a fresh allocation each time:
 
-```rust,no_run
+```rust
 let mut attrs = SvgAttrs::new();
 rect.attrs(&mut attrs)
     .fill("steelblue")?
@@ -255,7 +255,7 @@ Element factory methods use `SvgAttrs` internally for initial numeric geometry a
 For attributes that change every animation frame, prefer `AnimationLoop::start_with_frame` over building fresh strings with `format!` inside the RAF callback.
 The callback receives an `AnimationFrame` scratch buffer that is allocated once and reused for formatted attributes and text:
 
-```rust,no_run
+```rust
 let _loop = AnimationLoop::start_with_frame(move |ts, frame| {
     let x = 100.0 + 50.0 * (ts / 600.0).sin();
     let _ = frame.set_attr_fmt(&dot, "cx", format_args!("{x:.1}"));
