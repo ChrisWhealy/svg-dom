@@ -1154,3 +1154,21 @@ fn should_update_points_via_reusable_buffer() -> Result<(), String> {
         .map_err(|e| e.to_string())?;
     common::check_eq(poly.attr("points"), Some("7,8".into()))
 }
+
+/// `AnimationFrame::set_points` writes a polyline's `points` through the frame's reusable buffer (the per-frame
+/// counterpart to `SvgAttrs::points`).
+#[wasm_bindgen_test]
+fn should_update_points_via_animation_frame() -> Result<(), String> {
+    let svg = make_svg("node-frame-points");
+    let poly = svg.polyline(&[Point::origin()]).map_err(|e| e.to_string())?;
+
+    let mut frame = svg_dom::AnimationFrame::new();
+    frame
+        .set_points(&poly, &[Point::new(1.0, 2.0), Point::new(3.0, 4.0)])
+        .map_err(|e| e.to_string())?;
+    common::check_eq(poly.attr("points"), Some("1,2 3,4".into()))?;
+
+    // Reuse across frames: the latest value wins.
+    frame.set_points(&poly, &[Point::new(5.0, 6.0)]).map_err(|e| e.to_string())?;
+    common::check_eq(poly.attr("points"), Some("5,6".into()))
+}

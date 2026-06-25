@@ -2,7 +2,10 @@ mod writer;
 
 pub use writer::AttrWriter;
 
-use crate::{Error, SvgNode, root::utils::Point};
+use crate::{
+    Error, SvgNode,
+    root::utils::{Point, write_points},
+};
 use std::fmt::{self, Write};
 use web_sys::Element;
 
@@ -114,13 +117,7 @@ impl SvgAttrs {
     /// # Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn points(&mut self, node: &SvgNode, points: &[Point]) -> Result<(), Error> {
-        self.scratch.clear();
-        for (i, p) in points.iter().enumerate() {
-            if i > 0 {
-                self.scratch.push(' ');
-            }
-            write!(self.scratch, "{},{}", p.x, p.y)?;
-        }
+        write_points(&mut self.scratch, points);
         node.set_attr("points", &self.scratch)
     }
 

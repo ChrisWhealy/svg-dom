@@ -45,7 +45,7 @@ Calling `stop()` (or dropping the `AnimationLoop`) sets that `Rc` slot to `None`
 ## Per-frame formatting uses a reusable scratch buffer
 
 `AnimationLoop::start_with_frame` supplies an `AnimationFrame` value to each RAF callback.
-`AnimationFrame` owns one reusable `String` scratch buffer and exposes helpers such as `set_attr_fmt`, `set_fill_fmt`, `set_d_fmt`, and `set_text_fmt`.
+`AnimationFrame` owns one reusable `String` scratch buffer and exposes helpers such as `set_attr_fmt`, `set_fill_fmt`, `set_d_fmt`, `set_text_fmt`, and `set_points` (for animating `<polyline>`/`<polygon>` vertices).
 
 Use these helpers for values that change every frame instead of writing `set_attr(..., &format!(...))` or `set_attr(..., &value.to_string())` inside the RAF callback.
 

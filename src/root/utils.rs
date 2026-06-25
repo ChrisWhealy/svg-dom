@@ -91,3 +91,21 @@ impl std::fmt::Display for Size {
         write!(f, "{} {}", self.width, self.height)
     }
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Formats `points` into `out` as an SVG `points` list (`"x,y x,y …"`), replacing any previous contents.
+///
+/// Shared by [`SvgAttrs::points`](crate::SvgAttrs::points) and
+/// [`AnimationFrame::set_points`](crate::AnimationFrame::set_points) so both produce identical output from one reusable
+/// buffer.
+pub(crate) fn write_points(out: &mut String, points: &[Point]) {
+    use std::fmt::Write;
+    out.clear();
+    for (i, p) in points.iter().enumerate() {
+        if i > 0 {
+            out.push(' ');
+        }
+        // Writing to a `String` is infallible.
+        let _ = write!(out, "{},{}", p.x, p.y);
+    }
+}

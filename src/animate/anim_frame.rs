@@ -1,4 +1,8 @@
-use crate::{error::Error, node::SvgNode};
+use crate::{
+    error::Error,
+    node::SvgNode,
+    root::utils::{Point, write_points},
+};
 use std::fmt::{self, Write};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -93,5 +97,15 @@ impl AnimationFrame {
             .map_err(|_| Error::Dom("failed to format SVG text".into()))?;
         node.set_text(&self.scratch);
         Ok(())
+    }
+
+    /// Formats `points` into the reusable buffer and sets the node's `points` attribute (`"x,y x,y …"`).
+    ///
+    /// The per-frame counterpart to [`SvgAttrs::points`](crate::SvgAttrs::points): use it to animate the vertices of a
+    /// `<polyline>` or `<polygon>` from inside an [`AnimationLoop::start_with_frame`](crate::AnimationLoop::start_with_frame)
+    /// callback without allocating a fresh string each frame.
+    pub fn set_points(&mut self, node: &SvgNode, points: &[Point]) -> Result<(), Error> {
+        write_points(&mut self.scratch, points);
+        node.set_attr("points", &self.scratch)
     }
 }
