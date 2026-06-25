@@ -3,7 +3,7 @@
 Design suggestions that were evaluated for `svg-dom` and deliberately not adopted.
 The reasoning is preserved here so the same ideas are not repeatedly re-proposed.
 
-## Splitting `SvgNode` into passive and interactive types
+## 1) Splitting `SvgNode` into passive and interactive types
 
 It was suggested that a benefit could be obtained by splitting `SvgNode` into passive and interactive types.
 Only the interactive type would carry the listener storage:
@@ -51,7 +51,7 @@ Against that small saving sit real costs:
 So the structurally "trivial" upgrade is semantically a fork of the very ownership the library deliberately unifies, in exchange for ~8 bytes per node.
 The lightweight-passive-node property is better served by the existing lazy `Option<Box<Vec>>`, and any need to signal interactivity is cheaper to meet with documentation than with a second concrete type.
 
-## A faster float-to-string crate (`ryu` / `itoa`)
+## 2) A faster float-to-string crate (`ryu` / `itoa`)
 
 It was suggested that numeric formatting could be sped up by routing it through a dedicated crate such as `ryu` (floats) or `itoa` (integers) instead of the standard library's `Display`.
 This was evaluated and **will not** be pursued.
@@ -69,7 +69,7 @@ Two things undercut it:
 Set against an added dependency in a published crate (which grows every downstream user's dependency tree), the trade is not worth it.
 The dominant per-call cost on any real hot path is the `set_attribute` boundary crossing, not the float-to-string conversion, so effort is better spent eliding redundant DOM writes (`CachedAttr`) and reusing format buffers (the transform setters and `set_attr_display`).
 
-## `path_fmt` / `text_fmt` factory helpers
+## 3) `path_fmt` / `text_fmt` factory helpers
 
 It was suggested that the factories accept `std::fmt::Arguments` directly — `path_fmt(format_args!(...))` and `text_fmt(...)`, plus the `SvgBatch` equivalents — so a caller building a computed `d` or label string need not allocate a `String` before the factory sets the attribute (instead of today's `svg.path(&format!(...))`).
 The new methods would format into the factory's existing `SvgAttrs` scratch buffer.
@@ -94,7 +94,7 @@ Against those, the cost is four new public methods (`path_fmt` / `text_fmt` on b
 Callers who format at creation time can simply write `svg.path(&format!(...))`.
 If a future profile ever shows element-creation churn dominating (for example frequent full rebuilds), the right response is to mutate existing nodes, not to add creation-time formatting helpers.
 
-## Handle-light factories for large static scenes (`static_rect`, raw `SvgElement`)
+## 4) Handle-light factories for large static scenes (`static_rect`, raw `SvgElement`)
 
 It was suggested that for scenes containing thousands of static elements whose handles are discarded immediately, the per-element allocation of an `Rc<SvgNodeInner>` should be avoided.
 The factories could skip constructing a managed `SvgNode` by implementing functions such as `static_rect(...)` or `static_path(...)` and return a "naked" `web_sys::SvgElement` instead of a wrapped `SvgNode`.
@@ -121,7 +121,7 @@ This recommendation has been evaluated and **will not** be pursued.
 
 If a real workload ever proves the handle allocation to be a measurable bottleneck, this can be revisited — but the DOM-node and `set_attribute` costs will still dominate, so the saving would remain marginal.
 
-## An `EventName` enum instead of `&'static str`
+## 5) An `EventName` enum instead of `&'static str`
 
 It was suggested that `EventListener` store the event name as an enum (`Click`, `PointerMove`, … plus `Raw(&'static str)`) rather than a `&'static str`, on the grounds that an enum would be smaller than a fat string pointer, with `Drop` calling `event_name.as_str()`.
 
@@ -142,7 +142,7 @@ This recommendation has been evaluated and **will not** be pursued on the ground
 
 The recommendation sat behind the caveat that it is "only worth doing if listener-heavy scenes are expected", but listener-heavy scenes are exactly where the larger per-listener struct cost would be greatest.
 
-## A size-optimised `[profile.release]` baked into the crate
+## 6) A size-optimised `[profile.release]` baked into the crate
 
 It was suggested that the crate add a wasm-shrinking release profile (`lto = true`, `codegen-units = 1`, `opt-level = "z"`, `panic = "abort"`, `strip = true`) and run `wasm-opt -Oz` as part of packaging, to reduce download and instantiation size for production builds.
 
