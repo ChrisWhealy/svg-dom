@@ -234,3 +234,52 @@ This crate makes every attempt to exclude the possibility of generating a WASM b
   Against that zero saving, `unreachable!()` adds the possibility of a panic and `#[track_caller]` location data to the **wasm binary** (a size concern this crate takes seriously — see idea 6); the optimiser *may* prove the arm dead and strip it, but that is not guaranteed.
 
 The current code is exhaustive, panic-path-free, allocation-neutral, and documented as such at the call site, so the proposal is a lateral-to-slightly-worse change to working code and was not adopted.
+
+## 11) Deferred listener drops to make self-removal safe from within a handler
+
+`clear_listeners` and `remove_listeners` are safe Rust APIs, but their docs warn that calling them from inside one of the same node's handlers would free the currently-executing wasm-bindgen `Closure` — which is undefined behaviour (UB) in the Rust abstract machine.
+This recommendation was to resolve this by making listener removal deferred while a handler is dispatching, using a depth counter and a side-store for closures that are queued for drop:
+
+```rust
+struct ListenerState {
+    active_dispatch_depth: Cell<u32>,
+    deferred_drops: RefCell<Vec<Box<ListenerStore>>>,
+}
+```
+
+Every managed event wrapper would enter a dispatch guard before invoking the user closure, and leave it afterwards.
+`clear_listeners` / `remove_listeners` would still detach the browser-side listener immediately, but if `active_dispatch_depth > 0`, the removed `ListenerStore` would be parked in `deferred_drops` and dropped only after the outermost handler returns.
+
+This idea was rejected fior the following reasons:
+
+* **The UB is practically inert in the wasm32 execution model.**<br>
+  wasm-bindgen's closure trampoline calls the `FnMut` through a raw pointer, then returns.
+  It does not dereference the pointer again after the call returns.
+  WebAssembly is single-threaded, so the freed allocation cannot be concurrently reclaimed and overwritten during the same synchronous call frame.
+  No bytes in linear memory are read through the dangling reference after the call exits.
+  In the Rust abstract machine this is formally UB, but in the concrete wasm32 execution environment there is no observable memory corruption, no torn state, and no crash — the warning documents a theoretical violation, not a practical hazard.
+
+* **Deferred drops impose a permanent per-node memory cost.**<br>
+  Adding `Cell<u32>` plus `RefCell<Vec<Box<ListenerStore>>>` to `SvgNodeInner` costs roughly 30 bytes on every node - depth counter, borrow flag, and `Vec` metadata - even though the self-removal pattern is vanishingly rare.
+  The whole-`Vec` cost only applies when the deferred path actually fires, but the field overhead is paid by every node in every scene regardless.
+
+* **Tracking dispatch depth adds overhead on the hot path.**<br>
+  To know whether a removal should be deferred or immediate, every closure invocation would need to increment and decrement the counter.
+  Today `on_event` stores the raw user closure directly; tracking depth would require wrapping each user closure in an outer bookkeeping closure which adds an extra heap allocation per listener registration and one extra increment / decrement / branch on every event fired.
+  This crate deliberately avoids per-invocation overhead; the transform setters, `CachedAttr`, and the scratch-buffer APIs all exist specifically to reduce work done per event.
+  This "fix" costs more than the problem.
+
+* **The motivating use case (a one-shot handler that removes itself) already has a correct, zero-cost solution.**<br>
+  wasm-bindgen provides `Closure::once`, which wraps a `FnOnce` and frees itself after the first invocation.
+  Combined with the browser-native `addEventListener` option `{ once: true }`, the closure is called exactly once and the memory is reclaimed by wasm-bindgen's own cleanup path after the call returns - never while the closure is still running.
+
+  An `on_event_once` helper built on `Closure::once` would serve this use case with no Rust-side depth tracking, no deferred store, and no store entry to bookkeep at all, because the browser removes the registration and wasm-bindgen frees the allocation at the right moment.
+
+* **The remaining sub-cases are already safe and need no guards.**<br>
+  Removing a *different* event type from the same node is safe: the running closure is not the one being freed.
+  Removing listeners on a *different* node is always safe.
+  Only the precise sub-case — a handler drops itself — is the footgun the docs warn against, and `on_event_once` is the right API for that pattern.
+
+The deferred-drops design would add memory and CPU overhead to every node and every event in the entire crate in order to guard against a theoretical abstract-machine violation that has no observable consequence in the wasm32 execution model, when the primary motivating use case is already correctly served by `Closure::once`.
+
+The existing documentation warning is the correct and sufficient response; a dedicated `on_event_once` helper is the right follow-on addition if the one-shot pattern proves common in practice.
