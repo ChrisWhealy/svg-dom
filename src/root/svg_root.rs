@@ -197,13 +197,17 @@ impl SvgRoot {
         }
 
         let mut attrs = self.attrs.borrow_mut();
-        if old.width != size.width {
+        let mut current = old;
+        if current.width != size.width {
             attrs.display_element(&self.root, "width", size.width)?;
+            current.width = size.width;
+            self.viewport.set(current);
         }
-        if old.height != size.height {
+        if current.height != size.height {
             attrs.display_element(&self.root, "height", size.height)?;
+            current.height = size.height;
+            self.viewport.set(current);
         }
-        self.viewport.set(size);
         Ok(())
     }
 }
