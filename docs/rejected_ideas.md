@@ -283,3 +283,55 @@ This idea was rejected fior the following reasons:
 The deferred-drops design would add memory and CPU overhead to every node and every event in the entire crate in order to guard against a theoretical abstract-machine violation that has no observable consequence in the wasm32 execution model, when the primary motivating use case is already correctly served by `Closure::once`.
 
 The existing documentation warning is the correct and sufficient response; a dedicated `on_event_once` helper is the right follow-on addition if the one-shot pattern proves common in practice.
+
+## 12) Flatten `EventClosure` by simplifying it to `Closure<dyn FnMut(Event)>`
+
+`EventClosure` is an enum with one variant per supported event type (`Drag`, `Focus`, `Keyboard`, `Mouse`, `Pointer`, `Touch`, `Wheel`, and `Event`), each of which wraps the corresponding `Closure<dyn FnMut(T)>`.
+
+The `callback_ref` method has an 8-arm match with identical bodies (`closure.as_ref().unchecked_ref()`), and every `on_*` helper constructs the matching variant.
+The suggestion was to replace all of this with a single `Closure<dyn FnMut(Event)>`, moving the typed event conversion into a small wrapper at each registration site:
+
+```rust
+pub fn on_click<F: FnMut(MouseEvent) + 'static>(&self, mut handler: F) -> Result<(), Error> {
+    self.store_listener(
+        "click",
+        Closure::new(move |e: Event| handler(e.unchecked_into::<MouseEvent>())),
+    )
+}
+```
+
+The 35-line `EventClosure` enum and the `callback_ref` match would disappear, and `EventListener` would shrink by the discriminant — roughly 4 bytes per listener on wasm32.
+
+This idea is rejected for the following reasons:
+
+* **It adds an extra `vtable` dispatch on every event fire.**<br>
+  Currently the browser → JS trampoline → user-handler path has a single `FnMut::call_mut` `vtable` dispatch into the user's closure.
+  The proposed wrapper inserts a second `call_mut` dispatch into the wrapper before reaching the user closure.
+  `unchecked_into()` is itself a no-op cast, but the extra `dyn` call is real.
+
+  The cost of calling event handlers is already dominated by the JS/WASM boundary crossing, so this extra dispatch does not dominate either.  However, adding overhead to the dispatch path conflicts with the crate's explicit design philosophy of keeping hot-path costs minimal.
+
+* **The saving is marginal and the code change is lateral, not a reduction.**<br>
+  The 35 lines removed from `event.rs` are simple, correct, and rarely touched.
+  In exchange, every `on_*` helper (and there are roughly 25–30 of them) gains a wrapper closure expression, and `store_listener` changes its parameter type.
+  The net difference is roughly neutral in lines and the resulting registration sites are slightly harder to read because the typed relationship between method name, event type, and closure is no longer encoded at the call-to-store boundary.
+
+* **The WASM binary impact is speculative.**<br>
+  The current approach emits 8 separate `wasm-bindgen` trampolines (one per event-type closure type) but lets the compiler call the user closure directly in each.
+
+  The proposed approach emits a single trampoline class but requires one concrete wrapper-closure monomorphization per event type, since `F` is generic.
+
+  The net binary size impact is unknown without measuring; the recommendation itself says "I would only keep it if the resulting wasm size ... looks good", meaning the outcome is uncertain.
+
+  This crate does not accept speculative changes that may worsen size without a measurement gate.
+
+* **The per-listener struct size saving is negligible.**<br>
+  On wasm32 a `Closure<dyn FnMut(T)>` is the same size regardless of `T`: only the `vtable` pointer differs and that is stored in the heap-allocated `Box<dyn FnMut>`, not in the `Closure` struct itself.
+
+  The saved discriminant is ~4 bytes per `EventListener`; with `ListenerStore::One` that is a single listener, and `ListenerStore::Many` allocates a `Vec` whose elements are individually ~4 bytes smaller.
+
+  The saving is real but not significant enough to justify the change.
+
+The current `EventClosure` enum is boilerplate, but nonetheless it is working, auditable boilerplate that encodes a clear structural invariant.
+Any new `on_*` helper must explicitly state which variant it wraps without touching the dispatch path.
+The right response to the boilerplate concern is documentation, not type erasure.
