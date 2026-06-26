@@ -4,7 +4,7 @@
 //! ```sh
 //! cargo demo
 //! ```
-//! which rebuilds the wasm package and serves it via the Actix `demo-server` crate at <http://127.0.0.1:8000/demo/>.
+//! which rebuilds the wasm package and serves it via the Actix `demo-server` crate at <http://127.0.0.1:8080/demo/>.
 //!
 //! The `demo` feature excludes this code from the normal library build.
 

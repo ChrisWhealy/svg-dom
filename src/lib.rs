@@ -11,7 +11,7 @@
 //!
 //! | Module | Key type | Purpose |
 //! |---|---|---|
-//! | [`demo`] | | Provides a set of SVG element examples.  Run `cargo demo` then visit http://localhost:8000/demo. |
+//! | [`demo`] | | Provides a set of SVG element examples.  Run `cargo demo` then visit http://localhost:8080/demo. |
 //! | [`error`] | [`Error`] | Wrapper for Browser DOM errors |
 //! | [`root`] | [`SvgRoot`] / [`SvgAttrs`] | Wraps the `<svg>` root; factory for all child elements; reusable attribute writing |
 //! | [`animate`] | [`AnimationLoop`] | `requestAnimationFrame` loop |
