@@ -16,6 +16,14 @@ use web_sys::{Document, SvgsvgElement};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 pub struct SvgRoot {
     /// The underlying `<svg>` element wrapped by this root.
+    ///
+    /// This is exposed as an escape hatch for the occasional attribute or property this crate does not wrap directly —
+    /// a `viewBox`, `preserveAspectRatio`, a CSS class, and so on.
+    ///
+    /// Note, however, that `width` and `height` are tracked by a cached viewport.
+    /// Writing them directly on this element (for example `root.set_attribute("width", …)`) desynchronises
+    /// [`width`](Self::width) and [`height`](Self::height) from what the DOM actually shows.
+    /// To resize the root, use [`set_viewport`](Self::set_viewport), which is the cache-aware path.
     pub root: SvgsvgElement,
     pub(crate) document: Document,
     viewport: Cell<Size>,

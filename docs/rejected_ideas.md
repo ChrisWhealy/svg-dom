@@ -192,3 +192,26 @@ We tightened the documentation instead (`attach` now states that only the two at
 * **Rendered measurement is already a documented non-goal.**<br>
   `docs/gaps.md` lists `getBoundingClientRect()` among the deliberately out-of-scope DOM-geometry features.
   The crate's contract is that `width()`/`height()` report the *attribute* values read once at attach time; a caller who needs the rendered size can measure it themselves and call `set_viewport`, which keeps the cache coherent with what the crate actually writes.
+
+## 9) Hiding `SvgRoot::root` behind an `as_element()` accessor
+
+`SvgRoot` exposes its `<svg>` as the public field `root`, which lets a caller write `width`/`height` directly and desynchronise the cached viewport that backs `width()`/`height()` and `set_viewport`'s write-elision.
+
+It was suggested that, as a future breaking change, the field should be made private and a `pub fn as_element(&self) -> &SvgsvgElement` accessor be added instead.
+We documented the caveat on the field (direct mutation desyncs `width()`/`height()`; `set_viewport` is the cache-aware path) but did **not** make the field private.
+
+* **The accessor would not actually protect the invariant.**<br>
+  Every `web_sys` DOM mutator such as `set_attribute`, `set_attribute_ns`, and its typed property setters, take `&self`, not `&mut self` because DOM mutation goes through a shared JS handle.
+  So `svg.as_element().set_attribute("width", "500")` desyncs the cache *exactly* as `svg.root.set_attribute("width", "500")` does.
+  The change swaps a public field for a method of identical power over the invariant; it does not close the hole the recommendation set out to close.
+
+* **Exposing the element is a deliberate escape hatch.**<br>
+  This crate is a thin, minimal wrapper and does not wrap every SVG attribute or property (`viewBox`, `preserveAspectRatio`, CSS classes, focus, and so on — see `docs/gaps.md`).
+  Direct access to the root `<svg>` is the supported way to reach those, so the leak is inherent to *exposing the element at all* (which we want to do) not to the field-versus-method spelling.
+
+  The only extra power a public field grants is reassigning `root` wholesale, which needs `&mut SvgRoot` and would obviously corrupt the handle; that is a self-evident misuse, not a footgun worth a breaking API change to forbid.
+
+* **Documentation is therefore the correct and sufficient fix.**<br>
+  Since the element must remain reachable and any reference to it can mutate the DOM, the honest contract is a documented one: the field's doc now states that writing `width`/`height` directly desyncs `width()`/`height()` and that `set_viewport` is the cache-aware path.
+
+  Renaming `svg.root` to `svg.as_element()` across every downstream user would churn the public API for no real gain in safety.
