@@ -36,6 +36,12 @@ For uncommon browser events, `on_event` provides the same managed lifetime behav
 Handlers are bound as `FnMut`, not `Fn`, so a handler can own and mutate captured state directly — typically a reusable `SvgAttrs` or `String` scratch buffer for a hot `pointermove`/`mousemove` path — without an `Rc<RefCell<…>>` wrapper.
 The only constraint, inherited from wasm-bindgen's `Closure<dyn FnMut>`, is that a handler must not run re-entrantly (synchronously dispatching the same event to the same node from inside the handler), which will cause a panic — the same outcome a re-entrant `RefCell` borrow would produce.
 
+Registration is otherwise append-only: the usual way to retire a listener is to drop the entire node.
+However, for a long-lived node whose behaviour changes over time (e.g. one say that swaps in mode-specific handlers) `clear_listeners` and `remove_listeners(event_type)` detach managed listeners without dropping the node, mirroring the detach-then-drop sequence that `SvgNodeInner::drop` performs (the browser-side callback is removed before its closure is freed).
+
+`remove_listeners` reuses the per-listener event type already stored for cleanup, and compacts a `Many` store back to `One` when a single listener survives.
+Since removing a listener frees its closure, neither method may be used to remove the listener that is currently executing; that is documented as the caller's responsibility.
+
 ## `requestAnimationFrame` self-rescheduling pattern
 
 `AnimationLoop` uses the standard WASM self-referencing closure pattern: the closure holds an `Rc` to itself so it can re-register with `requestAnimationFrame` after each frame.

@@ -88,4 +88,37 @@ impl ListenerStore {
             },
         }
     }
+
+    /// Detaches and removes every listener registered for `event_type`, returning `true` if the store is left empty
+    /// (so the owner can drop the whole `Box` and return to its allocation-free passive state).
+    ///
+    /// A `Many` store reduced to a single survivor is downgraded to `One`, preserving the lean single-listener
+    /// representation that [`push`](Self::push) maintains.
+    pub fn remove_by_type(&mut self, element: &SvgElement, event_type: &'static str) -> bool {
+        match self {
+            ListenerStore::One(listener) => {
+                if listener.event_type == event_type {
+                    listener.detach(element);
+                    true
+                } else {
+                    false
+                }
+            },
+            ListenerStore::Many(listeners) => {
+                for listener in listeners.iter().filter(|l| l.event_type == event_type) {
+                    listener.detach(element);
+                }
+                listeners.retain(|l| l.event_type != event_type);
+                match listeners.len() {
+                    0 => true,
+                    1 => {
+                        let last = listeners.pop().expect("length checked as 1");
+                        *self = ListenerStore::One(last);
+                        false
+                    },
+                    _ => false,
+                }
+            },
+        }
+    }
 }

@@ -1093,6 +1093,109 @@ fn should_remove_dom_listener_when_final_node_handle_is_dropped() -> Result<(), 
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Explicit listener removal — clear_listeners / remove_listeners
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `clear_listeners` detaches every managed listener while leaving the node in the document, so subsequently
+/// dispatched events of any type find nothing to fire.
+#[wasm_bindgen_test]
+fn should_detach_all_listeners_via_clear_listeners() -> Result<(), String> {
+    let rect = make_svg("node-clear-listeners")
+        .rect(Point::origin(), Size::new(200.0, 200.0))
+        .map_err(|e| e.to_string())?;
+    let count = Rc::new(Cell::new(0u32));
+    let click = count.clone();
+    let mv = count.clone();
+    rect.on_click(move |_| click.set(click.get() + 1)).map_err(|e| e.to_string())?;
+    rect.on_pointermove(move |_| mv.set(mv.get() + 1)).map_err(|e| e.to_string())?;
+
+    dispatch(&rect, "click")?;
+    dispatch(&rect, "pointermove")?;
+    common::check_eq(count.get(), 2)?;
+
+    rect.clear_listeners();
+    dispatch(&rect, "click")?;
+    dispatch(&rect, "pointermove")?;
+    common::check_eq(count.get(), 2)
+}
+
+/// `remove_listeners(event_type)` detaches only the listeners for that event, leaving listeners for other events
+/// firing as before.
+#[wasm_bindgen_test]
+fn should_detach_only_matching_event_via_remove_listeners() -> Result<(), String> {
+    let rect = make_svg("node-remove-listeners")
+        .rect(Point::origin(), Size::new(200.0, 200.0))
+        .map_err(|e| e.to_string())?;
+    let clicks = Rc::new(Cell::new(0u32));
+    let moves = Rc::new(Cell::new(0u32));
+    let click = clicks.clone();
+    let mv = moves.clone();
+    rect.on_click(move |_| click.set(click.get() + 1)).map_err(|e| e.to_string())?;
+    rect.on_pointermove(move |_| mv.set(mv.get() + 1)).map_err(|e| e.to_string())?;
+
+    rect.remove_listeners("click");
+    dispatch(&rect, "click")?;
+    dispatch(&rect, "pointermove")?;
+
+    common::check_eq(clicks.get(), 0)?;
+    common::check_eq(moves.get(), 1)
+}
+
+/// Removing listeners from a `Many` store down to a single survivor keeps that survivor working (the store is
+/// downgraded back to `One` internally, but that is transparent to the caller).
+#[wasm_bindgen_test]
+fn should_keep_surviving_listener_after_remove_listeners() -> Result<(), String> {
+    let rect = make_svg("node-remove-survivor")
+        .rect(Point::origin(), Size::new(200.0, 200.0))
+        .map_err(|e| e.to_string())?;
+    let clicks = Rc::new(Cell::new(0u32));
+    let click = clicks.clone();
+    rect.on_click(move |_| click.set(click.get() + 1)).map_err(|e| e.to_string())?;
+    rect.on_pointermove(|_| {}).map_err(|e| e.to_string())?;
+    rect.on_pointerdown(|_| {}).map_err(|e| e.to_string())?;
+
+    // Remove the two pointer types, leaving only the click listener.
+    rect.remove_listeners("pointermove");
+    rect.remove_listeners("pointerdown");
+
+    dispatch(&rect, "click")?;
+    common::check_eq(clicks.get(), 1)
+}
+
+/// `clear_listeners` and `remove_listeners` are harmless no-ops on a node that has no managed listeners (including a
+/// passive node that never allocated listener storage).
+#[wasm_bindgen_test]
+fn should_be_noop_to_remove_listeners_when_none_registered() -> Result<(), String> {
+    let rect = make_svg("node-remove-none")
+        .rect(Point::origin(), Size::new(200.0, 200.0))
+        .map_err(|e| e.to_string())?;
+    rect.remove_listeners("click"); // no storage allocated yet
+    rect.clear_listeners();
+    common::check(true, "removing absent listeners must not panic")
+}
+
+/// A node can have fresh listeners registered after `clear_listeners`, confirming the store returns to a usable empty
+/// state rather than being permanently disabled.
+#[wasm_bindgen_test]
+fn should_allow_reregistration_after_clear_listeners() -> Result<(), String> {
+    let rect = make_svg("node-reregister")
+        .rect(Point::origin(), Size::new(200.0, 200.0))
+        .map_err(|e| e.to_string())?;
+    let count = Rc::new(Cell::new(0u32));
+    let first = count.clone();
+    rect.on_click(move |_| first.set(first.get() + 1)).map_err(|e| e.to_string())?;
+
+    rect.clear_listeners();
+
+    let second = count.clone();
+    rect.on_click(move |_| second.set(second.get() + 1))
+        .map_err(|e| e.to_string())?;
+    dispatch(&rect, "click")?;
+
+    common::check_eq(count.get(), 1)
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Self-referential listeners — strong cycle vs WeakSvgNode
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

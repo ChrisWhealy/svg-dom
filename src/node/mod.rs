@@ -792,6 +792,83 @@ impl SvgNode {
             .map(SvgNode::new)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Detaches and drops **all** managed event listeners registered through this handle lineage, leaving the node
+    /// itself — its DOM element, children, and attributes — intact.
+    ///
+    /// This is the listener counterpart to [`clear`](Self::clear): use it on a long-lived node whose behaviour changes
+    /// over time — one that swaps in mode-specific handlers, say — to discard the previous set before registering new
+    /// ones, without having to drop and recreate the node.
+    ///
+    /// Listeners are tracked per *handle lineage* (a handle together with its clones), exactly as described for
+    /// [`parent`](Self::parent), so this removes only the listeners registered through this handle or its clones — not
+    /// any registered through an independent handle to the same element. Calling it is idempotent: a node with no
+    /// managed listeners is a harmless no-op.
+    ///
+    /// # ⚠️ Do not remove the listener that is currently running
+    ///
+    /// Removing a listener drops its underlying wasm-bindgen closure. Calling this from **inside one of that same
+    /// node's handlers** would free the closure that is currently executing, which is undefined behaviour. Remove
+    /// listeners from a different context — another event, an animation-frame tick, or any code that is not itself one
+    /// of the node's managed handlers. (Removing a *different* node's listeners from within a handler is always fine.)
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
+    /// let svg = SvgRoot::attach("diagram")?;
+    /// let rect = svg.rect(Point::origin(), Size::new(40.0, 40.0))?;
+    /// rect.on_click(|_| { /* … */ })?;
+    ///
+    /// rect.clear_listeners(); // the click handler is detached; the <rect> stays in the document
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn clear_listeners(&self) {
+        // Mirror `SvgNodeInner::drop`: detach every browser-side callback from the live element *before* the store
+        // (and its closures) is dropped, so the DOM never briefly retains a callback pointing at a freed closure.
+        if let Some(store) = self.inner.listeners.borrow_mut().take() {
+            store.detach_all(&self.inner.element);
+        }
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Detaches and drops every managed listener registered for a single `event_type`, leaving listeners for other
+    /// events — and the node itself — intact.
+    ///
+    /// `event_type` is the browser event name used by the corresponding `on_*` helper: `on_click` registers
+    /// `"click"`, `on_pointermove` registers `"pointermove"`, and so on.
+    ///
+    /// Event type removal is idempotent.  That is, removing an event type that either does not exist or has no
+    /// registered listeners is a harmless no-op.
+    ///
+    /// ⚠️ Caution ⚠️
+    ///
+    /// As with [`clear_listeners`](Self::clear_listeners), this affects only listeners registered through this handle
+    /// lineage, and the same caveat applies: do not call it for any event whose handler is currently running, as
+    /// that would free the executing closure.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
+    /// let svg = SvgRoot::attach("diagram")?;
+    /// let rect = svg.rect(Point::origin(), Size::new(40.0, 40.0))?;
+    /// rect.on_click(|_| { /* … */ })?;
+    /// rect.on_pointermove(|_| { /* … */ })?;
+    ///
+    /// rect.remove_listeners("click"); // only the click handler goes; pointermove stays
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn remove_listeners(&self, event_type: &'static str) {
+        let mut guard = self.inner.listeners.borrow_mut();
+        if let Some(store) = guard.as_deref_mut() {
+            // `remove_by_type` reports whether the store is now empty so the `Box` can be dropped.
+            if store.remove_by_type(&self.inner.element, event_type) {
+                *guard = None;
+            }
+        }
+    }
+
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // Event handlers
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
