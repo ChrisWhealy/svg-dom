@@ -88,9 +88,7 @@ impl SvgAttrs {
     /// Formats `args` into the reusable scratch buffer and writes it as an attribute.
     pub fn fmt(&mut self, node: &SvgNode, name: &str, args: fmt::Arguments<'_>) -> Result<(), Error> {
         self.scratch.clear();
-        self.scratch
-            .write_fmt(args)
-            .map_err(|_| Error::Dom("failed to format SVG attribute".into()))?;
+        self.scratch.write_fmt(args)?;
         node.set_attr(name, &self.scratch)
     }
 

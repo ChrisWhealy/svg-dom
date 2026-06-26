@@ -123,9 +123,7 @@ impl CachedAttr {
         args: fmt::Arguments<'_>,
     ) -> Result<(), Error> {
         scratch.clear();
-        scratch
-            .write_fmt(args)
-            .map_err(|_| Error::Dom("failed to format SVG attribute".into()))?;
+        scratch.write_fmt(args)?;
         self.set(node, name, scratch)
     }
 
@@ -142,9 +140,7 @@ impl CachedAttr {
         args: fmt::Arguments<'_>,
     ) -> Result<(), Error> {
         scratch.clear();
-        scratch
-            .write_fmt(args)
-            .map_err(|_| Error::Dom("failed to format SVG text".into()))?;
+        scratch.write_fmt(args)?;
         self.set_text(node, scratch)
     }
 

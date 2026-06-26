@@ -68,9 +68,7 @@ impl AnimationFrame {
     /// ```
     pub fn set_attr_fmt(&mut self, node: &SvgNode, name: &str, args: fmt::Arguments<'_>) -> Result<(), Error> {
         self.scratch.clear();
-        self.scratch
-            .write_fmt(args)
-            .map_err(|_| Error::Dom("failed to format SVG attribute".into()))?;
+        self.scratch.write_fmt(args)?;
         node.set_attr(name, &self.scratch)
     }
 
@@ -92,9 +90,7 @@ impl AnimationFrame {
     /// Formats and replaces the node's text content.
     pub fn set_text_fmt(&mut self, node: &SvgNode, args: fmt::Arguments<'_>) -> Result<(), Error> {
         self.scratch.clear();
-        self.scratch
-            .write_fmt(args)
-            .map_err(|_| Error::Dom("failed to format SVG text".into()))?;
+        self.scratch.write_fmt(args)?;
         node.set_text(&self.scratch);
         Ok(())
     }
