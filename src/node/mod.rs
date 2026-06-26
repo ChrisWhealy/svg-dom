@@ -48,34 +48,7 @@ impl Drop for SvgNodeInner {
     }
 }
 
-/// A cheap-to-clone handle to a live SVG DOM element.
-///
-/// `SvgNode` wraps an `Rc` pointing to the real browser DOM node.
-///
-/// Cloning is cheap — all clones refer to the **same underlying element** — so you can freely hand copies to event
-/// closures, animation callbacks, or other owners without having to perform any crazy lifetime gymnastics.
-///
-/// **IMPORTANT** Always obtain a node through one of the factory methods on [`SvgRoot`](crate::SvgRoot) such as `rect`,
-/// `circle`, or `line`, etc.  Do not attempt to construct one directly.
-///
-/// # Clone semantics
-///
-/// ```rust,no_run
-/// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
-/// let svg = SvgRoot::attach("diagram")?;
-/// let rect = svg.rect(Point::new(10.0, 10.0), Size::new(80.0, 40.0))?;
-///
-/// let rect_hover = rect.clone();           // another reference to the same DOM node
-/// rect.on_pointerenter(move |_| {
-///     let _ = rect_hover.set_fill("gold"); // mutates the same <rect>
-/// })?;
-/// Ok::<(), svg_dom::Error>(())
-/// ```
-#[derive(Clone)]
-pub struct SvgNode {
-    inner: Rc<SvgNodeInner>,
-}
-
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// A non-owning handle to the same DOM element as an [`SvgNode`].
 ///
 /// `WeakSvgNode` holds a [`Weak`] reference, so it does **not** keep the node alive.
@@ -130,6 +103,35 @@ impl WeakSvgNode {
     pub fn upgrade(&self) -> Option<SvgNode> {
         self.inner.upgrade().map(|inner| SvgNode { inner })
     }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// A cheap-to-clone handle to a live SVG DOM element.
+///
+/// `SvgNode` wraps an `Rc` pointing to the real browser DOM node.
+///
+/// Cloning is cheap — all clones refer to the **same underlying element** — so you can freely hand copies to event
+/// closures, animation callbacks, or other owners without having to perform any crazy lifetime gymnastics.
+///
+/// **IMPORTANT** Always obtain a node through one of the factory methods on [`SvgRoot`](crate::SvgRoot) such as `rect`,
+/// `circle`, or `line`, etc.  Do not attempt to construct one directly.
+///
+/// # Clone semantics
+///
+/// ```rust,no_run
+/// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
+/// let svg = SvgRoot::attach("diagram")?;
+/// let rect = svg.rect(Point::new(10.0, 10.0), Size::new(80.0, 40.0))?;
+///
+/// let rect_hover = rect.clone();           // another reference to the same DOM node
+/// rect.on_pointerenter(move |_| {
+///     let _ = rect_hover.set_fill("gold"); // mutates the same <rect>
+/// })?;
+/// Ok::<(), svg_dom::Error>(())
+/// ```
+#[derive(Clone)]
+pub struct SvgNode {
+    inner: Rc<SvgNodeInner>,
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -742,7 +744,9 @@ impl SvgNode {
     /// - the parent exists but is not an SVG element - for example the root `<svg>`, whose parent is the surrounding
     ///   HTML container, not another SVG element.
     ///
-    /// # ⚠️ The returned handle is **not** a factory handle
+    /// # ⚠️ Caution ⚠️
+    ///
+    /// The returned handle is **not** a factory handle!
     ///
     /// Every other [`SvgNode`] you hold was produced by a factory method ([`SvgRoot::rect`](crate::SvgRoot::rect) and
     /// friends) or is a [`clone`](Self::clone) of one. The handle returned here is different in kind: it wraps an
@@ -805,7 +809,9 @@ impl SvgNode {
     /// any registered through an independent handle to the same element. Calling it is idempotent: a node with no
     /// managed listeners is a harmless no-op.
     ///
-    /// # ⚠️ Do not remove the listener that is currently running
+    /// # ⚠️ Caution ⚠️
+    ///
+    /// Do not remove any listener that is currently running!
     ///
     /// Removing a listener drops its underlying wasm-bindgen closure. Calling this from **inside one of that same
     /// node's handlers** would free the closure that is currently executing, which is undefined behaviour. Remove
@@ -841,7 +847,7 @@ impl SvgNode {
     /// Event type removal is idempotent.  That is, removing an event type that either does not exist or has no
     /// registered listeners is a harmless no-op.
     ///
-    /// ⚠️ Caution ⚠️
+    /// # ⚠️ Caution ⚠️
     ///
     /// As with [`clear_listeners`](Self::clear_listeners), this affects only listeners registered through this handle
     /// lineage, and the same caveat applies: do not call it for any event whose handler is currently running, as
@@ -869,9 +875,9 @@ impl SvgNode {
         }
     }
 
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // Event handlers
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fn store_listener(&self, event_type: &'static str, closure: EventClosure) -> Result<(), Error> {
         self.inner
             .element
@@ -888,6 +894,7 @@ impl SvgNode {
         Ok(())
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fn add_drag_listener<F: FnMut(DragEvent) + 'static>(
         &self,
         event_type: &'static str,
@@ -896,10 +903,12 @@ impl SvgNode {
         self.store_listener(event_type, EventClosure::Drag(Closure::new(handler)))
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fn add_event_listener<F: FnMut(Event) + 'static>(&self, event_type: &'static str, handler: F) -> Result<(), Error> {
         self.store_listener(event_type, EventClosure::Event(Closure::new(handler)))
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fn add_focus_listener<F: FnMut(FocusEvent) + 'static>(
         &self,
         event_type: &'static str,
@@ -908,6 +917,7 @@ impl SvgNode {
         self.store_listener(event_type, EventClosure::Focus(Closure::new(handler)))
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fn add_keyboard_listener<F: FnMut(KeyboardEvent) + 'static>(
         &self,
         event_type: &'static str,
@@ -916,6 +926,7 @@ impl SvgNode {
         self.store_listener(event_type, EventClosure::Keyboard(Closure::new(handler)))
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fn add_mouse_listener<F: FnMut(MouseEvent) + 'static>(
         &self,
         event_type: &'static str,
@@ -924,6 +935,7 @@ impl SvgNode {
         self.store_listener(event_type, EventClosure::Mouse(Closure::new(handler)))
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fn add_pointer_listener<F: FnMut(PointerEvent) + 'static>(
         &self,
         event_type: &'static str,
@@ -932,6 +944,7 @@ impl SvgNode {
         self.store_listener(event_type, EventClosure::Pointer(Closure::new(handler)))
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fn add_touch_listener<F: FnMut(TouchEvent) + 'static>(
         &self,
         event_type: &'static str,
@@ -940,6 +953,7 @@ impl SvgNode {
         self.store_listener(event_type, EventClosure::Touch(Closure::new(handler)))
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fn add_wheel_listener<F: FnMut(WheelEvent) + 'static>(
         &self,
         event_type: &'static str,
@@ -949,7 +963,6 @@ impl SvgNode {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
     /// Registers a raw typed [`Event`] handler for events not covered by a more specific helper.
     ///
     /// Prefer the typed convenience wrappers where available. Like the wrappers below, this keeps the closure owned by
@@ -972,31 +985,37 @@ impl SvgNode {
         self.add_event_listener(event_type, handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `dblclick` handler.
     pub fn on_dblclick<F: FnMut(MouseEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_mouse_listener("dblclick", handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `contextmenu` handler. Call `prevent_default()` on the event to suppress the browser menu.
     pub fn on_contextmenu<F: FnMut(MouseEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_mouse_listener("contextmenu", handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `mousedown` handler.
     pub fn on_mousedown<F: FnMut(MouseEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_mouse_listener("mousedown", handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `mouseup` handler.
     pub fn on_mouseup<F: FnMut(MouseEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_mouse_listener("mouseup", handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `mousemove` handler.
     pub fn on_mousemove<F: FnMut(MouseEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_mouse_listener("mousemove", handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `mousedown`/`mouseup`-independent `mouseenter` handler.
     ///
     /// For new hover behaviour, prefer [`on_pointerenter`](Self::on_pointerenter), which works across pointer devices.
@@ -1004,6 +1023,7 @@ impl SvgNode {
         self.add_mouse_listener("mouseenter", handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `mouseleave` handler.
     ///
     /// For new hover cleanup, prefer [`on_pointerleave`](Self::on_pointerleave), which works across pointer devices.
@@ -1011,116 +1031,139 @@ impl SvgNode {
         self.add_mouse_listener("mouseleave", handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `wheel` handler.
     pub fn on_wheel<F: FnMut(WheelEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_wheel_listener("wheel", handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `touchstart` handler. Prefer pointer events when browser support allows it.
     pub fn on_touchstart<F: FnMut(TouchEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_touch_listener("touchstart", handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `touchmove` handler. Prefer pointer events when browser support allows it.
     pub fn on_touchmove<F: FnMut(TouchEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_touch_listener("touchmove", handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `touchend` handler. Prefer pointer events when browser support allows it.
     pub fn on_touchend<F: FnMut(TouchEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_touch_listener("touchend", handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `touchcancel` handler. Prefer pointer events when browser support allows it.
     pub fn on_touchcancel<F: FnMut(TouchEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_touch_listener("touchcancel", handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `keydown` handler. The SVG element usually needs to be focusable, for example with `tabindex="0"`.
     pub fn on_keydown<F: FnMut(KeyboardEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_keyboard_listener("keydown", handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `keyup` handler. The SVG element usually needs to be focusable, for example with `tabindex="0"`.
     pub fn on_keyup<F: FnMut(KeyboardEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_keyboard_listener("keyup", handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `focus` handler.
     pub fn on_focus<F: FnMut(FocusEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_focus_listener("focus", handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `blur` handler.
     pub fn on_blur<F: FnMut(FocusEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_focus_listener("blur", handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `dragstart` handler.
     pub fn on_dragstart<F: FnMut(DragEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_drag_listener("dragstart", handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `drag` handler.
     pub fn on_drag<F: FnMut(DragEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_drag_listener("drag", handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `dragend` handler.
     pub fn on_dragend<F: FnMut(DragEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_drag_listener("dragend", handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `dragenter` handler.
     pub fn on_dragenter<F: FnMut(DragEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_drag_listener("dragenter", handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `dragleave` handler.
     pub fn on_dragleave<F: FnMut(DragEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_drag_listener("dragleave", handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `dragover` handler. Call `prevent_default()` to allow a drop target to receive `drop`.
     pub fn on_dragover<F: FnMut(DragEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_drag_listener("dragover", handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `drop` handler.
     pub fn on_drop<F: FnMut(DragEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_drag_listener("drop", handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `pointerdown` handler.
     pub fn on_pointerdown<F: FnMut(PointerEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_pointer_listener("pointerdown", handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `pointerup` handler.
     pub fn on_pointerup<F: FnMut(PointerEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_pointer_listener("pointerup", handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `pointermove` handler.
     pub fn on_pointermove<F: FnMut(PointerEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_pointer_listener("pointermove", handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `pointercancel` handler.
     pub fn on_pointercancel<F: FnMut(PointerEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_pointer_listener("pointercancel", handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `pointerover` handler. For hover behaviour on groups, prefer non-bubbling `on_pointerenter`.
     pub fn on_pointerover<F: FnMut(PointerEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_pointer_listener("pointerover", handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `pointerout` handler. For hover cleanup on groups, prefer non-bubbling `on_pointerleave`.
     pub fn on_pointerout<F: FnMut(PointerEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_pointer_listener("pointerout", handler)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers an event handler function that fires when the user clicks on the element.
     ///
     /// The closure is stored inside the `SvgNode`'s `Rc` and lives exactly as long as the last clone of this node.

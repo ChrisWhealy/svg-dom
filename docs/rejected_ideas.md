@@ -215,3 +215,22 @@ We documented the caveat on the field (direct mutation desyncs `width()`/`height
   Since the element must remain reachable and any reference to it can mutate the DOM, the honest contract is a documented one: the field's doc now states that writing `width`/`height` directly desyncs `width()`/`height()` and that `set_viewport` is the cache-aware path.
 
   Renaming `svg.root` to `svg.as_element()` across every downstream user would churn the public API for no real gain in safety.
+
+## 10) Rewriting `ListenerStore::push` to push into the `Many` vector in place
+
+`ListenerStore::push` replaces `self` with a non-allocating `Many(Vec::new())` placeholder, moves the old value out by value, and matches it exhaustively (`One` → upgrade to a two-element `Many`; `Many` → push and put back).
+
+It was suggested that the `Many` case should instead push into the vector in place (matching `self` by reference, with a separate `mem::replace` + `unreachable!()` only on the `One` → `Many` upgrade path) to avoid moving the whole `Vec` out and back.
+
+This crate makes every attempt to exclude the possibility of generating a WASM binary that conatins an `unreachable!()` call, because if this was statement was ever reached, the WASM runtime would terminate this binary immediately and tear down its memory (effectively self-destructing).
+
+* **The two properties are in tension; the current form is deliberately kept because it is panic-free.**<br>
+  To upgrade `One` → `Many` the first listener must be moved out of `&mut self`, which requires `mem::replace`.
+  Matching that owned result can either handle *both* variants meaningfully (today's code which is exhaustive and does not panic) *or* pre-narrow `self` by reference and then need `unreachable!()` for the "impossible" arm.
+  Rust's move rules do not allow both at once.
+
+* **The saving is nil and the cost is real (if small).**<br>
+  `Vec::new()` does not allocate, so the `Many` arm only moves the vector's 24-byte `(ptr, len, cap)` handle out and back — there is no extra heap allocation beyond the `push` itself, and `push` runs at listener-registration time, never on a hot path.
+  Against that zero saving, `unreachable!()` adds the possibility of a panic and `#[track_caller]` location data to the **wasm binary** (a size concern this crate takes seriously — see idea 6); the optimiser *may* prove the arm dead and strip it, but that is not guaranteed.
+
+The current code is exhaustive, panic-path-free, allocation-neutral, and documented as such at the call site, so the proposal is a lateral-to-slightly-worse change to working code and was not adopted.

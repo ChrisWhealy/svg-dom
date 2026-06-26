@@ -64,7 +64,14 @@ pub enum ListenerStore {
 impl ListenerStore {
     /// Adds a listener, upgrading a single-listener `One` store into a `Many` on the second insert.
     pub fn push(&mut self, listener: EventListener) {
-        // Swap in a non-allocating placeholder so the existing contents can be moved out by value (no panic path).
+        // There was the idea to replace `self` with a non-allocating placeholder (`Vec::new()` does not allocate) so
+        // the existing contents can be moved out *by value* and matched exhaustively.
+        //
+        // Handling both variants here keeps the One --> Many upgrade path panic-free and eliminates the need for an
+        // "impossible" arm (`unreachable!()`), which if reached, would cause the WASM binary to self-destruct.
+        //
+        // The `Many` arm only moves the Vec's 24-byte handle out and back (no extra
+        // allocation), and `push` happens at listener-registration time, not on any hot path.
         *self = match std::mem::replace(self, ListenerStore::Many(Vec::new())) {
             ListenerStore::One(first) => ListenerStore::Many(vec![first, listener]),
             ListenerStore::Many(mut many) => {
@@ -74,6 +81,7 @@ impl ListenerStore {
         };
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Detaches every listener's browser-side callback from `element`.
     ///
     /// Must run before the store (and its closures) is dropped, so the DOM never retains a callback that points at a
@@ -89,6 +97,7 @@ impl ListenerStore {
         }
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Detaches and removes every listener registered for `event_type`, returning `true` if the store is left empty
     /// (so the owner can drop the whole `Box` and return to its allocation-free passive state).
     ///
