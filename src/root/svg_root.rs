@@ -24,11 +24,18 @@ pub struct SvgRoot {
 
 impl SvgRoot {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Use this constructor when the `<svg>` placeholder already exists in the HTML and its dimensions have been set
-    /// using CSS or HTML attributes.
+    /// Use this constructor when the `<svg>` placeholder already exists in the HTML and its size has been set with the
+    /// `width` and `height` attributes.
     ///
     /// The element is first looked up by `id`.  If found, it is verified that the `id` really belongs to an `<svg>`
     /// element.
+    ///
+    /// Only the `width` and `height` attributes are read to seed the cached viewport (see [`width`](Self::width) and
+    /// [`height`](Self::height)); the rendered size is **not** measured.
+    ///
+    /// A placeholder sized purely with CSS (for example `style="width: 100%"`) will therefore appear with a cached size
+    /// of `0 × 0`.  In this case, call [`set_viewport`](Self::set_viewport) after attaching to establish its size
+    /// explicitly.
     ///
     /// # Errors
     ///
