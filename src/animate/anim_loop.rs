@@ -143,7 +143,9 @@ impl AnimationLoop {
             // BorrowMutError on the failure path.
             let raf_result = {
                 let borrow = closure_inner.borrow();
-                borrow.as_ref().map(|c| window_inner.request_animation_frame(c.as_ref().unchecked_ref()))
+                borrow
+                    .as_ref()
+                    .map(|c| window_inner.request_animation_frame(c.as_ref().unchecked_ref()))
             };
             match raf_result {
                 Some(Ok(h)) => handle_inner.set(h),
@@ -152,8 +154,8 @@ impl AnimationLoop {
                     // Release captures immediately rather than holding them until the AnimationLoop is dropped.
                     state_inner.set(AnimLoopState::Stopped);
                     *closure_inner.borrow_mut() = None;
-                }
-                None => {} // stop() already cleared the slot; nothing to do
+                },
+                None => {}, // stop() already cleared the slot; nothing to do
             }
         });
 
