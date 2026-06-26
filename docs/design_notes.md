@@ -58,6 +58,11 @@ When `stop()` is called from *inside* the running callback (e.g. a one-shot anim
 When `stop()` detects the `Dispatching` state, it defers the slot clear by scheduling a zero-delay `setTimeout`; by the time that timer fires the callback has fully returned and the closure (and all it has captured) are released.
 This mechanism is shared by both the "drop from inside callback" and "stop from inside callback with handle kept alive" paths, so captured values are never retained longer than necessary regardless of which path is taken.
 
+Two rare failure paths are worth noting.
+If `requestAnimationFrame` fails during re-scheduling (after the callback returns), the loop cannot continue; the failure path immediately sets state to `Stopped` and clears the slot, freeing captures at that moment rather than waiting for the `AnimationLoop` to be dropped.
+If `setTimeout` scheduling itself fails (a near-impossible browser-level error), the deferred cleanup cannot be registered; the user's captures remain held until the `AnimationLoop` is eventually dropped, at which point `Drop` calls `stop()` from outside the callback and the `else`-branch clears the slot synchronously.
+The `once_into_js` closure object may linger as a small orphaned JS allocation until the garbage collector reclaims it, but by that point the slot's `Option` is already `None` so no user captures remain reachable through it.
+
 ## Per-frame formatting uses a reusable scratch buffer
 
 `AnimationLoop::start_with_frame` supplies an `AnimationFrame` value to each RAF callback.

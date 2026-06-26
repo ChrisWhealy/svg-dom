@@ -139,11 +139,21 @@ impl AnimationLoop {
             }
             state_inner.set(AnimLoopState::Idle);
 
-            if let Some(c) = closure_inner.borrow().as_ref() {
-                // If requestAnimationFrame fails, the loop simply stops (no re-schedule).
-                if let Ok(h) = window_inner.request_animation_frame(c.as_ref().unchecked_ref()) {
-                    handle_inner.set(h);
+            // Borrow, extract the RAF result, then release the borrow before potentially mutating the slot — avoids a
+            // BorrowMutError on the failure path.
+            let raf_result = {
+                let borrow = closure_inner.borrow();
+                borrow.as_ref().map(|c| window_inner.request_animation_frame(c.as_ref().unchecked_ref()))
+            };
+            match raf_result {
+                Some(Ok(h)) => handle_inner.set(h),
+                Some(Err(_)) => {
+                    // requestAnimationFrame failed; the loop cannot continue.
+                    // Release captures immediately rather than holding them until the AnimationLoop is dropped.
+                    state_inner.set(AnimLoopState::Stopped);
+                    *closure_inner.borrow_mut() = None;
                 }
+                None => {} // stop() already cleared the slot; nothing to do
             }
         });
 
@@ -210,6 +220,11 @@ impl AnimationLoop {
             let cb = Closure::once_into_js(move || {
                 *slot.borrow_mut() = None;
             });
+            // If scheduling fails (a near-impossible browser-level error), `cb` is dropped here without being called.
+            // The once_into_js closure is orphaned in JS and the slot is not cleared immediately.  When this
+            // AnimationLoop is eventually dropped, Drop calls `stop()` again; because state is already Stopped the
+            // else-branch fires and clears the slot synchronously, freeing the user's captures.  The once_into_js
+            // allocation itself (a small JS function object) may persist until the JS GC collects the orphaned function.
             let _ = self
                 .window
                 .set_timeout_with_callback_and_timeout_and_arguments_0(cb.unchecked_ref(), 0);
