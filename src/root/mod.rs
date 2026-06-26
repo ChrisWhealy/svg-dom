@@ -6,29 +6,30 @@ pub mod batch;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Factories and helper types
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// The [`SvgRoot::circle`](crate::SvgRoot::circle) factory.
-pub mod circle;
-/// The [`SvgRoot::ellipse`](crate::SvgRoot::ellipse) factory.
-pub mod ellipse;
 pub(crate) mod factory;
-/// The [`SvgRoot::group`](crate::SvgRoot::group) factory.
-pub mod group;
-/// The [`SvgRoot::line`](crate::SvgRoot::line) factory.
-pub mod line;
-/// The [`SvgRoot::path`](crate::SvgRoot::path) factory.
-pub mod path;
-/// The [`SvgRoot::polygon`](crate::SvgRoot::polygon) factory.
-pub mod polygon;
-/// The [`SvgRoot::polyline`](crate::SvgRoot::polyline) factory.
-pub mod polyline;
-/// The [`SvgRoot::rect`](crate::SvgRoot::rect) factory.
-pub mod rect;
 /// The `<svg>` root wrapper [`SvgRoot`](crate::SvgRoot).
 pub mod svg_root;
-/// The [`SvgRoot::text`](crate::SvgRoot::text) factory.
-pub mod text;
 /// Geometry helper types [`Point`](utils::Point) and [`Size`](utils::Size).
 pub mod utils;
+
+/// The [`SvgRoot::circle`](crate::SvgRoot::circle) factory.
+mod circle;
+/// The [`SvgRoot::ellipse`](crate::SvgRoot::ellipse) factory.
+mod ellipse;
+/// The [`SvgRoot::group`](crate::SvgRoot::group) factory.
+mod group;
+/// The [`SvgRoot::line`](crate::SvgRoot::line) factory.
+mod line;
+/// The [`SvgRoot::path`](crate::SvgRoot::path) factory.
+mod path;
+/// The [`SvgRoot::polygon`](crate::SvgRoot::polygon) factory.
+mod polygon;
+/// The [`SvgRoot::polyline`](crate::SvgRoot::polyline) factory.
+mod polyline;
+/// The [`SvgRoot::rect`](crate::SvgRoot::rect) factory.
+mod rect;
+/// The [`SvgRoot::text`](crate::SvgRoot::text) factory.
+mod text;
 
 use crate::{dom_err, error::Error};
 use wasm_bindgen::JsCast;

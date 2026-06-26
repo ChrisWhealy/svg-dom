@@ -54,6 +54,20 @@ fn should_cache_existing_svg_viewport_when_attaching() -> Result<(), String> {
     common::check_eq(svg.height(), 240.0)
 }
 
+/// `attach` also accepts `px`-suffixed width/height attributes, which are common in real-world SVG markup.
+#[wasm_bindgen_test]
+fn should_cache_px_viewport_when_attaching() -> Result<(), String> {
+    let el = common::svg("attach-cache-px-viewport");
+    el.set_attribute("width", "800px").unwrap();
+    el.set_attribute("height", "600px").unwrap();
+
+    let svg = SvgRoot::attach("attach-cache-px-viewport").map_err(|e| e.to_string())?;
+
+    common::check_eq(svg.width(), 800.0)?;
+    common::check_eq(svg.height(), 600.0)
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// `width` and `height` use the cached viewport instead of reparsing DOM attributes on every call.
 #[wasm_bindgen_test]
 fn should_not_reparse_viewport_attributes_after_attach() -> Result<(), String> {

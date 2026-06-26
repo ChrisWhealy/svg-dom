@@ -41,9 +41,11 @@ impl SvgRoot {
     /// Only the `width` and `height` attributes are read to seed the cached viewport (see [`width`](Self::width) and
     /// [`height`](Self::height)); the rendered size is **not** measured.
     ///
-    /// A placeholder sized purely with CSS (for example `style="width: 100%"`) will therefore appear with a cached size
-    /// of `0 × 0`.  In this case, call [`set_viewport`](Self::set_viewport) after attaching to establish its size
-    /// explicitly.
+    /// If the units are omitted (e.g. `width="800"`) or explicitly stated in pixels (`width="800px"`), then both are
+    /// parsed correctly. Other relative units (such as `%`, `em`, `cm`, etc) and elements sized purely with CSS (for
+    /// example `style="width: 100%"`) produce a cached size of `0 × 0`.
+    ///
+    /// Call [`set_viewport`](Self::set_viewport) after attaching to establish the actual size in those cases.
     ///
     /// # Errors
     ///
@@ -228,5 +230,19 @@ fn read_viewport(root: &SvgsvgElement) -> Size {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 fn read_number_attr(root: &SvgsvgElement, name: &str) -> f64 {
-    root.get_attribute(name).and_then(|s| s.parse().ok()).unwrap_or(0.0)
+    root.get_attribute(name).and_then(|s| parse_svg_length(&s)).unwrap_or(0.0)
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Parses a unitless number (`"800"`) or a `px`-suffixed value (`"800px"`) from an SVG length attribute.
+///
+/// Other units (`%`, `em`, `cm`, etc.) and CSS-only sizing return `None`.
+fn parse_svg_length(s: &str) -> Option<f64> {
+    let s = s.trim();
+
+    if let Ok(v) = s.parse() {
+        return Some(v);
+    }
+
+    s.strip_suffix("px")?.trim_end().parse().ok()
 }
