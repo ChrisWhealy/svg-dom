@@ -169,6 +169,50 @@ async fn should_not_leak_when_animloop_dropped_from_within_callback() -> Result<
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Calling `stop()` from inside the running callback must release captured values promptly via the deferred timer,
+/// even when the `AnimationLoop` handle is kept alive after the stop.
+///
+/// Without the `setTimeout(0)` in `stop()`, the closure and its captures would be retained as long as the handle
+/// lives, which equates to a memory-retention bug for long-lived handles.
+///
+/// A `DropFlag` proves the captures are freed by the next-tick timer, independently of handle lifetime.
+#[wasm_bindgen_test]
+async fn should_not_retain_captures_after_stop_from_within_callback() -> Result<(), String> {
+    struct DropFlag(Rc<Cell<u32>>);
+
+    impl Drop for DropFlag {
+        fn drop(&mut self) {
+            self.0.set(self.0.get() + 1);
+        }
+    }
+
+    let drop_count = Rc::new(Cell::new(0u32));
+    let slot: Rc<RefCell<Option<AnimationLoop>>> = Rc::new(RefCell::new(None));
+
+    let flag = DropFlag(drop_count.clone());
+    let slot_cb = slot.clone();
+
+    *slot.borrow_mut() = Some(
+        AnimationLoop::start(move |_| {
+            let _ = &flag; // ensure `flag` is captured; it is dropped when the closure is freed
+            if let Some(anim) = slot_cb.borrow().as_ref() {
+                anim.stop(); // stop without dropping the handle
+            }
+        })
+        .map_err(|e| e.to_string())?,
+    );
+
+    // RAF fires → stop() called → setTimeout(0) scheduled → setTimeout fires → closure freed → DropFlag dropped.
+    wait_for_frames(3).await;
+
+    // Captures must be released by the deferred timer before we even touch the handle.
+    common::check_eq(drop_count.get(), 1u32)?;
+
+    // The handle itself is still alive, proving this is the stop()-from-callback path, not drop()-from-callback.
+    common::check(slot.borrow().is_some(), "handle should still be alive after stop()")
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Calling `stop()` from inside the running callback must not crash and must prevent re-scheduling — the loop must fire
 /// exactly once.
 ///
