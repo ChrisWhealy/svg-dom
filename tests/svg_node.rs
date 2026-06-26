@@ -851,6 +851,36 @@ fn should_fire_managed_mouse_event_wrappers() -> Result<(), String> {
     common::check_eq(count.get(), 7)
 }
 
+/// The deprecated `on_mouseover` / `on_mouseout` compatibility wrappers still route their (bubbling) event names and
+/// remain managed listeners. Kept in a dedicated test so the `deprecated` allowance does not leak into the wrapper
+/// coverage above.
+#[wasm_bindgen_test]
+#[allow(deprecated)]
+fn should_fire_deprecated_mouseover_mouseout_wrappers() -> Result<(), String> {
+    let rect = make_svg("node-mouse-over-out")
+        .rect(Point::origin(), Size::new(200.0, 200.0))
+        .map_err(|e| e.to_string())?;
+    let overs = Rc::new(Cell::new(0u32));
+    let outs = Rc::new(Cell::new(0u32));
+
+    let c = overs.clone();
+    rect.on_mouseover(move |_| {
+        c.set(c.get() + 1);
+    })
+    .map_err(|e| e.to_string())?;
+    let c = outs.clone();
+    rect.on_mouseout(move |_| {
+        c.set(c.get() + 1);
+    })
+    .map_err(|e| e.to_string())?;
+
+    dispatch(&rect, "mouseover")?;
+    dispatch(&rect, "mouseout")?;
+
+    common::check_eq(overs.get(), 1)?;
+    common::check_eq(outs.get(), 1)
+}
+
 /// Managed pointer wrappers cover the common SVG pointer interaction lifecycle.
 #[wasm_bindgen_test]
 fn should_fire_managed_pointer_event_wrappers() -> Result<(), String> {
