@@ -50,13 +50,17 @@ Managed wrappers now cover the SVG interaction events expected by ordinary appli
 * touch,
 * keyboard,
 * focus/blur,
-* drag-and-drop, and 
-* a generic `on_event` escape hatch.
+* drag-and-drop,
+* a generic `on_event` escape hatch for event types not covered by a named wrapper, and
+* `on_event_once` — a one-shot variant that fires at most once and is automatically removed by the browser via the native `{ once: true }` `addEventListener` option.
 
 Prefer `pointerenter` / `pointerleave` for hover behaviour because they do not bubble through child elements.
-The legacy `mouseover` / `mouseout` wrappers remain for compatibility.
+The legacy `mouseover` / `mouseout` wrappers remain available for compatibility reasons, but have been marked as deprecated.
 
-Potential future event work is now mostly about ergonomics rather than coverage: typed helpers for less common browser events can be added when real SVG use-cases appear.
+`on_event_once` accepts a generic event type parameter `E` and uses a checked `instanceof` cast at runtime.
+If the supplied `E` does not match the event the browser actually dispatches (e.g. trying to match the `KeyboardEvent` with a `"click"` listener), the cast fails silently and the handler will **not** be called.
+
+Potential future event work is mostly about ergonomics rather than coverage: typed one-shot wrappers (`on_click_once`, `on_pointerdown_once`, ...) can be added when real use-cases appear, but the generic `on_event_once` covers the common case today.
 
 # Attribute helpers
 

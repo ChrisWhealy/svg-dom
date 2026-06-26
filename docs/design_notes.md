@@ -32,12 +32,15 @@ Keep at least one handle to every listener-owning node for as long as the intera
 The demo gallery does this with a small page-lifetime owner for interactive nodes.
 
 For uncommon browser events, `on_event` provides the same managed lifetime behaviour while using a generic `web_sys::Event`.
+`on_event_once` is the one-shot counterpart: the browser removes the listener automatically after the first dispatch (via the native `{ once: true }` option), and the handler's captured values are freed immediately.
+It accepts a generic typed event `E`; the cast from the raw `Event` is checked at runtime via `instanceof`, so a mismatched `E` silently suppresses the handler.
+This is preferable to allowing undefined behaviour (that you hope won't do anything bad...)
 
 Handlers are bound as `FnMut`, not `Fn`, so a handler can own and mutate captured state directly — typically a reusable `SvgAttrs` or `String` scratch buffer for a hot `pointermove`/`mousemove` path — without an `Rc<RefCell<…>>` wrapper.
 The only constraint, inherited from wasm-bindgen's `Closure<dyn FnMut>`, is that a handler must not run re-entrantly (synchronously dispatching the same event to the same node from inside the handler), which will cause a panic — the same outcome a re-entrant `RefCell` borrow would produce.
 
 Registration is otherwise append-only: the usual way to retire a listener is to drop the entire node.
-However, for a long-lived node whose behaviour changes over time (e.g. one say that swaps in mode-specific handlers) `clear_listeners` and `remove_listeners(event_type)` detach managed listeners without dropping the node, mirroring the detach-then-drop sequence that `SvgNodeInner::drop` performs (the browser-side callback is removed before its closure is freed).
+However, for a long-lived node whose behaviour changes over time (e.g. one that swaps in mode-specific handlers) `clear_listeners` and `remove_listeners(event_type)` detach managed listeners without dropping the node, mirroring the detach-then-drop sequence that `SvgNodeInner::drop` performs (the browser-side callback is removed before its closure is freed).
 
 `remove_listeners` reuses the per-listener event type already stored for cleanup, and compacts a `Many` store back to `One` when a single listener survives.
 Since removing a listener frees its closure, neither method may be used to remove the listener that is currently executing; that is documented as the caller's responsibility.
@@ -46,7 +49,14 @@ Since removing a listener frees its closure, neither method may be used to remov
 
 `AnimationLoop` uses the standard WASM self-referencing closure pattern: the closure holds an `Rc` to itself so it can re-register with `requestAnimationFrame` after each frame.
 
-Calling `stop()` (or dropping the `AnimationLoop`) sets that `Rc` slot to `None`, which prevents the next re-schedule and allows the closure to be freed.
+Calling `stop()` (or dropping the `AnimationLoop`) cancels the pending handle and sets the `Rc` slot to `None`, which prevents the next re-schedule and allows the closure to be freed.
+
+When `stop()` is called from *inside* the running callback (e.g. a one-shot animation that stops itself on the first frame), freeing the closure immediately would create a use-after-free error on the still-executing closure body.
+
+`AnimationLoop` tracks the dispatch state via the enum `AnimLoopState` (with members `Idle` / `Dispatching` / `Stopped`).
+
+When `stop()` detects the `Dispatching` state, it defers the slot clear by scheduling a zero-delay `setTimeout`; by the time that timer fires the callback has fully returned and the closure (and all it has captured) are released.
+This mechanism is shared by both the "drop from inside callback" and "stop from inside callback with handle kept alive" paths, so captured values are never retained longer than necessary regardless of which path is taken.
 
 ## Per-frame formatting uses a reusable scratch buffer
 
@@ -79,7 +89,7 @@ For shapes that the typed helpers do not cover, your escape hatch is `set_transf
 
 The scratch buffer is deliberately **not** stored inside `SvgNode`.
 Most nodes are passive geometry that never animate, do folding formatting state into every node would cause them all to grow while benefiting only a few.
-Passive noeds can remain small by keeping the buffer external whilst hot paths can opt in explicitly.
+Passive nodes can remain small by keeping the buffer external whilst hot paths can opt in explicitly.
 Because managed handlers are `FnMut`, a handler that is the sole user of a buffer can simply own it (`let mut buf = String::new()` captured by the closure), as the colour-wheel demo does.
 An `Rc<RefCell<String>>` is needed only when one buffer is *shared across several* closures, as the drag/touch demo does for its coordinate readout.
 
@@ -133,7 +143,7 @@ The convenience numeric setters such as `set_stroke_width` instead allocate a sh
 The same caveat applies to the `Point`/`Size` `get_*_str` helpers, which each allocate; they are documented as one-off conveniences, not for per-event or per-frame use.
 
 `SvgNode::set_text_fmt` and the `set_text_display` convenience for a single value both format into a caller-owned `&mut String` and set the result as text content.
-For a label whose value changes on every event (E,G. a coordinate or status readout updated each time `pointermove` is handled) we now avoid allocating and discarding a `String` by calling `set_text(&format!(...))`.
+For a label whose value changes on every event (e.g. a coordinate or status readout updated each time `pointermove` is handled), use `set_text_fmt` or `set_text_display` rather than `set_text(&format!(...))` or `set_text(&value.to_string())`, which allocate and discard a fresh `String` on every call.
 
 When the text instead *repeats* between events, `CachedAttr::set_text` is the better fit since the DOM write only takes place when the value actually changes.
 Both the pointer-lifecycle and drag/touch demos route *every* `last: ...` readout writer such as the hot `pointermove`/`touchmove`/`dragover` streams and the discrete transitions alike, through one shared `CachedAttr`, so a burst of identical label updates only touches the DOM on the first write.
