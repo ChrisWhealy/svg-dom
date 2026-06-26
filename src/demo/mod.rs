@@ -13,6 +13,7 @@ mod highlight;
 
 use std::{
     cell::{Cell, RefCell},
+    fmt::Write,
     rc::Rc,
 };
 use wasm_bindgen::prelude::*;
@@ -1101,12 +1102,23 @@ fn demo_events_keyboard_wheel() -> Result<(), Error> {
     {
         let readout = readout.clone();
         let wheel_total = wheel_total.clone();
+        // Wheel events fire rapidly during a continuous scroll/trackpad gesture, so the closure passed to `on_wheel`
+        // will genuinely lie on the hot path.  Therefore, it is beneficial to capture a reusable buffer and format
+        // into it rather than allocating a fresh String each tick.
+        //
+        // The discrete focus/blur/keydown/keyup handlers above deliberately keep the simpler `set_text(&format!(...))`
+        // idiom since that coding does not lie on a hot path.
+        //
+        // Buffering is worthwhile for code lying on the hot path, but is not a blanket rule for every handler.
+        let mut buf = String::new();
         pad.on_wheel(move |e| {
             e.prevent_default();
             let delta = if e.delta_y() < 0.0 { 1 } else { -1 };
             let next = wheel_total.get() + delta;
             wheel_total.set(next);
-            readout.set_text(&format!("focus: yes · key: — · wheel: {next}"));
+            buf.clear();
+            let _ = write!(buf, "focus: yes · key: — · wheel: {next}");
+            readout.set_text(&buf);
         })?;
     }
 
