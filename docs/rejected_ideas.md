@@ -156,24 +156,7 @@ This idea cannot be implemented because it does not apply to Rust libraries &mda
 
 This recommendation does however contain a useful kernel — *how to minimise wasm size* — but it belongs as guidance for application authors (set the size-optimised profile in **your** app and let `wasm-pack`/`wasm-opt` run), not in any configuration of the library manifest.
 
-## 7) Pre-reserving capacity in `write_points`
-
-It was suggested that `write_points` (in `src/root/utils.rs`) call `out.reserve(...)` with an estimated byte size before its formatting loop, so a first write of a large `<polyline>`/`<polygon>` does not grow the `String` repeatedly.
-
-* **The buffer is reused, so steady state is already allocation-free.**<br>
-  `write_points` starts with `out.clear()`, which keeps the existing capacity, and every caller (`SvgAttrs::points`, `AttrWriter::points`, `AnimationFrame::set_points`, and the factories) holds *one* buffer reused across calls.
-  Once it has been sized by the first write, a same-or-smaller polyline never reallocates again — so an animated polyline (the situation for which the points API exists) sees no per-frame growth regardless.
-
-* **It optimises only the first write, and that cost is already tiny.**<br>
-  The reserve would help only the very first write (or a later write that grows past the high-water mark), which is a one-time, setup-shaped event.
-  `String` growth is geometric (doubling), so even a 10,000-point polyline reallocates a handful of times totalling a couple of `memcpy`s of the final size — microseconds, paid once.
-
-* **The proposed estimate is heuristic and partly wrong.**<br>
-  The full-precision (`None`) constant of 24 bytes per point undershoots real `f64` `Display` output, which, when using full decimal precision, can exceed 30 bytes per coordinate pair, so the reserve would *still* leave the buffer to grow in exactly the case it was meant to cover — while adding per-call arithmetic and two magic constants to an otherwise clean shared helper.
-
-If a profile ever showed first-write reallocation as a genuine bottleneck for enormous polylines, a single plain `reserve(points.len() * k)` could be revisited — but the buffer-reuse design already makes it moot for any repeated or animated use, which is the only hot path here.
-
-## 8) Provide a rendered-size fallback (`getBoundingClientRect`) when seeding the cached viewport
+## 7) Provide a rendered-size fallback (`getBoundingClientRect`) when seeding the cached viewport
 
 `SvgRoot::attach` reads only the `width` and `height` attributes to seed the cached viewport, so an `<svg>` sized purely with CSS will have cached dimensions of `0 × 0`.
 It was suggested that it is necessary to provide a `read_viewport` fall back that returns the rendered measurement such as `getBoundingClientRect()` or the client dimensions when these attributes are absent.
@@ -193,7 +176,7 @@ We tightened the documentation instead (`attach` now states that only the two at
   `docs/gaps.md` lists `getBoundingClientRect()` among the deliberately out-of-scope DOM-geometry features.
   The crate's contract is that `width()`/`height()` report the *attribute* values read once at attach time; a caller who needs the rendered size can measure it themselves and call `set_viewport`, which keeps the cache coherent with what the crate actually writes.
 
-## 9) Hiding `SvgRoot::root` behind an `as_element()` accessor
+## 8) Hiding `SvgRoot::root` behind an `as_element()` accessor
 
 `SvgRoot` exposes its `<svg>` as the public field `root`, which lets a caller write `width`/`height` directly and desynchronise the cached viewport that backs `width()`/`height()` and `set_viewport`'s write-elision.
 
@@ -216,7 +199,7 @@ We documented the caveat on the field (direct mutation desyncs `width()`/`height
 
   Renaming `svg.root` to `svg.as_element()` across every downstream user would churn the public API for no real gain in safety.
 
-## 10) Rewriting `ListenerStore::push` to push into the `Many` vector in place
+## 9) Rewriting `ListenerStore::push` to push into the `Many` vector in place
 
 `ListenerStore::push` replaces `self` with a non-allocating `Many(Vec::new())` placeholder, moves the old value out by value, and matches it exhaustively (`One` → upgrade to a two-element `Many`; `Many` → push and put back).
 
@@ -235,7 +218,7 @@ This crate makes every attempt to exclude the possibility of generating a WASM b
 
 The current code is exhaustive, panic-path-free, allocation-neutral, and documented as such at the call site, so the proposal is a lateral-to-slightly-worse change to working code and was not adopted.
 
-## 11) Deferred listener drops to make self-removal safe from within a handler
+## 10) Deferred listener drops to make self-removal safe from within a handler
 
 `clear_listeners` and `remove_listeners` are safe Rust APIs, but their docs warn that calling them from inside one of the same node's handlers would free the currently-executing wasm-bindgen `Closure` — which is undefined behaviour (UB) in the Rust abstract machine.
 This recommendation was to resolve this by making listener removal deferred while a handler is dispatching, using a depth counter and a side-store for closures that are queued for drop:
@@ -284,7 +267,7 @@ The deferred-drops design would add memory and CPU overhead to every node and ev
 
 The existing documentation warning is the correct and sufficient response; a dedicated `on_event_once` helper is the right follow-on addition if the one-shot pattern proves common in practice.
 
-## 12) Flatten `EventClosure` by simplifying it to `Closure<dyn FnMut(Event)>`
+## 11) Flatten `EventClosure` by simplifying it to `Closure<dyn FnMut(Event)>`
 
 `EventClosure` is an enum with one variant per supported event type (`Drag`, `Focus`, `Keyboard`, `Mouse`, `Pointer`, `Touch`, `Wheel`, and `Event`), each of which wraps the corresponding `Closure<dyn FnMut(T)>`.
 
@@ -335,3 +318,25 @@ This idea is rejected for the following reasons:
 The current `EventClosure` enum is boilerplate, but nonetheless it is working, auditable boilerplate that encodes a clear structural invariant.
 Any new `on_*` helper must explicitly state which variant it wraps without touching the dispatch path.
 The right response to the boilerplate concern is documentation, not type erasure.
+
+## 12) Adding `parent_element()` for lighter hot-path parent access
+
+`SvgNode::parent()` creates a fresh managed `SvgNode` around the parent element, with its own independent listener store.
+It was suggested that a lighter sibling method (`pub fn parent_element(&self) -> Option<SvgElement>`) be added for hot-path callers (e.g. inside `pointermove`, `wheel`, or RAF callbacks) that only need to inspect or compare the parent without constructing a new managed node.
+
+The suggestion explicitly frames this as a future addition ("if parent traversal becomes common in hot paths") and recommends not replacing the current `parent()` behaviour.
+For those reasons, and the following, it is not adopted now.
+
+* **No current consumer demonstrates the to be a realistic need.**<br>
+  The crate targets simple SVG diagrams; hot-path parent traversal has not (so far) appeared in any demo or real use case.
+  Extending the API surface for a hypothetical future requirement conflicts with the crate's principle of not designing for speculative requirements.
+
+* **`as_element()` already provides the raw-DOM escape hatch.**<br>
+  A caller who needs the parent element for inspection can call `node.parent().map(|n| n.as_element().clone())`.
+  It is verbose but accurate for the rare case, and avoids widening the public API for a path that has no demonstrated users.
+
+* **Returning `SvgElement` directly would break the crate's abstraction layer.**<br>
+  Every other navigation method (`parent`, `downgrade` / `upgrade`) returns a crate-managed type.
+  Introducing `Option<SvgElement>` as a return type on a navigation method would be the first raw `web-sys` type surfaced from a traversal API, setting an inconsistent precedent.
+
+If a future profile shows parent-traversal allocation as a measured bottleneck in a real hot path, the method can be added then with evidence to justify the API surface cost.
