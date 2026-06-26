@@ -47,7 +47,9 @@ fn keep_demo_anim(anim: AnimationLoop) {
 }
 
 fn event_label<E>(node: SvgNode, name: &'static str) -> impl Fn(E) + 'static {
-    move |_| node.set_text(&format!("last: {name}"))
+    // The label is constant, so format it once at registration rather than on every event.
+    let label = format!("last: {name}");
+    move |_| node.set_text(&label)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -998,8 +1000,10 @@ fn demo_events_pointer_lifecycle() -> Result<(), Error> {
 
     // Cache-aware, event-type-generic version of `event_label` for the discrete transitions.
     fn cached_label<E>(readout: SvgNode, cache: Rc<RefCell<CachedAttr>>, name: &'static str) -> impl Fn(E) + 'static {
+        // The label is constant; format it once so the cached write is fully allocation-free per event.
+        let label = format!("last: {name}");
         move |_| {
-            let _ = cache.borrow_mut().set_text(&readout, &format!("last: {name}"));
+            let _ = cache.borrow_mut().set_text(&readout, &label);
         }
     }
 
