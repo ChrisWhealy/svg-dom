@@ -913,11 +913,13 @@ impl SvgNode {
     {
         let mut handler_opt = Some(handler);
         // Wrap the FnOnce in a FnMut so it fits the existing Closure<dyn FnMut(Event)> type.
-        // `unchecked_into` skips the instanceof check — the browser always sends the correct concrete
-        // event type for the registered event name, so the cast is always valid.
+        // `dyn_into` performs an instanceof check: if the caller supplied a mismatched `E` the cast returns Err and the
+        // handler is silently not called (which is safer than hoping nothing bad will happen...)
         let closure: Closure<dyn FnMut(Event)> = Closure::new(move |e: Event| {
-            if let Some(h) = handler_opt.take() {
-                h(e.unchecked_into::<E>());
+            if let Ok(typed) = e.dyn_into::<E>() {
+                if let Some(h) = handler_opt.take() {
+                    h(typed);
+                }
             }
         });
         let options = AddEventListenerOptions::new();
@@ -1032,9 +1034,10 @@ impl SvgNode {
     /// The key advantage over an `FnMut` handler that calls [`remove_listeners`](Self::remove_listeners) on itself is
     /// that no manual removal is needed and the "remove the listener currently running" footgun is entirely avoided.
     ///
-    /// The handler receives a typed event `E`; `E` must be the concrete web-sys event type appropriate for
-    /// `event_type` (e.g. `MouseEvent` for `"click"`, `PointerEvent` for `"pointerdown"`).  Using the wrong type is
-    /// undefined behaviour (the cast from the raw `Event` is unchecked for performance).
+    /// The handler receives a typed event `E`; `E` should be the concrete web-sys event type appropriate for
+    /// `event_type` (e.g. `MouseEvent` for `"click"`, `PointerEvent` for `"pointerdown"`).
+    /// If `E` does not match the event the browser actually dispatches, the `instanceof` check fails and the handler is
+    /// silently not called.
     ///
     /// The captured values inside `handler` are freed as soon as the first event fires, even if the node (and its
     /// listener store) lives on.

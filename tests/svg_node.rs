@@ -1073,6 +1073,28 @@ fn should_fire_on_event_once_exactly_once() -> Result<(), String> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Supplying the wrong event type to `on_event_once` causes the `instanceof` check to fail; the handler is never
+/// called (rather than causing undefined behaviour via an unchecked cast).
+#[wasm_bindgen_test]
+fn should_not_fire_on_event_once_with_mismatched_type() -> Result<(), String> {
+    let rect = make_svg("node-event-once-mismatch")
+        .rect(Point::origin(), Size::new(200.0, 200.0))
+        .map_err(|e| e.to_string())?;
+    let count = Rc::new(Cell::new(0u32));
+    let count_cb = count.clone();
+
+    // Register a combination of event and event handler that can never match
+    // KeyboardEvent handler for a "click" event...
+    rect.on_event_once::<KeyboardEvent, _>("click", move |_| {
+        count_cb.set(count_cb.get() + 1);
+    })
+    .map_err(|e| e.to_string())?;
+
+    dispatch(&rect, "click")?;
+    common::check_eq(count.get(), 0u32) // instanceof check fails; handler not called
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Registering multiple handlers for the same event on the same node results in all of
 /// them firing when the event is dispatched.
 #[wasm_bindgen_test]
