@@ -172,6 +172,10 @@ impl AnimationLoop {
     /// closure is freed when the `AnimationLoop` is eventually dropped.  Freeing it immediately would create a
     /// use-after-free of the still-executing closure body.
     ///
+    /// If the `AnimationLoop` itself is dropped from inside its callback, rather than just calling `stop()`, the `Drop`
+    /// impl schedules a zero-delay `setTimeout` to clear the closure slot once the callback has fully returned.  This
+    /// prevents a permanent memory leak of the self-referencing `Rc` cycle.
+    ///
     /// Calling `stop()` is idempotent; therefore, attempting to stop an already-stopped loop is safe and has no effect.
     ///
     /// Normally, there is no need for you to call `stop()` explicitly since dropping the `AnimationLoop` calls it
@@ -214,5 +218,21 @@ impl AnimationLoop {
 impl Drop for AnimationLoop {
     fn drop(&mut self) {
         self.stop();
+        // When the AnimationLoop is dropped from inside its own RAF callback, stop() defers clearing the closure slot
+        // (state Dispatching → Stopped, slot left as Some).  Without intervention the self-referencing `Rc` cycle
+        // (Rc → RefCell → Some(FrameClosure) → inner closure → closure_inner → Rc) is never broken and the closure
+        // (plus all it has captured) leaks permanently.
+        //
+        // Schedule a zero-delay timer: by the time it fires the RAF callback has fully returned and it is safe to drop
+        // the `FrameClosure`, decrementing the `Rc` count to zero.
+        if self.closure.borrow().is_some() {
+            let slot = self.closure.clone();
+            let cb = Closure::once_into_js(move || {
+                *slot.borrow_mut() = None;
+            });
+            let _ = self
+                .window
+                .set_timeout_with_callback_and_timeout_and_arguments_0(cb.unchecked_ref(), 0);
+        }
     }
 }

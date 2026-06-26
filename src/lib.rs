@@ -47,7 +47,7 @@
 //! whose value is `javascript:...`. Treat attribute names and values as you would any HTML sink: do not pass untrusted
 //! data without validating it first.
 
-#![cfg_attr(not(feature = "demo"), forbid(unsafe_code))]
+#![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
 /// The [`AnimationLoop`] `requestAnimationFrame` driver and its per-frame [`AnimationFrame`] scratch buffer.

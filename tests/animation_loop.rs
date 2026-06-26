@@ -133,6 +133,42 @@ async fn should_freeze_callback_count_when_drop_called_after_running() -> Result
 // stop() from inside the callback
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+/// Dropping the `AnimationLoop` handle from inside its own callback must not leak the closure or its captures.
+///
+/// Without the deferred-cleanup `setTimeout(0)` in `Drop`, the self-referencing `Rc` cycle is never broken and the
+/// `FrameClosure` (along with all the values it has captured) leaks permanently.
+/// A `DropFlag` (a helper that increments a counter when dropped) lets the test observe whether the closure was freed.
+#[wasm_bindgen_test]
+async fn should_not_leak_when_animloop_dropped_from_within_callback() -> Result<(), String> {
+    struct DropFlag(Rc<Cell<u32>>);
+    impl Drop for DropFlag {
+        fn drop(&mut self) {
+            self.0.set(self.0.get() + 1);
+        }
+    }
+
+    let drop_count = Rc::new(Cell::new(0u32));
+    let slot: Rc<RefCell<Option<AnimationLoop>>> = Rc::new(RefCell::new(None));
+
+    let flag = DropFlag(drop_count.clone());
+    let slot_cb = slot.clone();
+
+    *slot.borrow_mut() = Some(
+        AnimationLoop::start(move |_| {
+            let _ = &flag; // ensure `flag` is captured; it is dropped when the closure is freed
+            slot_cb.borrow_mut().take(); // drop the AnimationLoop from inside its own callback
+        })
+        .map_err(|e| e.to_string())?,
+    );
+
+    // RAF fires → handle dropped → setTimeout(0) scheduled → setTimeout fires (between frames) →
+    // slot cleared → DropFlag freed.  Three frames is more than enough margin.
+    wait_for_frames(3).await;
+
+    common::check_eq(drop_count.get(), 1u32)
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Calling `stop()` from inside the running callback must not crash and must prevent re-scheduling — the loop must fire
 /// exactly once.
 ///
