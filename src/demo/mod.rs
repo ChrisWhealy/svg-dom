@@ -1233,8 +1233,10 @@ fn demo_events_drag_drop_touch() -> Result<(), Error> {
                 let ny = (y + dy).clamp(MIN_Y, MAX_Y);
                 pos.set((nx, ny));
                 last_pointer.set(Some((e.client_x(), e.client_y())));
-                let _ = card.set_translate(&mut scratch.borrow_mut(), nx, ny);
-                let _ = coords.set_text_fmt(&mut scratch.borrow_mut(), format_args!("box: {nx:.0}, {ny:.0}"));
+                // Borrow the shared scratch buffer once and reuse it for both writes on this hot path.
+                let mut scratch = scratch.borrow_mut();
+                let _ = card.set_translate(&mut scratch, nx, ny);
+                let _ = coords.set_text_fmt(&mut scratch, format_args!("box: {nx:.0}, {ny:.0}"));
                 readout.set_text("last: pointermove — moving box");
             }
         })?;
@@ -1264,9 +1266,9 @@ fn demo_events_drag_drop_touch() -> Result<(), Error> {
                 readout.set_text("last: pointerup — dropped in zone");
             } else {
                 pos.set(start);
-                let _ = card.set_translate(&mut scratch.borrow_mut(), start.0, start.1);
-                let _ =
-                    coords.set_text_fmt(&mut scratch.borrow_mut(), format_args!("box: {:.0}, {:.0}", start.0, start.1));
+                let mut scratch = scratch.borrow_mut();
+                let _ = card.set_translate(&mut scratch, start.0, start.1);
+                let _ = coords.set_text_fmt(&mut scratch, format_args!("box: {:.0}, {:.0}", start.0, start.1));
                 readout.set_text("last: pointerup — outside zone, returned to start");
             }
         };
