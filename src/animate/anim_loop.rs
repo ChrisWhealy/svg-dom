@@ -12,6 +12,18 @@ type SharedClosure = Rc<RefCell<Option<FrameClosure>>>;
 /// Shared cell holding the pending `requestAnimationFrame` handle so it can be cancelled.
 type RafHandle = Rc<Cell<i32>>;
 
+/// Dispatch state for the RAF loop.
+///
+/// Tracks whether the user callback is currently executing so that `stop()` can defer freeing the closure when called
+/// from inside the callback.  This avoids a read-through-freed-pointer at the re-schedule check after `callback(ts)`
+/// returns.
+#[derive(Clone, Copy, PartialEq)]
+enum AnimLoopState {
+    Idle,
+    Dispatching,
+    Stopped,
+}
+
 /// # A running `window.requestAnimationFrame` loop.
 ///
 /// `requestAnimationFrame` is the browser API that schedules a callback immediately before the browser paints the next
@@ -35,6 +47,9 @@ pub struct AnimationLoop {
     window: web_sys::Window,
     handle: RafHandle,
     closure: SharedClosure,
+    /// Tracks whether the user callback is currently executing so `stop()` can defer the closure drop when called from
+    /// inside the callback.
+    state: Rc<Cell<AnimLoopState>>,
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -103,15 +118,26 @@ impl AnimationLoop {
 
         let handle: RafHandle = Rc::new(Cell::new(0));
         let closure: SharedClosure = Rc::new(RefCell::new(None));
+        let state: Rc<Cell<AnimLoopState>> = Rc::new(Cell::new(AnimLoopState::Idle));
 
         // Clones moved into the closure so it can re-schedule itself.
         let handle_inner = handle.clone();
         let closure_inner = closure.clone();
         let window_inner = window.clone();
+        let state_inner = state.clone();
 
         // The closure holds an Rc to its own slot so it can re-register after each frame.
         let raf_closure: FrameClosure = Closure::new(move |ts: f64| {
+            state_inner.set(AnimLoopState::Dispatching);
             callback(ts);
+
+            // If stop() was called from inside the callback, it set state to Stopped and leaves the closure slot intact
+            // (freeing the slot here would create a use-after-free of the Rc fields captured in this very closure).
+            // Skip re-scheduling; AnimationLoop::drop will free the slot after the callback returns.
+            if state_inner.get() == AnimLoopState::Stopped {
+                return;
+            }
+            state_inner.set(AnimLoopState::Idle);
 
             if let Some(c) = closure_inner.borrow().as_ref() {
                 // If requestAnimationFrame fails, the loop simply stops (no re-schedule).
@@ -132,16 +158,19 @@ impl AnimationLoop {
 
         *closure.borrow_mut() = Some(raf_closure);
 
-        Ok(AnimationLoop { window, handle, closure })
+        Ok(AnimationLoop { window, handle, closure, state })
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Cancels the pending animation frame and stops the loop.
     ///
-    /// After `stop()` returns:
-    /// - the callback will not be called again,
-    /// - the pending `requestAnimationFrame` handle is cancelled,
-    /// - the closure is dropped (freeing any captured values).
+    /// After `stop()` returns, the callback will not be called again and the pending `requestAnimationFrame` handle is
+    /// cancelled.
+    ///
+    /// When called from **outside** the callback, the closure is also freed immediately, releasing any captured values.
+    /// When called from **inside** the callback (e.g. a one-shot animation that stops itself on the first frame) the
+    /// closure is freed when the `AnimationLoop` is eventually dropped.  Freeing it immediately would create a
+    /// use-after-free of the still-executing closure body.
     ///
     /// Calling `stop()` is idempotent; therefore, attempting to stop an already-stopped loop is safe and has no effect.
     ///
@@ -170,8 +199,14 @@ impl AnimationLoop {
     pub fn stop(&self) {
         let _ = self.window.cancel_animation_frame(self.handle.get());
         self.handle.set(0);
-        // Setting the slot to None drops the Closure, preventing the next re-schedule.
-        *self.closure.borrow_mut() = None;
+        let was_dispatching = self.state.get() == AnimLoopState::Dispatching;
+        self.state.set(AnimLoopState::Stopped);
+        if !was_dispatching {
+            // Not inside a callback: safe to drop the closure and its captures immediately.
+            *self.closure.borrow_mut() = None;
+        }
+        // If called from inside the callback the inner closure will see Stopped after callback(ts) returns and skip
+        // re-scheduling; the closure slot is freed by AnimationLoop::drop.
     }
 }
 

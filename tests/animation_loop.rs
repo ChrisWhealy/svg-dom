@@ -1,4 +1,7 @@
-use std::{cell::Cell, rc::Rc};
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+};
 use svg_dom::AnimationLoop;
 use wasm_bindgen_test::*;
 
@@ -124,4 +127,37 @@ async fn should_freeze_callback_count_when_drop_called_after_running() -> Result
     wait_for_frames(2).await; // yield again — count must not change
 
     common::check_eq(count.get(), frozen)
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// stop() from inside the callback
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// Calling `stop()` from inside the running callback must not crash and must prevent re-scheduling — the loop must fire
+/// exactly once.
+///
+/// This guards against creating a use-after-free: without the `AnimLoopState` dispatch guard, `stop()` would drop the
+/// closure slot while the inner RAF closure was still executing past `callback(ts)`.
+#[wasm_bindgen_test]
+async fn should_allow_stop_from_within_callback() -> Result<(), String> {
+    let count = Rc::new(Cell::new(0u32));
+    let slot: Rc<RefCell<Option<AnimationLoop>>> = Rc::new(RefCell::new(None));
+
+    let count_cb = count.clone();
+    let slot_cb = slot.clone();
+
+    *slot.borrow_mut() = Some(
+        AnimationLoop::start(move |_| {
+            count_cb.set(count_cb.get() + 1);
+            if let Some(anim) = slot_cb.borrow().as_ref() {
+                anim.stop();
+            }
+        })
+        .map_err(|e| e.to_string())?,
+    );
+
+    // Wait a few frames; the callback fires (and stops itself) on the first one.
+    wait_for_frames(3).await;
+
+    common::check_eq(count.get(), 1u32)
 }
