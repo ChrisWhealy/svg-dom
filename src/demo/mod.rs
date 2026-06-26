@@ -727,6 +727,8 @@ fn demo_events_colour() -> Result<(), Error> {
     // backs the readout text.
     let mut attrs = SvgAttrs::new();
     let mut text = String::new();
+    // Avoids writing cx/cy on every outside-wheel event when the marker is already parked.
+    let parked = Cell::new(false);
 
     surface.on_pointermove(move |e| {
         let (x, y) = (f64::from(e.offset_x()), f64::from(e.offset_y()));
@@ -734,13 +736,15 @@ fn demo_events_colour() -> Result<(), Error> {
 
         if dx * dx + dy * dy <= R * R {
             // Inside the wheel: hue is the pointer's angle about the centre.
+            parked.set(false);
             let hue = (dy.atan2(dx).to_degrees() + 360.0) % 360.0;
             let _ = attrs.fmt(&mv_swatch, "fill", format_args!("hsl({hue:.0},90%,50%)"));
             let _ = attrs.fmt(&mv_marker, "cx", format_args!("{x:.1}"));
             let _ = attrs.fmt(&mv_marker, "cy", format_args!("{y:.1}"));
             let _ = mv_readout.set_text_fmt(&mut text, format_args!("hsl({hue:.0},90%,50%)"));
-        } else {
-            // Outside the wheel: park the marker but leave the last sampled colour on the swatch.
+        } else if !parked.get() {
+            // Outside the wheel: park the marker once; skip the DOM writes on subsequent outside events.
+            parked.set(true);
             let _ = attrs.set(&mv_marker, "cx", "-20");
             let _ = attrs.set(&mv_marker, "cy", "-20");
         }
@@ -1201,11 +1205,6 @@ fn demo_events_drag_drop_touch() -> Result<(), Error> {
     let pos = Rc::new(Cell::new(start));
     let last_pointer: Rc<Cell<Option<(i32, i32)>>> = Rc::new(Cell::new(None));
 
-    // One scratch buffer reused across every pointermove and the snap-back on pointerup — for both the card's transform
-    // and the coordinate readout text — so dragging the card allocates no fresh String per event. It lives outside the
-    // closures and is shared by clone.
-    let scratch = Rc::new(RefCell::new(String::new()));
-
     {
         let listener = card.clone();
         let card = card.clone();
@@ -1229,7 +1228,7 @@ fn demo_events_drag_drop_touch() -> Result<(), Error> {
         let label_cache = label_cache.clone();
         let pos = pos.clone();
         let last_pointer = last_pointer.clone();
-        let scratch = scratch.clone();
+        let mut scratch = String::new();
         listener.on_pointermove(move |e| {
             if let Some((last_x, last_y)) = last_pointer.get() {
                 e.prevent_default();
@@ -1240,8 +1239,6 @@ fn demo_events_drag_drop_touch() -> Result<(), Error> {
                 let ny = (y + dy).clamp(MIN_Y, MAX_Y);
                 pos.set((nx, ny));
                 last_pointer.set(Some((e.client_x(), e.client_y())));
-                // Borrow the shared scratch buffer once and reuse it for both writes on this hot path.
-                let mut scratch = scratch.borrow_mut();
                 let _ = card.set_translate(&mut scratch, nx, ny);
                 let _ = coords.set_text_fmt(&mut scratch, format_args!("box: {nx:.0}, {ny:.0}"));
                 // Constant label through the shared cache: the DOM write is skipped on repeated moves.
@@ -1258,7 +1255,7 @@ fn demo_events_drag_drop_touch() -> Result<(), Error> {
         let coords = coords.clone();
         let pos = pos.clone();
         let last_pointer = last_pointer.clone();
-        let scratch = scratch.clone();
+        let mut scratch = String::new();
         let finish = move |e: web_sys::PointerEvent| {
             e.prevent_default();
             let _ = card.as_element().release_pointer_capture(e.pointer_id());
@@ -1275,7 +1272,6 @@ fn demo_events_drag_drop_touch() -> Result<(), Error> {
                 let _ = label_cache.borrow_mut().set_text(&readout, "last: pointerup — dropped in zone");
             } else {
                 pos.set(start);
-                let mut scratch = scratch.borrow_mut();
                 let _ = card.set_translate(&mut scratch, start.0, start.1);
                 let _ = coords.set_text_fmt(&mut scratch, format_args!("box: {:.0}, {:.0}", start.0, start.1));
                 let _ = label_cache
