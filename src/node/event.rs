@@ -120,10 +120,12 @@ impl ListenerStore {
                 listeners.retain(|l| l.event_type != event_type);
                 match listeners.len() {
                     0 => true,
-                    1 => {
-                        let last = listeners.pop().expect("length checked as 1");
-                        *self = ListenerStore::One(last);
-                        false
+                    1 => match listeners.pop() {
+                        Some(last) => {
+                            *self = ListenerStore::One(last);
+                            false
+                        },
+                        None => true,
                     },
                     _ => false,
                 }
