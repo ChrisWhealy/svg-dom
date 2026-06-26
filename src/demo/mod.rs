@@ -900,21 +900,23 @@ fn demo_events_group() -> Result<(), Error> {
     let build = |x: f64, border: &str| -> Result<SvgNode, Error> {
         let g = svg.group()?;
 
-        let boundary = svg.rect(Point::new(0.0, 0.0), Size::new(300.0, 80.0))?;
-        boundary.set_fill(CANVAS_BG)?; // == canvas background, so only the stroke is visible
-        boundary.set_stroke(border)?;
-        boundary.set_stroke_width(2.0)?;
-        boundary.set_attr("rx", "8")?;
+        // Build the boundary and children straight into the <g> via a detached fragment, instead of creating them on
+        // the root and re-parenting each one with append.
+        svg.build_batch_into(&g, |b| {
+            let boundary = b.rect(Point::new(0.0, 0.0), Size::new(300.0, 80.0))?;
+            boundary.set_fill(CANVAS_BG)?; // == canvas background, so only the stroke is visible
+            boundary.set_stroke(border)?;
+            boundary.set_stroke_width(2.0)?;
+            boundary.set_attr("rx", "8")?;
 
-        let child_a = svg.circle(Point::new(75.0, 40.0), 22.0)?;
-        child_a.set_fill(LEAF_ORANGE)?;
-        let child_b = svg.rect(Point::new(160.0, 18.0), Size::new(110.0, 44.0))?;
-        child_b.set_fill(LEAF_GREEN)?;
-        child_b.set_attr("rx", "4")?;
+            let child_a = b.circle(Point::new(75.0, 40.0), 22.0)?;
+            child_a.set_fill(LEAF_ORANGE)?;
 
-        g.append(&boundary)?;
-        g.append(&child_a)?;
-        g.append(&child_b)?;
+            let child_b = b.rect(Point::new(160.0, 18.0), Size::new(110.0, 44.0))?;
+            child_b.set_fill(LEAF_GREEN)?;
+            child_b.set_attr("rx", "4")?;
+            Ok(())
+        })?;
         g.set_attr("transform", &format!("translate({x}, {})", 26.0 + PAD_Y))?;
         Ok(g)
     };
@@ -1145,22 +1147,22 @@ fn demo_events_drag_drop_touch() -> Result<(), Error> {
     // The blue rectangle is the hit target for the drag gesture.  A <g> has no geometry of its own, so the group's
     // pointer listeners only fire when one of its children is hittable — hence the card background must NOT opt out of
     // pointer events.  Only the text label below carries `pointer-events:none`.
-    let card_bg = svg.rect(Point::origin(), Size::new(CARD_W, CARD_H))?;
-    card_bg.set_fill(ACCENT_BLUE)?;
-    card_bg.set_attr("rx", "8")?;
-
-    let card_label = svg.text(Point::new(CARD_W / 2.0, CARD_H / 2.0 + 5.0), "drag / touch")?;
-    card_label.set_fill(INK)?;
-    card_label.set_attrs([
-        ("font-size", "13"),
-        ("font-weight", "bold"),
-        ("text-anchor", "middle"),
-        ("style", "pointer-events:none; user-select:none"),
-    ])?;
-
     let card = svg.group()?;
-    card.append(&card_bg)?;
-    card.append(&card_label)?;
+    svg.build_batch_into(&card, |b| {
+        let card_bg = b.rect(Point::origin(), Size::new(CARD_W, CARD_H))?;
+        card_bg.set_fill(ACCENT_BLUE)?;
+        card_bg.set_attr("rx", "8")?;
+
+        let card_label = b.text(Point::new(CARD_W / 2.0, CARD_H / 2.0 + 5.0), "drag / touch")?;
+        card_label.set_fill(INK)?;
+        card_label.set_attrs([
+            ("font-size", "13"),
+            ("font-weight", "bold"),
+            ("text-anchor", "middle"),
+            ("style", "pointer-events:none; user-select:none"),
+        ])?;
+        Ok(())
+    })?;
     card.set_attrs([("style", "cursor:grab; touch-action:none; user-select:none")])?;
 
     let start = (50.0, 36.0 + PAD_Y);
