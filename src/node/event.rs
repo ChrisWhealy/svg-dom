@@ -4,7 +4,7 @@ use web_sys::{
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-pub enum EventClosure {
+pub(super) enum EventClosure {
     Drag(Closure<dyn FnMut(DragEvent)>),
     Event(Closure<dyn FnMut(Event)>),
     Focus(Closure<dyn FnMut(FocusEvent)>),
@@ -37,7 +37,7 @@ impl EventClosure {
 /// node's responsibility — `SvgNodeInner::drop` calls [`ListenerStore::detach_all`] with the node's element before
 /// the closures are dropped. Because dropping the node is the only path that drops listeners, that single call is
 /// sufficient, and it avoids cloning an `SvgElement` (a wasm/JS ref-clone, plus a held JS-table slot) per listener.
-pub struct EventListener {
+pub(super) struct EventListener {
     pub event_type: &'static str,
     pub closure: EventClosure,
 }
@@ -56,7 +56,7 @@ impl EventListener {
 /// `Box<ListenerStore>`) instead of the two an empty `Vec` would need — one for the `Box<Vec>` and another for the
 /// element buffer on first `push`. A second listener upgrades the store to `Many`. Most interactive nodes have only
 /// one or two listeners, so this keeps the common case lean while still supporting any number.
-pub enum ListenerStore {
+pub(super) enum ListenerStore {
     One(EventListener),
     Many(Vec<EventListener>),
 }
