@@ -645,7 +645,7 @@ fn demo_events_click() -> Result<(), Error> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// Events — colour wheel (managed on_mousemove drives a second element's fill)
+// Events — colour wheel (managed on_pointermove drives a second element's fill)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 //
 // A single transparent rect on *top* of everything captures the pointer, and every decoration below it carries
@@ -704,25 +704,26 @@ fn demo_events_colour() -> Result<(), Error> {
     caption(
         &svg,
         450.0,
-        "Managed on_mousemove over the wheel sets the swatch fill (hue from pointer angle)",
+        "Managed on_pointermove over the wheel sets the swatch fill (hue from pointer angle)",
     )?;
 
-    // The pointer-capture surface goes on last so it sits on top of everything above.
+    // The pointer-capture surface goes on last so it sits on top of everything above. `touch-action:none` lets a
+    // finger-drag sample the wheel instead of scrolling the page, so the pointer handler works for touch and pen too.
     let surface = svg.rect(Point::origin(), Size::new(W, H))?;
     surface.set_fill(TRANSPARENT)?;
-    surface.set_attr("style", "cursor:crosshair")?;
+    surface.set_attr("style", "cursor:crosshair; touch-action:none")?;
 
     let mv_marker = marker.clone();
     let mv_swatch = swatch.clone();
     let mv_readout = readout.clone();
 
     // Managed handlers are `FnMut`, so this per-move handler can *own* its reusable buffers directly — no
-    // `Rc<RefCell<…>>`, no runtime borrow on every `mousemove`. `SvgAttrs` formats the attributes; a scratch `String`
+    // `Rc<RefCell<…>>`, no runtime borrow on every `pointermove`. `SvgAttrs` formats the attributes; a scratch `String`
     // backs the readout text.
     let mut attrs = SvgAttrs::new();
     let mut text = String::new();
 
-    surface.on_mousemove(move |e| {
+    surface.on_pointermove(move |e| {
         let (x, y) = (f64::from(e.offset_x()), f64::from(e.offset_y()));
         let (dx, dy) = (x - CX, y - CY);
 
