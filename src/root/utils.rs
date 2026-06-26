@@ -118,6 +118,18 @@ impl std::fmt::Display for Size {
 pub(crate) fn write_points(out: &mut String, points: &[Point], dps: Option<usize>) {
     use std::fmt::Write;
     out.clear();
+    if !points.is_empty() {
+        // Reserve a rough lower bound so the first call on an empty/small buffer does not repeatedly reallocate as the
+        // list grows.  Subsequent calls reuse retained capacity.
+        //
+        // For the fixed-precision path: 2*n extra bytes for fractional digits across both coordinates, plus 12 bytes
+        // for integer parts, decimal points, comma, and space.
+        let approx_per_point = match dps {
+            Some(n) => n.saturating_mul(2).saturating_add(12),
+            None => 24,
+        };
+        out.reserve(points.len().saturating_mul(approx_per_point));
+    }
     for (i, p) in points.iter().enumerate() {
         if i > 0 {
             out.push(' ');
