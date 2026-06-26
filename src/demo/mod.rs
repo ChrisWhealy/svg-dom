@@ -47,10 +47,15 @@ fn keep_demo_anim(anim: AnimationLoop) {
     LIVE_DEMO_ANIM.with(|slot| *slot.borrow_mut() = Some(anim));
 }
 
-fn event_label<E>(node: SvgNode, name: &'static str) -> impl Fn(E) + 'static {
-    // The label is constant, so format it once at registration rather than on every event.
+// Event-type-generic handler that routes a constant `last: {name}` label through a shared `CachedAttr`, so a burst of
+// identical labels (a stream of pointermove/touchmove events) skips the DOM write after the first. Every writer to a
+// given readout must share the *same* cache for it to stay coherent.
+fn cached_label<E>(readout: SvgNode, cache: Rc<RefCell<CachedAttr>>, name: &'static str) -> impl Fn(E) + 'static {
+    // The label is constant; format it once so the cached write is fully allocation-free per event.
     let label = format!("last: {name}");
-    move |_| node.set_text(&label)
+    move |_| {
+        let _ = cache.borrow_mut().set_text(&readout, &label);
+    }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1000,15 +1005,7 @@ fn demo_events_pointer_lifecycle() -> Result<(), Error> {
     // what keeps it from going stale when the event type changes.
     let label_cache = Rc::new(RefCell::new(CachedAttr::new()));
 
-    // Cache-aware, event-type-generic version of `event_label` for the discrete transitions.
-    fn cached_label<E>(readout: SvgNode, cache: Rc<RefCell<CachedAttr>>, name: &'static str) -> impl Fn(E) + 'static {
-        // The label is constant; format it once so the cached write is fully allocation-free per event.
-        let label = format!("last: {name}");
-        move |_| {
-            let _ = cache.borrow_mut().set_text(&readout, &label);
-        }
-    }
-
+    // Discrete transitions go through the shared cache via the module-level `cached_label` helper.
     target.on_pointerover(cached_label(readout.clone(), label_cache.clone(), "pointerover"))?;
     target.on_pointerenter(cached_label(readout.clone(), label_cache.clone(), "pointerenter"))?;
     target.on_pointerdown(cached_label(readout.clone(), label_cache.clone(), "pointerdown"))?;
@@ -1189,6 +1186,14 @@ fn demo_events_drag_drop_touch() -> Result<(), Error> {
     readout.set_fill(TEXT)?;
     readout.set_attr("font-size", "14")?;
 
+    // Every "last: ..." readout write (the hot pointermove/touchmove/dragover streams *and* the discrete handlers
+    // below) goes through this one shared CachedAttr as the pointer-lifecycle demo does.
+    //
+    // Repeated attempts to write the same label text do not touch the DOM after the first write. Routing *all* writers
+    // through the same cache is what keeps it coherent; partial caching (some writers bypassing it) could lead to it
+    // skipping a needed write.
+    let label_cache = Rc::new(RefCell::new(CachedAttr::new()));
+
     let coords = svg.text(Point::new(500.0, 74.0 + PAD_Y), &format!("box: {:.0}, {:.0}", start.0, start.1))?;
     coords.set_fill(TEXT_MUTED)?;
     coords.set_attr("font-size", "12")?;
@@ -1205,13 +1210,14 @@ fn demo_events_drag_drop_touch() -> Result<(), Error> {
         let listener = card.clone();
         let card = card.clone();
         let readout = readout.clone();
+        let label_cache = label_cache.clone();
         let last_pointer = last_pointer.clone();
         listener.on_pointerdown(move |e| {
             e.prevent_default();
             let _ = card.as_element().set_pointer_capture(e.pointer_id());
             last_pointer.set(Some((e.client_x(), e.client_y())));
             let _ = card.set_attr("style", "cursor:grabbing; touch-action:none; user-select:none");
-            readout.set_text("last: pointerdown — moving box");
+            let _ = label_cache.borrow_mut().set_text(&readout, "last: pointerdown — moving box");
         })?;
     }
 
@@ -1220,6 +1226,7 @@ fn demo_events_drag_drop_touch() -> Result<(), Error> {
         let card = card.clone();
         let coords = coords.clone();
         let readout = readout.clone();
+        let label_cache = label_cache.clone();
         let pos = pos.clone();
         let last_pointer = last_pointer.clone();
         let scratch = scratch.clone();
@@ -1237,7 +1244,8 @@ fn demo_events_drag_drop_touch() -> Result<(), Error> {
                 let mut scratch = scratch.borrow_mut();
                 let _ = card.set_translate(&mut scratch, nx, ny);
                 let _ = coords.set_text_fmt(&mut scratch, format_args!("box: {nx:.0}, {ny:.0}"));
-                readout.set_text("last: pointermove — moving box");
+                // Constant label through the shared cache: the DOM write is skipped on repeated moves.
+                let _ = label_cache.borrow_mut().set_text(&readout, "last: pointermove — moving box");
             }
         })?;
     }
@@ -1246,6 +1254,7 @@ fn demo_events_drag_drop_touch() -> Result<(), Error> {
         let listener = card.clone();
         let card = card.clone();
         let readout = readout.clone();
+        let label_cache = label_cache.clone();
         let coords = coords.clone();
         let pos = pos.clone();
         let last_pointer = last_pointer.clone();
@@ -1263,13 +1272,15 @@ fn demo_events_drag_drop_touch() -> Result<(), Error> {
                 x >= ZONE_X && x + CARD_W <= ZONE_X + ZONE_W && y >= ZONE_Y && y + CARD_H <= ZONE_Y + ZONE_H;
 
             if fully_inside {
-                readout.set_text("last: pointerup — dropped in zone");
+                let _ = label_cache.borrow_mut().set_text(&readout, "last: pointerup — dropped in zone");
             } else {
                 pos.set(start);
                 let mut scratch = scratch.borrow_mut();
                 let _ = card.set_translate(&mut scratch, start.0, start.1);
                 let _ = coords.set_text_fmt(&mut scratch, format_args!("box: {:.0}, {:.0}", start.0, start.1));
-                readout.set_text("last: pointerup — outside zone, returned to start");
+                let _ = label_cache
+                    .borrow_mut()
+                    .set_text(&readout, "last: pointerup — outside zone, returned to start");
             }
         };
         listener.on_pointerup(finish)?;
@@ -1279,58 +1290,66 @@ fn demo_events_drag_drop_touch() -> Result<(), Error> {
         let listener = card.clone();
         let card = card.clone();
         let readout = readout.clone();
+        let label_cache = label_cache.clone();
         let last_pointer = last_pointer.clone();
         listener.on_pointercancel(move |e| {
             let _ = card.as_element().release_pointer_capture(e.pointer_id());
             last_pointer.set(None);
             let _ = card.set_attr("style", "cursor:grab; touch-action:none; user-select:none");
-            readout.set_text("last: pointercancel");
+            let _ = label_cache.borrow_mut().set_text(&readout, "last: pointercancel");
         })?;
     }
 
     // The blue card is moved using pointer events because native browser drag/drop reports a DragEvent but does not
     // reposition SVG content for you.  These DragEvent wrappers are still attached so the demo logs any native drag
     // events a browser chooses to emit for the element.
-    card.on_dragstart(event_label(readout.clone(), "dragstart"))?;
-    card.on_drag(event_label(readout.clone(), "drag"))?;
-    card.on_dragend(event_label(readout.clone(), "dragend"))?;
+    card.on_dragstart(cached_label(readout.clone(), label_cache.clone(), "dragstart"))?;
+    card.on_drag(cached_label(readout.clone(), label_cache.clone(), "drag"))?;
+    card.on_dragend(cached_label(readout.clone(), label_cache.clone(), "dragend"))?;
     {
         let readout = readout.clone();
+        let label_cache = label_cache.clone();
         card.on_touchstart(move |e| {
             e.prevent_default();
-            readout.set_text("last: touchstart");
+            let _ = label_cache.borrow_mut().set_text(&readout, "last: touchstart");
         })?;
     }
     {
         let readout = readout.clone();
+        let label_cache = label_cache.clone();
         card.on_touchmove(move |e| {
             e.prevent_default();
-            readout.set_text("last: touchmove");
+            let _ = label_cache.borrow_mut().set_text(&readout, "last: touchmove");
         })?;
     }
-    card.on_touchend(event_label(readout.clone(), "touchend"))?;
-    card.on_touchcancel(event_label(readout.clone(), "touchcancel"))?;
+    card.on_touchend(cached_label(readout.clone(), label_cache.clone(), "touchend"))?;
+    card.on_touchcancel(cached_label(readout.clone(), label_cache.clone(), "touchcancel"))?;
 
-    zone.on_dragenter(event_label(readout.clone(), "dragenter"))?;
-    zone.on_dragleave(event_label(readout.clone(), "dragleave"))?;
+    zone.on_dragenter(cached_label(readout.clone(), label_cache.clone(), "dragenter"))?;
+    zone.on_dragleave(cached_label(readout.clone(), label_cache.clone(), "dragleave"))?;
     {
         let readout = readout.clone();
+        let label_cache = label_cache.clone();
         zone.on_dragover(move |e| {
             e.prevent_default();
-            readout.set_text("last: dragover (drop enabled)");
+            let _ = label_cache.borrow_mut().set_text(&readout, "last: dragover (drop enabled)");
         })?;
     }
     {
         let readout = readout.clone();
+        let label_cache = label_cache.clone();
         zone.on_drop(move |e| {
             e.prevent_default();
-            readout.set_text("last: drop");
+            let _ = label_cache.borrow_mut().set_text(&readout, "last: drop");
         })?;
     }
 
     // Generic Event wrapper: auxclick is deliberately handled as a plain Event, proving that callers are not forced
     // back to raw Closure management when a typed convenience method is absent.
-    card.on_event("auxclick", event_label(readout.clone(), "generic auxclick"))?;
+    card.on_event(
+        "auxclick",
+        cached_label(readout.clone(), label_cache.clone(), "generic auxclick"),
+    )?;
 
     caption(
         &svg,

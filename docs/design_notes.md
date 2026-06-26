@@ -135,8 +135,11 @@ The same caveat applies to the `Point`/`Size` `get_*_str` helpers, which each al
 `SvgNode::set_text_fmt` and the `set_text_display` convenience for a single value both format into a caller-owned `&mut String` and set the result as text content.
 For a label whose value changes on every event (E,G. a coordinate or status readout updated each time `pointermove` is handled) we now avoid allocating and discarding a `String` by calling `set_text(&format!(...))`.
 
-When the text instead *repeats* between events, `CachedAttr::set_text` is the better fit since, the DOM write is skipped entirely if the value is unchanged.
-The drag/touch demo uses `set_text_fmt` for its live coordinate readout, sharing one scratch buffer with the card's transform; its `last:` event readout has many interleaving writers (including native `drag` events that fire between `pointermove`s), so it is deliberately left uncached — partial caching there would skip a needed write.
+When the text instead *repeats* between events, `CachedAttr::set_text` is the better fit since the DOM write only takes place when the value actually changes.
+Both the pointer-lifecycle and drag/touch demos route *every* `last: ...` readout writer such as the hot `pointermove`/`touchmove`/`dragover` streams and the discrete transitions alike, through one shared `CachedAttr`, so a burst of identical label updates only touches the DOM on the first write.
+The essential rule is that *all* writers should share one cache: partial caching, where some writers bypass it, is what would let the cache skip a genuinely needed write (which is why the cache is fed even from handlers, such as the native `drag` wrappers, that fire between `pointermove`s).
+
+The drag/touch demo's live *coordinate* readout is a separate node that changes on every move, so it keeps using `set_text_fmt` with a scratch buffer shared with the card's transform rather than the cache.
 
 ## Shared element factory implementation
 
