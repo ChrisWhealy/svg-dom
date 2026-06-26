@@ -37,8 +37,10 @@
 //!
 //! The crate contains no `unsafe` code (this is enforced with `#![forbid(unsafe_code)]` for the library build).
 //!
-//! It is also safe by construction against script injection: text is written through `textContent`, never `innerHTML`,
-//! and there is no use of `eval`.
+//! The SVG-building API is also safe by construction against script injection: all text content set through the public
+//! API uses `textContent`, never `innerHTML`, and there is no use of `eval`.
+//! The fact that the `demo` module makes use of `innerHTML` is simply an implementation detail of the showcase module
+//! and forms no part of the library contract.
 //!
 //! The one thing to be aware of is [`SvgNode::set_attr`](crate::SvgNode::set_attr) (and [`set_attrs`](crate::SvgNode::set_attrs)),
 //! write attribute names and values **verbatim** via `setAttribute`.
