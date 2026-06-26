@@ -103,7 +103,7 @@ To run a basic demo, start the demo Web Server using
 cargo demo
 ```
 
-Then visit <http://127.0.0.1:8000/demo>.
+Then visit <http://127.0.0.1:8080/demo>.
 
 The demo gallery includes examples for the managed event wrappers.
 Interactive demo nodes are kept alive explicitly for the lifetime of the page because managed listeners are removed automatically when their owning `SvgNode` is dropped.
