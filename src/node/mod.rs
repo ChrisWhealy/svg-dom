@@ -16,7 +16,8 @@ use std::{
 };
 use wasm_bindgen::{JsCast, prelude::*};
 use web_sys::{
-    DragEvent, Event, FocusEvent, KeyboardEvent, MouseEvent, PointerEvent, SvgElement, TouchEvent, WheelEvent,
+    AddEventListenerOptions, DragEvent, Event, FocusEvent, KeyboardEvent, MouseEvent, PointerEvent, SvgElement,
+    TouchEvent, WheelEvent,
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -883,6 +884,12 @@ impl SvgNode {
             .element
             .add_event_listener_with_callback(event_type, closure.callback_ref())
             .map_err(dom_err)?;
+        self.push_listener(event_type, closure);
+        Ok(())
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    fn push_listener(&self, event_type: &'static str, closure: EventClosure) {
         let listener = EventListener { event_type, closure };
         let mut guard = self.inner.listeners.borrow_mut();
         match guard.as_deref_mut() {
@@ -891,6 +898,39 @@ impl SvgNode {
             // Subsequent listeners: push, upgrading `One` to `Many` on the second.
             Some(store) => store.push(listener),
         }
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Registers a one-shot listener using `{ once: true }`.
+    ///
+    /// The `FnOnce` is wrapped in a `FnMut` via `Option::take` so it can be stored in the existing `EventClosure::Event`
+    /// slot.  The browser removes the listener after the first call; the empty closure shell remains in the store until
+    /// node drop or `clear_listeners`, but the captured values are released as soon as the handler fires.
+    fn store_listener_once<E, F>(&self, event_type: &'static str, handler: F) -> Result<(), Error>
+    where
+        E: JsCast + 'static,
+        F: FnOnce(E) + 'static,
+    {
+        let mut handler_opt = Some(handler);
+        // Wrap the FnOnce in a FnMut so it fits the existing Closure<dyn FnMut(Event)> type.
+        // `unchecked_into` skips the instanceof check — the browser always sends the correct concrete
+        // event type for the registered event name, so the cast is always valid.
+        let closure: Closure<dyn FnMut(Event)> = Closure::new(move |e: Event| {
+            if let Some(h) = handler_opt.take() {
+                h(e.unchecked_into::<E>());
+            }
+        });
+        let options = AddEventListenerOptions::new();
+        options.set_once(true);
+        self.inner
+            .element
+            .add_event_listener_with_callback_and_add_event_listener_options(
+                event_type,
+                closure.as_ref().unchecked_ref(),
+                &options,
+            )
+            .map_err(dom_err)?;
+        self.push_listener(event_type, EventClosure::Event(closure));
         Ok(())
     }
 
@@ -983,6 +1023,43 @@ impl SvgNode {
     /// listener cleanup. See [`WeakSvgNode`] for details.
     pub fn on_event<F: FnMut(Event) + 'static>(&self, event_type: &'static str, handler: F) -> Result<(), Error> {
         self.add_event_listener(event_type, handler)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Registers a one-shot event handler: the closure is called at most once, and the browser automatically removes
+    /// the listener after the first invocation (using the native `{ once: true }` `addEventListener` option).
+    ///
+    /// The key advantage over an `FnMut` handler that calls [`remove_listeners`](Self::remove_listeners) on itself is
+    /// that no manual removal is needed and the "remove the listener currently running" footgun is entirely avoided.
+    ///
+    /// The handler receives a typed event `E`; `E` must be the concrete web-sys event type appropriate for
+    /// `event_type` (e.g. `MouseEvent` for `"click"`, `PointerEvent` for `"pointerdown"`).  Using the wrong type is
+    /// undefined behaviour (the cast from the raw `Event` is unchecked for performance).
+    ///
+    /// The captured values inside `handler` are freed as soon as the first event fires, even if the node (and its
+    /// listener store) lives on.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
+    /// use web_sys::PointerEvent;
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let rect = svg.rect(Point::origin(), Size::new(100.0, 50.0))?;
+    ///
+    /// // Record the coordinates of the first pointer interaction.
+    /// rect.on_event_once::<PointerEvent, _>("pointerdown", |e| {
+    ///     let (_x, _y) = (e.client_x(), e.client_y());
+    /// })?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn on_event_once<E, F>(&self, event_type: &'static str, handler: F) -> Result<(), Error>
+    where
+        E: JsCast + 'static,
+        F: FnOnce(E) + 'static,
+    {
+        self.store_listener_once(event_type, handler)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

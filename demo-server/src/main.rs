@@ -25,7 +25,7 @@ async fn main() -> std::io::Result<()> {
     // The demo-server crate lives one level below the project root.
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
-        .expect("demo-server must live inside the project")
+        .ok_or_else(|| std::io::Error::other("demo-server must live inside the project"))?
         .to_path_buf();
 
     // Run wasm-pack

@@ -43,6 +43,7 @@ Tests are organised into two integration test files under `tests/`:
 |---|---|
 | `tests/svg_root.rs` | `SvgRoot` constructors, viewport, and all element factories |
 | `tests/svg_node.rs` | `SvgNode` attribute API, clone semantics, `append`, and event handlers |
+| `tests/animation_loop.rs` | `AnimationLoop` lifecycle, `start`/`stop` from within callback, and memory retention bug prevention |
 
 Shared DOM helpers (creating fixture `<div>` and `<svg>` containers, assertion functions) live in `tests/common.rs` which is included as `mod common` by both test files.
 

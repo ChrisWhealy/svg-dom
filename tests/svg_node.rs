@@ -1051,6 +1051,28 @@ fn should_fire_managed_non_mouse_event_wrappers() -> Result<(), String> {
     common::check_eq(count.get(), 17)
 }
 
+/// `on_event_once` fires exactly once; a second dispatch of the same event type does not invoke the handler.
+#[wasm_bindgen_test]
+fn should_fire_on_event_once_exactly_once() -> Result<(), String> {
+    let rect = make_svg("node-event-once")
+        .rect(Point::origin(), Size::new(200.0, 200.0))
+        .map_err(|e| e.to_string())?;
+    let count = Rc::new(Cell::new(0u32));
+    let count_cb = count.clone();
+
+    rect.on_event_once::<MouseEvent, _>("click", move |_| {
+        count_cb.set(count_cb.get() + 1);
+    })
+    .map_err(|e| e.to_string())?;
+
+    dispatch(&rect, "click")?;
+    common::check_eq(count.get(), 1u32)?; // fired on first dispatch
+
+    dispatch(&rect, "click")?;
+    common::check_eq(count.get(), 1u32) // did not fire on second dispatch
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Registering multiple handlers for the same event on the same node results in all of
 /// them firing when the event is dispatched.
 #[wasm_bindgen_test]

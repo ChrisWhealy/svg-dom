@@ -30,6 +30,7 @@ js-sys = "0.3"
 [dependencies.web-sys]
 version = "0.3"
 features = [
+    "AddEventListenerOptions",
     "Document",
     "DocumentFragment",
     "DragEvent",
