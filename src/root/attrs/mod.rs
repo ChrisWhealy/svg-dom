@@ -67,7 +67,7 @@ impl SvgAttrs {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Binds this reusable buffer to a node and returns a chainable writer.
     pub fn writer<'a>(&'a mut self, node: &'a SvgNode) -> AttrWriter<'a> {
-        AttrWriter { attrs: self, node }
+        AttrWriter::new(self, node)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

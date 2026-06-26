@@ -8,13 +8,19 @@ use crate::{Error, SvgNode, root::utils::Point};
 /// several attributes can be written in one expression while reusing the same scratch buffer.
 pub struct AttrWriter<'a> {
     /// The reusable scratch buffer that backs the formatted writes.
-    pub attrs: &'a mut SvgAttrs,
+    attrs: &'a mut SvgAttrs,
     /// Every write in this chain applies to this node.
-    pub node: &'a SvgNode,
+    node: &'a SvgNode,
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 impl<'a> AttrWriter<'a> {
+    /// Binds a scratch buffer to a node. Use [`SvgAttrs::writer`] or [`SvgNode::attrs`](crate::SvgNode::attrs) instead
+    /// of constructing this directly.
+    pub(crate) fn new(attrs: &'a mut SvgAttrs, node: &'a SvgNode) -> Self {
+        Self { attrs, node }
+    }
+
     /// Sets a string attribute.
     pub fn set(&mut self, name: &str, value: &str) -> Result<&mut Self, Error> {
         self.attrs.set(self.node, name, value)?;
