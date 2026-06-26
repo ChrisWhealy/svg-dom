@@ -22,18 +22,25 @@ impl Point {
 
     /// Returns the `x` coordinate as a freshly allocated `String`.
     ///
-    /// Convenient for one-off use, but should be avoided on hot paths (per-event or per-frame) since each call
-    /// allocates and then discards a String.
-    ///
-    /// Instead, format through a reused buffer: see [`SvgNode::set_attr_display`](crate::SvgNode::set_attr_display)
-    /// or the [transform setters](crate::SvgNode::set_translate).
+    /// Deprecated: each call allocates and discards a `String`, which sits awkwardly beside the allocation-light path
+    /// the rest of the crate now uses. Format through a reused buffer instead with
+    /// [`SvgNode::set_attr_display`](crate::SvgNode::set_attr_display), [`SvgAttrs::display`](crate::SvgAttrs::display),
+    /// or [`AttrWriter::display`](crate::AttrWriter::display).
+    #[deprecated(
+        since = "0.1.39",
+        note = "allocates a String per call; instead, format through a reused buffer with SvgNode::set_attr_display, SvgAttrs::display, or AttrWriter::display"
+    )]
     pub fn get_x_str(&self) -> String {
         self.x.to_string()
     }
 
     /// Returns the `y` coordinate as a freshly allocated `String`.
     ///
-    /// See [`get_x_str`](Self::get_x_str) for the hot-path caveat.
+    /// Deprecated for the same reason as [`get_x_str`](Self::get_x_str); use the allocation-light setters named there.
+    #[deprecated(
+        since = "0.1.39",
+        note = "allocates a String per call; instead, format through a reused buffer with SvgNode::set_attr_display, SvgAttrs::display, or AttrWriter::display"
+    )]
     pub fn get_y_str(&self) -> String {
         self.y.to_string()
     }
@@ -64,18 +71,25 @@ impl Size {
 
     /// Returns the width as a freshly allocated `String`.
     ///
-    /// Convenient for one-off use, but should be avoided on hot paths (per-event or per-frame) since each call
-    /// allocates and then discards a String.
-    ///
-    /// Instead, format through a reused buffer: see [`SvgNode::set_attr_display`](crate::SvgNode::set_attr_display)
-    /// or the [transform setters](crate::SvgNode::set_translate).
+    /// Deprecated: each call allocates and discards a `String`, which sits awkwardly beside the allocation-light path
+    /// the rest of the crate now uses. Format through a reused buffer instead with
+    /// [`SvgNode::set_attr_display`](crate::SvgNode::set_attr_display), [`SvgAttrs::display`](crate::SvgAttrs::display),
+    /// or [`AttrWriter::display`](crate::AttrWriter::display).
+    #[deprecated(
+        since = "0.1.39",
+        note = "allocates a String per call; instead, format through a reused buffer with SvgNode::set_attr_display, SvgAttrs::display, or AttrWriter::display"
+    )]
     pub fn get_width_str(&self) -> String {
         self.width.to_string()
     }
 
     /// Returns the height as a freshly allocated `String`.
     ///
-    /// See [`get_width_str`](Self::get_width_str) for the hot-path caveat.
+    /// Deprecated for the same reason as [`get_width_str`](Self::get_width_str); use the allocation-light setters named there.
+    #[deprecated(
+        since = "0.1.39",
+        note = "allocates a String per call; instead, format through a reused buffer with SvgNode::set_attr_display, SvgAttrs::display, or AttrWriter::display"
+    )]
     pub fn get_height_str(&self) -> String {
         self.height.to_string()
     }
