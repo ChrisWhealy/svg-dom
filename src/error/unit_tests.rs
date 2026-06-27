@@ -104,3 +104,50 @@ fn should_error_on_bad_inner_value_cast() -> Result<(), String> {
     ensure_eq!(inner, ty);
     Ok(())
 }
+
+#[test]
+fn should_error_on_display_invalid_marker_id() -> Result<(), String> {
+    let err = Error::InvalidMarkerId("url(#arrow)".into());
+    ensure_eq!(err.to_string(), r#"invalid svg marker id: "url(#arrow)""#);
+    Ok(())
+}
+
+#[test]
+fn should_error_on_debug_invalid_marker_id() -> Result<(), String> {
+    let err = Error::InvalidMarkerId("bad id".into());
+    ensure_eq!(format!("{err:?}"), r#"InvalidMarkerId("bad id")"#);
+    Ok(())
+}
+
+#[test]
+fn should_error_on_invalid_marker_id_inner_value() -> Result<(), String> {
+    let id = "url(#x)";
+    let Error::InvalidMarkerId(inner) = Error::InvalidMarkerId(id.into()) else {
+        return Err("expected InvalidMarkerId variant".into());
+    };
+    ensure_eq!(inner, id);
+    Ok(())
+}
+
+#[test]
+fn should_error_on_display_reserved_attribute() -> Result<(), String> {
+    let err = Error::ReservedAttribute("id");
+    ensure_eq!(err.to_string(), r#"attribute "id" is reserved; use the dedicated setter"#);
+    Ok(())
+}
+
+#[test]
+fn should_error_on_debug_reserved_attribute() -> Result<(), String> {
+    let err = Error::ReservedAttribute("id");
+    ensure_eq!(format!("{err:?}"), r#"ReservedAttribute("id")"#);
+    Ok(())
+}
+
+#[test]
+fn should_error_on_reserved_attribute_inner_value() -> Result<(), String> {
+    let Error::ReservedAttribute(inner) = Error::ReservedAttribute("id") else {
+        return Err("expected ReservedAttribute variant".into());
+    };
+    ensure_eq!(inner, "id");
+    Ok(())
+}

@@ -2,7 +2,7 @@
 
 A lightweight Rust/WebAssembly library for creating and mutating live SVG content directly in the browser DOM.
 
-This crate is an MVP and contains known functional gaps that will be filled in time.
+This crate is a work-in-progress and contains known functional gaps that will be filled in time.
 That said, all reasonable, conventional steps have been taken to provide a secure, stable and robust foundation upon which to develop future functionality.
 
 ***IMPORTANT***<br>This crate targets WebAssembly only.
@@ -30,11 +30,11 @@ That said, all reasonable, conventional steps have been taken to provide a secur
 - [x] Build demo server to illustrate current functionality
 - [x] Schedule `cargo-deny` to run as a weekly `cron` job
 - Implement remaining SVG elements
-  - [ ] `<defs>`
+  - [x] `<defs>`
   - [ ] `<linearGradient>` / `<radialGradient>`
   - [ ] `<pattern>`
   - [ ] `<clipPath>`
-  - [ ] `<marker>`
+  - [x] `<marker>`
   - [ ] `<image>`
   - [ ] `<use>` / `<symbol>`
   - [ ] `<tspan>`
@@ -59,13 +59,14 @@ The `svg-dom` crate acts as a thin wrapper for `web-sys` SVG DOM bindings that a
 - Attach to an existing `<svg>` element in your HTML page
 - Create new `<svg>` element programmatically
 - Add a basic set of SVG elements:
-   - Helper function exist for `<rect>`, `<circle>`, `<ellipse>`, `<line>`, `<polyline>`, `<polygon>`, `<path>`, `<text>`, `<g>`
+   - Helper functions exist for `<rect>`, `<circle>`, `<ellipse>`, `<line>`, `<polyline>`, `<polygon>`, `<path>`, `<text>`, `<g>`
+   - `<defs>` (`SvgDefs`) and `<marker>` (`SvgMarker`) are supported for defining reusable assets such as arrowheads, with deferred-append helpers (`build_defs` / `build_marker`) that only commit the element to the DOM once construction succeeds
    - You get back a cheap-to-clone handle (`SvgNode`) that holds a live reference to the real DOM node
 - Using the element's handle, you can mutate individual, multiple or arbitrary attributes:
    - without the need to rebuild or diff the DOM tree
    - via helpers such as `fill`, `stroke`, `d`
    - using `set_attrs` (multiple attributes in one call)
-   - formatted values via `SvgAttrs` (allocation free call)
+   - formatted values via `SvgAttrs` (scratch-buffer backed; reuses a single `String` allocation across calls)
 - Attach managed event listeners directly to individual elements (listener event names are stored as `&'static str` making them allocation-free)
    - `mouse`
    - `pointer`
@@ -118,9 +119,11 @@ The coding used in the actual demo implementation is shown beneath each example.
 |---|---|
 | `SvgRoot` | Wraps the root `<svg>` element; entry point for all element creation
 | `SvgNode` | Cheap-to-clone handle to a live DOM element; attribute + event API
+| `SvgDefs` | `<defs>` container for reusable assets; factory for `SvgMarker` and shape elements
+| `SvgMarker` | `<marker>` element for arrowheads and other path decorations; owned id cache + shape factories
 | `AnimationLoop` | Drives a `requestAnimationFrame` loop; stops on `Drop`
 | `SvgAttrs` / `AttrWriter` | Reusable scratch buffer for allocation-light attribute writing
-| `Error` | All failure modes: element not found, DOM error or client-side cast failure
+| `Error` | All failure modes: element not found, DOM error, cast failure, or invalid SVG marker id
 
 ## Minimal Demo
 
@@ -156,10 +159,9 @@ fn build() -> Result<(), svg_dom::Error> {
         .stroke("white")?
         .stroke_width(2.0)?;
 
-    // Clone the handle so the event closure can mutate the same DOM node. A *strong* clone here also keeps `rect`
-    // (and its listeners) alive for the page after `build` returns, which is what we want for a permanent element.
-    // A node you intend to *discard* later should instead capture `rect.downgrade()` and `upgrade()` inside the
-    // closure, so it does not form a reference cycle that keeps the node alive forever — see `svg_dom::WeakSvgNode`.
+    // `rect` is a page-lifetime node that is intentionally kept alive by the strong clones inside
+    // the closures — that is the exception, not the rule.  For nodes that should be discardable,
+    // use `rect.downgrade()` and call `upgrade()` inside the closure instead; see `WeakSvgNode`.
     let rect_out = rect.clone();
     rect.on_pointerenter(move |_evt| { let _ = rect_out.set_fill("gold"); })?;
 
@@ -211,20 +213,29 @@ Use these helpers instead of registering raw `web-sys` callbacks and calling `Cl
 The managed wrappers cover common SVG interaction events: click/double-click/context menu, mouse down/up/move/enter/leave/over/out, pointer down/up/move/enter/leave/over/out/cancel, wheel, touch start/move/end/cancel, key down/up, focus/blur, and drag-and-drop.
 For less common events, `on_event("event-name", handler)` provides the same managed lifetime with a generic `web_sys::Event`.
 
+When a listener needs to mutate the node it is registered on, capture a `WeakSvgNode` rather than a strong clone.
+A strong self-capture creates a cycle — node → listener store → closure → node — that keeps the node alive indefinitely and prevents automatic listener cleanup.
+
 ```rust
+// `pad` must be kept alive in application state for as long as it should remain interactive.
+// The weak handles inside the closures do not count as strong references.
 let pad = svg.rect(Point::new(20.0, 20.0), Size::new(160.0, 80.0))?;
 pad.set_attrs([("tabindex", "0"), ("style", "cursor:pointer")])?;
 
-let pressed = pad.clone();
+let weak = pad.downgrade();
 pad.on_mousedown(move |evt| {
     if evt.button() == 0 {
-        let _ = pressed.set_attr("transform", "translate(2,2)");
+        if let Some(pad) = weak.upgrade() {
+            let _ = pad.set_attr("transform", "translate(2,2)");
+        }
     }
 })?;
 
-let released = pad.clone();
+let weak = pad.downgrade();
 pad.on_mouseup(move |_| {
-    let _ = released.set_attr("transform", "translate(0,0)");
+    if let Some(pad) = weak.upgrade() {
+        let _ = pad.set_attr("transform", "translate(0,0)");
+    }
 })?;
 
 pad.on_contextmenu(move |evt| evt.prevent_default())?;

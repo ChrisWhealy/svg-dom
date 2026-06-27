@@ -14,7 +14,7 @@ impl SvgRoot {
     /// # Arguments
     ///
     /// * `top_left` — position of the top-left corner, in user units.
-    /// * `w`, `h` — width and height, in user units.
+    /// * `size` — width and height, in user units.
     ///
     /// # Example
     ///

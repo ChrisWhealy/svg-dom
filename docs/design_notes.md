@@ -32,8 +32,8 @@ Keep at least one handle to every listener-owning node for as long as the intera
 The demo gallery does this with a small page-lifetime owner for interactive nodes.
 
 For uncommon browser events, `on_event` provides the same managed lifetime behaviour while using a generic `web_sys::Event`.
-`on_event_once` is the one-shot counterpart: the browser removes the listener automatically after the first dispatch (via the native `{ once: true }` option), and the handler's captured values are freed immediately.
-It accepts a generic typed event `E`; the cast from the raw `Event` is checked at runtime via `instanceof`, so a mismatched `E` silently suppresses the handler.
+`on_event_once` is the one-shot counterpart: the browser removes the listener automatically after the first dispatch (via the native `{ once: true }` option), and the handler's captured values are freed on that dispatch if the `instanceof` check passes.
+It accepts a generic typed event `E`; the cast from the raw `Event` is checked at runtime via `instanceof`, so a mismatched `E` silently suppresses the handler and leaves the captured values alive until the node is dropped or its listeners are cleared.
 This is preferable to allowing undefined behaviour (that you hope won't do anything bad...)
 
 Handlers are bound as `FnMut`, not `Fn`, so a handler can own and mutate captured state directly — typically a reusable `SvgAttrs` or `String` scratch buffer for a hot `pointermove`/`mousemove` path — without an `Rc<RefCell<…>>` wrapper.

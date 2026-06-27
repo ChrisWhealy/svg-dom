@@ -24,6 +24,7 @@
             <button type="button" class="menu-item" data-target="panel-text">text</button>
             <button type="button" class="menu-item" data-target="panel-group">group</button>
             <button type="button" class="menu-item" data-target="panel-anim">AnimationLoop</button>
+            <button type="button" class="menu-item" data-target="panel-marker">defs / marker</button>
 
             <div class="menu-group">Event handling</div>
             <button type="button" class="menu-item" data-target="panel-events-click">Click counter</button>
@@ -162,6 +163,19 @@
                         <code>AnimationLoop::start</code> closure:
                         <strong>radius pulse</strong> · <strong>horizontal travel</strong> ·
                         <strong>hue rotation</strong>
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- defs / marker -->
+            <section class="section" id="panel-marker">
+                <h2><code>&lt;defs&gt;</code> / <code>&lt;marker&gt;</code> — arrowhead</h2>
+                <figure>
+                    <div class="canvas" id="demo-marker"></div>
+                    <figcaption>
+                        An arrowhead <code>&lt;marker&gt;</code> defined once inside <code>&lt;defs&gt;</code> and
+                        referenced by three lines using <strong>set_marker_end_ref</strong>.
+                        <code>orient="auto"</code> rotates the arrowhead to track each path's tangent.
                     </figcaption>
                 </figure>
             </section>

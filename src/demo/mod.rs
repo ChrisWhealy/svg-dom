@@ -96,6 +96,7 @@ pub fn run_demo() -> Result<(), JsValue> {
     demo_text().map_err(e)?;
     demo_group().map_err(e)?;
     demo_anim().map_err(e)?;
+    demo_marker().map_err(e)?;
 
     // Event-handling gallery
     demo_events_click().map_err(e)?;
@@ -138,6 +139,7 @@ const DEMO_SOURCES: &[(&str, &str)] = &[
     ("panel-text", "demo_text"),
     ("panel-group", "demo_group"),
     ("panel-anim", "demo_anim"),
+    ("panel-marker", "demo_marker"),
     ("panel-events-click", "demo_events_click"),
     ("panel-events-colour", "demo_events_colour"),
     ("panel-events-modifiers", "demo_events_modifiers"),
@@ -263,6 +265,8 @@ fn demo_rect() -> Result<(), Error> {
     caption(&svg, 365.0, "rounded (rx)")?;
 
     // 4. Hover: fill swaps on pointerenter / pointerleave
+    // Strong self-captures are intentional here: these demo nodes live for the page lifetime,
+    // so the reference cycle is harmless.  In application code prefer `downgrade()`/`upgrade()`.
     let r4 = svg.rect(Point::new(445.0, 10.0 + PAD_Y), Size::new(130.0, 90.0))?;
     r4.set_fill(GOLDENROD)?;
     r4.set_attr("style", "cursor:pointer")?;
@@ -311,6 +315,7 @@ fn demo_circle() -> Result<(), Error> {
     caption(&svg, 210.0, "stroke")?;
 
     // 3. Hover: radius grows / shrinks
+    // Strong self-captures are intentional: page-lifetime demo nodes, harmless cycle.
     let c3 = svg.circle(Point::new(360.0, 57.0 + PAD_Y), 35.0)?;
     c3.set_fill(LIGHT_SKY_BLUE)?;
     c3.set_attr("style", "cursor:pointer")?;
@@ -350,6 +355,7 @@ fn demo_ellipse() -> Result<(), Error> {
     // The hover ellipse (90 x 55) fully contains the resting one (60 x 35), so the boundary only ever moves *outward*
     // under the pointer. A hover effect that instead shrank a radius would pull the edge back past a stationary pointer
     // — re-triggering pointerleave, then pointerenter as it grew again — and the ellipse would flicker between states.
+    // Strong self-captures are intentional: page-lifetime demo nodes, harmless cycle.
     let e3 = svg.ellipse(Point::new(560.0, 57.0 + PAD_Y), Size::new(60.0, 35.0))?;
     e3.set_fill(GOLDENROD)?;
     e3.set_attr("style", "cursor:pointer")?;
@@ -583,6 +589,51 @@ fn demo_anim() -> Result<(), Error> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// defs / marker (arrowhead)
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+fn demo_marker() -> Result<(), Error> {
+    let svg = SvgRoot::create_in("demo-marker", Size::new(W, H))?;
+
+    // Build a <defs> container with a named arrowhead <marker> inside it.
+    // build_marker appends to <defs> only when the closure returns Ok, so a partially-built
+    // marker is never visible in the DOM if construction fails partway through.
+    let defs = svg.defs()?;
+    let arrow = defs.build_marker("arrow", |m| {
+        m.set_ref_x(10.0)?;
+        m.set_ref_y(3.5)?;
+        m.set_marker_width(10.0)?;
+        m.set_marker_height(7.0)?;
+        m.set_orient("auto")?;
+        let head = m.polygon_raw("0 0, 10 3.5, 0 7")?;
+        head.set_fill(ACCENT_BLUE)?;
+        Ok(())
+    })?;
+
+    // Horizontal
+    let l1 = svg.line(Point::new(20.0, 55.0 + PAD_Y), Point::new(240.0, 55.0 + PAD_Y))?;
+    l1.set_stroke(ACCENT_BLUE)?;
+    l1.set_stroke_width(2.0)?;
+    l1.set_marker_end_ref(&arrow)?;
+    caption(&svg, 130.0, "marker-end")?;
+
+    // Diagonal — orient="auto" rotates the arrowhead to track the path tangent
+    let l2 = svg.line(Point::new(280.0, 20.0 + PAD_Y), Point::new(490.0, 100.0 + PAD_Y))?;
+    l2.set_stroke(ACCENT_BLUE)?;
+    l2.set_stroke_width(2.0)?;
+    l2.set_marker_end_ref(&arrow)?;
+    caption(&svg, 385.0, r#"orient="auto""#)?;
+
+    // Thick — same marker reused across all three lines
+    let l3 = svg.line(Point::new(530.0, 55.0 + PAD_Y), Point::new(770.0, 55.0 + PAD_Y))?;
+    l3.set_stroke(ACCENT_BLUE)?;
+    l3.set_stroke_width(4.0)?;
+    l3.set_marker_end_ref(&arrow)?;
+    caption(&svg, 650.0, "set_marker_end_ref")?;
+
+    Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Events — click counter + reset button (two on_click handlers over shared state)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 //
@@ -617,8 +668,8 @@ fn demo_events_click() -> Result<(), Error> {
 
     let count = Rc::new(Cell::new(0u32));
 
-    // Counter click → increment.  Each closure captures a clone of its own node, which is what keeps that node (and
-    // therefore its listener) alive after this function returns.
+    // Counter click → increment.  The closures also capture clones of other demo nodes (cross-captures, no cycle).
+    // inc_btn is a self-capture of btn — a harmless cycle because keep_demo_node(btn) below already holds it alive.
     let inc_btn = btn.clone();
     let inc_reset = reset.clone();
     let inc_readout = readout.clone();

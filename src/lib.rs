@@ -72,5 +72,7 @@ pub use node::{CachedAttr, SvgNode, WeakSvgNode};
 pub use root::{
     attrs::{AttrWriter, SvgAttrs},
     batch::SvgBatch,
+    defs::SvgDefs,
+    marker::{MarkerUnits, SvgMarker},
     svg_root::SvgRoot,
 };

@@ -105,7 +105,8 @@ impl AnimationFrame {
         node.set_attr("points", &self.scratch)
     }
 
-    /// Like [`set_points`](Self::set_points), but writes each coordinate with `decimals` fixed decimal places.
+    /// Like [`set_points`](Self::set_points), but writes each coordinate with `decimals` fixed decimal places
+    /// (clamped to 20).
     ///
     /// Shorter per-frame output for large animated `<polyline>`/`<polygon>` geometry, where the full-precision string
     /// would otherwise dominate the data crossing the WASM/JS boundary each frame. See

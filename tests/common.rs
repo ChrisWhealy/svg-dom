@@ -6,6 +6,7 @@
 // Each helper that touches the DOM appends elements to the document body.  Tests are
 // isolated by using a unique element id per test — there are no teardown hooks, but the
 // elements are harmless since the browser page is discarded after the test run.
+use svg_dom::{Error, SvgRoot, root::utils::Size};
 
 const SVG_NS: &str = "http://www.w3.org/2000/svg";
 
@@ -31,6 +32,7 @@ pub fn div(id: &str) -> web_sys::Element {
     el
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Creates `<svg id="id">` (SVG namespace) appended to `<body>` and returns the element.
 /// Use this when a test needs an `<svg>` to already exist in the document before
 /// calling `SvgRoot::attach`.
@@ -57,7 +59,20 @@ pub fn check_eq<T: PartialEq + std::fmt::Debug>(got: T, expected: T) -> Result<(
     }
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Returns `Err(msg)` when `condition` is `false`.
 pub fn check(condition: bool, msg: &str) -> Result<(), String> {
     if condition { Ok(()) } else { Err(msg.into()) }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Helper: create an SvgRoot inside a fresh div.
+pub fn make_svg(id: &str) -> SvgRoot {
+    div(id);
+    SvgRoot::create_in(id, Size::new(400.0, 300.0)).unwrap()
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+pub fn is_invalid_marker_id(result: Result<svg_dom::SvgMarker, Error>) -> bool {
+    matches!(result, Err(Error::InvalidMarkerId(_)))
 }

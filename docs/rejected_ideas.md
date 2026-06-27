@@ -256,7 +256,8 @@ This idea was rejected fior the following reasons:
   wasm-bindgen provides `Closure::once`, which wraps a `FnOnce` and frees itself after the first invocation.
   Combined with the browser-native `addEventListener` option `{ once: true }`, the closure is called exactly once and the memory is reclaimed by wasm-bindgen's own cleanup path after the call returns - never while the closure is still running.
 
-  An `on_event_once` helper built on `Closure::once` would serve this use case with no Rust-side depth tracking, no deferred store, and no store entry to bookkeep at all, because the browser removes the registration and wasm-bindgen frees the allocation at the right moment.
+  `on_event_once` was implemented using a `FnOnce` wrapped in a `FnMut` via `Option::take`, combined with `{ once: true }`, so the browser removes the DOM listener and the user handler capture is freed after the first matching dispatch.
+  A small listener shell (the `Closure<dyn FnMut(Event)>` wrapper) remains in the node's listener store until `clear_listeners`, `remove_listeners`, or node drop — giving the same ownership guarantees as every other managed listener without requiring a separate store design.
 
 * **The remaining sub-cases are already safe and need no guards.**<br>
   Removing a *different* event type from the same node is safe: the running closure is not the one being freed.

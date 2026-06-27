@@ -13,8 +13,8 @@ impl SvgRoot {
     ///
     /// # Arguments
     ///
-    /// * `x1`, `y1` — start point.
-    /// * `x2`, `y2` — end point.
+    /// * `start` — start point.
+    /// * `end` — end point.
     ///
     /// # Example
     ///

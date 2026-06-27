@@ -222,11 +222,17 @@ impl AnimationLoop {
             let cb = Closure::once_into_js(move || {
                 *slot.borrow_mut() = None;
             });
-            // If scheduling fails (a near-impossible browser-level error), `cb` is dropped here without being called.
-            // The once_into_js closure is orphaned in JS and the slot is not cleared immediately.  When this
-            // AnimationLoop is eventually dropped, Drop calls `stop()` again; because state is already Stopped the
-            // else-branch fires and clears the slot synchronously, freeing the user's captures.  The once_into_js
-            // allocation itself (a small JS function object) may persist until the JS GC collects the orphaned function.
+            // In spite of this being a near-impossible browser-level error, should scheduling fail, `cb` is dropped
+            // here without being called. The once_into_js closure is orphaned in JS and the slot is not cleared
+            // immediately.
+            //
+            // If the handle is still alive (`stop()` was called explicitly from inside the callback), a later Drop
+            // will call `stop()` again; because state is already Stopped and the else-branch clears the slot
+            // synchronously.
+            //
+            // If `stop()` was reached via Drop (the handle was being dropped from inside the callback), there is no
+            // subsequent Drop to recover: the slot and its captures persist until the JS GC collects the orphaned
+            // function.
             let _ = self
                 .window
                 .set_timeout_with_callback_and_timeout_and_arguments_0(cb.unchecked_ref(), 0);

@@ -2,6 +2,10 @@
 pub mod attrs;
 /// The [`SvgBatch`](crate::SvgBatch) builder that appends many elements to the DOM in one operation.
 pub mod batch;
+/// The [`SvgDefs`](crate::SvgDefs) container for reusable SVG assets.
+pub mod defs;
+/// The [`SvgMarker`](crate::SvgMarker) element and its [`MarkerUnits`](crate::MarkerUnits) enum.
+pub mod marker;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Factories and helper types

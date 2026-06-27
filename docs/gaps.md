@@ -1,23 +1,48 @@
 # Gap Analysis
 
-This crate offers a working foundation for generating simple, flat SVG diagrams driven by a `requestAnimationFrame` (RAF) loop.
+This crate offers a working foundation for generating SVG content driven by a `requestAnimationFrame` (RAF) loop.
+It supports nested groups, `<defs>`, `<marker>`, batch building, and a full set of managed event wrappers.
 However, it can't yet produce anything with gradients, filters, clipping, or reusable symbols.
 
-These gaps will be filled in time, but for now, this crate must be treated as an MVP, not a general-purpose SVG library.
+These gaps will be filled in time, but for now, this crate must be treated as a work-in-progress, not a general-purpose SVG library.
 
-# Missing SVG elements
+## Supported SVG elements
 
-The following SVG elements are supported: `rect`, `circle`, `ellipse`, `line`, `polyline`, `polygon`, `path`, `text` and `g`.
+The following SVG elements are supported:
 
-The following SVG elements all need to be implemented:
+* `rect`
+* `circle`
+* `ellipse`
+* `line`
+* `polyline`
+* `polygon`
+* `path`
+* `text`
+* `g`
+* `defs`
+* `marker`
+
+### `<defs>`
+
+`<defs>` is the standard SVG container for reusable assets and can be obtained from `SvgRoot::defs()`.
+All shape factory methods are available on `SvgDefs` for building inner content.
+
+### `<marker>`
+
+`<marker>` defines a reusable graphic (e.g. an arrowhead or a dot etc) rendered at the start, mid-point, or end of a stroked path and can be obtained from `SvgDefs::marker(id)`.
+
+Apply it to any stroked element — `<line>`, `<path>`, `<polyline>`, `<polygon>` — via `SvgNode::set_marker_start`, `set_marker_mid`, or `set_marker_end`.
+The `MarkerUnits` enum controls whether `markerWidth`/`markerHeight` are relative to `strokeWidth` (default) or user coordinates.
+
+## Missing SVG elements
+
+The following SVG elements still need to be implemented:
 
 | Missing Element | Why it matters
 |---|---|
-| `<defs>` | Container for reusable assets. Gradients, patterns, clip-paths all live here
-| `<linearGradient>` / `<radialGradient>` | Gradient fills that are not possible without `<defs>`
+| `<linearGradient>` / `<radialGradient>` | Gradient fills (the required `<defs>` container now exists)
 | `<pattern>` | Tiled fill patterns
 | `<clipPath>` | Masking regions
-| `<marker>` | Arrowheads on lines and paths
 | `<image>` | Embedding raster images
 | `<use>` / `<symbol>` | Reference a defined shape multiple times without duplicating DOM nodes
 | `<tspan>`  | Multi-line or mixed-style text within a `<text>`
@@ -52,15 +77,12 @@ Managed wrappers now cover the SVG interaction events expected by ordinary appli
 * focus/blur,
 * drag-and-drop,
 * a generic `on_event` escape hatch for event types not covered by a named wrapper, and
-* `on_event_once` — a one-shot variant that fires at most once and is automatically removed by the browser via the native `{ once: true }` `addEventListener` option.
+* `on_event_once` — a generic one-shot variant; accepts any event type `E` via an `instanceof` cast at runtime.
+* Typed one-shot wrappers for every named event: `on_click_once`, `on_pointerdown_once`, `on_pointerenter_once`, `on_pointerleave_once`, and equivalents for all other named events.
+  These bake in the correct event type so the `instanceof` mismatch footgun cannot occur.
 
 Prefer `pointerenter` / `pointerleave` for hover behaviour because they do not bubble through child elements.
 The legacy `mouseover` / `mouseout` wrappers remain available for compatibility reasons, but have been marked as deprecated.
-
-`on_event_once` accepts a generic event type parameter `E` and uses a checked `instanceof` cast at runtime.
-If the supplied `E` does not match the event the browser actually dispatches (e.g. trying to match the `KeyboardEvent` with a `"click"` listener), the cast fails silently and the handler will **not** be called.
-
-Potential future event work is mostly about ergonomics rather than coverage: typed one-shot wrappers (`on_click_once`, `on_pointerdown_once`, ...) can be added when real use-cases appear, but the generic `on_event_once` covers the common case today.
 
 # Attribute helpers
 
@@ -79,7 +101,8 @@ Still missing:
 
 # Missing geometry access
 
-Read-back from the browser's layout engine is entirely absent:
+Geometry read-back is mostly absent.
+The crate exposes text advance measurement through `SvgNode::computed_text_length`, but does not currently expose broader geometry APIs:
 
 - `getBBox()` — bounding box in local coordinates
 - `getTotalLength()` / `getPointAtLength()` — path measurement

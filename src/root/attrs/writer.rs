@@ -87,7 +87,7 @@ impl<'a> AttrWriter<'a> {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Writes a `points` list with each coordinate at `dps` fixed decimal places.
+    /// Writes a `points` list with each coordinate at `dps` fixed decimal places (clamped to 20).
     ///
     /// See [`SvgAttrs::points_fixed`].
     pub fn points_fixed(&mut self, points: &[Point], dps: usize) -> Result<&mut Self, Error> {

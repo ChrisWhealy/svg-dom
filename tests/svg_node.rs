@@ -1095,6 +1095,50 @@ fn should_not_fire_on_event_once_with_mismatched_type() -> Result<(), String> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// `on_click_once` fires exactly once without requiring a type-parameter annotation.
+#[wasm_bindgen_test]
+fn should_fire_on_click_once_exactly_once() -> Result<(), String> {
+    let rect = make_svg("node-click-once")
+        .rect(Point::origin(), Size::new(200.0, 200.0))
+        .map_err(|e| e.to_string())?;
+    let count = Rc::new(Cell::new(0u32));
+    let count_cb = count.clone();
+
+    rect.on_click_once(move |_: MouseEvent| {
+        count_cb.set(count_cb.get() + 1);
+    })
+    .map_err(|e| e.to_string())?;
+
+    dispatch(&rect, "click")?;
+    common::check_eq(count.get(), 1u32)?; // fired on first dispatch
+
+    dispatch(&rect, "click")?;
+    common::check_eq(count.get(), 1u32) // not fired on second dispatch
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// `on_pointerdown_once` fires exactly once; chosen as a representative pointer typed helper.
+#[wasm_bindgen_test]
+fn should_fire_on_pointerdown_once_exactly_once() -> Result<(), String> {
+    let rect = make_svg("node-pointerdown-once")
+        .rect(Point::origin(), Size::new(200.0, 200.0))
+        .map_err(|e| e.to_string())?;
+    let count = Rc::new(Cell::new(0u32));
+    let count_cb = count.clone();
+
+    rect.on_pointerdown_once(move |_: PointerEvent| {
+        count_cb.set(count_cb.get() + 1);
+    })
+    .map_err(|e| e.to_string())?;
+
+    dispatch(&rect, "pointerdown")?;
+    common::check_eq(count.get(), 1u32)?;
+
+    dispatch(&rect, "pointerdown")?;
+    common::check_eq(count.get(), 1u32)
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Registering multiple handlers for the same event on the same node results in all of
 /// them firing when the event is dispatched.
 #[wasm_bindgen_test]

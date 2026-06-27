@@ -107,11 +107,18 @@ impl std::fmt::Display for Size {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Maximum `dps` accepted by [`write_points`] in fixed-precision mode.
+///
+/// `f64` carries ~17 significant decimal digits; values above this limit produce only meaningless trailing zeros
+/// and can generate enormous strings. Callers that pass a higher value are clamped to this constant.
+pub(crate) const MAX_DPS: usize = 20;
+
 /// Formats `points` into `out` as an SVG `points` list (`"x,y x,y …"`), replacing any previous contents.
 ///
 /// `dps` selects the per-coordinate precision: `None` uses the default shortest round-trip `Display`, while `Some(n)`
-/// writes each coordinate with `n` fixed decimal places. Fixed precision yields a shorter string for large animated
-/// polylines, where the full-precision text would otherwise dominate the per-frame data crossing the WASM/JS boundary.
+/// writes each coordinate with `n` fixed decimal places (clamped to [`MAX_DPS`] = 20).
+/// Fixed precision yields a shorter string for large animated polylines, where the full-precision text would
+/// otherwise dominate the per-frame data crossing the WASM/JS boundary.
 ///
 /// Shared by the `points` / `points_fixed` methods on [`SvgAttrs`](crate::SvgAttrs) / [`AttrWriter`](crate::AttrWriter)
 /// and [`AnimationFrame`](crate::AnimationFrame), so all of them produce identical output from one reusable buffer.
@@ -125,7 +132,7 @@ pub(crate) fn write_points(out: &mut String, points: &[Point], dps: Option<usize
         // For the fixed-precision path: 2*n extra bytes for fractional digits across both coordinates, plus 12 bytes
         // for integer parts, decimal points, comma, and space.
         let approx_per_point = match dps {
-            Some(n) => n.saturating_mul(2).saturating_add(12),
+            Some(n) => n.min(MAX_DPS).saturating_mul(2).saturating_add(12),
             None => 24,
         };
         out.reserve(points.len().saturating_mul(approx_per_point));
@@ -136,8 +143,11 @@ pub(crate) fn write_points(out: &mut String, points: &[Point], dps: Option<usize
         }
         // Writing to a `String` is infallible.
         let _ = match dps {
-            Some(n) => write!(out, "{:.*},{:.*}", n, p.x, n, p.y),
+            Some(n) => write!(out, "{:.*},{:.*}", n.min(MAX_DPS), p.x, n.min(MAX_DPS), p.y),
             None => write!(out, "{},{}", p.x, p.y),
         };
     }
 }
+
+#[cfg(test)]
+mod unit_tests;

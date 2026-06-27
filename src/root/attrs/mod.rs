@@ -126,6 +126,9 @@ impl SvgAttrs {
     /// than performance: it shortens the `points` string meaning less data crosses the WASM/JS boundary and uses less
     /// DOM attribute storage.
     ///
+    /// `dps` is clamped to 20 — `f64` only carries ~17 significant digits, so values above that produce meaningless
+    /// trailing zeros with no benefit.
+    ///
     /// Prefer [`points`](Self::points) when exact coordinates matter.
     pub fn points_fixed(&mut self, node: &SvgNode, points: &[Point], dps: usize) -> Result<(), Error> {
         write_points(&mut self.scratch, points, Some(dps));

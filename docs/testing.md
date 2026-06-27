@@ -37,15 +37,16 @@ wasm-pack test --headless --chrome    # or --firefox
 Each function decorated with `#[wasm_bindgen_test]` runs inside the browser's JS engine with full access to the real DOM.
 The test file calls `wasm_bindgen_test_configure!(run_in_browser)` once to opt into this mode.
 
-Tests are organised into two integration test files under `tests/`:
+Tests are organised into integration test files under `tests/`:
 
 | File | What it covers |
 |---|---|
 | `tests/svg_root.rs` | `SvgRoot` constructors, viewport, and all element factories |
 | `tests/svg_node.rs` | `SvgNode` attribute API, clone semantics, `append`, and event handlers |
 | `tests/animation_loop.rs` | `AnimationLoop` lifecycle, `start`/`stop` from within callback, and memory retention bug prevention |
+| `tests/defs.rs` | `SvgDefs` and `SvgMarker` construction, all factory methods, marker ID validation, `build_defs`/`build_marker` deferred-append, `set_id`, and generic attribute surface |
 
-Shared DOM helpers (creating fixture `<div>` and `<svg>` containers, assertion functions) live in `tests/common.rs` which is included as `mod common` by both test files.
+Shared DOM helpers (creating fixture `<div>` and `<svg>` containers, assertion functions) live in `tests/common.rs` which is included as `mod common` by each test file.
 
 ### DOM fixture strategy
 

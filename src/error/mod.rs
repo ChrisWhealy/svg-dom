@@ -3,13 +3,13 @@
 ///
 /// Every fallible function in this crate returns `Result<_, Error>`.
 ///
-/// The Browser DOM generates three categories of error:
+/// The variants cover five categories:
 ///
-/// - you asked for an non-existent element by id ([`Error::ElementNotFound`])
+/// - you asked for a non-existent element by id ([`Error::ElementNotFound`])
 /// - a `web-sys` call returned a JavaScript error ([`Error::Dom`])
 /// - a JavaScript value couldn't be cast to the expected Rust type ([`Error::CastFailed`])
-///
-/// The variants in `enum Error` map directly to one these categories.
+/// - a marker id string was rejected by crate-level validation ([`Error::InvalidMarkerId`])
+/// - a generic setter was called with an attribute name that has a dedicated typed setter ([`Error::ReservedAttribute`])
 #[derive(Debug)]
 pub enum Error {
     /// No element with the given id exists in the current document.
@@ -29,6 +29,26 @@ pub enum Error {
     /// [`SvgRoot::attach`](crate::SvgRoot::attach) with the id of a `<div>` rather than an `<svg>`.  The inner `&str`
     /// names the target type.
     CastFailed(&'static str),
+
+    /// A marker `id` string was rejected before reaching the DOM.
+    ///
+    /// Valid marker ids must match `[A-Za-z_][A-Za-z0-9_-]*`: an ASCII letter or underscore followed by
+    /// zero or more ASCII letters, digits, underscores, or hyphens.
+    /// Passing a string that does not match this pattern to [`SvgDefs::marker`](crate::SvgDefs::marker),
+    /// [`SvgDefs::build_marker`](crate::SvgDefs::build_marker), or the `set_marker_*` setters returns this error.
+    ///
+    /// The inner `String` is the rejected id.
+    InvalidMarkerId(String),
+
+    /// A generic attribute setter was called with an attribute name that is managed by a dedicated typed setter.
+    ///
+    /// The `id` attribute on [`SvgMarker`](crate::SvgMarker) is managed by [`SvgMarker::set_id`](crate::SvgMarker::set_id),
+    /// which keeps the cached id in sync with the DOM.
+    /// Passing `"id"` (case-insensitively) to [`SvgMarker::set_attr`](crate::SvgMarker::set_attr) or
+    /// [`SvgMarker::set_attr_display`](crate::SvgMarker::set_attr_display) returns this error.
+    ///
+    /// The inner `&'static str` names the reserved attribute.
+    ReservedAttribute(&'static str),
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -59,6 +79,10 @@ impl std::fmt::Display for Error {
             Error::ElementNotFound(id) => write!(f, "element not found: #{id}"),
             Error::Dom(msg) => write!(f, "DOM error: {msg}"),
             Error::CastFailed(ty) => write!(f, "JsCast to {ty} failed"),
+            Error::InvalidMarkerId(id) => write!(f, "invalid svg marker id: {id:?}"),
+            Error::ReservedAttribute(name) => {
+                write!(f, "attribute {name:?} is reserved; use the dedicated setter")
+            },
         }
     }
 }
