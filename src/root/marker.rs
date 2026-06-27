@@ -116,8 +116,8 @@ impl SvgMarker {
     ///
     /// # Errors
     ///
-    /// - [`Error::InvalidMarkerId`](crate::Error::InvalidMarkerId) — the new id failed validation.
-    /// - [`Error::Dom`](crate::Error::Dom) — the browser refused to write the `id` attribute.
+    /// - [`Error::InvalidMarkerId`] — the new id failed validation.
+    /// - [`Error::Dom`] — the browser refused to write the `id` attribute.
     pub fn set_id(&mut self, id: &str) -> Result<(), Error> {
         super::defs::validate_marker_id(id)?;
         self.element.set_attribute("id", id).map_err(dom_err)?;
@@ -183,7 +183,7 @@ impl SvgMarker {
     ///
     /// # Reserved attributes
     ///
-    /// Passing `"id"` (matched case-insensitively) returns [`Error::ReservedAttribute`](crate::Error::ReservedAttribute).
+    /// Passing `"id"` (matched case-insensitively) returns [`Error::ReservedAttribute`].
     /// Use [`set_id`](Self::set_id) instead so the cached id stays in sync with the DOM.
     pub fn set_attr(&self, name: &str, value: &str) -> Result<(), Error> {
         if name.eq_ignore_ascii_case("id") {
@@ -214,7 +214,7 @@ impl SvgMarker {
     ///
     /// Uses the same `SvgAttrs` scratch buffer that the named numeric setters (`set_ref_x`, `set_marker_width`, …)
     /// use internally, so no extra allocation is made.
-    /// Passing `"id"` (matched case-insensitively) returns [`Error::ReservedAttribute`](crate::Error::ReservedAttribute);
+    /// Passing `"id"` (matched case-insensitively) returns [`Error::ReservedAttribute`];
     /// use [`set_id`](Self::set_id) instead.
     pub fn set_attr_display<T: std::fmt::Display>(&self, name: &str, value: T) -> Result<(), Error> {
         if name.eq_ignore_ascii_case("id") {

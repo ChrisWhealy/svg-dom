@@ -563,10 +563,10 @@ impl SvgNode {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the `marker-start` attribute, painting the given marker at the first vertex of the element's stroke.
     ///
-    /// `marker_id` is the bare `id` of an [`SvgMarker`](crate::SvgMarker) defined in a [`SvgDefs`](crate::SvgDefs) block;
+    /// `marker_id` is the bare `id` of an [`SvgMarker`] defined in a [`SvgDefs`](crate::SvgDefs) block;
     /// the `url(#…)` wrapper is added automatically.
     /// The same validation rules that apply at marker construction time are enforced here: an id that does not match
-    /// `[A-Za-z_][A-Za-z0-9_-]*` returns [`Error::InvalidMarkerId`](crate::Error::InvalidMarkerId).
+    /// `[A-Za-z_][A-Za-z0-9_-]*` returns [`Error::InvalidMarkerId`].
     pub fn set_marker_start(&self, marker_id: &str) -> Result<(), Error> {
         validate_marker_id(marker_id)?;
         self.set_attr("marker-start", &format!("url(#{marker_id})"))
@@ -575,10 +575,10 @@ impl SvgNode {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the `marker-mid` attribute, painting the given marker at every intermediate vertex of the element's stroke.
     ///
-    /// `marker_id` is the bare `id` of an [`SvgMarker`](crate::SvgMarker) defined in a [`SvgDefs`](crate::SvgDefs) block;
+    /// `marker_id` is the bare `id` of an [`SvgMarker`] defined in a [`SvgDefs`](crate::SvgDefs) block;
     /// the `url(#…)` wrapper is added automatically.
     /// The same validation rules that apply at marker construction time are enforced here: an id that does not match
-    /// `[A-Za-z_][A-Za-z0-9_-]*` returns [`Error::InvalidMarkerId`](crate::Error::InvalidMarkerId).
+    /// `[A-Za-z_][A-Za-z0-9_-]*` returns [`Error::InvalidMarkerId`].
     pub fn set_marker_mid(&self, marker_id: &str) -> Result<(), Error> {
         validate_marker_id(marker_id)?;
         self.set_attr("marker-mid", &format!("url(#{marker_id})"))
@@ -587,10 +587,10 @@ impl SvgNode {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the `marker-end` attribute, painting the given marker at the last vertex of the element's stroke.
     ///
-    /// `marker_id` is the bare `id` of an [`SvgMarker`](crate::SvgMarker) defined in a [`SvgDefs`](crate::SvgDefs) block;
+    /// `marker_id` is the bare `id` of an [`SvgMarker`] defined in a [`SvgDefs`](crate::SvgDefs) block;
     /// the `url(#…)` wrapper is added automatically.
     /// The same validation rules that apply at marker construction time are enforced here: an id that does not match
-    /// `[A-Za-z_][A-Za-z0-9_-]*` returns [`Error::InvalidMarkerId`](crate::Error::InvalidMarkerId).
+    /// `[A-Za-z_][A-Za-z0-9_-]*` returns [`Error::InvalidMarkerId`].
     /// Prefer [`set_marker_end_ref`](Self::set_marker_end_ref) when you have the [`SvgMarker`] handle available, as it
     /// eliminates the risk of typos and `url(#…)` double-wrapping.
     pub fn set_marker_end(&self, marker_id: &str) -> Result<(), Error> {
