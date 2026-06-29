@@ -561,7 +561,9 @@ fn should_assemble_arrowhead_marker() -> Result<(), String> {
     marker.set_marker_width(10.0).map_err(|e| e.to_string())?;
     marker.set_marker_height(7.0).map_err(|e| e.to_string())?;
     marker.set_orient("auto").map_err(|e| e.to_string())?;
-    marker.polygon(&[Point::new(0.0, 0.0), Point::new(10.0, 3.5), Point::new(0.0, 7.0)]).map_err(|e| e.to_string())?;
+    marker
+        .polygon(&[Point::new(0.0, 0.0), Point::new(10.0, 3.5), Point::new(0.0, 7.0)])
+        .map_err(|e| e.to_string())?;
 
     let line = svg
         .line(Point::new(20.0, 50.0), Point::new(180.0, 50.0))
