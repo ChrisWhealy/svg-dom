@@ -97,6 +97,7 @@ pub fn run_demo() -> Result<(), JsValue> {
     demo_group().map_err(e)?;
     demo_anim().map_err(e)?;
     demo_marker().map_err(e)?;
+    demo_use().map_err(e)?;
 
     // Event-handling gallery
     demo_events_click().map_err(e)?;
@@ -140,6 +141,7 @@ const DEMO_SOURCES: &[(&str, &str)] = &[
     ("panel-group", "demo_group"),
     ("panel-anim", "demo_anim"),
     ("panel-marker", "demo_marker"),
+    ("panel-use", "demo_use"),
     ("panel-events-click", "demo_events_click"),
     ("panel-events-colour", "demo_events_colour"),
     ("panel-events-modifiers", "demo_events_modifiers"),
@@ -630,6 +632,38 @@ fn demo_marker() -> Result<(), Error> {
     l3.set_marker_end_ref(&arrow)?;
     caption(&svg, 650.0, "set_marker_end_ref")?;
 
+    Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// use — stamp copies of a <defs> shape
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+fn demo_use() -> Result<(), Error> {
+    let svg = SvgRoot::create_in("demo-use", Size::new(W, H))?;
+
+    // Define a diamond-shaped path once inside <defs>; it is not rendered until referenced.
+    svg.build_defs(|d| {
+        let gem = d.path("M 0,-28 L 22,0 L 0,28 L -22,0 Z")?;
+        gem.set_attr("id", "gem")?;
+        gem.set_fill(ACCENT_BLUE)?;
+        gem.set_stroke(WHITE)?;
+        gem.set_stroke_width(2.0)?;
+        Ok(())
+    })?;
+
+    // Stamp five independent copies of the same path using <use>.
+    // Positioning is done entirely through the transform attribute so that x and y stay at zero
+    // and the rotation centres fall exactly on each copy's visual midpoint.
+    let cy = PAD_Y + BAND / 2.0;
+    let mut buf = String::new();
+    for i in 0..5usize {
+        let cx = 80.0 + i as f64 * 160.0;
+        let angle = i as f64 * 18.0;
+        let u = svg.use_node("#gem", Point::origin())?;
+        u.set_transform_fmt(&mut buf, format_args!("translate({cx},{cy}) rotate({angle})"))?;
+    }
+
+    caption(&svg, W / 2.0, "one <defs> path stamped five times with <use>")?;
     Ok(())
 }
 

@@ -25,6 +25,7 @@
             <button type="button" class="menu-item" data-target="panel-group">group</button>
             <button type="button" class="menu-item" data-target="panel-anim">AnimationLoop</button>
             <button type="button" class="menu-item" data-target="panel-marker">defs / marker</button>
+            <button type="button" class="menu-item" data-target="panel-use">use</button>
 
             <div class="menu-group">Event handling</div>
             <button type="button" class="menu-item" data-target="panel-events-click">Click counter</button>
@@ -176,6 +177,19 @@
                         An arrowhead <code>&lt;marker&gt;</code> defined once inside <code>&lt;defs&gt;</code> and
                         referenced by three lines using <strong>set_marker_end_ref</strong>.
                         <code>orient="auto"</code> rotates the arrowhead to track each path's tangent.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- use -->
+            <section class="section" id="panel-use">
+                <h2><code>&lt;use&gt;</code> — stamp copies of a <code>&lt;defs&gt;</code> shape</h2>
+                <figure>
+                    <div class="canvas" id="demo-use"></div>
+                    <figcaption>
+                        A diamond path defined once in <code>&lt;defs&gt;</code> and stamped five times with
+                        <strong>use_node</strong>. Each copy is positioned independently; the rightmost four are
+                        additionally rotated about their own centre with <strong>set_transform_fmt</strong>.
                     </figcaption>
                 </figure>
             </section>

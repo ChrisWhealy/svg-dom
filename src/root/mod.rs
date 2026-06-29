@@ -34,6 +34,8 @@ mod polyline;
 mod rect;
 /// The [`SvgRoot::text`](crate::SvgRoot::text) factory.
 mod text;
+/// The [`SvgRoot::use_node`](crate::SvgRoot::use_node) factory.
+mod use_node;
 
 use crate::{dom_err, error::Error};
 use wasm_bindgen::JsCast;

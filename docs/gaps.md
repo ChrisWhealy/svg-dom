@@ -21,6 +21,7 @@ The following SVG elements are supported:
 * `g`
 * `defs`
 * `marker`
+* `use`
 
 ### `<defs>`
 
@@ -34,6 +35,19 @@ All shape factory methods are available on `SvgDefs` for building inner content.
 Apply it to any stroked element — `<line>`, `<path>`, `<polyline>`, `<polygon>` — via `SvgNode::set_marker_start`, `set_marker_mid`, or `set_marker_end`.
 The `MarkerUnits` enum controls whether `markerWidth`/`markerHeight` are relative to `strokeWidth` (default) or user coordinates.
 
+### `<use>`
+
+`<use>` stamps a copy of any element — typically one defined inside `<defs>` — into the rendered tree without duplicating the DOM node.
+Obtain a handle via `SvgRoot::use_node(href, at)` or `SvgBatch::use_node(href, at)`.
+
+- `href` is a local fragment reference such as `"#my-shape"` (the `id` attribute of the target element).
+- `at` is an `(x, y)` offset in the parent coordinate system; pass `Point::origin()` to control positioning entirely through `transform`.
+- Each returned `SvgNode` is independent: `transform`, `opacity`, `fill`, and other presentation attributes can be set per-copy without affecting the original.
+- To change the referenced element after creation, call `SvgNode::set_href("#other-shape")`.
+
+Any change to the original definition is immediately visible in all copies.
+`<symbol>` is not yet supported; for now, define reusable content directly inside `<defs>` with a shape or group that carries an `id`.
+
 ## Missing SVG elements
 
 The following SVG elements still need to be implemented:
@@ -44,7 +58,7 @@ The following SVG elements still need to be implemented:
 | `<pattern>` | Tiled fill patterns
 | `<clipPath>` | Masking regions
 | `<image>` | Embedding raster images
-| `<use>` / `<symbol>` | Reference a defined shape multiple times without duplicating DOM nodes
+| `<symbol>` | Named reusable viewport; the companion to `<use>` for scaled/clipped stamp copies
 | `<tspan>`  | Multi-line or mixed-style text within a `<text>`
 | `<textPath>` | Allows text to follow a curve
 | `<filter>` and primitives | Drop shadows, blur, colour matrix, compositing etc

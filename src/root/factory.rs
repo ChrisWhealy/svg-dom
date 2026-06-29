@@ -127,4 +127,17 @@ pub(crate) trait SvgFactory {
         self.append_node(&node)?;
         Ok(node)
     }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    fn create_use(&self, href: &str, at: Point) -> Result<SvgNode, Error> {
+        let node = self.make_node("use")?;
+        node.set_attr("href", href)?;
+        {
+            let mut attrs = self.attrs().borrow_mut();
+            attrs.display(&node, "x", at.x)?;
+            attrs.display(&node, "y", at.y)?;
+        }
+        self.append_node(&node)?;
+        Ok(node)
+    }
 }

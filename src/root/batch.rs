@@ -99,6 +99,14 @@ impl SvgBatch {
     pub fn group(&self) -> Result<SvgNode, Error> {
         self.create_group()
     }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Creates a detached `<use>` element in this batch and returns its [`SvgNode`] handle.
+    ///
+    /// See [`SvgRoot::use_node`](crate::SvgRoot::use_node) for full documentation.
+    pub fn use_node(&self, href: &str, at: Point) -> Result<SvgNode, Error> {
+        self.create_use(href, at)
+    }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

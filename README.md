@@ -36,7 +36,8 @@ That said, all reasonable, conventional steps have been taken to provide a secur
   - [ ] `<clipPath>`
   - [x] `<marker>`
   - [ ] `<image>`
-  - [ ] `<use>` / `<symbol>`
+  - [x] `<use>`
+  - [ ] `<symbol>`
   - [ ] `<tspan>`
   - [ ] `<textPath>`
   - [ ] `<filter>` and `<fe>` elements
@@ -61,6 +62,7 @@ The `svg-dom` crate acts as a thin wrapper for `web-sys` SVG DOM bindings that a
 - Add a basic set of SVG elements:
    - Helper functions exist for `<rect>`, `<circle>`, `<ellipse>`, `<line>`, `<polyline>`, `<polygon>`, `<path>`, `<text>`, `<g>`
    - `<defs>` (`SvgDefs`) and `<marker>` (`SvgMarker`) are supported for defining reusable assets such as arrowheads, with deferred-append helpers (`build_defs` / `build_marker`) that only commit the element to the DOM once construction succeeds
+   - `<use>` is supported via `SvgRoot::use_node` / `SvgBatch::use_node` — stamps a copy of any element referenced by `id` without duplicating DOM nodes; each copy is independently positionable and styleable
    - You get back a cheap-to-clone handle (`SvgNode`) that holds a live reference to the real DOM node
 - Using the element's handle, you can mutate individual, multiple or arbitrary attributes:
    - without the need to rebuild or diff the DOM tree

@@ -58,9 +58,9 @@ impl SvgNode {
     /// * For attributes that change on *every* call (such as a drag `transform`), the plain [`set_attr`](Self::set_attr)
     ///   is cheaper — skip this entirely.
     /// * For *occasional* de-duplication it is fine as-is.
-    /// * For a *genuinely high-frequency* path where the value usually repeats, prefer [`CachedAttr`], which remembers
-    ///   the last value on the Rust side: the unchanged case is then a plain string comparison with no allocation and no
-    ///   call into JS at all.
+    /// * For a *genuinely high-frequency* path where the value usually repeats, prefer [`crate::node::CachedAttr`],
+    ///   which remembers the last value on the Rust side: the unchanged case is then a plain string comparison with no
+    ///   allocation and no call into JS at all.
     ///
     /// # Example
     ///
@@ -404,5 +404,31 @@ impl SvgNode {
     /// ```
     pub fn set_d(&self, path: &str) -> Result<(), Error> {
         self.set_attr("d", path)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the `href` attribute, which `<use>` elements use to reference a reusable asset.
+    ///
+    /// Pass a local fragment reference such as `"#my-shape"` (where `"my-shape"` is the `id` of the target element)
+    /// or a full URL for cross-document references.
+    /// Use this to redirect a `<use>` node to a different asset after it was created with
+    /// [`SvgRoot::use_node`](crate::SvgRoot::use_node).
+    ///
+    /// # Security
+    ///
+    /// The value is written verbatim via `setAttribute`. Do not pass a `javascript:` URL or any other
+    /// attacker-controlled value without validation.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::Point};
+    /// let svg = SvgRoot::attach("diagram")?;
+    /// let u = svg.use_node("#dot", Point::new(50.0, 60.0))?;
+    /// u.set_href("#diamond")?; // redirect to a different asset
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn set_href(&self, href: &str) -> Result<(), Error> {
+        self.set_attr("href", href)
     }
 }
