@@ -98,6 +98,7 @@ pub fn run_demo() -> Result<(), JsValue> {
     demo_anim().map_err(e)?;
     demo_marker().map_err(e)?;
     demo_use().map_err(e)?;
+    demo_image().map_err(e)?;
 
     // Event-handling gallery
     demo_events_click().map_err(e)?;
@@ -142,6 +143,7 @@ const DEMO_SOURCES: &[(&str, &str)] = &[
     ("panel-anim", "demo_anim"),
     ("panel-marker", "demo_marker"),
     ("panel-use", "demo_use"),
+    ("panel-image", "demo_image"),
     ("panel-events-click", "demo_events_click"),
     ("panel-events-colour", "demo_events_colour"),
     ("panel-events-modifiers", "demo_events_modifiers"),
@@ -664,6 +666,73 @@ fn demo_use() -> Result<(), Error> {
     }
 
     caption(&svg, W / 2.0, "one <defs> path stamped five times with <use>")?;
+    Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// image — embed a raster or SVG image
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+fn demo_image() -> Result<(), Error> {
+    let svg = SvgRoot::create_in("demo-image", Size::new(W, H))?;
+
+    // A 60×40 four-quadrant colour grid embedded as a base64 SVG data URI.
+    // Base64 avoids having to percent-encode '<', '>' and '#' that appear in raw SVG data URIs.
+    // The 3:2 source aspect ratio differs from the 1:1 display boxes below, making the three
+    // preserveAspectRatio modes visually distinct.
+    const SRC: &str = "data:image/svg+xml;base64,\
+        PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc2MCcgaGVpZ2h0\
+        PSc0MCc+PHJlY3Qgd2lkdGg9JzMwJyBoZWlnaHQ9JzIwJyBmaWxsPSdzdGVlbGJsdWUnLz48cmVj\
+        dCB4PSczMCcgd2lkdGg9JzMwJyBoZWlnaHQ9JzIwJyBmaWxsPSdjb3JhbCcvPjxyZWN0IHk9JzIw\
+        JyB3aWR0aD0nMzAnIGhlaWdodD0nMjAnIGZpbGw9J2dvbGQnLz48cmVjdCB4PSczMCcgeT0nMjAn\
+        IHdpZHRoPSczMCcgaGVpZ2h0PScyMCcgZmlsbD0nbWVkaXVtc2VhZ3JlZW4nLz48L3N2Zz4=";
+
+    // Alternative image: slate-blue with a centred white circle (used in the set_href demo slot).
+    const ALT: &str = "data:image/svg+xml;base64,\
+        PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc2MCcgaGVpZ2h0\
+        PSc0MCc+PHJlY3Qgd2lkdGg9JzYwJyBoZWlnaHQ9JzQwJyBmaWxsPSdzbGF0ZWJsdWUnLz48Y2ly\
+        Y2xlIGN4PSczMCcgY3k9JzIwJyByPScxNCcgZmlsbD0nd2hpdGUnIG9wYWNpdHk9Jy44NScvPjwv\
+        c3ZnPg==";
+
+    // 100×100 px square display boxes; the 3:2 source makes preserveAspectRatio effects clear.
+    let img_w = 100.0_f64;
+    let img_h = 100.0_f64;
+    let y0 = PAD_Y + (BAND - img_h) / 2.0;
+    let xs: [f64; 4] = [80.0, 250.0, 420.0, 590.0];
+
+    // Thin guide outline showing each image's bounding box.
+    let slot = |x: f64| -> Result<(), Error> {
+        let r = svg.rect(Point::new(x, y0), Size::new(img_w, img_h))?;
+        r.set_fill(NONE)?;
+        r.set_stroke(GUIDE)?;
+        r.set_stroke_width(1.0)?;
+        Ok(())
+    };
+
+    // 1. xMidYMid meet (default) — fits the whole image inside the box, preserving the 3:2 ratio.
+    //    Horizontal bars appear because the box is square and the source is wider than tall.
+    slot(xs[0])?;
+    let i1 = svg.image(SRC, Point::new(xs[0], y0), Size::new(img_w, img_h))?;
+    i1.set_attr("preserveAspectRatio", "xMidYMid meet")?;
+    caption(&svg, xs[0] + img_w / 2.0, "meet (default)")?;
+
+    // 2. none — stretches to fill the exact box dimensions, squashing the 3:2 source into a square.
+    slot(xs[1])?;
+    let i2 = svg.image(SRC, Point::new(xs[1], y0), Size::new(img_w, img_h))?;
+    i2.set_attr("preserveAspectRatio", "none")?;
+    caption(&svg, xs[1] + img_w / 2.0, "none (stretch)")?;
+
+    // 3. xMidYMid slice — scales up to fill the box and clips the sides.
+    slot(xs[2])?;
+    let i3 = svg.image(SRC, Point::new(xs[2], y0), Size::new(img_w, img_h))?;
+    i3.set_attr("preserveAspectRatio", "xMidYMid slice")?;
+    caption(&svg, xs[2] + img_w / 2.0, "slice (fill+clip)")?;
+
+    // 4. set_href — the element is created with SRC, then the source is swapped to ALT after creation.
+    slot(xs[3])?;
+    let i4 = svg.image(SRC, Point::new(xs[3], y0), Size::new(img_w, img_h))?;
+    i4.set_href(ALT)?;
+    caption(&svg, xs[3] + img_w / 2.0, "set_href swap")?;
+
     Ok(())
 }
 

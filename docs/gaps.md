@@ -22,6 +22,7 @@ The following SVG elements are supported:
 * `defs`
 * `marker`
 * `use`
+* `image`
 
 ### `<defs>`
 
@@ -34,6 +35,21 @@ All shape factory methods are available on `SvgDefs` for building inner content.
 
 Apply it to any stroked element — `<line>`, `<path>`, `<polyline>`, `<polygon>` — via `SvgNode::set_marker_start`, `set_marker_mid`, or `set_marker_end`.
 The `MarkerUnits` enum controls whether `markerWidth`/`markerHeight` are relative to `strokeWidth` (default) or user coordinates.
+
+### `<image>`
+
+`<image>` embeds a raster image (PNG, JPEG, WebP etc) or another SVG into the current document.
+Obtain a handle via `SvgRoot::image(href, top_left, size)` or `SvgBatch::image(href, top_left, size)`.
+
+- `href` accepts any URL the browser can fetch: a relative path, an absolute URL, or a `data:` URI.
+  When using `data:image/svg+xml`, use base64 encoding to avoid percent-encoding `<`, `>`, and `#`.
+- `top_left` and `size` define the display rectangle.
+  Both width and height must be set; omitting either makes the image invisible.
+- Control aspect-ratio handling with `set_attr("preserveAspectRatio", value)`:
+  - `"xMidYMid meet"` — fit the whole image inside the box, adding letterbox bars if needed (default).
+  - `"none"` — stretch to fill the box exactly, ignoring the source aspect ratio.
+  - `"xMidYMid slice"` — scale up to fill the box and clip any overflow.
+- To swap the image source after creation, call `SvgNode::set_href`.
 
 ### `<use>`
 
@@ -57,9 +73,8 @@ The following SVG elements still need to be implemented:
 | `<linearGradient>` / `<radialGradient>` | Gradient fills (the required `<defs>` container now exists)
 | `<pattern>` | Tiled fill patterns
 | `<clipPath>` | Masking regions
-| `<image>` | Embedding raster images
 | `<symbol>` | Named reusable viewport; the companion to `<use>` for scaled/clipped stamp copies
-| `<tspan>`  | Multi-line or mixed-style text within a `<text>`
+| `<tspan>` | Multi-line or mixed-style text within a `<text>`
 | `<textPath>` | Allows text to follow a curve
 | `<filter>` and primitives | Drop shadows, blur, colour matrix, compositing etc
 

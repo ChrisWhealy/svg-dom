@@ -18,6 +18,8 @@ pub mod utils;
 
 /// The [`SvgRoot::circle`](crate::SvgRoot::circle) factory.
 mod circle;
+/// The [`SvgRoot::image`](crate::SvgRoot::image) factory.
+mod image;
 /// The [`SvgRoot::ellipse`](crate::SvgRoot::ellipse) factory.
 mod ellipse;
 /// The [`SvgRoot::group`](crate::SvgRoot::group) factory.

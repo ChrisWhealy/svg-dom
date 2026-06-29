@@ -101,6 +101,14 @@ impl SvgBatch {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Creates a detached `<image>` element in this batch and returns its [`SvgNode`] handle.
+    ///
+    /// See [`SvgRoot::image`](crate::SvgRoot::image) for full documentation.
+    pub fn image(&self, href: &str, top_left: Point, size: Size) -> Result<SvgNode, Error> {
+        self.create_image(href, top_left, size)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates a detached `<use>` element in this batch and returns its [`SvgNode`] handle.
     ///
     /// See [`SvgRoot::use_node`](crate::SvgRoot::use_node) for full documentation.

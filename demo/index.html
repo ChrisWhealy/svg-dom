@@ -26,6 +26,7 @@
             <button type="button" class="menu-item" data-target="panel-anim">AnimationLoop</button>
             <button type="button" class="menu-item" data-target="panel-marker">defs / marker</button>
             <button type="button" class="menu-item" data-target="panel-use">use</button>
+            <button type="button" class="menu-item" data-target="panel-image">image</button>
 
             <div class="menu-group">Event handling</div>
             <button type="button" class="menu-item" data-target="panel-events-click">Click counter</button>
@@ -190,6 +191,19 @@
                         A diamond path defined once in <code>&lt;defs&gt;</code> and stamped five times with
                         <strong>use_node</strong>. Each copy is positioned independently; the rightmost four are
                         additionally rotated about their own centre with <strong>set_transform_fmt</strong>.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- image -->
+            <section class="section" id="panel-image">
+                <h2><code>&lt;image&gt;</code> — embed a raster or SVG image</h2>
+                <figure>
+                    <div class="canvas" id="demo-image"></div>
+                    <figcaption>
+                        The same 60&times;40 source image (a four-quadrant colour grid) placed in a 100&times;100 box
+                        with three different <strong>preserveAspectRatio</strong> modes, plus a fourth slot that
+                        demonstrates <strong>set_href</strong> swapping the image source after creation.
                     </figcaption>
                 </figure>
             </section>
