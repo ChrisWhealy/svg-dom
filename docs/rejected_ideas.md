@@ -428,6 +428,73 @@ The per-lineage model is the correct invariant.
 The doc comment is the appropriate and sufficient fix.
 It was tightened to explicitly state "Do not register listeners through a handle obtained from `parent()`" alongside the existing explanation of why listener state is not shared.
 
+## 15) Canonicalising on one construction model for `defs`, `marker`, and `batch`
+
+The external review observed that the crate exposes two construction styles for the same conceptual objects:
+
+```rust
+// direct — appends to the live DOM immediately
+let defs = svg.defs()?;
+let marker = defs.marker("arrow")?;
+marker.set_ref_x(10.0)?;
+
+// closure — appends only after the closure succeeds
+let defs = svg.build_defs(|defs| {
+    defs.build_marker("arrow", |m| { m.set_ref_x(10.0) })
+})?;
+```
+
+The claim was that these have different failure semantics — direct appends happen before all child content is set, so a mid-build error can leave partial DOM behind — and that having two public models for the same operation is a consistency problem.
+The recommendation was to pick the closure builders as canonical and rename or remove the direct APIs.
+
+This is not adopted.
+
+### The batch pair does not have inconsistent atomicity
+
+`batch()` and `build_batch()` are both fully transactional: both create a detached `DocumentFragment` and commit it to the live DOM only when `commit()` is called.
+`build_batch()` is a thin convenience wrapper that calls `batch()` then `commit()`.
+There is no atomicity difference between them; the reviewer incorrectly included the batch API in the diagnosis.
+
+### The `defs`/`marker` pairs serve genuinely different use cases
+
+`defs()` and `marker()` exist specifically for cases where `<defs>` content cannot be known upfront:
+for example, adding markers dynamically in response to user actions, or building a marker incrementally across several calls.
+`build_defs()` and `build_marker()` exist for one-shot construction where all children are known before any DOM mutation.
+
+These are complementary, not competing.
+Removing the direct APIs would leave no public way to extend a `<defs>` section after initial construction, which is a legitimate use case the docs already describe ("For dynamically extending `<defs>` after initial construction, use `defs` instead").
+
+### The atomicity difference is real but the practical risk is near-zero
+
+With the direct APIs, a failure partway through construction leaves a partial element in the live DOM.
+For `defs()`: if a subsequent `marker()` call fails, an empty `<defs>` remains in the SVG.
+For `marker()`: if a shape or attribute setter fails after `marker()` returns, a partial `<marker>` remains in `<defs>`.
+
+However, the realistic failure points are:
+
+- `validate_marker_id` — fires before any DOM mutation, so an invalid id leaves nothing in the DOM.
+- `create_svg_element` — creates a detached element; failure leaves nothing attached.
+- Attribute setters (`set_ref_x`, `set_marker_width`, …) — call `set_attribute` on standard SVG
+  attribute names, which browsers essentially never reject.
+
+The only realistic path to a "partial DOM" is a browser DOM error on a standard SVG attribute setter,
+which is theoretically possible but does not occur in practice.
+Furthermore, an incomplete `<marker>` in `<defs>` is completely harmless — it renders nothing unless a
+`marker-end` or similar attribute actively references its id.
+
+### The naming proposal does not justify a breaking change
+
+The proposed rename to `open_defs()` / `append_marker()` communicates "live mutation" better than
+`defs()` / `marker()`, but not enough better to justify breaking every existing caller.
+The existing names already convey the distinction from their `build_*` counterparts.
+
+### Documentation is the correct response
+
+The direct API doc comments were tightened to explicitly state the partial-DOM-on-failure risk and to
+recommend `build_defs`/`build_marker` for one-shot use.
+The `build_*` doc comments already stated that the closure path defers the append.
+Together these give callers a clear picture of the trade-off without changing any public API.
+
 ## 12) Adding `parent_element()` for lighter hot-path parent access
 
 `SvgNode::parent()` creates a fresh managed `SvgNode` around the parent element, with its own independent listener store.

@@ -90,9 +90,14 @@ impl SvgDefs {
     /// The `id` is used to reference the marker from a line or path via
     /// [`set_marker_end`](crate::SvgNode::set_marker_end) and its `_start` / `_mid` siblings.
     ///
-    /// Each shape added to the returned [`SvgMarker`] is appended to the live marker element one at a time. Prefer
-    /// [`build_marker`](Self::build_marker) when building the marker contents in one shot, because that variant only
-    /// appends the `<marker>` to `<defs>` once, after all child shapes have been added.
+    /// Each shape added to the returned [`SvgMarker`] is appended to the live marker element one at a time.
+    /// Use this when you need to add shapes to a marker dynamically after initial construction.
+    ///
+    /// Prefer [`build_marker`](Self::build_marker) when all marker contents are known upfront: that variant holds the
+    /// `<marker>` element detached until the closure succeeds, so a mid-build error leaves no partial marker in
+    /// `<defs>`.
+    /// With this method, if a shape or attribute setter fails after `marker()` returns, the partial `<marker>` element
+    /// remains in `<defs>` (though an incomplete marker is harmless — it renders nothing unless referenced).
     ///
     /// # Errors
     ///
@@ -266,8 +271,13 @@ impl SvgRoot {
     ///
     /// Each marker or shape added through the returned [`SvgDefs`] is appended to the live `<defs>` element one at a
     /// time.
-    /// Prefer [`build_defs`](Self::build_defs) when building the entire `<defs>` subtree in one shot, because that
-    /// variant only appends `<defs>` to the `<svg>` root once, after all children have been added.
+    /// Use this when you need to extend `<defs>` dynamically — for example, adding markers in response to user
+    /// actions after the initial build.
+    ///
+    /// Prefer [`build_defs`](Self::build_defs) when all the contents are known upfront: that variant holds the
+    /// `<defs>` element detached until the closure succeeds, so a mid-build error leaves no partial element in the
+    /// live tree.
+    /// With this method, if a subsequent call fails after `defs()` returns, the empty `<defs>` remains in the DOM.
     ///
     /// # Errors
     ///
