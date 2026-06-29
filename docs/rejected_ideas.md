@@ -320,6 +320,66 @@ The current `EventClosure` enum is boilerplate, but nonetheless it is working, a
 Any new `on_*` helper must explicitly state which variant it wraps without touching the dispatch path.
 The right response to the boilerplate concern is documentation, not type erasure.
 
+## 13) Hiding raw `web_sys` access behind `raw_element_unchecked()` or a Cargo feature
+
+An external review flagged three sites where the crate exposes raw `web_sys` elements:
+
+* `SvgRoot::root` — a public field of type `SvgsvgElement`.
+* `SvgNode::as_element()` — returns `&SvgElement`.
+* `SvgDefs::as_element()` and `SvgMarker::as_element()` — likewise.
+
+The argument was that callers can bypass cached state, marker-id validation, and listener ownership through these handles, and that raw DOM access should instead live behind an explicit escape API — `raw_element_unchecked()` — or a Cargo feature such as `features = ["raw-dom-access"]`.
+
+The recommendation was evaluated against each site individually, because the facts differ.
+
+### `SvgRoot::root`
+
+This was already analysed in **idea 8**, where it was also suggested that the public field be hidden behind an `as_element()` accessor.
+The conclusion there stands for any spelling of the accessor: every `web_sys` DOM-mutating method takes `&self`, not `&mut self`, so `svg.raw_element_unchecked().set_attribute("width", "500")` desyncs the cached viewport *exactly* as `svg.root.set_attribute("width", "500")` does.
+The accessor name changes the ergonomics but does not close the invariant hole, because the hole is inherent to exposing the element at all — which we want to do.
+
+### `SvgNode::as_element()`
+
+`SvgNode` has **no cached state** that direct DOM access can desync.
+Its managed state is the listener `Rc<SvgNodeInner>`, and a caller who adds a listener directly to the raw `SvgElement` does not corrupt that store — they merely bypass the crate's automatic listener cleanup for that one listener.
+This is the unavoidable consequence of exposing any DOM handle, not a unique defect of `as_element()`.
+
+More importantly, `SvgNode::set_attr()` is already a full escape hatch: it accepts an arbitrary attribute name and value and writes it verbatim to the DOM.
+Any "bypassing" of attribute-writer consistency or text-safety helpers is equally possible through that route — the existing security note on `set_attr` already documents this.
+Removing `as_element()` would only deny access to non-attribute DOM methods (`get_bounding_client_rect`, `tag_name`, typed property accessors that need a `dyn_ref` cast, and so on) — which are the *legitimate* reasons to reach the raw element.
+
+### `SvgDefs::as_element()`
+
+`SvgDefs` has **no cached state**.
+Its element is only ever used internally as an append target, and there is nothing for a caller to desync by writing attributes directly.
+The accessor is an unrestricted escape hatch; treating it as a backdoor would make it indistinguishable from a justified feature.
+
+### `SvgMarker::as_element()`
+
+This is the one site where the concern has real substance: `SvgMarker` caches the `id` in a Rust `String`, and writing `id` through the raw element bypasses both the cache update and the `validate_marker_id` check.
+
+Two layers already guard against the most common path:
+
+* `SvgMarker::set_attr()` and `set_attr_display()` both reject `"id"` (case-insensitively) with `Error::ReservedAttribute`.
+* The doc comment on `as_element()` explicitly warns that the `id` attribute must not be written through this handle, and points to `set_id`.
+
+The only unsuppressed path is `marker.as_element().set_attribute("id", ...)`, which is a deliberate choice by a caller who has read the docs.
+A rename to `as_element_unchecked()` would be marginally more self-documenting, but it would be a breaking API change to all existing callers in exchange for a signal the existing doc comment already delivers.
+It would also create a naming inconsistency between `SvgMarker` and the other types, which expose `as_element()` with no cached state to protect.
+
+### The Cargo feature approach
+
+Gating `as_element()` behind `features = ["raw-dom-access"]` would impose a feature dependency on every caller who needs `get_bounding_client_rect`, `computed_text_length`-style casts, or any other non-attribute DOM method that the crate does not wrap — exactly the legitimate use cases the method exists for.
+The `docs/gaps.md` list makes clear that this crate deliberately does not wrap large swaths of SVG DOM; a feature gate would make those gaps less accessible, not more documented.
+
+### Conclusion
+
+The naming concern is legitimate: `as_element()` does not signal that it bypasses crate invariants.
+But renaming alone does not protect invariants, and the invariants that actually exist are either already documented (`SvgRoot` viewport, `SvgMarker` id) or do not exist at all (`SvgNode`, `SvgDefs`).
+
+The correct and sufficient response is precise documentation at each escape hatch, which is already in place.
+A breaking rename or a Cargo feature would impose a real cost on legitimate callers in exchange for a naming signal that cannot substitute for reading the docs.
+
 ## 12) Adding `parent_element()` for lighter hot-path parent access
 
 `SvgNode::parent()` creates a fresh managed `SvgNode` around the parent element, with its own independent listener store.
