@@ -380,6 +380,54 @@ But renaming alone does not protect invariants, and the invariants that actually
 The correct and sufficient response is precise documentation at each escape hatch, which is already in place.
 A breaking rename or a Cargo feature would impose a real cost on legitimate callers in exchange for a naming signal that cannot substitute for reading the docs.
 
+## 14) Restricting or removing `SvgNode::parent()` to prevent split listener state
+
+`SvgNode::parent()` wraps the raw parent DOM element in a brand-new `SvgNode` with its own independent `Rc<SvgNodeInner>` and an empty listener store.
+The external review flagged this as a "serious consistency issue": the same SVG element now has two unrelated managed handles, and listeners registered through the `parent()` handle are neither visible to nor cleaned up by the factory handle for the same element.
+Four alternatives were proposed: remove `parent()`, return a read-only `SvgElementRef<'a>`, return a raw `SvgElement`, or maintain a canonical registry so the same DOM element always maps to the same `Rc<SvgNodeInner>`.
+
+None of these changes will be adopted.
+
+### The reviewer's premise is incorrect
+
+The crate's invariant is **per-lineage**, not per-DOM-element.
+
+A *lineage* is an `SvgNode` and all its `clone()`s — they all share the same `Rc<SvgNodeInner>`, the same listener store, and the same lifetime contract ("keep one handle alive, listeners stay alive").
+The crate never claims that every `SvgNode` wrapping a given DOM element belongs to the same lineage.
+
+The doc comments for `parent()` makes this explicit: it states that listener tracking is "per handle lineage (a handle together with its clones) and **not** per DOM element".  Furthermore, the returned handle's listener store is independent of any factory handle for the same element, and that the handle should be treated as read-only navigation.
+The same caution is extended to discourage registering listeners through a `parent()` handle.
+This is not a consistency violation — it is the documented, intended behavior of the per-lineage model.
+
+### Why the proposed alternatives do not improve the situation
+
+**Option A — Remove `parent()`.**<br>
+This removes the legitimate use cases that motivated the method in the first place: walking up the tree to inspect or modify an ancestor attribute from inside an event callback, without having to retain every ancestor handle at construction time.
+A caller who needs to navigate upward and cannot or does not want to hold the ancestor handle would be left with `node.as_element().parent_node()` (a raw DOM call) or `SvgNode::as_element()` plus `dyn_ref` casting, both of which are worse than the current API.
+
+**Option B — `SvgElementRef<'a>`, a lifetime-bound read-only wrapper.**<br>
+The wrapper would need to re-expose a meaningful subset of `SvgNode`'s API (attribute reads, `tag_name`, bounding-box queries) without any of the mutation or listener methods.
+That is a large parallel surface, with viral lifetime annotations that flow into any closure or data structure that holds the ref.
+The underlying DOM element is still reachable (since there is no way to make the underlying `SvgElement` truly read-only) so the wrapper only provides a "soft" guarantee backed by `unsafe` at the boundary.
+
+The doc comments already discourage this pattern; therefore, there is no benefit in adding a second public type that introduces a parallel API surface and allows for viral (i.e. unpredictable) lifetimes.
+
+**Option C — Return `SvgElement` directly.**<br>
+Evaluated and rejected in idea 12 for the same reasons: it is the first raw `web-sys` type surfaced from a traversal API, it denies access to the typed attribute setters and transform helpers that make `SvgNode` useful, and it sets an inconsistent precedent relative to every other navigation method (`downgrade` / `upgrade`, which return crate-managed types).
+
+**Option D — A canonical registry mapping DOM elements to `Rc<SvgNodeInner>`.**<br>
+This would require a `HashMap<JsValue, Weak<SvgNodeInner>>` (or similar), a strategy for removing stale entries when handles are dropped, and logic to detect when a factory creates an element that was already registered.
+
+Such a change would require a fundamental change to the ownership model (every factory call would need to consult the registry) and adds allocations and hash lookups to what is currently an allocation-free construction.
+The problem it aims to solve (i.e. ensuring that `parent()` returns a handle in the same lineage as the factory handle) is not a problem that callers actually need solved, because the correct use of `parent()` (read-only navigation and attribute mutation) does not require shared listener state.
+
+### Conclusion
+
+The per-lineage model is the correct invariant.
+`parent()` returns an independent handle that forms its own lineage; that is documented behavior, not a bug.
+The doc comment is the appropriate and sufficient fix.
+It was tightened to explicitly state "Do not register listeners through a handle obtained from `parent()`" alongside the existing explanation of why listener state is not shared.
+
 ## 12) Adding `parent_element()` for lighter hot-path parent access
 
 `SvgNode::parent()` creates a fresh managed `SvgNode` around the parent element, with its own independent listener store.

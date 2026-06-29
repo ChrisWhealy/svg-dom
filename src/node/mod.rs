@@ -878,9 +878,14 @@ impl SvgNode {
     /// - It is otherwise an ordinary handle: it points at the same live DOM element, so reading or mutating its
     ///   attributes and text takes effect immediately and is visible through any other handle to that element.
     ///
-    /// Consequently, treat `parent()` as **read-only navigation** - for example, walking up to a containing `<g>`
-    /// from inside an event callback, rather than as a way to re-acquire listener ownership of an element that is
-    /// already managed elsewhere. Where you can, keep and reuse the factory handles you already hold instead.
+    /// Consequently, treat `parent()` as **read-only navigation** — for example, walking up to a containing `<g>`
+    /// from inside an event callback to read or modify its attributes.
+    ///
+    /// **IMPORTANT**
+    ///
+    /// Do **not** register listeners through a handle obtained from `parent()`: those listeners are invisible to,
+    /// and are not cleaned up by, any factory handle for the same element.
+    /// Where you can, keep and reuse the factory handles you already hold instead.
     ///
     /// # Example
     ///
