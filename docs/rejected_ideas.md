@@ -320,6 +320,28 @@ The current `EventClosure` enum is boilerplate, but nonetheless it is working, a
 Any new `on_*` helper must explicitly state which variant it wraps without touching the dispatch path.
 The right response to the boilerplate concern is documentation, not type erasure.
 
+## 12) Adding `parent_element()` for lighter hot-path parent access
+
+`SvgNode::parent()` creates a fresh managed `SvgNode` around the parent element, with its own independent listener store.
+It was suggested that a lighter sibling method (`pub fn parent_element(&self) -> Option<SvgElement>`) be added for hot-path callers (e.g. inside `pointermove`, `wheel`, or RAF callbacks) that only need to inspect or compare the parent without constructing a new managed node.
+
+The suggestion explicitly frames this as a future addition ("if parent traversal becomes common in hot paths") and recommends not replacing the current `parent()` behaviour.
+For those reasons, and the following, it is not adopted now.
+
+* **No current consumer demonstrates the to be a realistic need.**<br>
+  The crate targets simple SVG diagrams; hot-path parent traversal has not (so far) appeared in any demo or real use case.
+  Extending the API surface for a hypothetical future requirement conflicts with the crate's principle of not designing for speculative requirements.
+
+* **`as_element()` already provides the raw-DOM escape hatch.**<br>
+  A caller who needs the parent element for inspection can call `node.parent().map(|n| n.as_element().clone())`.
+  It is verbose but accurate for the rare case, and avoids widening the public API for a path that has no demonstrated users.
+
+* **Returning `SvgElement` directly would break the crate's abstraction layer.**<br>
+  Every other navigation method (`parent`, `downgrade` / `upgrade`) returns a crate-managed type.
+  Introducing `Option<SvgElement>` as a return type on a navigation method would be the first raw `web-sys` type surfaced from a traversal API, setting an inconsistent precedent.
+
+If a future profile shows parent-traversal allocation as a measured bottleneck in a real hot path, the method can be added then with evidence to justify the API surface cost.
+
 ## 13) Hiding raw `web_sys` access behind `raw_element_unchecked()` or a Cargo feature
 
 An external review flagged three sites where the crate exposes raw `web_sys` elements:
@@ -559,25 +581,3 @@ The inconsistency is deliberate and documented.
 | Layer 4 | Remove raw DOM from normal API | See rejected idea 13 |
 
 The recommendation names an architecture that already exists; it does not propose a change.
-
-## 12) Adding `parent_element()` for lighter hot-path parent access
-
-`SvgNode::parent()` creates a fresh managed `SvgNode` around the parent element, with its own independent listener store.
-It was suggested that a lighter sibling method (`pub fn parent_element(&self) -> Option<SvgElement>`) be added for hot-path callers (e.g. inside `pointermove`, `wheel`, or RAF callbacks) that only need to inspect or compare the parent without constructing a new managed node.
-
-The suggestion explicitly frames this as a future addition ("if parent traversal becomes common in hot paths") and recommends not replacing the current `parent()` behaviour.
-For those reasons, and the following, it is not adopted now.
-
-* **No current consumer demonstrates the to be a realistic need.**<br>
-  The crate targets simple SVG diagrams; hot-path parent traversal has not (so far) appeared in any demo or real use case.
-  Extending the API surface for a hypothetical future requirement conflicts with the crate's principle of not designing for speculative requirements.
-
-* **`as_element()` already provides the raw-DOM escape hatch.**<br>
-  A caller who needs the parent element for inspection can call `node.parent().map(|n| n.as_element().clone())`.
-  It is verbose but accurate for the rare case, and avoids widening the public API for a path that has no demonstrated users.
-
-* **Returning `SvgElement` directly would break the crate's abstraction layer.**<br>
-  Every other navigation method (`parent`, `downgrade` / `upgrade`) returns a crate-managed type.
-  Introducing `Option<SvgElement>` as a return type on a navigation method would be the first raw `web-sys` type surfaced from a traversal API, setting an inconsistent precedent.
-
-If a future profile shows parent-traversal allocation as a measured bottleneck in a real hot path, the method can be added then with evidence to justify the API surface cost.
