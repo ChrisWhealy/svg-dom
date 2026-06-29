@@ -313,26 +313,28 @@ fn should_set_marker_units_user_space() -> Result<(), String> {
 // Child shapes inside a marker
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-/// A `<polygon>` created via `marker.polygon_raw(str)` is a child of the `<marker>` element.
+/// A `<polygon>` created via `marker.polygon(points)` is a child of the `<marker>` element.
 #[wasm_bindgen_test]
 fn should_append_polygon_to_marker() -> Result<(), String> {
     let svg = make_svg("marker-polygon-parent");
     let defs = svg.defs().map_err(|e| e.to_string())?;
     let marker = defs.marker("m").map_err(|e| e.to_string())?;
-    let poly = marker.polygon_raw("0 0, 10 3.5, 0 7").map_err(|e| e.to_string())?;
+    let pts = [Point::new(0.0, 0.0), Point::new(10.0, 3.5), Point::new(0.0, 7.0)];
+    let poly = marker.polygon(&pts).map_err(|e| e.to_string())?;
     let parent = poly.as_element().parent_element().ok_or("polygon has no parent")?;
     common::check_eq(parent.tag_name(), "marker".to_owned())
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// The `points` attribute on that polygon carries the supplied string verbatim.
+/// The `points` attribute on a marker polygon is serialised by `write_points` (`"x,y x,y …"` format).
 #[wasm_bindgen_test]
 fn should_set_polygon_points_in_marker() -> Result<(), String> {
     let svg = make_svg("marker-polygon-points");
     let defs = svg.defs().map_err(|e| e.to_string())?;
     let marker = defs.marker("m").map_err(|e| e.to_string())?;
-    let poly = marker.polygon_raw("0 0, 10 3.5, 0 7").map_err(|e| e.to_string())?;
-    common::check_eq(poly.as_element().get_attribute("points"), Some("0 0, 10 3.5, 0 7".into()))
+    let pts = [Point::new(0.0, 0.0), Point::new(10.0, 3.5), Point::new(0.0, 7.0)];
+    let poly = marker.polygon(&pts).map_err(|e| e.to_string())?;
+    common::check_eq(poly.as_element().get_attribute("points"), Some("0,0 10,3.5 0,7".into()))
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -559,7 +561,7 @@ fn should_assemble_arrowhead_marker() -> Result<(), String> {
     marker.set_marker_width(10.0).map_err(|e| e.to_string())?;
     marker.set_marker_height(7.0).map_err(|e| e.to_string())?;
     marker.set_orient("auto").map_err(|e| e.to_string())?;
-    marker.polygon_raw("0 0, 10 3.5, 0 7").map_err(|e| e.to_string())?;
+    marker.polygon(&[Point::new(0.0, 0.0), Point::new(10.0, 3.5), Point::new(0.0, 7.0)]).map_err(|e| e.to_string())?;
 
     let line = svg
         .line(Point::new(20.0, 50.0), Point::new(180.0, 50.0))
@@ -633,7 +635,7 @@ fn should_build_marker_and_append_on_success() -> Result<(), String> {
             m.set_marker_width(10.0)?;
             m.set_marker_height(7.0)?;
             m.set_orient("auto")?;
-            m.polygon_raw("0 0, 10 3.5, 0 7")?;
+            m.polygon(&[Point::new(0.0, 0.0), Point::new(10.0, 3.5), Point::new(0.0, 7.0)])?;
             Ok(())
         })
         .map_err(|e| e.to_string())?;
@@ -695,7 +697,7 @@ fn should_build_nested_defs_and_marker_atomically() -> Result<(), String> {
             m.set_ref_x(10.0)?;
             m.set_ref_y(3.5)?;
             m.set_orient("auto")?;
-            m.polygon_raw("0 0, 10 3.5, 0 7")?;
+            m.polygon(&[Point::new(0.0, 0.0), Point::new(10.0, 3.5), Point::new(0.0, 7.0)])?;
             Ok(())
         })?;
         Ok(())

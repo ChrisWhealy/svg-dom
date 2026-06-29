@@ -55,7 +55,7 @@ impl MarkerUnits {
 /// marker.set_marker_width(10.0)?;
 /// marker.set_marker_height(7.0)?;
 /// marker.set_orient("auto")?;
-/// marker.polygon_raw("0 0, 10 3.5, 0 7")?;
+/// marker.polygon(&[Point::new(0.0, 0.0), Point::new(10.0, 3.5), Point::new(0.0, 7.0)])?;
 ///
 /// let line = svg.line(Point::new(20.0, 50.0), Point::new(180.0, 50.0))?;
 /// line.set_stroke("black")?;
@@ -263,19 +263,6 @@ impl SvgMarker {
     /// Creates a `<polygon>` child inside the marker from a slice of [`Point`]s.
     pub fn polygon(&self, points: &[Point]) -> Result<SvgNode, Error> {
         self.create_polygon(points)
-    }
-
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Creates a `<polygon>` child inside the marker from a raw SVG points string (`"x1,y1 x2,y2 …"`).
-    ///
-    /// This is a convenience shorthand for arrowhead polygons that are most naturally written as string literals,
-    /// e.g. `"0 0, 10 3.5, 0 7"`.
-    /// Prefer [`polygon`](Self::polygon) when you already have a `&[Point]`.
-    pub fn polygon_raw(&self, points: &str) -> Result<SvgNode, Error> {
-        let node = self.make_node("polygon")?;
-        node.set_attr("points", points)?;
-        self.append_node(&node)?;
-        Ok(node)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -648,7 +648,7 @@ impl SvgNode {
     /// let defs = svg.defs()?;
     /// let marker = defs.marker("arrow")?;
     /// marker.set_orient("auto")?;
-    /// marker.polygon_raw("0 0, 10 3.5, 0 7")?;
+    /// marker.polygon(&[Point::new(0.0, 0.0), Point::new(10.0, 3.5), Point::new(0.0, 7.0)])?;
     ///
     /// let line = svg.line(Point::new(20.0, 50.0), Point::new(180.0, 50.0))?;
     /// line.set_marker_end_ref(&marker)?;

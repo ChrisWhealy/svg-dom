@@ -604,7 +604,7 @@ fn demo_marker() -> Result<(), Error> {
         m.set_marker_width(10.0)?;
         m.set_marker_height(7.0)?;
         m.set_orient("auto")?;
-        let head = m.polygon_raw("0 0, 10 3.5, 0 7")?;
+        let head = m.polygon(&[Point::new(0.0, 0.0), Point::new(10.0, 3.5), Point::new(0.0, 7.0)])?;
         head.set_fill(ACCENT_BLUE)?;
         Ok(())
     })?;

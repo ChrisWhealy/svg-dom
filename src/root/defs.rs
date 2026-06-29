@@ -53,7 +53,7 @@ pub(crate) fn validate_marker_id(id: &str) -> Result<(), Error> {
 /// marker.set_marker_width(10.0)?;
 /// marker.set_marker_height(7.0)?;
 /// marker.set_orient("auto")?;
-/// marker.polygon_raw("0 0, 10 3.5, 0 7")?;
+/// marker.polygon(&[Point::new(0.0, 0.0), Point::new(10.0, 3.5), Point::new(0.0, 7.0)])?;
 ///
 /// // Apply the marker to a line.
 /// let line = svg.line(Point::new(20.0, 50.0), Point::new(180.0, 50.0))?;
@@ -141,7 +141,7 @@ impl SvgDefs {
     ///     m.set_marker_width(10.0)?;
     ///     m.set_marker_height(7.0)?;
     ///     m.set_orient("auto")?;
-    ///     m.polygon_raw("0 0, 10 3.5, 0 7")?;
+    ///     m.polygon(&[Point::new(0.0, 0.0), Point::new(10.0, 3.5), Point::new(0.0, 7.0)])?;
     ///     Ok(())
     /// })?;
     /// Ok::<(), svg_dom::Error>(())
@@ -329,7 +329,7 @@ impl SvgRoot {
     ///         m.set_marker_width(10.0)?;
     ///         m.set_marker_height(7.0)?;
     ///         m.set_orient("auto")?;
-    ///         m.polygon_raw("0 0, 10 3.5, 0 7")?;
+    ///         m.polygon(&[Point::new(0.0, 0.0), Point::new(10.0, 3.5), Point::new(0.0, 7.0)])?;
     ///         Ok(())
     ///     })?;
     ///     Ok(())
