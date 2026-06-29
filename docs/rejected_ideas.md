@@ -495,6 +495,71 @@ recommend `build_defs`/`build_marker` for one-shot use.
 The `build_*` doc comments already stated that the closure path defers the append.
 Together these give callers a clear picture of the trade-off without changing any public API.
 
+## 16) Reducing attribute-mutation surface area to one canonical path
+
+An external review observed that the crate exposes many ways to set the same attribute — using
+`set_fill`, `set_attr`, `SvgAttrs::set`, `AttrWriter::set`, `AnimationFrame::set_attr`, or
+raw `as_element().set_attribute` — and that some internal implementations were inconsistent:
+`SvgMarker::set_orient` and `set_units` call `element.set_attribute` directly; marker-reference
+setters use `format!("url(#{id})")` to build the URL; `SvgNode::set_stroke_width` creates a
+`SvgAttrs::new()` locally rather than using a shared buffer.
+
+The recommendation was to collapse these into four strict layers: one internal primitive, one
+ordinary public mutation path, explicitly named performance helpers, and no raw DOM in the normal API.
+
+This will not be adopted for the following reasons.
+
+### The "many paths" observation conflates composition with competition
+
+For *string-valued* attributes, the paths are not alternatives; they are layered compositions:
+
+```rust
+node.set_fill("red")                         // typed helper → calls set_attr
+node.set_attr("fill","red")                  // generic helper → calls element.set_attribute
+attrs.set(&node,"fill","red")                // SvgAttrs::set → calls node.set_attr
+node.attrs(&mut a).set("fill","red").apply() // AttrWriter → calls SvgAttrs::set → node.set_attr
+```
+
+Each level wraps the one below.
+`SvgAttrs::set` is a one-line pass-through to `node.set_attr`; using it for a string attribute adds no behaviour: it exists so the `AttrWriter` chain can mix string and numeric attributes uniformly.
+
+For *numeric* attributes, `SvgAttrs::display` / `AttrWriter::display` / `AnimationFrame::set_attr_fmt` genuinely add a distinct behaviour: they format the value into a reusable scratch `String` and avoid the per-call allocation that a naïve `value.to_string()` would make.
+These are not competing paths; they are a deliberate performance tier.
+
+Raw `as_element()` access is already documented as an escape hatch (rejected idea 13) and is excluded from the "normal" operating model.
+
+### The internal inconsistencies have explanations
+
+**`SvgMarker::set_orient` and `set_units` call `element.set_attribute` directly.**
+
+`SvgAttrs` (and the `display_element` / `display` methods on it) exists for *numeric formatting*: it reuses a scratch `String` to convert `f64`/`Display` values without per-call allocation.
+`set_orient` accepts a `&str`; `set_units` accepts a `MarkerUnits` enum that produces a `&'static str`.
+Neither needs scratch-buffer formatting.
+Routing them through `self.attrs.borrow_mut()` would add a `RefCell` borrow and an indirection for no benefit; calling `element.set_attribute` directly is the correct primitive for string-valued writes.
+
+**Marker-reference setters use `format!("url(#{marker_id})")`.**
+
+`SvgNode` does not own a shared scratch buffer (its `SvgNodeInner` holds only `element` and `listeners`).
+Adding a shared `RefCell<SvgAttrs>` to every node just to avoid this one `format!` at setup time would add ~40 bytes to every node in every scene.
+A single `format!` at marker-reference setup time is the right tradeoff since `set_marker_end` is not in the hot-path.
+
+**`SvgNode::set_stroke_width` creates `SvgAttrs::new()` locally.**
+
+`SvgMarker` and `SvgDefs` hold a shared `RefCell<SvgAttrs>` because they are factory types that may need to format many numeric attributes; `SvgNode` does not.
+The local `SvgAttrs::new()` in `set_stroke_width` is the convenience path; the doc comment already directs hot-path callers to `set_attr_display` with a caller-supplied buffer.
+The inconsistency is deliberate and documented.
+
+### The "four layers" recommendation already describes the crate's design
+
+| | Reviewer's label | Existing equivalent |
+|--|--|---|
+| Layer 1 | One internal primitive | `element.set_attribute` via `web_sys` |
+| Layer 2 | Ordinary public mutation | `node.set_attr` + typed helpers (`set_fill`, `set_stroke`, …) |
+| Layer 3 | Performance helpers | `SvgAttrs`, `CachedAttr`, `AnimationFrame` |
+| Layer 4 | Remove raw DOM from normal API | See rejected idea 13 |
+
+The recommendation names an architecture that already exists; it does not propose a change.
+
 ## 12) Adding `parent_element()` for lighter hot-path parent access
 
 `SvgNode::parent()` creates a fresh managed `SvgNode` around the parent element, with its own independent listener store.
