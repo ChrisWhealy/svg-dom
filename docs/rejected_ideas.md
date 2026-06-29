@@ -623,3 +623,49 @@ Because staleness is inherent to DOM string references, making ids immutable doe
 `set_marker_end` already carried the note "Prefer `set_marker_end_ref` when you have the `SvgMarker` handle available." `set_marker_start` and `set_marker_mid` did not.
 This asymmetry was a real inconsistency.
 The doc comments on `set_marker_start` and `set_marker_mid` have been updated to match `set_marker_end`, so all three string-id setters now consistently recommend the `_ref` form when a handle is available.
+
+## 18) Listener removal has documented unsafe lifecycle caveats
+
+A follow-up to idea 10 was to replace the deferred-drop guard with a listener-handle model:
+
+```rust
+let handle = node.on_click(...)?;
+handle.remove();
+```
+
+The claim was that this model "marks the listener as removed, detaches it from DOM, and defers dropping the closure until after the current dispatch completes", making self-removal safe without the dispatch-depth counter.
+
+The claim is wrong on its central premise: **a handle does not eliminate the need for dispatch tracking.**
+To defer a closure drop until after dispatch, you still need to know when dispatch is active.
+The only mechanism that provides this is the dispatch-depth counter; which is the same infrastructure rejected in idea 10 for adding overhead to every event on every node.
+The handle is an alternative API surface for triggering deferred drops, not an alternative to the mechanism.
+
+### The handle ownership dilemma
+
+`on_click` (and every other `on_*` helper) currently returns `Result<(), Error>`.
+Changing it to `Result<ListenerHandle, Error>` forces a choice between two semantics:
+
+**Handle drop removes the listener.**<br>
+A caller who writes `node.on_click(|_| {})?;` would immediately drop the handle and silently remove the listener.
+Every listener registration would require the caller to explicitly store a handle, or risk losing the listener instantly.
+This is a significant ergonomic regression for the common case where a listener is intended to last as long as the node.
+
+**Handle drop is a no-op; listener lives independently.**<br>
+The listener is still owned by the node, exactly as now.
+The handle is an alternate API for explicit removal, alongside `clear_listeners` and `remove_listeners`.
+This adds no safety property: calling `handle.remove()` from within the executing handler has the same abstract-machine footgun as `clear_listeners()`, and without the deferred-drop guard (which requires the dispatch-depth counter), the closure is still freed while execution is in progress.
+
+Neither option solves the stated problem.
+
+### The underlying analysis from idea 10 still applies
+
+- The abstract-machine UB is practically inert in the wasm32 execution model: the trampoline does not dereference the freed pointer again after the user closure returns, and WebAssembly is single-threaded, so no concurrent reuse can occur.
+- The motivating use case (a handler that removes itself) is already correctly served by `on_event_once`, which uses `{ once: true }` and `Option::take` so the browser removes the DOM listener and the user handler's captures are freed after the first dispatch, never while executing.
+- Removing listeners on a *different* node, or for a *different* event type on the same node, is already safe.
+
+### What handles would genuinely add
+
+A handle that carries the identity of a specific listener would enable removal of one listener out of several registered for the same event type: something `remove_listeners("click")` cannot do as it removes all listeners for the specified event type e.g. `click`.
+This is a new, incremental feature request, not a safety fix.
+
+If specific-listener removal proves necessary in practice, it can be evaluated on its own merits, with an API designed for that use case rather than framed as a correction to the existing safety model.
