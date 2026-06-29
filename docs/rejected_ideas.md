@@ -3,6 +3,28 @@
 Design suggestions that were evaluated for `svg-dom` and deliberately not adopted.
 The reasoning is preserved here so the same ideas are not repeatedly re-proposed.
 
+## Contents
+
+1. [Splitting `SvgNode` into passive and interactive types](#1-splitting-svgnode-into-passive-and-interactive-types)
+2. [A faster float-to-string crate (`ryu` / `itoa`)](#2-a-faster-float-to-string-crate-ryu--itoa)
+3. [`path_fmt` / `text_fmt` factory helpers](#3-path_fmt--text_fmt-factory-helpers)
+4. [Handle-light factories for large static scenes (`static_rect`, raw `SvgElement`)](#4-handle-light-factories-for-large-static-scenes-static_rect-raw-svgelement)
+5. [An `EventName` enum instead of `&'static str`](#5-an-eventname-enum-instead-of-static-str)
+6. [A size-optimised `[profile.release]` baked into the crate](#6-a-size-optimised-profilerelease-baked-into-the-crate)
+7. [Provide a rendered-size fallback (`getBoundingClientRect`) when seeding the cached viewport](#7-provide-a-rendered-size-fallback-getboundingclientrect-when-seeding-the-cached-viewport)
+8. [Hiding `SvgRoot::root` behind an `as_element()` accessor](#8-hiding-svgrootroot-behind-an-as_element-accessor)
+9. [Rewriting `ListenerStore::push` to push into the `Many` vector in place](#9-rewriting-listenerstorepush-to-push-into-the-many-vector-in-place)
+10. [Deferred listener drops to make self-removal safe from within a handler](#10-deferred-listener-drops-to-make-self-removal-safe-from-within-a-handler)
+11. [Flatten `EventClosure` by simplifying it to `Closure<dyn FnMut(Event)>`](#11-flatten-eventclosure-by-simplifying-it-to-closuredyn-fnmutevent)
+12. [Adding `parent_element()` for lighter hot-path parent access](#12-adding-parent_element-for-lighter-hot-path-parent-access)
+13. [Hiding raw `web_sys` access behind `raw_element_unchecked()` or a Cargo feature](#13-hiding-raw-web_sys-access-behind-raw_element_unchecked-or-a-cargo-feature)
+14. [Restricting or removing `SvgNode::parent()` to prevent split listener state](#14-restricting-or-removing-svgnodeparent-to-prevent-split-listener-state)
+15. [Canonicalising on one construction model for `defs`, `marker`, and `batch`](#15-canonicalising-on-one-construction-model-for-defs-marker-and-batch)
+16. [Reducing attribute-mutation surface area to one canonical path](#16-reducing-attribute-mutation-surface-area-to-one-canonical-path)
+17. [Unifying marker references on handles and making marker IDs immutable](#17-unifying-marker-references-on-handles-and-making-marker-ids-immutable)
+18. [Listener removal has documented unsafe lifecycle caveats](#18-listener-removal-has-documented-unsafe-lifecycle-caveats)
+19. [Making `AnimationLoop::start_with_frame` the canonical animation API](#19-making-animationloopstart_with_frame-the-canonical-animation-api)
+
 ## 1) Splitting `SvgNode` into passive and interactive types
 
 It was suggested that a benefit could be obtained by splitting `SvgNode` into passive and interactive types.
@@ -669,3 +691,51 @@ A handle that carries the identity of a specific listener would enable removal o
 This is a new, incremental feature request, not a safety fix.
 
 If specific-listener removal proves necessary in practice, it can be evaluated on its own merits, with an API designed for that use case rather than framed as a correction to the existing safety model.
+
+## 19) Making `AnimationLoop::start_with_frame` the canonical animation API
+
+The external review observed that `AnimationLoop` exposes two starting styles:
+
+```rust
+// Plain callback — timestamp only.
+AnimationLoop::start(|ts| { /* ... */ })?;
+
+// Frame callback — timestamp plus a reusable scratch buffer.
+AnimationLoop::start_with_frame(|ts, frame| { /* ... */ })?;
+```
+
+The recommendation was that `start_with_frame` should be made canonical: which implies that `start` should either be removed or deprecated because it is *"more consistent with the crate's current performance direction"*.
+
+This idea will not be adopted.
+
+### The `start` and `start_with_frame` function are layered, not competing
+
+`start_with_frame` is implemented as a thin wrapper around `start_inner`, the same private entry point used by `start`:
+
+```rust
+pub fn start_with_frame<F: FnMut(f64, &mut AnimationFrame) + 'static>(mut callback: F) -> Result<Self, Error> {
+    let mut frame = AnimationFrame::new();
+    Self::start_inner(move |ts| callback(ts, &mut frame))
+}
+```
+
+`AnimationFrame` is an adapter that adds one allocation (the scratch `String`, made once) and no other overhead.
+The two constructors are not alternatives at the same abstraction level; one wraps the other.
+
+### `start` is the right API for a large class of callbacks
+
+Not every animation callback needs to format numeric attributes.
+A callback that reads a game state, calls `set_transform()` on a pre-computed matrix string, or invokes a typed setter (`set_cx`, `set_cy`) has no use for `AnimationFrame`.
+Forcing the `AnimationFrame` parameter onto every caller imposes an unused parameter and the mental overhead of an API whose purpose is irrelevant to the callback ("why is there a frame here?").
+
+### The relationship exactly mirrors the `defs` / `batch` API pairs
+
+`defs()` / `build_defs()`, `marker()` / `build_marker()`, `batch()` / `build_batch()`, and `start()` / `start_with_frame()` all follow the same pattern: a simpler form for the common case and a richer form that adds behaviour such as atomicity and a scratch buffer for callers that need it.
+Idea 15 has already been rejected for the same reasons, that the `defs`/`batch` pairs should be collapsed into a single canonical form.
+
+### The doc already guides callers to the right form
+
+The `start` doc comment includes the remark "For a crate-managed buffer, see `start_with_frame`" and shows, in its example, how to manage a manually-owned buffer when the crate's buffer is not wanted.
+Callers are directed to the performance path without it being forced on them.
+
+Removing `start` would be a breaking change that delivers no benefit for the majority of animation callbacks, while adding a mandatory, unused parameter for every caller that does not need to format attributes.
