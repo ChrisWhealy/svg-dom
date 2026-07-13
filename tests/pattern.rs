@@ -142,10 +142,7 @@ fn should_set_pattern_units_user_space() -> Result<(), String> {
     let defs = svg.defs().map_err(|e| e.to_string())?;
     let pat = defs.pattern("pu-user").map_err(|e| e.to_string())?;
     pat.set_pattern_units(PatternUnits::UserSpaceOnUse).map_err(|e| e.to_string())?;
-    check_eq(
-        pat.as_element().get_attribute("patternUnits"),
-        Some("userSpaceOnUse".into()),
-    )
+    check_eq(pat.as_element().get_attribute("patternUnits"), Some("userSpaceOnUse".into()))
 }
 
 /// `set_pattern_units(ObjectBoundingBox)` writes `patternUnits="objectBoundingBox"`.
@@ -154,11 +151,9 @@ fn should_set_pattern_units_object_bounding_box() -> Result<(), String> {
     let svg = make_svg("pat-units-obb");
     let defs = svg.defs().map_err(|e| e.to_string())?;
     let pat = defs.pattern("pu-obb").map_err(|e| e.to_string())?;
-    pat.set_pattern_units(PatternUnits::ObjectBoundingBox).map_err(|e| e.to_string())?;
-    check_eq(
-        pat.as_element().get_attribute("patternUnits"),
-        Some("objectBoundingBox".into()),
-    )
+    pat.set_pattern_units(PatternUnits::ObjectBoundingBox)
+        .map_err(|e| e.to_string())?;
+    check_eq(pat.as_element().get_attribute("patternUnits"), Some("objectBoundingBox".into()))
 }
 
 /// `set_pattern_content_units` writes the `patternContentUnits` attribute.
@@ -167,7 +162,8 @@ fn should_set_pattern_content_units() -> Result<(), String> {
     let svg = make_svg("pat-content-units");
     let defs = svg.defs().map_err(|e| e.to_string())?;
     let pat = defs.pattern("pcu").map_err(|e| e.to_string())?;
-    pat.set_pattern_content_units(PatternUnits::UserSpaceOnUse).map_err(|e| e.to_string())?;
+    pat.set_pattern_content_units(PatternUnits::UserSpaceOnUse)
+        .map_err(|e| e.to_string())?;
     check_eq(
         pat.as_element().get_attribute("patternContentUnits"),
         Some("userSpaceOnUse".into()),
@@ -181,10 +177,7 @@ fn should_set_pattern_transform() -> Result<(), String> {
     let defs = svg.defs().map_err(|e| e.to_string())?;
     let pat = defs.pattern("pt").map_err(|e| e.to_string())?;
     pat.set_pattern_transform("rotate(45)").map_err(|e| e.to_string())?;
-    check_eq(
-        pat.as_element().get_attribute("patternTransform"),
-        Some("rotate(45)".into()),
-    )
+    check_eq(pat.as_element().get_attribute("patternTransform"), Some("rotate(45)".into()))
 }
 
 /// `set_view_box` writes a correctly formatted `viewBox` attribute.
