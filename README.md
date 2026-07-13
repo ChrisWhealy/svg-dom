@@ -10,11 +10,11 @@ That said, all reasonable, conventional steps have been taken to provide a secur
 # Table of Contents
 
 - [ToDo List](#todo-list)
-- [What this crate is](#what-this-crate-is)
-- [What this crate is NOT](#what-this-crate-is-not)
+- [What This Crate Is](#what-this-crate-is)
+- [What This Crate Is NOT](#what-this-crate-is-not)
 - [Building](#building)
 - [Demo Server](#demo-server)
-- [Quick start](#quick-start)
+- [Quick Start](#quick-start)
 - [Testing](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/testing.md)
 - [Design Notes](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/design_notes.md)
 - [Supported SVG Elements](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/elements.md)
@@ -55,7 +55,7 @@ That said, all reasonable, conventional steps have been taken to provide a secur
   - [ ] `<textPath>`
   - [ ] `<filter>` and `<fe>` elements
 
-## What this crate is
+## What This Crate Is
 
 The `svg-dom` crate acts as a thin wrapper for `web-sys` SVG DOM bindings that allows you to:
 
@@ -83,7 +83,7 @@ The `svg-dom` crate acts as a thin wrapper for `web-sys` SVG DOM bindings that a
    - and generic `Event` handlers
 - Drive reactive updates through a `requestAnimationFrame` loop via `AnimationLoop`
 
-## What this crate is NOT
+## What This Crate Is NOT
 
 This crate does not use an HTML `<canvas>` element!
 
@@ -116,9 +116,9 @@ Interactive demo nodes are kept alive explicitly for the lifetime of the page be
 
 The coding used in the actual demo implementation is shown beneath each example.
 
-# Quick start
+# Quick Start
 
-## Core types
+## Core Types
 
 | Type | Purpose
 |---|---|
@@ -211,7 +211,7 @@ This approach is preferable to calling `std::mem::forget(anim)`, since forgettin
 
 A larger app would instead hold the loop in its own long-lived state: maybe an application struct, a framework component, or some similar structure, rather than a free-standing slot in `thread_local!`.
 
-## Managed event handlers
+## Managed Event Handlers
 
 `SvgNode` owns the closures registered by its event helpers and removes the matching DOM listener before those closures are dropped.
 Use these helpers instead of registering raw `web-sys` callbacks and calling `Closure::forget`.
@@ -247,7 +247,7 @@ pad.on_mouseup(move |_| {
 pad.on_contextmenu(move |evt| evt.prevent_default())?;
 ```
 
-## Setting several attributes at once
+## Setting Several Attributes at Once
 
 Use `SvgNode::set_attrs` when a geometry or style update naturally changes several attributes together.
 It accepts string literals and owned `String` values, so it is convenient both for fixed style values and computed geometry:
@@ -276,7 +276,7 @@ rect.attrs(&mut attrs)
 
 Element factory methods use `SvgAttrs` internally for initial numeric geometry attributes, so repeated shape creation reuses scratch storage instead of allocating a new formatting buffer per element.
 
-## Allocation-light animation formatting
+## Allocation-light Animation Formatting
 
 For attributes that change every animation frame, prefer `AnimationLoop::start_with_frame` over building fresh strings with `format!` inside the RAF callback.
 The callback receives an `AnimationFrame` scratch buffer that is allocated once and reused for formatted attributes and text:
