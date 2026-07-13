@@ -31,7 +31,7 @@ That said, all reasonable, conventional steps have been taken to provide a secur
 - [x] Schedule `cargo-deny` to run as a weekly `cron` job
 - Implement remaining SVG elements
   - [x] `<defs>`
-  - [ ] `<linearGradient>` / `<radialGradient>`
+  - [x] `<linearGradient>` / `<radialGradient>`
   - [ ] `<pattern>`
   - [ ] `<clipPath>`
   - [x] `<marker>`
