@@ -1706,7 +1706,7 @@ fn demo_events_passive() -> Result<(), Error> {
     let box_y = PAD_Y + 5.0;
     let box_h = 100.0;
     let box_w = 360.0;
-    let left_cx = 20.0 + box_w / 2.0;   // 200
+    let left_cx = 20.0 + box_w / 2.0; // 200
     let right_cx = 420.0 + box_w / 2.0; // 600
 
     // --- Passive wheel ---
@@ -1716,7 +1716,12 @@ fn demo_events_passive() -> Result<(), Error> {
 
     let wh_name = svg.text(Point::new(left_cx, box_y + 25.0), "on_wheel_passive")?;
     wh_name.set_fill(WHITE)?;
-    wh_name.set_attrs([("font-size", "14"), ("font-weight", "bold"), ("text-anchor", "middle"), ("style", "pointer-events:none")])?;
+    wh_name.set_attrs([
+        ("font-size", "14"),
+        ("font-weight", "bold"),
+        ("text-anchor", "middle"),
+        ("style", "pointer-events:none"),
+    ])?;
 
     let wh_hint = svg.text(Point::new(left_cx, box_y + 47.0), "wheel here — page scroll is not blocked")?;
     wh_hint.set_fill(WHITE)?;
@@ -1744,13 +1749,26 @@ fn demo_events_passive() -> Result<(), Error> {
 
     let tc_name1 = svg.text(Point::new(right_cx, box_y + 20.0), "on_touchstart_passive")?;
     tc_name1.set_fill(WHITE)?;
-    tc_name1.set_attrs([("font-size", "13"), ("font-weight", "bold"), ("text-anchor", "middle"), ("style", "pointer-events:none")])?;
+    tc_name1.set_attrs([
+        ("font-size", "13"),
+        ("font-weight", "bold"),
+        ("text-anchor", "middle"),
+        ("style", "pointer-events:none"),
+    ])?;
 
     let tc_name2 = svg.text(Point::new(right_cx, box_y + 38.0), "on_touchmove_passive")?;
     tc_name2.set_fill(WHITE)?;
-    tc_name2.set_attrs([("font-size", "13"), ("font-weight", "bold"), ("text-anchor", "middle"), ("style", "pointer-events:none")])?;
+    tc_name2.set_attrs([
+        ("font-size", "13"),
+        ("font-weight", "bold"),
+        ("text-anchor", "middle"),
+        ("style", "pointer-events:none"),
+    ])?;
 
-    let tc_hint = svg.text(Point::new(right_cx, box_y + 58.0), "touch here (mobile) — scroll is not blocked")?;
+    let tc_hint = svg.text(
+        Point::new(right_cx, box_y + 58.0),
+        "touch here (mobile) — scroll is not blocked",
+    )?;
     tc_hint.set_fill(WHITE)?;
     tc_hint.set_attrs([("font-size", "11"), ("text-anchor", "middle"), ("style", "pointer-events:none")])?;
 
