@@ -91,10 +91,14 @@ Remove the clip with `SvgNode::remove_clip_path()`.
 * Ids are document-scoped, so they must be globally unique across all `<svg>` elements on the page.
 * A `<clipPath>` defined in one `<svg>`'s `<defs>` can only be referenced by elements inside the same document; it cannot be used across iframes or shadow trees.
 
+---
+
 ## `<defs>`
 
 `<defs>` is the standard SVG container for reusable assets and can be obtained from `SvgRoot::defs()`.
 All shape factory methods are available on `SvgDefs` for building inner content.
+
+---
 
 ## `<image>`
 
@@ -110,6 +114,8 @@ Obtain a handle via `SvgRoot::image(href, top_left, size)` or `SvgBatch::image(h
   - `"none"` — stretch to fill the box exactly, ignoring the source aspect ratio.
   - `"xMidYMid slice"` — scale up to fill the box and clip any overflow.
 - To swap the image source after creation, call `SvgNode::set_href`.
+
+---
 
 ## `<linearGradient>` / `<radialGradient>`
 
@@ -152,6 +158,8 @@ The live-append variants are `linear_gradient` and `radial_gradient`.
 
 A fully qualified prefix such as `"my-app-sky-gradient"` is a practical guard against collisions.
 
+---
+
 ## `<marker>`
 
 `<marker>` defines a reusable graphic (e.g. an arrowhead or a dot etc) rendered at the start, mid-point, or end of a stroked path and can be obtained from `SvgDefs::marker(id)`.
@@ -159,6 +167,8 @@ A fully qualified prefix such as `"my-app-sky-gradient"` is a practical guard ag
 Apply it to any stroked element — `<line>`, `<path>`, `<polyline>`, `<polygon>` — via `SvgNode::set_marker_start`, `set_marker_mid`, or `set_marker_end`.
 The `MarkerUnits` enum controls whether `markerWidth`/`markerHeight` are relative to `strokeWidth` (default) or user coordinates.
 
+
+---
 
 ## `<text>` presentation attributes
 
@@ -180,6 +190,8 @@ The default (`Auto`/`Alphabetic`) places the alphabetic baseline on `y`, so asce
 Use `Middle` or `Central` to vertically centre text on a coordinate.
 Use `Hanging` for scripts (Devanagari, Tibetan, etc.) whose bodies hang from the top of the line box.
 
+---
+
 ## `<tspan>`
 
 `<tspan>` is an inline text span that lives inside a `<text>` element (or another `<tspan>`).
@@ -200,6 +212,8 @@ All text styling helpers (`set_fill`, `set_font_size`, `set_font_family`, `set_t
 
 **Mixed-style inline text:** create a `<text>`, then add each word or phrase as a `tspan`, setting fill/size per span.
 When any `<tspan>` children are present the `<text>` element's own text content should be empty.
+
+---
 
 ## `<use>`
 

@@ -51,7 +51,7 @@ That said, all reasonable, conventional steps have been taken to provide a secur
   - [x] `<image>`
   - [x] `<use>`
   - [ ] `<symbol>`
-  - [ ] `<tspan>`
+  - [x] `<tspan>`
   - [ ] `<textPath>`
   - [ ] `<filter>` and `<fe>` elements
 
