@@ -213,6 +213,93 @@ async fn should_not_retain_captures_after_stop_from_within_callback() -> Result<
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Calling `stop()` twice from inside the running callback must not crash and must prevent re-scheduling.
+///
+/// Before the `StopPending` fix, the second `stop()` would see state `Stopped` (not `Dispatching`), enter the
+/// synchronous cleanup branch, and drop the `FrameClosure` while the wrapper was still executing past `callback(ts)`,
+/// recreating the use-after-free the dispatch guard was added to prevent.
+///
+/// A `DropFlag` proves the closure is freed exactly once, after the callback has returned.
+#[wasm_bindgen_test]
+async fn should_allow_stop_twice_from_within_callback() -> Result<(), String> {
+    struct DropFlag(Rc<Cell<u32>>);
+    impl Drop for DropFlag {
+        fn drop(&mut self) {
+            self.0.set(self.0.get() + 1);
+        }
+    }
+
+    let count = Rc::new(Cell::new(0u32));
+    let drop_count = Rc::new(Cell::new(0u32));
+    let slot: Rc<RefCell<Option<AnimationLoop>>> = Rc::new(RefCell::new(None));
+
+    let flag = DropFlag(drop_count.clone());
+    let count_cb = count.clone();
+    let slot_cb = slot.clone();
+
+    *slot.borrow_mut() = Some(
+        AnimationLoop::start(move |_| {
+            let _ = &flag; // ensure `flag` is captured so its drop is observable
+            count_cb.set(count_cb.get() + 1);
+            if let Some(anim) = slot_cb.borrow().as_ref() {
+                anim.stop();
+                anim.stop(); // second call must not free the closure mid-dispatch
+            }
+        })
+        .map_err(|e| e.to_string())?,
+    );
+
+    wait_for_frames(3).await;
+
+    common::check_eq(count.get(), 1u32)?; // fired exactly once
+    common::check_eq(drop_count.get(), 1u32) // captures freed exactly once (via deferred timer)
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Calling `stop()` then immediately dropping the `AnimationLoop` handle from inside its own callback must not crash.
+///
+/// `stop()` sets state to `StopPending` and schedules a deferred timer.  The subsequent `Drop` on the handle calls
+/// `stop()` again; without the `StopPending` state it would see `Stopped`, enter the synchronous cleanup branch, and
+/// drop the `FrameClosure` while the wrapper body is still executing.
+///
+/// A `DropFlag` proves the captures are freed exactly once after the callback has returned.
+#[wasm_bindgen_test]
+async fn should_allow_stop_then_drop_from_within_callback() -> Result<(), String> {
+    struct DropFlag(Rc<Cell<u32>>);
+    impl Drop for DropFlag {
+        fn drop(&mut self) {
+            self.0.set(self.0.get() + 1);
+        }
+    }
+
+    let count = Rc::new(Cell::new(0u32));
+    let drop_count = Rc::new(Cell::new(0u32));
+    let slot: Rc<RefCell<Option<AnimationLoop>>> = Rc::new(RefCell::new(None));
+
+    let flag = DropFlag(drop_count.clone());
+    let count_cb = count.clone();
+    let slot_cb = slot.clone();
+
+    *slot.borrow_mut() = Some(
+        AnimationLoop::start(move |_| {
+            let _ = &flag;
+            count_cb.set(count_cb.get() + 1);
+            if let Some(anim) = slot_cb.borrow().as_ref() {
+                anim.stop(); // first: sets StopPending, schedules deferred drop
+            }
+            // Drop the handle — Drop calls stop() again, but now sees StopPending → no-op.
+            slot_cb.borrow_mut().take();
+        })
+        .map_err(|e| e.to_string())?,
+    );
+
+    wait_for_frames(3).await;
+
+    common::check_eq(count.get(), 1u32)?; // fired exactly once
+    common::check_eq(drop_count.get(), 1u32) // captures freed exactly once (via deferred timer)
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Calling `stop()` from inside the running callback must not crash and must prevent re-scheduling — the loop must fire
 /// exactly once.
 ///
