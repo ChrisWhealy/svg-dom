@@ -50,7 +50,7 @@ That said, all reasonable, conventional steps have been taken to provide a secur
   - [x] `<marker>`
   - [x] `<image>`
   - [x] `<use>`
-  - [ ] `<symbol>`
+  - [x] `<symbol>`
   - [x] `<tspan>`
   - [ ] `<textPath>`
   - [ ] `<filter>` and `<fe>` elements
