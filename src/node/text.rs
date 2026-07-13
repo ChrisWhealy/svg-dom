@@ -1,5 +1,75 @@
-use crate::{SvgNode, error::Error};
+use crate::{SvgNode, error::Error, root::attrs::SvgAttrs};
 use wasm_bindgen::JsCast;
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Controls which part of a `<text>` string aligns with the element's `x` coordinate.
+///
+/// Maps to the SVG `text-anchor` presentation attribute.
+/// The default is [`Start`](TextAnchor::Start).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TextAnchor {
+    /// The beginning of the text string is placed at the `x` coordinate.
+    /// Default for left-to-right text.
+    Start,
+    /// The midpoint of the text string is placed at the `x` coordinate.
+    Middle,
+    /// The end of the text string is placed at the `x` coordinate.
+    End,
+}
+
+impl TextAnchor {
+    fn as_str(self) -> &'static str {
+        match self {
+            TextAnchor::Start  => "start",
+            TextAnchor::Middle => "middle",
+            TextAnchor::End    => "end",
+        }
+    }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Specifies which font baseline aligns with the `y` coordinate of a `<text>` element.
+///
+/// Maps to the SVG `dominant-baseline` presentation attribute.
+/// The default is [`Auto`](DominantBaseline::Auto), which behaves like [`Alphabetic`](DominantBaseline::Alphabetic)
+/// for most horizontal Latin text.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DominantBaseline {
+    /// Browser-determined; equivalent to `Alphabetic` for horizontal Latin text.
+    Auto,
+    /// The alphabetic baseline — the bottom of most Latin lowercase letters. The SVG default.
+    Alphabetic,
+    /// The midpoint of the em square aligns with `y`. Useful for centring text vertically on a point.
+    Middle,
+    /// The ideographic underline baseline (CJK scripts).
+    Ideographic,
+    /// The hanging baseline — used for Devanagari, Tibetan, and other Indic scripts.
+    Hanging,
+    /// The mathematical baseline, typically used for centred mathematical notation.
+    Mathematical,
+    /// The centre of the em square, derived from the font's own vertical metrics.
+    Central,
+    /// The bottom edge of the em square.
+    TextBottom,
+    /// The top edge of the em square.
+    TextTop,
+}
+
+impl DominantBaseline {
+    fn as_str(self) -> &'static str {
+        match self {
+            DominantBaseline::Auto         => "auto",
+            DominantBaseline::Alphabetic   => "alphabetic",
+            DominantBaseline::Middle       => "middle",
+            DominantBaseline::Ideographic  => "ideographic",
+            DominantBaseline::Hanging      => "hanging",
+            DominantBaseline::Mathematical => "mathematical",
+            DominantBaseline::Central      => "central",
+            DominantBaseline::TextBottom   => "text-bottom",
+            DominantBaseline::TextTop      => "text-top",
+        }
+    }
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 impl SvgNode {
@@ -106,5 +176,86 @@ impl SvgNode {
     /// ```
     pub fn set_text_display<T: std::fmt::Display>(&self, scratch: &mut String, value: T) -> Result<(), Error> {
         self.set_text_fmt(scratch, format_args!("{value}"))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the `font-family` attribute.
+    ///
+    /// Accepts any CSS font-family value: a single family name (`"serif"`, `"monospace"`, `"Arial"`), a comma-separated
+    /// fallback list (`"\"Helvetica Neue\", Arial, sans-serif"`), or a generic family keyword.
+    ///
+    /// Font family names that contain spaces must be quoted.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::Point};
+    /// let svg   = SvgRoot::attach("diagram")?;
+    /// let label = svg.text(Point::new(20.0, 40.0), "Hello")?;
+    /// label.set_font_family("monospace")?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn set_font_family(&self, family: &str) -> Result<(), Error> {
+        self.set_attr("font-family", family)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the `font-size` attribute in user units.
+    ///
+    /// This convenience setter formats `size` into a short-lived `String` allocated and dropped on each call (which is
+    /// fine if you only need to perform a one-off styling);  however, if you need to animate the font size on a hot
+    /// path, prefer [`set_attr_display`](Self::set_attr_display) with a reused buffer instead.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::Point};
+    /// let svg   = SvgRoot::attach("diagram")?;
+    /// let label = svg.text(Point::new(20.0, 40.0), "Hello")?;
+    /// label.set_font_size(24.0)?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn set_font_size(&self, size: f64) -> Result<(), Error> {
+        let mut attrs = SvgAttrs::new();
+        attrs.display(self, "font-size", size)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the `text-anchor` attribute, controlling which part of the text string aligns with the element's `x`
+    /// coordinate.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, TextAnchor, root::utils::Point};
+    /// let svg   = SvgRoot::attach("diagram")?;
+    /// let label = svg.text(Point::new(400.0, 40.0), "centred")?;
+    /// label.set_text_anchor(TextAnchor::Middle)?;  // horizontally centred on x=400
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn set_text_anchor(&self, anchor: TextAnchor) -> Result<(), Error> {
+        self.set_attr("text-anchor", anchor.as_str())
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the `dominant-baseline` attribute, controlling which font baseline aligns with the element's `y`
+    /// coordinate.
+    ///
+    /// The default SVG behaviour (`Auto`/`Alphabetic`) places the text so that the alphabetic baseline sits on `y` —
+    /// meaning ascenders rise above `y` and descenders fall below it.
+    /// Use `Middle` or `Central` to vertically centre text on a point, or `Hanging` for scripts whose body hangs from
+    /// the top of the line box.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, DominantBaseline, root::utils::Point};
+    /// let svg   = SvgRoot::attach("diagram")?;
+    /// let label = svg.text(Point::new(100.0, 90.0), "centred")?;
+    /// label.set_dominant_baseline(DominantBaseline::Middle)?; // vertically centred on y=90
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn set_dominant_baseline(&self, baseline: DominantBaseline) -> Result<(), Error> {
+        self.set_attr("dominant-baseline", baseline.as_str())
     }
 }

@@ -19,6 +19,26 @@ The following SVG elements are supported:
 * `radialGradient` (with `stop`)
 * `clipPath`
 
+## `<text>` presentation attributes
+
+The `<text>` factory (`SvgRoot::text`, `SvgBatch::text`) returns a plain `SvgNode`.
+Four typed helpers are available on any `SvgNode` for styling text:
+
+| Method | Attribute | Type |
+|---|---|---|
+| `set_font_family(family)` | `font-family` | Any CSS font-family string |
+| `set_font_size(size)` | `font-size` | `f64` in user units |
+| `set_text_anchor(TextAnchor)` | `text-anchor` | `TextAnchor::{Start, Middle, End}` |
+| `set_dominant_baseline(DominantBaseline)` | `dominant-baseline` | `DominantBaseline::{Auto, Alphabetic, Middle, …}` |
+
+**`TextAnchor`** controls which part of the string aligns with the `x` coordinate.
+`Start` (default) places the beginning of the text at `x`; `Middle` centres it; `End` places the end.
+
+**`DominantBaseline`** controls which font baseline aligns with the `y` coordinate.
+The default (`Auto`/`Alphabetic`) places the alphabetic baseline on `y`, so ascenders rise above it.
+Use `Middle` or `Central` to vertically centre text on a coordinate.
+Use `Hanging` for scripts (Devanagari, Tibetan, etc.) whose bodies hang from the top of the line box.
+
 ## `<defs>`
 
 `<defs>` is the standard SVG container for reusable assets and can be obtained from `SvgRoot::defs()`.

@@ -7,6 +7,7 @@ mod transform;
 mod tree;
 
 pub use cached::CachedAttr;
+pub use text::{DominantBaseline, TextAnchor};
 
 use crate::{dom_err, error::Error};
 use event::*;

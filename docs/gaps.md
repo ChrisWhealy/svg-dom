@@ -27,7 +27,6 @@ The following SVG elements still need to be implemented:
 - No `matrix(...)` transform helper specifically (use `set_transform_fmt` for now)
 - No `viewBox` helper (only `set_viewport`, which sets `width`/`height`)
 - No `classList` / CSS class manipulation
-- No `text_anchor`, `dominant_baseline`, `font_family`, `font_size` helpers
 
 # Missing geometry access
 
