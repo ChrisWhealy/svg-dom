@@ -6,8 +6,8 @@ mod pointer;
 mod touch;
 mod wheel;
 
-use crate::{SvgNode, error::Error};
 use super::event::EventClosure;
+use crate::{SvgNode, error::Error};
 use wasm_bindgen::{JsCast, closure::Closure};
 use web_sys::Event;
 

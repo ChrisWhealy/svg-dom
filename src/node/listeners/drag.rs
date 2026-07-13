@@ -1,5 +1,5 @@
-use crate::{SvgNode, error::Error};
 use super::super::event::EventClosure;
+use crate::{SvgNode, error::Error};
 use wasm_bindgen::closure::Closure;
 use web_sys::DragEvent;
 
