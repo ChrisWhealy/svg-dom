@@ -25,10 +25,7 @@ fn should_append_tspan_to_text() -> Result<(), String> {
     let svg = make_svg("tspan-parent");
     let txt = svg.text(Point::new(10.0, 20.0), "").map_err(|e| e.to_string())?;
     let span = txt.tspan("content").map_err(|e| e.to_string())?;
-    let parent = span
-        .as_element()
-        .parent_element()
-        .ok_or("tspan has no parent")?;
+    let parent = span.as_element().parent_element().ok_or("tspan has no parent")?;
     check_eq(parent.tag_name(), "text".to_owned())
 }
 
@@ -110,9 +107,6 @@ fn should_nest_tspan_inside_tspan() -> Result<(), String> {
     let txt = svg.text(Point::new(10.0, 20.0), "").map_err(|e| e.to_string())?;
     let outer = txt.tspan("outer ").map_err(|e| e.to_string())?;
     let inner = outer.tspan("inner").map_err(|e| e.to_string())?;
-    let parent = inner
-        .as_element()
-        .parent_element()
-        .ok_or("inner tspan has no parent")?;
+    let parent = inner.as_element().parent_element().ok_or("inner tspan has no parent")?;
     check_eq(parent.tag_name(), "tspan".to_owned())
 }

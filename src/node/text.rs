@@ -1,4 +1,8 @@
-use crate::{SvgNode, dom_err, error::Error, root::{SVG_NS, attrs::SvgAttrs}};
+use crate::{
+    SvgNode, dom_err,
+    error::Error,
+    root::{SVG_NS, attrs::SvgAttrs},
+};
 use wasm_bindgen::JsCast;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
