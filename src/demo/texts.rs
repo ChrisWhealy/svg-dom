@@ -1,6 +1,9 @@
-use crate::{DominantBaseline, Error, SvgRoot, TextAnchor, root::utils::{Point, Size}};
 use super::colours::*;
-use super::{W, H, PAD_Y, caption};
+use super::{H, PAD_Y, W, caption};
+use crate::{
+    DominantBaseline, Error, SvgRoot, TextAnchor,
+    root::utils::{Point, Size},
+};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // text

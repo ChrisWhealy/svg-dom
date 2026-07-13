@@ -4,9 +4,12 @@ use std::{
     rc::Rc,
 };
 
-use crate::{CachedAttr, Error, SvgAttrs, SvgNode, SvgRoot, root::utils::{Point, Size}};
 use super::colours::*;
-use super::{W, H, PAD_Y, caption, cached_label, keep_demo_node};
+use super::{H, PAD_Y, W, cached_label, caption, keep_demo_node};
+use crate::{
+    CachedAttr, Error, SvgAttrs, SvgNode, SvgRoot,
+    root::utils::{Point, Size},
+};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Events — click counter + reset button (two on_click handlers over shared state)

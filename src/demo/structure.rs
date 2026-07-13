@@ -1,6 +1,9 @@
-use crate::{AnimationLoop, Error, SvgRoot, root::utils::{Point, Size}};
 use super::colours::*;
-use super::{W, H, BAND, PAD_Y, caption, keep_demo_anim};
+use super::{BAND, H, PAD_Y, W, caption, keep_demo_anim};
+use crate::{
+    AnimationLoop, Error, SvgRoot,
+    root::utils::{Point, Size},
+};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // group (<g>)

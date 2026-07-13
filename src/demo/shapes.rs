@@ -1,8 +1,11 @@
 use std::{cell::Cell, rc::Rc};
 
-use crate::{Error, SvgAttrs, SvgRoot, root::utils::{Point, Size}};
 use super::colours::*;
-use super::{W, H, PAD_Y, caption};
+use super::{H, PAD_Y, W, caption};
+use crate::{
+    Error, SvgAttrs, SvgRoot,
+    root::utils::{Point, Size},
+};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // rect

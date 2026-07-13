@@ -1,6 +1,12 @@
-use crate::{Error, SvgRoot, root::{gradient::SpreadMethod, utils::{Point, Size}}};
 use super::colours::*;
-use super::{W, H, BAND, PAD_Y, caption};
+use super::{BAND, H, PAD_Y, W, caption};
+use crate::{
+    Error, SvgRoot,
+    root::{
+        gradient::SpreadMethod,
+        utils::{Point, Size},
+    },
+};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // linearGradient — horizontal, vertical, diagonal, multi-stop, and gradient stroke
