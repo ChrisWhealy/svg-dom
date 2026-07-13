@@ -1,8 +1,19 @@
 use crate::{SvgNode, error::Error};
+use super::super::event::EventClosure;
+use wasm_bindgen::closure::Closure;
 use web_sys::FocusEvent;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 impl SvgNode {
+    fn add_focus_listener<F: FnMut(FocusEvent) + 'static>(
+        &self,
+        event_type: &'static str,
+        handler: F,
+    ) -> Result<(), Error> {
+        self.store_listener(event_type, EventClosure::Focus(Closure::new(handler)))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `focus` handler.
     pub fn on_focus<F: FnMut(FocusEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_focus_listener("focus", handler)

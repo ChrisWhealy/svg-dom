@@ -1,8 +1,19 @@
 use crate::{SvgNode, error::Error};
+use super::super::event::EventClosure;
+use wasm_bindgen::closure::Closure;
 use web_sys::PointerEvent;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 impl SvgNode {
+    fn add_pointer_listener<F: FnMut(PointerEvent) + 'static>(
+        &self,
+        event_type: &'static str,
+        handler: F,
+    ) -> Result<(), Error> {
+        self.store_listener(event_type, EventClosure::Pointer(Closure::new(handler)))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `pointerdown` handler.
     pub fn on_pointerdown<F: FnMut(PointerEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_pointer_listener("pointerdown", handler)

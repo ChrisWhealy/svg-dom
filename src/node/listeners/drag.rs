@@ -1,8 +1,19 @@
 use crate::{SvgNode, error::Error};
+use super::super::event::EventClosure;
+use wasm_bindgen::closure::Closure;
 use web_sys::DragEvent;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 impl SvgNode {
+    fn add_drag_listener<F: FnMut(DragEvent) + 'static>(
+        &self,
+        event_type: &'static str,
+        handler: F,
+    ) -> Result<(), Error> {
+        self.store_listener(event_type, EventClosure::Drag(Closure::new(handler)))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `dragstart` handler.
     pub fn on_dragstart<F: FnMut(DragEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_drag_listener("dragstart", handler)

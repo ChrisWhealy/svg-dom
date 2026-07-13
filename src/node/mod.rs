@@ -15,10 +15,7 @@ use std::{
     rc::{Rc, Weak},
 };
 use wasm_bindgen::{JsCast, prelude::*};
-use web_sys::{
-    AddEventListenerOptions, DragEvent, Event, FocusEvent, KeyboardEvent, MouseEvent, PointerEvent, SvgElement,
-    TouchEvent, WheelEvent,
-};
+use web_sys::{AddEventListenerOptions, Event, SvgElement};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 struct SvgNodeInner {
@@ -274,7 +271,7 @@ impl SvgNode {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    // Listener machinery — private; called by the `on_*` methods in `listeners.rs`.
+    // Listener infrastructure — private; called by the typed helpers in `node/listeners/`.
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fn store_listener(&self, event_type: &'static str, closure: EventClosure) -> Result<(), Error> {
         self.inner
@@ -353,87 +350,5 @@ impl SvgNode {
             .map_err(dom_err)?;
         self.push_listener(event_type, closure);
         Ok(())
-    }
-
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    fn add_touch_listener_passive<F: FnMut(TouchEvent) + 'static>(
-        &self,
-        event_type: &'static str,
-        handler: F,
-    ) -> Result<(), Error> {
-        self.store_listener_passive(event_type, EventClosure::Touch(Closure::new(handler)))
-    }
-
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    fn add_wheel_listener_passive<F: FnMut(WheelEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
-        self.store_listener_passive("wheel", EventClosure::Wheel(Closure::new(handler)))
-    }
-
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    fn add_drag_listener<F: FnMut(DragEvent) + 'static>(
-        &self,
-        event_type: &'static str,
-        handler: F,
-    ) -> Result<(), Error> {
-        self.store_listener(event_type, EventClosure::Drag(Closure::new(handler)))
-    }
-
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    fn add_event_listener<F: FnMut(Event) + 'static>(&self, event_type: &'static str, handler: F) -> Result<(), Error> {
-        self.store_listener(event_type, EventClosure::Event(Closure::new(handler)))
-    }
-
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    fn add_focus_listener<F: FnMut(FocusEvent) + 'static>(
-        &self,
-        event_type: &'static str,
-        handler: F,
-    ) -> Result<(), Error> {
-        self.store_listener(event_type, EventClosure::Focus(Closure::new(handler)))
-    }
-
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    fn add_keyboard_listener<F: FnMut(KeyboardEvent) + 'static>(
-        &self,
-        event_type: &'static str,
-        handler: F,
-    ) -> Result<(), Error> {
-        self.store_listener(event_type, EventClosure::Keyboard(Closure::new(handler)))
-    }
-
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    fn add_mouse_listener<F: FnMut(MouseEvent) + 'static>(
-        &self,
-        event_type: &'static str,
-        handler: F,
-    ) -> Result<(), Error> {
-        self.store_listener(event_type, EventClosure::Mouse(Closure::new(handler)))
-    }
-
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    fn add_pointer_listener<F: FnMut(PointerEvent) + 'static>(
-        &self,
-        event_type: &'static str,
-        handler: F,
-    ) -> Result<(), Error> {
-        self.store_listener(event_type, EventClosure::Pointer(Closure::new(handler)))
-    }
-
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    fn add_touch_listener<F: FnMut(TouchEvent) + 'static>(
-        &self,
-        event_type: &'static str,
-        handler: F,
-    ) -> Result<(), Error> {
-        self.store_listener(event_type, EventClosure::Touch(Closure::new(handler)))
-    }
-
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    fn add_wheel_listener<F: FnMut(WheelEvent) + 'static>(
-        &self,
-        event_type: &'static str,
-        handler: F,
-    ) -> Result<(), Error> {
-        self.store_listener(event_type, EventClosure::Wheel(Closure::new(handler)))
     }
 }

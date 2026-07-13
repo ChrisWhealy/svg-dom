@@ -1,8 +1,19 @@
 use crate::{SvgNode, error::Error};
+use super::super::event::EventClosure;
+use wasm_bindgen::closure::Closure;
 use web_sys::KeyboardEvent;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 impl SvgNode {
+    fn add_keyboard_listener<F: FnMut(KeyboardEvent) + 'static>(
+        &self,
+        event_type: &'static str,
+        handler: F,
+    ) -> Result<(), Error> {
+        self.store_listener(event_type, EventClosure::Keyboard(Closure::new(handler)))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `keydown` handler. The SVG element usually needs to be focusable, for example with `tabindex="0"`.
     pub fn on_keydown<F: FnMut(KeyboardEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_keyboard_listener("keydown", handler)

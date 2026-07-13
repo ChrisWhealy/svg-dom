@@ -1,8 +1,28 @@
 use crate::{SvgNode, error::Error};
+use super::super::event::EventClosure;
+use wasm_bindgen::closure::Closure;
 use web_sys::TouchEvent;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 impl SvgNode {
+    fn add_touch_listener<F: FnMut(TouchEvent) + 'static>(
+        &self,
+        event_type: &'static str,
+        handler: F,
+    ) -> Result<(), Error> {
+        self.store_listener(event_type, EventClosure::Touch(Closure::new(handler)))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    fn add_touch_listener_passive<F: FnMut(TouchEvent) + 'static>(
+        &self,
+        event_type: &'static str,
+        handler: F,
+    ) -> Result<(), Error> {
+        self.store_listener_passive(event_type, EventClosure::Touch(Closure::new(handler)))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `touchstart` handler. Prefer pointer events when browser support allows it.
     ///
     /// When suppressing the default touch behaviour is not needed, prefer

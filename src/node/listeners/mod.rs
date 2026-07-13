@@ -7,11 +7,17 @@ mod touch;
 mod wheel;
 
 use crate::{SvgNode, error::Error};
-use wasm_bindgen::JsCast;
+use super::event::EventClosure;
+use wasm_bindgen::{JsCast, closure::Closure};
 use web_sys::Event;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 impl SvgNode {
+    fn add_event_listener<F: FnMut(Event) + 'static>(&self, event_type: &'static str, handler: F) -> Result<(), Error> {
+        self.store_listener(event_type, EventClosure::Event(Closure::new(handler)))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a raw typed [`Event`] handler for events not covered by a more specific helper.
     ///
     /// Prefer the typed convenience wrappers where available. Like the wrappers below, this keeps the closure owned by

@@ -1,8 +1,24 @@
 use crate::{SvgNode, error::Error};
+use super::super::event::EventClosure;
+use wasm_bindgen::closure::Closure;
 use web_sys::WheelEvent;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 impl SvgNode {
+    fn add_wheel_listener<F: FnMut(WheelEvent) + 'static>(
+        &self,
+        event_type: &'static str,
+        handler: F,
+    ) -> Result<(), Error> {
+        self.store_listener(event_type, EventClosure::Wheel(Closure::new(handler)))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    fn add_wheel_listener_passive<F: FnMut(WheelEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
+        self.store_listener_passive("wheel", EventClosure::Wheel(Closure::new(handler)))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `wheel` handler.
     ///
     /// Call [`prevent_default`](web_sys::Event::prevent_default) inside to suppress the browser's default scroll
