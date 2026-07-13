@@ -120,10 +120,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: EmbarkStudios/cargo-deny-action@v2
+      - uses: taiki-e/install-action@v2
         with:
-          command: check
-          arguments: advisories bans licenses sources
+          tool: cargo-deny
+      - name: Check advisories, bans, licenses, and sources
+        run: cargo deny check advisories bans licenses sources
 
   msrv:
     name: MSRV (1.85)
