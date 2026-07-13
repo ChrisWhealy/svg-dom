@@ -20,9 +20,9 @@ pub enum TextAnchor {
 impl TextAnchor {
     fn as_str(self) -> &'static str {
         match self {
-            TextAnchor::Start  => "start",
+            TextAnchor::Start => "start",
             TextAnchor::Middle => "middle",
-            TextAnchor::End    => "end",
+            TextAnchor::End => "end",
         }
     }
 }
@@ -58,15 +58,15 @@ pub enum DominantBaseline {
 impl DominantBaseline {
     fn as_str(self) -> &'static str {
         match self {
-            DominantBaseline::Auto         => "auto",
-            DominantBaseline::Alphabetic   => "alphabetic",
-            DominantBaseline::Middle       => "middle",
-            DominantBaseline::Ideographic  => "ideographic",
-            DominantBaseline::Hanging      => "hanging",
+            DominantBaseline::Auto => "auto",
+            DominantBaseline::Alphabetic => "alphabetic",
+            DominantBaseline::Middle => "middle",
+            DominantBaseline::Ideographic => "ideographic",
+            DominantBaseline::Hanging => "hanging",
             DominantBaseline::Mathematical => "mathematical",
-            DominantBaseline::Central      => "central",
-            DominantBaseline::TextBottom   => "text-bottom",
-            DominantBaseline::TextTop      => "text-top",
+            DominantBaseline::Central => "central",
+            DominantBaseline::TextBottom => "text-bottom",
+            DominantBaseline::TextTop => "text-top",
         }
     }
 }
