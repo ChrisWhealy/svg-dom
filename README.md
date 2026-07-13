@@ -2,10 +2,23 @@
 
 A lightweight Rust/WebAssembly library for creating and mutating live SVG content directly in the browser DOM.
 
-This crate is a work-in-progress and contains known functional gaps that will be filled in time.
+This crate is a work-in-progress and contains known functional [gaps](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/gaps.md) that will be filled in time.
 That said, all reasonable, conventional steps have been taken to provide a secure, stable and robust foundation upon which to develop future functionality.
 
 ***IMPORTANT***<br>This crate targets WebAssembly only.
+
+# Table of Contents
+
+- [ToDo List](#todo-list)
+- [What this crate is](#what-this-crate-is)
+- [What this crate is NOT](#what-this-crate-is-not)
+- [Building](#building)
+- [Demo Server](#demo-server)
+- [Quick start](#quick-start)
+- [Testing](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/testing.md)
+- [Design Notes](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/design_notes.md)
+- [Supported SVG Elements](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/elements.md)
+- [Gap Analysis](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/gaps.md)
 
 ## ToDo List
 
@@ -41,18 +54,6 @@ That said, all reasonable, conventional steps have been taken to provide a secur
   - [ ] `<tspan>`
   - [ ] `<textPath>`
   - [ ] `<filter>` and `<fe>` elements
-
-# Table of Contents
-
-- [What this crate is](#what-this-crate-is)
-- [What this crate is NOT](#what-this-crate-is-not)
-- [Building](#building)
-- [Demo Server](#demo-server)
-- [Quick start](#quick-start)
-- [Testing](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/testing.md)
-- [Design Notes](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/design_notes.md)
-- [Supported SVG Elements](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/elements.md)
-- [Gap Analysis](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/gaps.md)
 
 ## What this crate is
 
