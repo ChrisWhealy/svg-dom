@@ -9,32 +9,64 @@ use crate::{
 use std::cell::RefCell;
 use web_sys::{Document, SvgElement};
 
-use super::{marker::SvgMarker, svg_root::SvgRoot};
+use super::{
+    gradient::{linear::SvgLinearGradient, radial::SvgRadialGradient},
+    marker::SvgMarker,
+    svg_root::SvgRoot,
+};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Rejects marker ids that would produce broken or ambiguous `url(#…)` references.
+/// Checks whether `id` is safe to embed in a `url(#...)` CSS/SVG paint-server reference.
+///
+/// A valid id must match `[A-Za-z_][A-Za-z0-9_-]*`: it must begin with an ASCII letter or underscore,
+/// followed by zero or more ASCII letters, digits, underscores, or hyphens.
+fn is_valid_svg_id(id: &str) -> bool {
+    let mut chars = id.chars();
+    match chars.next() {
+        Some(c) if c.is_ascii_alphabetic() || c == '_' => {
+            chars.all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+        },
+        _ => false,
+    }
+}
+
+/// Rejects marker ids that would produce broken or ambiguous `url(#...)` references.
 ///
 /// A valid id must match `[A-Za-z_][A-Za-z0-9_-]*`: it must begin with an ASCII letter or underscore,
 /// followed by zero or more ASCII letters, digits, underscores, or hyphens.
 /// This conservative allow-list ensures that any accepted id can be safely embedded in the generated
 /// `url(#id)` CSS/SVG paint-server reference without quoting, escaping, or browser-specific interpretation.
 pub(crate) fn validate_marker_id(id: &str) -> Result<(), Error> {
-    let mut chars = id.chars();
-    let valid = match chars.next() {
-        Some(c) if c.is_ascii_alphabetic() || c == '_' => {
-            chars.all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
-        },
-        _ => false,
-    };
-    if valid { Ok(()) } else { Err(Error::InvalidMarkerId(id.to_owned())) }
+    if is_valid_svg_id(id) {
+        Ok(())
+    } else {
+        Err(Error::InvalidMarkerId(id.to_owned()))
+    }
+}
+
+/// Rejects gradient ids that would produce broken or ambiguous `url(#...)` references.
+///
+/// Applies the same allow-list as [`validate_marker_id`]: the id must match `[A-Za-z_][A-Za-z0-9_-]*`.
+pub(crate) fn validate_gradient_id(id: &str) -> Result<(), Error> {
+    if is_valid_svg_id(id) {
+        Ok(())
+    } else {
+        Err(Error::InvalidGradientId(id.to_owned()))
+    }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// A `<defs>` element that holds reusable SVG assets such as markers, gradients, and clip-paths.
+/// A `<defs>` element that holds reusable SVG assets such as markers and gradients.
 ///
-/// Elements created inside `<defs>` are not rendered directly; they are referenced by other elements via `id`.
-/// All the usual shape factory methods are available, but their primary purpose here is to build the inner content of
-/// a [`SvgMarker`] or (in future) a gradient or clip-path.
+/// Elements created inside `<defs>` are not rendered directly; they are referenced by other elements via an `id`.
+/// All the usual shape factory methods are available for building inner content of markers, but the primary purpose of
+/// `SvgDefs` is to serve as the container for named paint servers:
+///
+/// | Asset | Factory | Eager variant |
+/// |---|---|---|
+/// | [`SvgMarker`] | [`marker`](Self::marker) | [`build_marker`](Self::build_marker) |
+/// | [`SvgLinearGradient`] | [`linear_gradient`](Self::linear_gradient) | [`build_linear_gradient`](Self::build_linear_gradient) |
+/// | [`SvgRadialGradient`] | [`radial_gradient`](Self::radial_gradient) | [`build_radial_gradient`](Self::build_radial_gradient) |
 ///
 /// Obtain one from [`SvgRoot::defs`].
 ///
@@ -245,6 +277,149 @@ impl SvgDefs {
     /// Creates a `<g>` group child inside `<defs>`.
     pub fn group(&self) -> Result<SvgNode, Error> {
         self.create_group()
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Creates a `<linearGradient>` child element with the given `id`, appends it to `<defs>` immediately and returns
+    /// its handle.
+    ///
+    /// The `id` is used to reference the gradient from shapes via
+    /// [`set_fill_linear_gradient`](crate::SvgNode::set_fill_linear_gradient) and its stroke sibling.
+    ///
+    /// Each stop added to the returned [`SvgLinearGradient`] is appended to the live gradient element one at a time.
+    /// Use this when you need to add stops dynamically after initial construction.
+    ///
+    /// Prefer [`build_linear_gradient`](Self::build_linear_gradient) when all stops are known upfront: that variant
+    /// keeps the `<linearGradient>` detached until the closure succeeds, so a mid-build error will not leave a partial
+    /// gradient in `<defs>`.
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::InvalidGradientId`] — `id` failed validation.
+    /// - [`Error::Dom`] — the browser refused to create or append the element.
+    pub fn linear_gradient(&self, id: &str) -> Result<SvgLinearGradient, Error> {
+        validate_gradient_id(id)?;
+        let el = super::create_svg_element::<SvgElement>(&self.document, "linearGradient", "SvgElement")?;
+        el.set_attribute("id", id).map_err(dom_err)?;
+        self.element.append_child(&el).map_err(dom_err)?;
+        Ok(SvgLinearGradient::new(id, el, self.document.clone()))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Builds a `<linearGradient>` and all its stops in one go, appending it to `<defs>` only after the closure
+    /// succeeds.
+    ///
+    /// The closure receives a reference to the new [`SvgLinearGradient`].
+    /// All stops added inside the closure are appended to a detached gradient element.
+    ///
+    /// If the closure returns `Ok(())`, the gradient is appended to `<defs>` and the handle is returned.
+    /// If the closure returns `Err`, the gradient element is dropped without being attached to `<defs>`.
+    ///
+    /// This is the preferred way to build a gradient when all stops are known upfront.
+    /// For dynamically adding stops over time, use [`linear_gradient`](Self::linear_gradient) instead.
+    ///
+    /// # Errors
+    ///
+    /// - Any error returned by `build`.
+    /// - [`Error::InvalidGradientId`] — `id` failed validation.
+    /// - [`Error::Dom`] — the browser refused to create or append the element.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::{Point, Size}};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    ///
+    /// let grad = defs.build_linear_gradient("sky", |g| {
+    ///     g.add_stop(0.0, "deepskyblue")?;
+    ///     g.add_stop(1.0, "white")?;
+    ///     Ok(())
+    /// })?;
+    ///
+    /// let rect = svg.rect(Point::origin(), Size::new(300.0, 150.0))?;
+    /// rect.set_fill_linear_gradient(&grad)?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn build_linear_gradient<F>(&self, id: &str, build: F) -> Result<SvgLinearGradient, Error>
+    where
+        F: FnOnce(&SvgLinearGradient) -> Result<(), Error>,
+    {
+        validate_gradient_id(id)?;
+        let el = super::create_svg_element::<SvgElement>(&self.document, "linearGradient", "SvgElement")?;
+        el.set_attribute("id", id).map_err(dom_err)?;
+        let grad = SvgLinearGradient::new(id, el, self.document.clone());
+        build(&grad)?;
+        self.element.append_child(grad.as_element()).map_err(dom_err)?;
+        Ok(grad)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Creates a `<radialGradient>` child element with the given `id`, appends it to `<defs>` immediately and returns
+    /// its handle.
+    ///
+    /// The `id` is used to reference the gradient from shapes via
+    /// [`set_fill_radial_gradient`](crate::SvgNode::set_fill_radial_gradient) and its stroke sibling.
+    ///
+    /// Prefer [`build_radial_gradient`](Self::build_radial_gradient) when all stops are known upfront.
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::InvalidGradientId`] — `id` failed validation.
+    /// - [`Error::Dom`] — the browser refused to create or append the element.
+    pub fn radial_gradient(&self, id: &str) -> Result<SvgRadialGradient, Error> {
+        validate_gradient_id(id)?;
+        let el = super::create_svg_element::<SvgElement>(&self.document, "radialGradient", "SvgElement")?;
+        el.set_attribute("id", id).map_err(dom_err)?;
+        self.element.append_child(&el).map_err(dom_err)?;
+        Ok(SvgRadialGradient::new(id, el, self.document.clone()))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Builds a `<radialGradient>` and all its stops in one go, appending it to `<defs>` only after the closure
+    /// succeeds.
+    ///
+    /// The closure receives a reference to the new [`SvgRadialGradient`].
+    ///
+    /// If the closure returns `Ok(())`, the gradient is appended to `<defs>` and the handle is returned.
+    /// If the closure returns `Err`, the gradient element is dropped without being attached to `<defs>`.
+    ///
+    /// # Errors
+    ///
+    /// - Any error returned by `build`.
+    /// - [`Error::InvalidGradientId`] — `id` failed validation.
+    /// - [`Error::Dom`] — the browser refused to create or append the element.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::{Point, Size}};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    ///
+    /// let grad = defs.build_radial_gradient("glow", |g| {
+    ///     g.add_stop_opacity(0.0, "white", 1.0)?;
+    ///     g.add_stop_opacity(1.0, "midnightblue", 0.0)?;
+    ///     Ok(())
+    /// })?;
+    ///
+    /// let circle = svg.circle(Point::new(100.0, 100.0), 80.0)?;
+    /// circle.set_fill_radial_gradient(&grad)?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn build_radial_gradient<F>(&self, id: &str, build: F) -> Result<SvgRadialGradient, Error>
+    where
+        F: FnOnce(&SvgRadialGradient) -> Result<(), Error>,
+    {
+        validate_gradient_id(id)?;
+        let el = super::create_svg_element::<SvgElement>(&self.document, "radialGradient", "SvgElement")?;
+        el.set_attribute("id", id).map_err(dom_err)?;
+        let grad = SvgRadialGradient::new(id, el, self.document.clone());
+        build(&grad)?;
+        self.element.append_child(grad.as_element()).map_err(dom_err)?;
+        Ok(grad)
     }
 }
 

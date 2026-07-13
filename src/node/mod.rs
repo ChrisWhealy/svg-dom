@@ -26,7 +26,7 @@ struct SvgNodeInner {
 
     // Listener storage is allocated only for interactive nodes. Most SVG elements are passive geometry, so keeping the
     // store behind `Option<Box<_>>` means a passive node carries no inline collection and allocates nothing until its
-    // first listener — the `Option<Box<…>>` is a single null pointer when empty.
+    // first listener — the `Option<Box<...>>` is a single null pointer when empty.
     //
     // `ListenerStore` then holds the first listener inline (`One`), so registering one listener is a single heap
     // allocation (the `Box`) rather than the two an empty `Vec` would need (its own box plus an element buffer on the
@@ -222,7 +222,7 @@ impl SvgNode {
     /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
     /// let svg = SvgRoot::attach("diagram")?;
     /// let rect = svg.rect(Point::origin(), Size::new(40.0, 40.0))?;
-    /// rect.on_click(|_| { /* … */ })?;
+    /// rect.on_click(|_| { /* ... */ })?;
     ///
     /// rect.clear_listeners(); // the click handler is detached; the <rect> stays in the document
     /// Ok::<(), svg_dom::Error>(())
@@ -257,8 +257,8 @@ impl SvgNode {
     /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
     /// let svg = SvgRoot::attach("diagram")?;
     /// let rect = svg.rect(Point::origin(), Size::new(40.0, 40.0))?;
-    /// rect.on_click(|_| { /* … */ })?;
-    /// rect.on_pointermove(|_| { /* … */ })?;
+    /// rect.on_click(|_| { /* ... */ })?;
+    /// rect.on_pointermove(|_| { /* ... */ })?;
     ///
     /// rect.remove_listeners("click"); // only the click handler goes; pointermove stays
     /// Ok::<(), svg_dom::Error>(())

@@ -4,6 +4,9 @@ pub mod attrs;
 pub mod batch;
 /// The [`SvgDefs`](crate::SvgDefs) container for reusable SVG assets.
 pub mod defs;
+/// The [`SvgLinearGradient`](crate::SvgLinearGradient), [`SvgRadialGradient`](crate::SvgRadialGradient),
+/// [`GradientUnits`](crate::GradientUnits), and [`SpreadMethod`](crate::SpreadMethod) types.
+pub mod gradient;
 /// The [`SvgMarker`](crate::SvgMarker) element and its [`MarkerUnits`](crate::MarkerUnits) enum.
 pub mod marker;
 

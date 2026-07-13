@@ -326,7 +326,7 @@ fn should_append_polygon_to_marker() -> Result<(), String> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// The `points` attribute on a marker polygon is serialised by `write_points` (`"x,y x,y …"` format).
+/// The `points` attribute on a marker polygon is serialised by `write_points` (`"x,y x,y ..."` format).
 #[wasm_bindgen_test]
 fn should_set_polygon_points_in_marker() -> Result<(), String> {
     let svg = make_svg("marker-polygon-points");
@@ -784,9 +784,9 @@ fn should_leave_stale_reference_after_set_id() -> Result<(), String> {
     // Rename the marker.
     marker.set_id("after").map_err(|e| e.to_string())?;
 
-    // The marker's own id is updated …
+    // The marker's own id is updated...
     common::check_eq(marker.as_element().get_attribute("id"), Some("after".into()))?;
-    // … but the line's attribute still holds the old snapshot.
+    // ...but the line's attribute still holds the old snapshot.
     common::check_eq(line.as_element().get_attribute("marker-end"), Some("url(#before)".into()))
 }
 
@@ -794,7 +794,7 @@ fn should_leave_stale_reference_after_set_id() -> Result<(), String> {
 // SvgMarker::set_attr / set_attrs / set_attr_display — "id" is reserved
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-/// `set_attr("id", …)` returns `ReservedAttribute` and does not write to the DOM.
+/// `set_attr("id", ...)` returns `ReservedAttribute` and does not write to the DOM.
 #[wasm_bindgen_test]
 fn should_reject_id_in_set_attr() -> Result<(), String> {
     let svg = make_svg("reserved-set-attr");
@@ -809,7 +809,7 @@ fn should_reject_id_in_set_attr() -> Result<(), String> {
     common::check_eq(marker.as_element().get_attribute("id"), Some("original".into()))
 }
 
-/// `set_attr("ID", …)` is also rejected (case-insensitive guard).
+/// `set_attr("ID", ...)` is also rejected (case-insensitive guard).
 #[wasm_bindgen_test]
 fn should_reject_id_case_insensitive_in_set_attr() -> Result<(), String> {
     let svg = make_svg("reserved-set-attr-case");
@@ -836,7 +836,7 @@ fn should_reject_id_in_set_attrs() -> Result<(), String> {
     )
 }
 
-/// `set_attr_display("id", …)` returns `ReservedAttribute`.
+/// `set_attr_display("id", ...)` returns `ReservedAttribute`.
 #[wasm_bindgen_test]
 fn should_reject_id_in_set_attr_display() -> Result<(), String> {
     let svg = make_svg("reserved-set-attr-display");

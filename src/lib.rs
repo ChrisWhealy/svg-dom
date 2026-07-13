@@ -14,6 +14,7 @@
 //! | [`demo`] | | Provides a set of SVG element examples.  Run `cargo demo` then visit http://localhost:8080/demo. |
 //! | [`error`] | [`Error`] | Wrapper for Browser DOM errors |
 //! | [`root`] | [`SvgRoot`] / [`SvgAttrs`] | Wraps the `<svg>` root; factory for all child elements; reusable attribute writing |
+//! | [`root::gradient`] | [`linear::SvgLinearGradient`] / [`radial::SvgRadialGradient`] | Gradient paint servers defined in `<defs>` |
 //! | [`animate`] | [`AnimationLoop`] | `requestAnimationFrame` loop |
 //! | [`node`] | [`SvgNode`] | Live element handle that provides access to attributes, events and tree operations |
 //!
@@ -73,6 +74,7 @@ pub use root::{
     attrs::{AttrWriter, SvgAttrs},
     batch::SvgBatch,
     defs::SvgDefs,
+    gradient::{GradientUnits, SpreadMethod, linear::SvgLinearGradient, radial::SvgRadialGradient},
     marker::{MarkerUnits, SvgMarker},
     svg_root::SvgRoot,
 };

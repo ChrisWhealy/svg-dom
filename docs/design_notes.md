@@ -36,7 +36,7 @@ For uncommon browser events, `on_event` provides the same managed lifetime behav
 It accepts a generic typed event `E`; the cast from the raw `Event` is checked at runtime via `instanceof`, so a mismatched `E` silently suppresses the handler and leaves the captured values alive until the node is dropped or its listeners are cleared.
 This is preferable to allowing undefined behaviour (that you hope won't do anything bad...)
 
-Handlers are bound as `FnMut`, not `Fn`, so a handler can own and mutate captured state directly — typically a reusable `SvgAttrs` or `String` scratch buffer for a hot `pointermove`/`mousemove` path — without an `Rc<RefCell<…>>` wrapper.
+Handlers are bound as `FnMut`, not `Fn`, so a handler can own and mutate captured state directly — typically a reusable `SvgAttrs` or `String` scratch buffer for a hot `pointermove`/`mousemove` path — without an `Rc<RefCell<...>>` wrapper.
 The only constraint, inherited from wasm-bindgen's `Closure<dyn FnMut>`, is that a handler must not run re-entrantly (synchronously dispatching the same event to the same node from inside the handler), which will cause a panic — the same outcome a re-entrant `RefCell` borrow would produce.
 
 Registration is otherwise append-only: the usual way to retire a listener is to drop the entire node.

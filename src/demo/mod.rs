@@ -20,7 +20,10 @@ use wasm_bindgen::prelude::*;
 
 use crate::{
     AnimationLoop, CachedAttr, Error, SvgAttrs, SvgNode, SvgRoot,
-    root::utils::{Point, Size},
+    root::{
+        gradient::SpreadMethod,
+        utils::{Point, Size},
+    },
 };
 use colours::*;
 
@@ -99,6 +102,8 @@ pub fn run_demo() -> Result<(), JsValue> {
     demo_marker().map_err(e)?;
     demo_use().map_err(e)?;
     demo_image().map_err(e)?;
+    demo_linear_gradient().map_err(e)?;
+    demo_radial_gradient().map_err(e)?;
 
     // Event-handling gallery
     demo_events_click().map_err(e)?;
@@ -144,6 +149,8 @@ const DEMO_SOURCES: &[(&str, &str)] = &[
     ("panel-marker", "demo_marker"),
     ("panel-use", "demo_use"),
     ("panel-image", "demo_image"),
+    ("panel-linear-gradient", "demo_linear_gradient"),
+    ("panel-radial-gradient", "demo_radial_gradient"),
     ("panel-events-click", "demo_events_click"),
     ("panel-events-colour", "demo_events_colour"),
     ("panel-events-modifiers", "demo_events_modifiers"),
@@ -166,7 +173,7 @@ fn inject_source_frames() -> Result<(), Error> {
     Ok(())
 }
 
-/// Builds `<details class="source"><summary>…</summary><pre><code>…</code></pre></details>` and appends it to the
+/// Builds `<details class="source"><summary>...</summary><pre><code>...</code></pre></details>` and appends it to the
 /// panel `<section>`. A missing panel or missing function is skipped rather than treated as an error, so the gallery
 /// still renders if `index.html` and this module drift apart.
 fn append_source_frame(document: &web_sys::Document, panel_id: &str, fn_name: &str) -> Result<(), Error> {
@@ -737,6 +744,183 @@ fn demo_image() -> Result<(), Error> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// linearGradient — horizontal, vertical, diagonal, multi-stop, and gradient stroke
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+fn demo_linear_gradient() -> Result<(), Error> {
+    let svg = SvgRoot::create_in("demo-linear-gradient", Size::new(W, H))?;
+
+    // All gradient ids must be globally unique in the document, so use a per-demo prefix.
+    let defs = svg.build_defs(|d| {
+        // 1. Horizontal (default x1/y1/x2/y2): steelblue left → coral right.
+        d.build_linear_gradient("demo-lg-h", |g| {
+            g.add_stop(0.0, STEELBLUE)?;
+            g.add_stop(1.0, CORAL)?;
+            Ok(())
+        })?;
+
+        // 2. Vertical gradient: set x2=0, y2=1 to rotate the axis 90°.
+        d.build_linear_gradient("demo-lg-v", |g| {
+            g.add_stop(0.0, GOLDENROD)?;
+            g.add_stop(1.0, "midnightblue")?;
+            g.set_x2(0.0)?;
+            g.set_y2(1.0)?;
+            Ok(())
+        })?;
+
+        // 3. Diagonal: gradientTransform rotates the gradient vector 45°.
+        //    Keeping the default horizontal endpoints and rotating is simpler than computing
+        //    trigonometric endpoint coordinates by hand.
+        d.build_linear_gradient("demo-lg-d", |g| {
+            g.add_stop(0.0, TEAL)?;
+            g.add_stop(1.0, MEDIUM_ORCHID)?;
+            g.set_gradient_transform("rotate(45, 0.5, 0.5)")?;
+            Ok(())
+        })?;
+
+        // 4. Multi-stop sunrise spectrum (4 stops).
+        d.build_linear_gradient("demo-lg-s", |g| {
+            g.add_stop(0.0, "#1a1a2e")?;
+            g.add_stop(0.35, DARK_ORANGE)?;
+            g.add_stop(0.65, GOLDENROD)?;
+            g.add_stop(1.0, "#fffde7")?;
+            Ok(())
+        })?;
+
+        // 5. Gradient stroke: a thin-to-thick colour sweep applied to stroke, not fill.
+        d.build_linear_gradient("demo-lg-stroke", |g| {
+            g.add_stop(0.0, MEDIUM_SEA_GREEN)?;
+            g.add_stop(1.0, CORAL)?;
+            Ok(())
+        })?;
+
+        Ok(())
+    })?;
+
+    // `defs` is used only to hold the gradients; so give it a "don't care" name to keep cargo happy
+    let _ = defs;
+
+    // Shape dimensions — centred vertically in the BAND.
+    let rect_h = 90.0_f64;
+    let ry = PAD_Y + (BAND - rect_h) / 2.0;
+    let rect_w = 130.0_f64;
+    let xs: [f64; 5] = [20.0, 175.0, 330.0, 485.0, 640.0];
+
+    // 1. Horizontal gradient fill.
+    let r1 = svg.rect(Point::new(xs[0], ry), Size::new(rect_w, rect_h))?;
+    r1.set_fill_gradient("demo-lg-h")?;
+    caption(&svg, xs[0] + rect_w / 2.0, "horizontal")?;
+
+    // 2. Vertical gradient fill.
+    let r2 = svg.rect(Point::new(xs[1], ry), Size::new(rect_w, rect_h))?;
+    r2.set_fill_gradient("demo-lg-v")?;
+    caption(&svg, xs[1] + rect_w / 2.0, "vertical")?;
+
+    // 3. Diagonal gradient fill.
+    let r3 = svg.rect(Point::new(xs[2], ry), Size::new(rect_w, rect_h))?;
+    r3.set_fill_gradient("demo-lg-d")?;
+    caption(&svg, xs[2] + rect_w / 2.0, "diagonal (rotate 45°)")?;
+
+    // 4. Multi-stop sunrise spectrum.
+    let r4 = svg.rect(Point::new(xs[3], ry), Size::new(rect_w, rect_h))?;
+    r4.set_fill_gradient("demo-lg-s")?;
+    caption(&svg, xs[3] + rect_w / 2.0, "4-stop spectrum")?;
+
+    // 5. Thick stroked path with gradient stroke (fill=none).
+    let stroke_y = PAD_Y + BAND / 2.0;
+    let path_str = format!(
+        "M {:.1} {:.1} C {:.1} {:.1} {:.1} {:.1} {:.1} {:.1}",
+        xs[4],
+        stroke_y + 35.0,
+        xs[4] + 40.0,
+        stroke_y - 45.0,
+        xs[4] + 90.0,
+        stroke_y + 45.0,
+        xs[4] + rect_w,
+        stroke_y - 35.0,
+    );
+    let stroke_path = svg.path(&path_str)?;
+    stroke_path.set_fill("none")?;
+    stroke_path.set_stroke_gradient("demo-lg-stroke")?;
+    stroke_path.set_stroke_width(14.0)?;
+    stroke_path.set_attr("stroke-linecap", "round")?;
+    caption(&svg, xs[4] + rect_w / 2.0, "gradient stroke")?;
+
+    Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// radialGradient — centred, off-centre focal, spreadMethod:reflect, and ellipse fill
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+fn demo_radial_gradient() -> Result<(), Error> {
+    let svg = SvgRoot::create_in("demo-radial-gradient", Size::new(W, H))?;
+
+    svg.build_defs(|d| {
+        // 1. Centred glow: white hot core fading to deep transparent blue (default cx/cy/r = 0.5/0.5/0.5).
+        d.build_radial_gradient("demo-rg-c", |g| {
+            g.add_stop_opacity(0.0, "white", 1.0)?;
+            g.add_stop_opacity(0.5, STEELBLUE, 0.9)?;
+            g.add_stop_opacity(1.0, "#0d1b2a", 1.0)?;
+            Ok(())
+        })?;
+
+        // 2. Off-centre focal point: the first-stop colour (gold) originates from the upper-left
+        //    while the outer colour (deep red) fills the rest.
+        d.build_radial_gradient("demo-rg-f", |g| {
+            g.add_stop(0.0, GOLDENROD)?;
+            g.add_stop(1.0, "#7b0000")?;
+            g.set_fx(0.25)?;
+            g.set_fy(0.25)?;
+            Ok(())
+        })?;
+
+        // 3. spreadMethod=reflect with a tight radius (r=0.25) so the pattern tiles visibly.
+        //    Two contrasting stops create concentric rings.
+        d.build_radial_gradient("demo-rg-r", |g| {
+            g.add_stop(0.0, LIGHT_SKY_BLUE)?;
+            g.add_stop(1.0, "#00264d")?;
+            g.set_r(0.25)?;
+            g.set_spread_method(SpreadMethod::Reflect)?;
+            Ok(())
+        })?;
+
+        // 4. Ellipse with a compressed-Y radial (gradient in objectBoundingBox so it follows the
+        //    ellipse shape automatically).  Three stops give a metallic sheen.
+        d.build_radial_gradient("demo-rg-e", |g| {
+            g.add_stop(0.0, "white")?;
+            g.add_stop(0.4, MEDIUM_SEA_GREEN)?;
+            g.add_stop(1.0, "#003d1f")?;
+            Ok(())
+        })?;
+
+        Ok(())
+    })?;
+
+    let mid_y = PAD_Y + BAND / 2.0;
+
+    // 1. Centred radial on a circle.
+    let c1 = svg.circle(Point::new(75.0, mid_y), 52.0)?;
+    c1.set_fill_gradient("demo-rg-c")?;
+    caption(&svg, 75.0, "centred")?;
+
+    // 2. Off-centre focal on a rect.
+    let r2 = svg.rect(Point::new(155.0, PAD_Y + 10.0), Size::new(155.0, BAND - 20.0))?;
+    r2.set_fill_gradient("demo-rg-f")?;
+    caption(&svg, 232.5, "off-centre focal")?;
+
+    // 3. Reflected spread on a circle.
+    let c3 = svg.circle(Point::new(425.0, mid_y), 52.0)?;
+    c3.set_fill_gradient("demo-rg-r")?;
+    caption(&svg, 425.0, "spreadMethod: reflect")?;
+
+    // 4. Metallic sheen on an ellipse.
+    let e4 = svg.ellipse(Point::new(640.0, mid_y), Size::new(130.0, 52.0))?;
+    e4.set_fill_gradient("demo-rg-e")?;
+    caption(&svg, 640.0, "ellipse metallic sheen")?;
+
+    Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Events — click counter + reset button (two on_click handlers over shared state)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 //
@@ -877,7 +1061,7 @@ fn demo_events_colour() -> Result<(), Error> {
     let mv_readout = readout.clone();
 
     // Managed handlers are `FnMut`, so this per-move handler can *own* its reusable buffers directly — no
-    // `Rc<RefCell<…>>`, no runtime borrow on every `pointermove`. `SvgAttrs` formats the attributes; a scratch `String`
+    // `Rc<RefCell<...>>`, no runtime borrow on every `pointermove`. `SvgAttrs` formats the attributes; a scratch `String`
     // backs the readout text.
     let mut attrs = SvgAttrs::new();
     let mut text = String::new();
@@ -1158,7 +1342,7 @@ fn demo_events_pointer_lifecycle() -> Result<(), Error> {
     coords.set_fill(TEXT_MUTED)?;
     coords.set_attr("font-size", "12")?;
 
-    // Every "last: …" readout write goes through one shared CachedAttr: a burst of identical labels (a stream of
+    // Every "last: ..." readout write goes through one shared CachedAttr: a burst of identical labels (a stream of
     // pointermove events) then skips the DOM write after the first. Routing *all* writers through the same cache is
     // what keeps it from going stale when the event type changes.
     let label_cache = Rc::new(RefCell::new(CachedAttr::new()));
@@ -1177,7 +1361,7 @@ fn demo_events_pointer_lifecycle() -> Result<(), Error> {
 
     let move_readout = readout.clone();
     let move_coords = coords.clone();
-    // The `last: …` readout is shared with the discrete handlers above, so its cache stays in an `Rc<RefCell<…>>`.
+    // The `last: ...` readout is shared with the discrete handlers above, so its cache stays in an `Rc<RefCell<...>>`.
     // The coordinate buffer is used only here, so this `FnMut` handler can simply own it.
     let move_cache = label_cache.clone();
     let mut coords_buf = String::new();

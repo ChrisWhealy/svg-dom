@@ -1,0 +1,155 @@
+pub(crate) mod linear;
+pub(crate) mod radial;
+
+use crate::{
+    Error, dom_err,
+    root::{attrs::SvgAttrs, defs::validate_gradient_id},
+};
+use std::cell::RefCell;
+use web_sys::{Document, SvgElement};
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Controls the coordinate space used by a gradient's geometry attributes.
+///
+/// The default in SVG is [`ObjectBoundingBox`](GradientUnits::ObjectBoundingBox), which lets you express positions as
+/// fractions of the painted element's bounding box and reuse one gradient definition across elements of different sizes.
+///
+/// Switch to [`UserSpaceOnUse`](GradientUnits::UserSpaceOnUse) when you need the gradient to be anchored to a fixed
+/// coordinate in the SVG canvas rather than scaled to each element individually.
+///
+/// Passed to [`SvgLinearGradient::set_gradient_units`] and [`SvgRadialGradient::set_gradient_units`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GradientUnits {
+    /// Geometry attributes are fractions of the element's bounding box in [0.0, 1.0].
+    /// This is the SVG default.
+    ObjectBoundingBox,
+    /// Geometry attributes use the same user-coordinate system as the element the gradient is applied to.
+    UserSpaceOnUse,
+}
+
+impl GradientUnits {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::ObjectBoundingBox => "objectBoundingBox",
+            Self::UserSpaceOnUse => "userSpaceOnUse",
+        }
+    }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Controls how a gradient is rendered outside its defined [0.0, 1.0] stop range.
+///
+/// Passed to [`SvgLinearGradient::set_spread_method`] and [`SvgRadialGradient::set_spread_method`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SpreadMethod {
+    /// Extend the colour of the nearest stop to fill the remaining area (default).
+    Pad,
+    /// Mirror the gradient pattern end-to-end, alternating directions.
+    Reflect,
+    /// Repeat the gradient pattern in the same direction.
+    Repeat,
+}
+
+impl SpreadMethod {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Pad => "pad",
+            Self::Reflect => "reflect",
+            Self::Repeat => "repeat",
+        }
+    }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Private shared state for both gradient types.
+// Using a shared inner struct avoids duplicating the id/element/document/attrs fields and the many methods that operate
+// identically on both types.
+struct GradientInner {
+    id: String,
+    element: SvgElement,
+    document: Document,
+    attrs: RefCell<SvgAttrs>,
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+impl GradientInner {
+    fn new(id: &str, element: SvgElement, document: Document) -> Self {
+        Self {
+            id: id.to_owned(),
+            element,
+            document,
+            attrs: RefCell::new(SvgAttrs::new()),
+        }
+    }
+
+    fn id(&self) -> &str {
+        &self.id
+    }
+
+    fn as_element(&self) -> &SvgElement {
+        &self.element
+    }
+
+    fn set_id(&mut self, id: &str) -> Result<(), Error> {
+        validate_gradient_id(id)?;
+        self.element.set_attribute("id", id).map_err(dom_err)?;
+        self.id = id.to_owned();
+        Ok(())
+    }
+
+    fn add_stop(&self, offset: f64, color: &str) -> Result<(), Error> {
+        let stop = super::create_svg_element::<SvgElement>(&self.document, "stop", "SvgElement")?;
+        self.attrs.borrow_mut().display_element(&stop, "offset", offset)?;
+        stop.set_attribute("stop-color", color).map_err(dom_err)?;
+        self.element.append_child(&stop).map_err(dom_err)?;
+        Ok(())
+    }
+
+    fn add_stop_opacity(&self, offset: f64, color: &str, opacity: f64) -> Result<(), Error> {
+        let stop = super::create_svg_element::<SvgElement>(&self.document, "stop", "SvgElement")?;
+        let mut attrs = self.attrs.borrow_mut();
+        attrs.display_element(&stop, "offset", offset)?;
+        stop.set_attribute("stop-color", color).map_err(dom_err)?;
+        attrs.display_element(&stop, "stop-opacity", opacity)?;
+        self.element.append_child(&stop).map_err(dom_err)?;
+        Ok(())
+    }
+
+    fn set_gradient_units(&self, units: GradientUnits) -> Result<(), Error> {
+        self.element.set_attribute("gradientUnits", units.as_str()).map_err(dom_err)
+    }
+
+    fn set_spread_method(&self, method: SpreadMethod) -> Result<(), Error> {
+        self.element.set_attribute("spreadMethod", method.as_str()).map_err(dom_err)
+    }
+
+    fn set_gradient_transform(&self, transform: &str) -> Result<(), Error> {
+        self.element.set_attribute("gradientTransform", transform).map_err(dom_err)
+    }
+
+    fn set_attr(&self, name: &str, value: &str) -> Result<(), Error> {
+        if name.eq_ignore_ascii_case("id") {
+            return Err(Error::ReservedAttribute("id"));
+        }
+        self.element.set_attribute(name, value).map_err(dom_err)
+    }
+
+    fn set_attrs<I, K, V>(&self, attrs: I) -> Result<(), Error>
+    where
+        I: IntoIterator<Item = (K, V)>,
+        K: AsRef<str>,
+        V: AsRef<str>,
+    {
+        for (name, value) in attrs {
+            self.set_attr(name.as_ref(), value.as_ref())?;
+        }
+        Ok(())
+    }
+
+    fn set_attr_display<T: std::fmt::Display>(&self, name: &str, value: T) -> Result<(), Error> {
+        if name.eq_ignore_ascii_case("id") {
+            return Err(Error::ReservedAttribute("id"));
+        }
+        self.attrs.borrow_mut().display_element(&self.element, name, value)
+    }
+}

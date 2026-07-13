@@ -46,7 +46,7 @@ The motivation was to stop passive geometry nodes from carrying listener state t
 The memory win is tiny because the common case is already optimised.
 
 The listeners field is `RefCell<Option<Box<ListenerStore>>>`, and `store_listener` only allocates on the first `on_*` call.
-A passive node therefore allocates **no** listener storage at all; it pays only for the inline field, that is, on `wasm32`, the `RefCell` borrow flag (4 bytes) plus a niche-optimised `Option<Box<…>>` pointer that is `null` when empty (4 bytes), so the saving adds up to only ~8 bytes.
+A passive node therefore allocates **no** listener storage at all; it pays only for the inline field, that is, on `wasm32`, the `RefCell` borrow flag (4 bytes) plus a niche-optimised `Option<Box<...>>` pointer that is `null` when empty (4 bytes), so the saving adds up to only ~8 bytes.
 
 `ListenerStore` is a `One(EventListener)` / `Many(Vec<EventListener>)` enum: the first listener is held inline in the `Box`, so a single-listener node makes one heap allocation rather than the two an empty `Vec` would (the `Box<Vec>` itself plus the element buffer on first push); a second listener upgrades `One` to `Many`.
 Registration is a setup-time path, so this is a modest leanness win rather than a hot-path one.
@@ -139,7 +139,7 @@ If a real workload ever proves the handle allocation to be a measurable bottlene
 
 ## 5) An `EventName` enum instead of `&'static str`
 
-It was suggested that `EventListener` store the event name as an enum (`Click`, `PointerMove`, … plus `Raw(&'static str)`) rather than a `&'static str`, on the grounds that an enum would be smaller than a fat string pointer, with `Drop` calling `event_name.as_str()`.
+It was suggested that `EventListener` store the event name as an enum (`Click`, `PointerMove`, ... plus `Raw(&'static str)`) rather than a `&'static str`, on the grounds that an enum would be smaller than a fat string pointer, with `Drop` calling `event_name.as_str()`.
 
 The premise upon which this idea is based is incorrect.
 
@@ -518,7 +518,7 @@ However, the realistic failure points are:
 
 - `validate_marker_id` — fires before any DOM mutation, so an invalid id leaves nothing in the DOM.
 - `create_svg_element` — creates a detached element; failure leaves nothing attached.
-- Attribute setters (`set_ref_x`, `set_marker_width`, …) — call `set_attribute` on standard SVG
+- Attribute setters (`set_ref_x`, `set_marker_width`, ...) — call `set_attribute` on standard SVG
   attribute names, which browsers essentially never reject.
 
 The only realistic path to a "partial DOM" is a browser DOM error on a standard SVG attribute setter,
@@ -598,7 +598,7 @@ The inconsistency is deliberate and documented.
 | | Reviewer's label | Existing equivalent |
 |--|--|---|
 | Layer 1 | One internal primitive | `element.set_attribute` via `web_sys` |
-| Layer 2 | Ordinary public mutation | `node.set_attr` + typed helpers (`set_fill`, `set_stroke`, …) |
+| Layer 2 | Ordinary public mutation | `node.set_attr` + typed helpers (`set_fill`, `set_stroke`, ...) |
 | Layer 3 | Performance helpers | `SvgAttrs`, `CachedAttr`, `AnimationFrame` |
 | Layer 4 | Remove raw DOM from normal API | See rejected idea 13 |
 

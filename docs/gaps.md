@@ -1,8 +1,8 @@
 # Gap Analysis
 
 This crate offers a working foundation for generating SVG content driven by a `requestAnimationFrame` (RAF) loop.
-It supports nested groups, `<defs>`, `<marker>`, batch building, and a full set of managed event wrappers.
-However, it can't yet produce anything with gradients, filters, clipping, or reusable symbols.
+It supports nested groups, `<defs>`, `<marker>`, `<linearGradient>`, `<radialGradient>`, batch building, and a full set of managed event wrappers.
+However, it cannot yet produce anything with filters, clipping, or reusable symbols.
 
 These gaps will be filled in time, but for now, this crate must be treated as a work-in-progress, not a general-purpose SVG library.
 
@@ -23,6 +23,8 @@ The following SVG elements are supported:
 * `marker`
 * `use`
 * `image`
+* `linearGradient` (with `stop`)
+* `radialGradient` (with `stop`)
 
 ### `<defs>`
 
@@ -64,13 +66,53 @@ Obtain a handle via `SvgRoot::use_node(href, at)` or `SvgBatch::use_node(href, a
 Any change to the original definition is immediately visible in all copies.
 `<symbol>` is not yet supported; for now, define reusable content directly inside `<defs>` with a shape or group that carries an `id`.
 
+### `<linearGradient>` / `<radialGradient>`
+
+Gradient paint servers defined inside `<defs>` and referenced by shape `fill` or `stroke` attributes.
+You can obtain such a paint server either from `SvgDefs::build_linear_gradient` or `build_radial_gradient`.
+The live-append variants are `linear_gradient` and `radial_gradient`.
+
+**`<linearGradient>`** paints a colour transition along a straight line.
+
+- The axis runs from (`x1`, `y1`) to (`x2`, `y2`).
+  Under the default `gradientUnits="objectBoundingBox"` these are fractions in the range `0.0` to `1.0` of the element's bounding box.
+  If omitted, the default is a horizontal left-to-right gradient (SVG defaults: `x1=0`, `y1=0`, `x2=1`, `y2=0`).
+- Use `set_gradient_transform("rotate(45, 0.5, 0.5)")` for a diagonal gradient without the need to compute trigonometric endpoint coordinates.
+- A linear gradient can be applied to a shape's `fill` or `stroke` attributes using `SvgNode::set_fill_linear_gradient` or `SvgNode::set_stroke_linear_gradient`.
+
+**`<radialGradient>`** radiates outward from some focal point at `fx / fy` through an outer circle centered ar `cx / cy` and having a radius of `r`.
+
+- SVG uses the defaults `cx=0.5`, `cy=0.5`, `r=0.5`.
+  This positions the focal point at the centre of the outer circle.
+- Move the focal point with `set_fx` / `set_fy` to create asymmetric "hot spot" or spotlight effects.
+- `set_fr` sets the focal circle radius (SVG 2) for a hollow centre.
+- Apply with `SvgNode::set_fill_radial_gradient` / `SvgNode::set_stroke_radial_gradient`.
+
+**Shared API** for both gradient types:
+
+| Function | Description
+|---|---|
+| `add_stop(offset, color)` | Add a `<stop>` at `offset` (0.0–1.0) with `stop-color` and full opacity.
+| `add_stop_opacity(offset, color, opacity)` | As above, but with explicit `stop-opacity`.
+| `set_gradient_units(GradientUnits)` | Switch between `ObjectBoundingBox` (default) and `UserSpaceOnUse`.
+| `set_spread_method(SpreadMethod)` | `Pad` (default), `Reflect`, or `Repeat` outside the stop range.
+| `set_gradient_transform(transform)` | Arbitrary SVG transform applied to the gradient coordinate system.
+| `set_attr` / `set_attrs` / `set_attr_display` | Generic escape hatches for other attributes.
+| `id()` / `set_id()` | Cached id management; renaming does not retroactively update shape references.
+
+***IMPORTANT***<br>
+
+* All gradient ids must match the pattern `[A-Za-z_][A-Za-z0-9_-]*`.
+* The ids used by the SVG paint-server are document-scoped not SVG-element-scoped; therefore, they must be globally unique across all `<svg>` elements on the page (using `url(#id)`)
+
+A fully qualified prefix such as `"my-app-sky-gradient"` is a practical guard against collisions.
+
 ## Missing SVG elements
 
 The following SVG elements still need to be implemented:
 
 | Missing Element | Why it matters
 |---|---|
-| `<linearGradient>` / `<radialGradient>` | Gradient fills (the required `<defs>` container now exists)
 | `<pattern>` | Tiled fill patterns
 | `<clipPath>` | Masking regions
 | `<symbol>` | Named reusable viewport; the companion to `<use>` for scaled/clipped stamp copies
@@ -90,7 +132,7 @@ Implemented:
 
 Still missing:
 
-- No downward/child navigation (`children()`, `first_child`, …)
+- No downward/child navigation (`children()`, `first_child`, ...)
 - No way to query the tree or find a node by attribute (`query_selector` and friends)
 
 # Event coverage

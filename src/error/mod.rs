@@ -3,12 +3,13 @@
 ///
 /// Every fallible function in this crate returns `Result<_, Error>`.
 ///
-/// The variants cover five categories:
+/// The variants cover six categories:
 ///
 /// - you asked for a non-existent element by id ([`Error::ElementNotFound`])
 /// - a `web-sys` call returned a JavaScript error ([`Error::Dom`])
 /// - a JavaScript value couldn't be cast to the expected Rust type ([`Error::CastFailed`])
 /// - a marker id string was rejected by crate-level validation ([`Error::InvalidMarkerId`])
+/// - a gradient id string was rejected by crate-level validation ([`Error::InvalidGradientId`])
 /// - a generic setter was called with an attribute name that has a dedicated typed setter ([`Error::ReservedAttribute`])
 #[derive(Debug)]
 pub enum Error {
@@ -39,6 +40,21 @@ pub enum Error {
     ///
     /// The inner `String` is the rejected id.
     InvalidMarkerId(String),
+
+    /// A gradient `id` string was rejected before reaching the DOM.
+    ///
+    /// Valid gradient ids must match the pattern `[A-Za-z_][A-Za-z0-9_-]*`: an ASCII letter or underscore followed by
+    /// zero or more ASCII letters, digits, underscores, or hyphens.
+    ///
+    /// This error will be returned if a string that does not match this pattern is passed to any of these functions:
+    /// * [`SvgDefs::linear_gradient`](crate::SvgDefs::linear_gradient),
+    /// * [`SvgDefs::build_linear_gradient`](crate::SvgDefs::build_linear_gradient),
+    /// * [`SvgDefs::radial_gradient`](crate::SvgDefs::radial_gradient),
+    /// * [`SvgDefs::build_radial_gradient`](crate::SvgDefs::build_radial_gradient),
+    /// * or the `set_fill_gradient` / `set_stroke_gradient` setters.
+    ///
+    /// The inner `String` is the rejected id.
+    InvalidGradientId(String),
 
     /// A generic attribute setter was called with an attribute name that is managed by a dedicated typed setter.
     ///
@@ -80,6 +96,7 @@ impl std::fmt::Display for Error {
             Error::Dom(msg) => write!(f, "DOM error: {msg}"),
             Error::CastFailed(ty) => write!(f, "JsCast to {ty} failed"),
             Error::InvalidMarkerId(id) => write!(f, "invalid svg marker id: {id:?}"),
+            Error::InvalidGradientId(id) => write!(f, "invalid svg gradient id: {id:?}"),
             Error::ReservedAttribute(name) => {
                 write!(f, "attribute {name:?} is reserved; use the dedicated setter")
             },

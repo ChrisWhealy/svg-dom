@@ -11,7 +11,7 @@ impl SvgNode {
     /// the node and removes the DOM listener automatically when the last `SvgNode` handle is dropped.
     ///
     /// Handlers are [`FnMut`], so a hot handler can *own and mutate* its own scratch state directly — for example a
-    /// reusable [`SvgAttrs`](crate::SvgAttrs) or a `String` buffer — without wrapping it in `Rc<RefCell<…>>`. (The
+    /// reusable [`SvgAttrs`](crate::SvgAttrs) or a `String` buffer — without wrapping it in `Rc<RefCell<...>>`. (The
     /// one constraint is that a handler must not be dispatched *re-entrantly* — i.e. synchronously triggering the same
     /// event on the same node from within the handler — which would panic, just as a re-entrant `RefCell` borrow
     /// would.)

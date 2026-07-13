@@ -3,7 +3,8 @@ use crate::{
     error::Error,
     root::{
         attrs::{AttrWriter, SvgAttrs},
-        defs::validate_marker_id,
+        defs::{validate_gradient_id, validate_marker_id},
+        gradient::{linear::SvgLinearGradient, radial::SvgRadialGradient},
         marker::SvgMarker,
     },
 };
@@ -23,7 +24,7 @@ impl SvgNode {
     /// # Security
     ///
     /// `name` and `value` are written **verbatim** via `setAttribute`. Setting an event-handler attribute (`onclick`,
-    /// `onload`, …) or an `href` of the form `javascript:…` from attacker-controlled input can execute script. Do not
+    /// `onload`, ...) or an `href` of the form `javascript:...` from attacker-controlled input can execute script. Do not
     /// pass untrusted data as an attribute name or value without validating it first.
     ///
     /// # Example
@@ -276,7 +277,7 @@ impl SvgNode {
     /// Sets the `marker-start` attribute, painting the given marker at the first vertex of the element's stroke.
     ///
     /// `marker_id` is the bare `id` of an [`SvgMarker`] defined in a [`SvgDefs`](crate::SvgDefs) block;
-    /// the `url(#…)` wrapper is added automatically.
+    /// the `url(#...)` wrapper is added automatically.
     /// The same validation rules that apply at marker construction time are enforced here: an id that does not match
     /// `[A-Za-z_][A-Za-z0-9_-]*` returns [`Error::InvalidMarkerId`].
     ///
@@ -291,7 +292,7 @@ impl SvgNode {
     /// Sets the `marker-mid` attribute, painting the given marker at every intermediate vertex of the element's stroke.
     ///
     /// `marker_id` is the bare `id` of an [`SvgMarker`] defined in a [`SvgDefs`](crate::SvgDefs) block;
-    /// the `url(#…)` wrapper is added automatically.
+    /// the `url(#...)` wrapper is added automatically.
     /// The same validation rules that apply at marker construction time are enforced here: an id that does not match
     /// `[A-Za-z_][A-Za-z0-9_-]*` returns [`Error::InvalidMarkerId`].
     ///
@@ -306,11 +307,11 @@ impl SvgNode {
     /// Sets the `marker-end` attribute, painting the given marker at the last vertex of the element's stroke.
     ///
     /// `marker_id` is the bare `id` of an [`SvgMarker`] defined in a [`SvgDefs`](crate::SvgDefs) block;
-    /// the `url(#…)` wrapper is added automatically.
+    /// the `url(#...)` wrapper is added automatically.
     /// The same validation rules that apply at marker construction time are enforced here: an id that does not match
     /// `[A-Za-z_][A-Za-z0-9_-]*` returns [`Error::InvalidMarkerId`].
     /// Prefer [`set_marker_end_ref`](Self::set_marker_end_ref) when you have the [`SvgMarker`] handle available, as it
-    /// eliminates the risk of typos and `url(#…)` double-wrapping.
+    /// eliminates the risk of typos and `url(#...)` double-wrapping.
     pub fn set_marker_end(&self, marker_id: &str) -> Result<(), Error> {
         validate_marker_id(marker_id)?;
         self.set_attr("marker-end", &format!("url(#{marker_id})"))
@@ -320,7 +321,7 @@ impl SvgNode {
     /// Sets the `marker-start` attribute from a live [`SvgMarker`] handle.
     ///
     /// This is the preferred alternative to [`set_marker_start`](Self::set_marker_start): the id is taken directly from
-    /// the marker, so there is no risk of typos or `url(#…)` double-wrapping.
+    /// the marker, so there is no risk of typos or `url(#...)` double-wrapping.
     ///
     /// The written attribute stores the marker's id as a string at call time.
     /// If the marker is later renamed with [`SvgMarker::set_id`](crate::SvgMarker::set_id), this element's attribute is
@@ -333,7 +334,7 @@ impl SvgNode {
     /// Sets the `marker-mid` attribute from a live [`SvgMarker`] handle.
     ///
     /// This is the preferred alternative to [`set_marker_mid`](Self::set_marker_mid): the id is taken directly from
-    /// the marker, so there is no risk of typos or `url(#…)` double-wrapping.
+    /// the marker, so there is no risk of typos or `url(#...)` double-wrapping.
     ///
     /// The written attribute stores the marker's id as a string at call time.
     /// If the marker is later renamed with [`SvgMarker::set_id`](crate::SvgMarker::set_id), this element's attribute is
@@ -346,7 +347,7 @@ impl SvgNode {
     /// Sets the `marker-end` attribute from a live [`SvgMarker`] handle.
     ///
     /// This is the preferred alternative to [`set_marker_end`](Self::set_marker_end): the id is taken directly from
-    /// the marker, so there is no risk of typos or `url(#…)` double-wrapping.
+    /// the marker, so there is no risk of typos or `url(#...)` double-wrapping.
     ///
     /// The written attribute stores the marker's id as a string at call time.
     /// If the marker is later renamed with [`SvgMarker::set_id`](crate::SvgMarker::set_id), this element's attribute is
@@ -404,6 +405,96 @@ impl SvgNode {
     /// ```
     pub fn set_d(&self, path: &str) -> Result<(), Error> {
         self.set_attr("d", path)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the `fill` attribute to reference a gradient by its bare `id`.
+    ///
+    /// The `url(#...)` wrapper is added automatically.
+    ///
+    /// The same validation rules that apply at gradient construction time are also enforced here:
+    /// an id that does not match the pattern `[A-Za-z_][A-Za-z0-9_-]*` will return [`Error::InvalidGradientId`].
+    ///
+    /// Prefer [`set_fill_linear_gradient`](Self::set_fill_linear_gradient) or
+    /// [`set_fill_radial_gradient`](Self::set_fill_radial_gradient) when you have the gradient handle available, as
+    /// they eliminate the risk of typos and `url(#...)` double-wrapping.
+    pub fn set_fill_gradient(&self, gradient_id: &str) -> Result<(), Error> {
+        validate_gradient_id(gradient_id)?;
+        self.set_attr("fill", &format!("url(#{gradient_id})"))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the `stroke` attribute to reference a gradient by its bare `id`.
+    ///
+    /// The `url(#...)` wrapper is added automatically.
+    ///
+    /// The same validation rules that apply at gradient construction time are also enforced here:
+    /// an id that does not match the pattern `[A-Za-z_][A-Za-z0-9_-]*` will return [`Error::InvalidGradientId`].
+    ///
+    /// Prefer [`set_stroke_linear_gradient`](Self::set_stroke_linear_gradient) or
+    /// [`set_stroke_radial_gradient`](Self::set_stroke_radial_gradient) when you have the gradient handle available, as
+    /// they eliminate the risk of typos and `url(#...)` double-wrapping.
+    pub fn set_stroke_gradient(&self, gradient_id: &str) -> Result<(), Error> {
+        validate_gradient_id(gradient_id)?;
+        self.set_attr("stroke", &format!("url(#{gradient_id})"))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the `fill` attribute to reference a [`SvgLinearGradient`] by its `id`.
+    ///
+    /// This is the preferred alternative to [`set_fill_gradient`](Self::set_fill_gradient): the id is taken directly
+    /// from the gradient handle, so there is no risk of typos or `url(#...)` double-wrapping.
+    ///
+    /// The written attribute stores the gradient's id as a string at call time. If the gradient is later renamed with
+    /// [`SvgLinearGradient::set_id`], this element's attribute is not updated automatically — reapply the reference
+    /// after renaming if needed.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::{Point, Size}};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    /// let grad = defs.build_linear_gradient("banner", |g| {
+    ///     g.add_stop(0.0, "steelblue")?;
+    ///     g.add_stop(1.0, "coral")?;
+    ///     Ok(())
+    /// })?;
+    ///
+    /// let rect = svg.rect(Point::origin(), Size::new(200.0, 80.0))?;
+    /// rect.set_fill_linear_gradient(&grad)?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn set_fill_linear_gradient(&self, gradient: &SvgLinearGradient) -> Result<(), Error> {
+        self.set_fill_gradient(gradient.id())
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the `stroke` attribute to reference a [`SvgLinearGradient`] by its `id`.
+    ///
+    /// This is the preferred alternative to [`set_stroke_gradient`](Self::set_stroke_gradient) when you have
+    /// the gradient handle.
+    pub fn set_stroke_linear_gradient(&self, gradient: &SvgLinearGradient) -> Result<(), Error> {
+        self.set_stroke_gradient(gradient.id())
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the `fill` attribute to reference a [`SvgRadialGradient`] by its `id`.
+    ///
+    /// This is the preferred alternative to [`set_fill_gradient`](Self::set_fill_gradient) when you have
+    /// the gradient handle.
+    pub fn set_fill_radial_gradient(&self, gradient: &SvgRadialGradient) -> Result<(), Error> {
+        self.set_fill_gradient(gradient.id())
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the `stroke` attribute to reference a [`SvgRadialGradient`] by its `id`.
+    ///
+    /// This is the preferred alternative to [`set_stroke_gradient`](Self::set_stroke_gradient) when you have
+    /// the gradient handle.
+    pub fn set_stroke_radial_gradient(&self, gradient: &SvgRadialGradient) -> Result<(), Error> {
+        self.set_stroke_gradient(gradient.id())
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

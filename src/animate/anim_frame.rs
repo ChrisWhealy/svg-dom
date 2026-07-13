@@ -95,7 +95,7 @@ impl AnimationFrame {
         Ok(())
     }
 
-    /// Formats `points` into the reusable buffer and sets the node's `points` attribute (`"x,y x,y …"`).
+    /// Formats `points` into the reusable buffer and sets the node's `points` attribute (`"x,y x,y ..."`).
     ///
     /// The per-frame counterpart to [`SvgAttrs::points`](crate::SvgAttrs::points): use it to animate the vertices of a
     /// `<polyline>` or `<polygon>` from inside an [`AnimationLoop::start_with_frame`](crate::AnimationLoop::start_with_frame)

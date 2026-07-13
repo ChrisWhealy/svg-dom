@@ -3,14 +3,14 @@
 //! The demo gallery only ever displays Rust, so this is deliberately a stripped-down lexer rather than a general-purpose
 //! highlighter: it recognises comments, strings, char literals, lifetimes, numbers, keywords, type-ish identifiers,
 //! macros and call-position identifiers, and passes everything else through verbatim. The output is an HTML string of
-//! `<span class="…">` tokens (with `&`, `<`, `>` escaped) suitable for `Element::set_inner_html`; the colours live in
+//! `<span class="...">` tokens (with `&`, `<`, `>` escaped) suitable for `Element::set_inner_html`; the colours live in
 //! `demo/style.css`.
 //!
 //! It is not a full Rust parser and does not need to be — it only has to make the embedded demo functions readable. Raw
-//! strings (`r"…"`) are not special-cased because the demo source does not use them.
+//! strings (`r"..."`) are not special-cased because the demo source does not use them.
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Converts a Rust source string into highlighted HTML (`<span class="…">` tokens, HTML-escaped).
+/// Converts a Rust source string into highlighted HTML (`<span class="...">` tokens, HTML-escaped).
 pub fn rust_to_html(src: &str) -> String {
     let b = src.as_bytes();
     let n = b.len();
@@ -20,7 +20,7 @@ pub fn rust_to_html(src: &str) -> String {
     while i < n {
         let c = b[i];
 
-        // Line comment: // … to end of line.
+        // Line comment: // ... to end of line.
         if c == b'/' && i + 1 < n && b[i + 1] == b'/' {
             let start = i;
             while i < n && b[i] != b'\n' {
@@ -30,7 +30,7 @@ pub fn rust_to_html(src: &str) -> String {
             continue;
         }
 
-        // Block comment: /* … */ (not nested, which is enough for the demo source).
+        // Block comment: /* ... */ (not nested, which is enough for the demo source).
         if c == b'/' && i + 1 < n && b[i + 1] == b'*' {
             let start = i;
             i += 2;
@@ -42,7 +42,7 @@ pub fn rust_to_html(src: &str) -> String {
             continue;
         }
 
-        // String literal: "…" with backslash escapes.
+        // String literal: "..." with backslash escapes.
         if c == b'"' {
             let start = i;
             i += 1;
@@ -165,7 +165,7 @@ fn char_literal_len(b: &[u8], i: usize, n: usize) -> Option<usize> {
         return None;
     }
     if b[i + 1] == b'\\' {
-        // Escaped char: '\n', '\'', '\\', … — scan to the closing quote within a short bound.
+        // Escaped char: '\n', '\'', '\\', ... — scan to the closing quote within a short bound.
         let mut j = i + 2;
         while j < n && j < i + 8 && b[j] != b'\'' {
             j += 1;

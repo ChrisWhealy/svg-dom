@@ -27,6 +27,8 @@
             <button type="button" class="menu-item" data-target="panel-marker">defs / marker</button>
             <button type="button" class="menu-item" data-target="panel-use">use</button>
             <button type="button" class="menu-item" data-target="panel-image">image</button>
+            <button type="button" class="menu-item" data-target="panel-linear-gradient">linearGradient</button>
+            <button type="button" class="menu-item" data-target="panel-radial-gradient">radialGradient</button>
 
             <div class="menu-group">Event handling</div>
             <button type="button" class="menu-item" data-target="panel-events-click">Click counter</button>
@@ -149,7 +151,7 @@
                     <div class="canvas" id="demo-group"></div>
                     <figcaption>
                         Two groups share the same local element coordinates; a
-                        <code>transform="translate(…)"</code> repositions each group as a unit.
+                        <code>transform="translate(...)"</code> repositions each group as a unit.
                         The dashed connector is drawn in SVG root space.
                     </figcaption>
                 </figure>
@@ -204,6 +206,35 @@
                         The same 60&times;40 source image (a four-quadrant colour grid) placed in a 100&times;100 box
                         with three different <strong>preserveAspectRatio</strong> modes, plus a fourth slot that
                         demonstrates <strong>set_href</strong> swapping the image source after creation.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- linearGradient -->
+            <section class="section" id="panel-linear-gradient">
+                <h2><code>&lt;linearGradient&gt;</code> — colour transitions along a line</h2>
+                <figure>
+                    <div class="canvas" id="demo-linear-gradient"></div>
+                    <figcaption>
+                        <strong>horizontal</strong> (default left-to-right axis) ·
+                        <strong>vertical</strong> (<code>x2="0" y2="1"</code>) ·
+                        <strong>diagonal</strong> (<code>gradientTransform="rotate(45)"</code>) ·
+                        <strong>4-stop spectrum</strong> ·
+                        <strong>gradient stroke</strong> on a cubic Bézier path
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- radialGradient -->
+            <section class="section" id="panel-radial-gradient">
+                <h2><code>&lt;radialGradient&gt;</code> — colour transitions radiating from a focal point</h2>
+                <figure>
+                    <div class="canvas" id="demo-radial-gradient"></div>
+                    <figcaption>
+                        <strong>centred glow</strong> (default <code>cx/cy/r = 0.5</code>) ·
+                        <strong>off-centre focal</strong> (<code>fx="0.25" fy="0.25"</code>) ·
+                        <strong>spreadMethod: reflect</strong> with tight radius (concentric rings) ·
+                        <strong>ellipse metallic sheen</strong> (objectBoundingBox adapts to the shape)
                     </figcaption>
                 </figure>
             </section>

@@ -93,7 +93,7 @@ impl SvgAttrs {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Formats `points` into the reusable scratch buffer as an SVG `points` list (`"x,y x,y …"`) and writes it as the
+    /// Formats `points` into the reusable scratch buffer as an SVG `points` list (`"x,y x,y ..."`) and writes it as the
     /// node's `points` attribute.
     ///
     /// This is the allocation-light way to set or update the vertices of a `<polyline>` or `<polygon>` — for instance

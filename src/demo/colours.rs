@@ -30,7 +30,7 @@ pub const TEXT_MUTED: &str = "#8b949e";
 pub const CAPTION: &str = "#777";
 /// Light text used for the plain-text sample.
 pub const PLAIN_TEXT: &str = "#d0d0d0";
-/// Primary accent (group 1, draggable card, …).
+/// Primary accent (group 1, draggable card, ...).
 pub const ACCENT_BLUE: &str = "#58a6ff";
 /// Secondary accent (group 2).
 pub const ACCENT_AMBER: &str = "#d29922";

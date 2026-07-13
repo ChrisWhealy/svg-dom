@@ -212,7 +212,7 @@ impl SvgMarker {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Formats `value` through the element's internal scratch buffer and writes it as `name`.
     ///
-    /// Uses the same `SvgAttrs` scratch buffer that the named numeric setters (`set_ref_x`, `set_marker_width`, …)
+    /// Uses the same `SvgAttrs` scratch buffer that the named numeric setters (`set_ref_x`, `set_marker_width`, ...)
     /// use internally, so no extra allocation is made.
     /// Passing `"id"` (matched case-insensitively) returns [`Error::ReservedAttribute`];
     /// use [`set_id`](Self::set_id) instead.

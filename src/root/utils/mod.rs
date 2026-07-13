@@ -113,7 +113,7 @@ impl std::fmt::Display for Size {
 /// and can generate enormous strings. Callers that pass a higher value are clamped to this constant.
 pub(crate) const MAX_DPS: usize = 20;
 
-/// Formats `points` into `out` as an SVG `points` list (`"x,y x,y …"`), replacing any previous contents.
+/// Formats `points` into `out` as an SVG `points` list (`"x,y x,y ..."`), replacing any previous contents.
 ///
 /// `dps` selects the per-coordinate precision: `None` uses the default shortest round-trip `Display`, while `Some(n)`
 /// writes each coordinate with `n` fixed decimal places (clamped to [`MAX_DPS`] = 20).
