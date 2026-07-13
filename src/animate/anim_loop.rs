@@ -148,7 +148,7 @@ impl AnimationLoop {
                 AnimLoopState::StopPending => {
                     state_inner.set(AnimLoopState::Stopped);
                     return;
-                }
+                },
                 AnimLoopState::Stopped => return, // should not occur; guard defensively
                 AnimLoopState::Dispatching => state_inner.set(AnimLoopState::Idle),
                 AnimLoopState::Idle => return, // unexpected
@@ -251,22 +251,22 @@ impl AnimationLoop {
                 let _ = self
                     .window
                     .set_timeout_with_callback_and_timeout_and_arguments_0(cb.unchecked_ref(), 0);
-            }
+            },
             AnimLoopState::StopPending => {
                 // A second stop() arrived during the same dispatch.  The deferred timer is already scheduled, so this
                 // becomes a no-op.
-            }
+            },
             AnimLoopState::Stopped => {
                 // Already stopped.  Also used as a recovery path: if the deferred timer never ran (e.g. setTimeout
                 // scheduling failed), the closure slot may still be filled; clear it now since we are guaranteed to be
                 // outside callback dispatch when the state is `Stopped`.
                 *self.closure.borrow_mut() = None;
-            }
+            },
             AnimLoopState::Idle => {
                 // Not inside a callback: safe to immediately drop the closure and the values it has captured.
                 self.state.set(AnimLoopState::Stopped);
                 *self.closure.borrow_mut() = None;
-            }
+            },
         }
     }
 }
