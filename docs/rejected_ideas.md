@@ -28,6 +28,7 @@ The reasoning is preserved here so the same ideas are not repeatedly re-proposed
 21. [Reduce error-path formatting machinery to shrink WASM binary size](#21-reduce-error-path-formatting-machinery-to-shrink-wasm-binary-size)
 22. [Feature-gate event families and specialised SVG functionality](#22-feature-gate-event-families-and-specialised-svg-functionality)
 23. [Optional shared RAF scheduler (`AnimationScheduler`)](#23-optional-shared-raf-scheduler-animationscheduler)
+24. [Optional delegated event handling for dense interactive scenes](#24-optional-delegated-event-handling-for-dense-interactive-scenes)
 
 ## 1) Splitting `SvgNode` into passive and interactive types
 
@@ -988,3 +989,74 @@ Hosting the scheduler on `SvgRoot` (one per SVG) is a cleaner ownership model bu
 * The benefit is only significant at large `N` (the RFC uses ten as its example), and no profile of a downstream application with that many concurrent `AnimationLoop` values has been produced.
 
 As with previous rejections, the measurement gate that has been consistently applied to speculative performance work (entries 3, 4, 6, 11, 21, and 22) applies here as well.
+
+## 24) Optional delegated event handling for dense interactive scenes
+
+An External review proposed implementing a delegated listener API where a single bubbling event handler attached to an `SvgRoot` or group would serve all matching descendants, reducing `N` per-node registrations down to one:
+
+```rust
+let delegated = svg.on_delegated_click("[data-item]", |node, event| {
+    // handle clicks for all matching descendants
+})?;
+```
+
+The stated benefit for a scene with `N` interactive nodes was that browser listener registrations, wasm-bindgen closures, listener-store entries and setup/teardown costs all fall from `N` to 1.
+
+None of the proposed changes will be adopted.
+
+### The current API already achieves event delegation with no changes
+
+Attaching any bubbling event listener to a group or root node is already event delegation.
+The handler fires for events originating from all descendants; `event.target()` identifies the originating element.
+A scene with 1000 interactive items needs exactly one `on_click` registration on their common ancestor: one listener-store entry, one wasm-bindgen closure and one browser callback:-
+
+```rust
+let group = svg.group()?;
+// … append 1000 child nodes to group …
+
+group.on_click(|event| {
+    if let Some(target) = event.target() {
+        if let Ok(element) = target.dyn_into::<web_sys::Element>() {
+            // inspect element.get_attribute("data-item") or element.id()
+        }
+    }
+})?;
+```
+
+The RFC's proposed `on_delegated_click` API adds nothing that the current API cannot express; it would be a thin convenience wrapper around exactly the pattern shown above.
+
+### The handler signature `|node, event|` cannot be implemented without a hidden registry
+
+The distinguishing feature of the proposed API over `on_click` on a group is that the closure receives a typed `SvgNode` for the originating element, not a raw `event.target()`.
+
+`SvgNode` is `Rc<SvgNodeInner>`; which is a reference-counted smart pointer to an opaque inner struct.
+There is no constructor that builds one from a bare `web_sys::SvgElement`.
+Reconstructing an `SvgNode` from a delegated event target therefore requires an external lookup table mapping DOM element identity to `Rc<SvgNodeInner>`.
+
+Such a table would need to:
+- be updated on every `SvgNode` construction and destruction;
+- use DOM-object identity keys (since `web_sys::Element` does not implement `Hash` or `Eq` any comparison would require the use of `JsValue::loose_eq` or `Object.is()`);
+- hold at most `Weak<SvgNodeInner>` references to avoid keeping dead nodes alive;
+- be stored somewhere with a lifetime long enough to serve delegated callbacks — either on `SvgRoot` (which would become an always-on overhead for every app) or in a separate opt-in type.
+
+This is a significant architectural addition that adds a non-trivial runtime overhead on every node creation and destruction, solely to avoid calling `get_attribute` inside the closure.
+If the delegated handler receives a raw `web_sys::Element` instead (not a `SvgNode`), the API differs only cosmetically from `on_click` on a group, which the user can already write.
+
+### The CSS selector check introduces per-event JS boundary crossings
+
+The proposed API filters targets with a CSS selector string such as `"[data-item]"`.
+Evaluating this filter requires a JS call via `element.closest(selector)` or `element.matches(selector)` inside every event dispatch.
+For click events this is harmless, but the RFC also mentions `pointermove`, `keyboard events`, and `drag events` as appropriate event types.
+For `pointermove` at 60 Hz with an active scene, a JS call per event for selector evaluation reintroduces boundary crossings in the hot path, partially erasing the registration savings the feature was designed to provide.
+
+### Non-bubbling events limit the useful scope to a narrow set
+
+The RFC correctly notes that `pointerenter`, `pointerleave`, `mouseenter`, `mouseleave`, `focus`, and `blur` have different bubbling semantics and cannot be delegated.
+These are the events most commonly used for hover and focus effects — exactly the class of per-element behaviour most likely to be attached to many nodes in an interactive scene.
+The events that do bubble cleanly (`click`, `pointerdown`, `pointerup`) are lower-frequency and better served by the already-available group-listener pattern.
+
+### The ownership model documentation cost
+
+The crate's central invariant is *"a listener belongs to the node that registered it."*
+Delegated listeners break this invariant: the handler fires for events originating on descendant nodes, not the node that holds the registration.
+Introducing a parallel ownership model requires documentation carve-outs, lifecycle caveats distinct from the existing listener-management guidance and decisions about whether delegated registrations participate in `clear_listeners` and `remove_listeners` — whose semantics have already been carefully defined for the node-owned case.
