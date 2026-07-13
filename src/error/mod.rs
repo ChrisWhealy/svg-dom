@@ -11,7 +11,7 @@
 /// - Four types of crate-level validation error exist for id strings
 ///   - a bad marker id ([`Error::InvalidMarkerId`])
 ///   - a bad gradient id ([`Error::InvalidGradientId`])
-///   - a bad clip-path string ([`Error::InvalidClipPathId`])
+///   - a bad clip-path id ([`Error::InvalidClipPathId`])
 ///   - a bad symbol id ([`Error::InvalidSymbolId`])
 /// - a generic setter was called with an attribute name that has a dedicated typed setter ([`Error::ReservedAttribute`])
 #[derive(Debug)]
