@@ -11,6 +11,7 @@ The following SVG elements are supported:
 * `line`
 * `linearGradient` (with `stop`)
 * `marker`
+* `pattern`
 * `rect`
 * `path`
 * `polygon`
@@ -167,6 +168,80 @@ A fully qualified prefix such as `"my-app-sky-gradient"` is a practical guard ag
 
 Apply it to any stroked element — `<line>`, `<path>`, `<polyline>`, `<polygon>` — via `SvgNode::set_marker_start`, `set_marker_mid`, or `set_marker_end`.
 The `MarkerUnits` enum controls whether `markerWidth`/`markerHeight` are relative to `strokeWidth` (default) or user coordinates.
+
+---
+
+## `<pattern>`
+
+A `<pattern>` element defines a tiled graphic that is painted repeatedly to fill (or stroke) the region of any element that references it via `fill="url(#id)"` or `stroke="url(#id)"`.
+Like `<clipPath>`, it is a shape container; unlike gradients, each tile is a full rendered graphic rather than a colour interpolation.
+
+Obtain one from `SvgDefs::pattern(id)` (live-append) or `SvgDefs::build_pattern(id, closure)` (detached until the closure succeeds).
+Apply it to any element with `SvgNode::set_fill_pattern_ref(&pat)`, `SvgNode::set_fill_pattern("id")`, or their stroke equivalents.
+
+**API** overview on `SvgPattern`:
+
+| Method | Attribute | Description |
+|---|---|---|
+| `set_x(v)` | `x` | Horizontal offset of the tile origin |
+| `set_y(v)` | `y` | Vertical offset of the tile origin |
+| `set_width(v)` | `width` | Width of a single tile |
+| `set_height(v)` | `height` | Height of a single tile |
+| `set_pattern_units(u)` | `patternUnits` | Coordinate space for `x`/`y`/`width`/`height` |
+| `set_pattern_content_units(u)` | `patternContentUnits` | Coordinate space for shapes inside the tile |
+| `set_pattern_transform(t)` | `patternTransform` | SVG transform applied to the tile before tiling |
+| `set_view_box(x, y, w, h)` | `viewBox` | Internal coordinate system for tile content |
+| `set_id(&mut self, id)` | `id` | Renames the pattern (updates both DOM and cached id) |
+| `set_attr(name, value)` | — | Generic setter for unlisted attributes |
+
+All shape factory methods (`rect`, `circle`, `ellipse`, `line`, `path`, `polyline`, `polygon`, `text`, `group`) are available on `SvgPattern`.
+
+**Applying patterns** on `SvgNode`:
+
+| Method | Description |
+|---|---|
+| `set_fill_pattern_ref(&pat)` | Apply by handle (preferred — no typo risk). |
+| `set_fill_pattern("id")` | Apply by bare id string; `url(#...)` is added automatically. |
+| `set_stroke_pattern_ref(&pat)` | Apply to stroke by handle. |
+| `set_stroke_pattern("id")` | Apply to stroke by bare id string. |
+
+**Coordinate systems** — controlled by `PatternUnits` (used for both `patternUnits` and `patternContentUnits`):
+
+| Variant | SVG value | Meaning |
+|---|---|---|
+| `UserSpaceOnUse` | `userSpaceOnUse` | Tile dimensions use the same coordinate space as the referencing element. |
+| `ObjectBoundingBox` | `objectBoundingBox` | Tile dimensions are fractions of the referencing element's bounding box (SVG default for `patternUnits`). |
+
+**Example**:
+
+```rust,no_run
+use svg_dom::{SvgRoot, root::{pattern::PatternUnits, utils::{Point, Size}}};
+
+let svg = SvgRoot::attach("diagram")?;
+
+svg.build_defs(|d| {
+    d.build_pattern("checker", |p| {
+        p.set_pattern_units(PatternUnits::UserSpaceOnUse)?;
+        p.set_width(20.0)?;
+        p.set_height(20.0)?;
+        p.rect(Point::new(0.0, 0.0), Size::new(20.0, 20.0))?.set_fill("teal")?;
+        p.rect(Point::new(0.0, 0.0), Size::new(10.0, 10.0))?.set_fill("white")?;
+        p.rect(Point::new(10.0, 10.0), Size::new(10.0, 10.0))?.set_fill("white")?;
+        Ok(())
+    })?;
+    Ok(())
+})?;
+
+let rect = svg.rect(Point::origin(), Size::new(300.0, 200.0))?;
+rect.set_fill_pattern("checker")?;
+Ok::<(), svg_dom::Error>(())
+```
+
+***IMPORTANT***
+
+* All pattern ids must match the pattern `[A-Za-z_][A-Za-z0-9_-]*`.
+* Ids are document-scoped, so they must be globally unique across all `<svg>` elements on the page.
+* Always use `SvgPattern::set_id` to rename a pattern after construction; `set_attr("id", ...)` will be rejected with `Error::ReservedAttribute` to protect the cached value.
 
 ---
 

@@ -14,8 +14,12 @@
 //! | [`demo`] | | Provides a set of SVG element examples.  Run `cargo demo` then visit http://localhost:8080/demo. |
 //! | [`error`] | [`Error`] | Wrapper for Browser DOM errors |
 //! | [`root`] | [`SvgRoot`] / [`SvgAttrs`] | Wraps the `<svg>` root; factory for all child elements; reusable attribute writing |
+//! | [`root::defs`] | [`SvgDefs`] | `<defs>` container; factory for markers, gradients, clip-paths, patterns, and symbols |
 //! | [`root::gradient`] | [`SvgLinearGradient`] / [`SvgRadialGradient`] | Gradient paint servers defined in `<defs>` |
-//! | [`root::clip_path`] | [`SvgClipPath`] | Clipping region defined in `<defs>`, applied with `set_clip_path_ref` |
+//! | [`root::clip_path`] | [`SvgClipPath`] / [`ClipPathUnits`] | Clipping region defined in `<defs>`, applied with `set_clip_path_ref` |
+//! | [`root::marker`] | [`SvgMarker`] / [`MarkerUnits`] | Path-decoration markers (`<marker>`) with shape factories |
+//! | [`root::pattern`] | [`SvgPattern`] / [`PatternUnits`] | Tiled pattern paint server defined in `<defs>`, applied with `set_fill_pattern_ref` |
+//! | [`root::symbol`] | [`SvgSymbol`] | Reusable scaled viewport defined in `<defs>`, stamped via `<use>` |
 //! | [`animate`] | [`AnimationLoop`] | `requestAnimationFrame` loop |
 //! | [`node`] | [`SvgNode`] | Live element handle that provides access to attributes, events and tree operations |
 //!
@@ -78,6 +82,7 @@ pub use root::{
     defs::SvgDefs,
     gradient::{GradientUnits, SpreadMethod, linear::SvgLinearGradient, radial::SvgRadialGradient},
     marker::{MarkerUnits, SvgMarker},
+    pattern::{PatternUnits, SvgPattern},
     svg_root::SvgRoot,
     symbol::SvgSymbol,
 };

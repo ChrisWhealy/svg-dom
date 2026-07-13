@@ -11,6 +11,8 @@ pub mod defs;
 pub mod gradient;
 /// The [`SvgMarker`](crate::SvgMarker) element and its [`MarkerUnits`](crate::MarkerUnits) enum.
 pub mod marker;
+/// The [`SvgPattern`](crate::SvgPattern) element and its [`PatternUnits`](crate::PatternUnits) enum.
+pub mod pattern;
 /// The [`SvgSymbol`](crate::SvgSymbol) element.
 pub mod symbol;
 

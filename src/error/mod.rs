@@ -3,16 +3,17 @@
 ///
 /// Every fallible function in this crate returns `Result<_, Error>`.
 ///
-/// The variants cover eight categories:
+/// The variants cover nine categories:
 ///
 /// - you asked for a non-existent element by id ([`Error::ElementNotFound`])
 /// - a `web-sys` call returned a JavaScript error ([`Error::Dom`])
 /// - a JavaScript value couldn't be cast to the expected Rust type ([`Error::CastFailed`])
-/// - Four types of crate-level validation error exist for id strings
+/// - Five types of crate-level validation error exist for id strings
 ///   - a bad marker id ([`Error::InvalidMarkerId`])
 ///   - a bad gradient id ([`Error::InvalidGradientId`])
 ///   - a bad clip-path id ([`Error::InvalidClipPathId`])
 ///   - a bad symbol id ([`Error::InvalidSymbolId`])
+///   - a bad pattern id ([`Error::InvalidPatternId`])
 /// - a generic setter was called with an attribute name that has a dedicated typed setter ([`Error::ReservedAttribute`])
 #[derive(Debug)]
 pub enum Error {
@@ -84,6 +85,20 @@ pub enum Error {
     /// The inner `String` is the rejected id.
     InvalidSymbolId(String),
 
+    /// A pattern `id` string was rejected before reaching the DOM.
+    ///
+    /// Valid pattern ids must match the pattern `[A-Za-z_][A-Za-z0-9_-]*`: an ASCII letter or underscore followed
+    /// by zero or more ASCII letters, digits, underscores, or hyphens.
+    ///
+    /// This error is returned when a non-conforming string is passed to
+    /// [`SvgDefs::pattern`](crate::SvgDefs::pattern),
+    /// [`SvgDefs::build_pattern`](crate::SvgDefs::build_pattern), or
+    /// [`SvgNode::set_fill_pattern`](crate::SvgNode::set_fill_pattern) /
+    /// [`SvgNode::set_stroke_pattern`](crate::SvgNode::set_stroke_pattern).
+    ///
+    /// The inner `String` is the rejected id.
+    InvalidPatternId(String),
+
     /// A generic attribute setter was called with an attribute name that is managed by a dedicated typed setter.
     ///
     /// The `id` attribute on [`SvgMarker`](crate::SvgMarker) is managed by [`SvgMarker::set_id`](crate::SvgMarker::set_id),
@@ -127,6 +142,7 @@ impl std::fmt::Display for Error {
             Error::InvalidGradientId(id) => write!(f, "invalid svg gradient id: {id:?}"),
             Error::InvalidClipPathId(id) => write!(f, "invalid svg clip-path id: {id:?}"),
             Error::InvalidSymbolId(id) => write!(f, "invalid svg symbol id: {id:?}"),
+            Error::InvalidPatternId(id) => write!(f, "invalid svg pattern id: {id:?}"),
             Error::ReservedAttribute(name) => {
                 write!(f, "attribute {name:?} is reserved; use the dedicated setter")
             },

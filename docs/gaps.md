@@ -11,7 +11,6 @@ The following SVG elements still need to be implemented:
 
 | Missing Element | Why it matters
 |---|---|
-| `<pattern>` | Tiled fill patterns
 | `<textPath>` | Allows text to follow a curve
 | `<filter>` and primitives | Drop shadows, blur, colour matrix, compositing etc
 

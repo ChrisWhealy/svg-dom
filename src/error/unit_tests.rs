@@ -178,6 +178,30 @@ fn should_error_on_invalid_symbol_id_inner_value() -> Result<(), String> {
 }
 
 #[test]
+fn should_error_on_display_invalid_pattern_id() -> Result<(), String> {
+    let err = Error::InvalidPatternId("url(#pat)".into());
+    ensure_eq!(err.to_string(), r#"invalid svg pattern id: "url(#pat)""#);
+    Ok(())
+}
+
+#[test]
+fn should_error_on_debug_invalid_pattern_id() -> Result<(), String> {
+    let err = Error::InvalidPatternId("bad id".into());
+    ensure_eq!(format!("{err:?}"), r#"InvalidPatternId("bad id")"#);
+    Ok(())
+}
+
+#[test]
+fn should_error_on_invalid_pattern_id_inner_value() -> Result<(), String> {
+    let id = "url(#x)";
+    let Error::InvalidPatternId(inner) = Error::InvalidPatternId(id.into()) else {
+        return Err("expected InvalidPatternId variant".into());
+    };
+    ensure_eq!(inner, id);
+    Ok(())
+}
+
+#[test]
 fn should_error_on_display_reserved_attribute() -> Result<(), String> {
     let err = Error::ReservedAttribute("id");
     ensure_eq!(err.to_string(), r#"attribute "id" is reserved; use the dedicated setter"#);

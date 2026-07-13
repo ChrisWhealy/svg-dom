@@ -101,6 +101,7 @@ pub fn run_demo() -> Result<(), JsValue> {
     paint::demo_linear_gradient().map_err(e)?;
     paint::demo_radial_gradient().map_err(e)?;
     paint::demo_clip_path().map_err(e)?;
+    paint::demo_pattern().map_err(e)?;
     texts::demo_tspan().map_err(e)?;
 
     // Event-handling gallery
@@ -158,6 +159,7 @@ const DEMO_SOURCES: &[(&str, &str)] = &[
     ("panel-linear-gradient", "demo_linear_gradient"),
     ("panel-radial-gradient", "demo_radial_gradient"),
     ("panel-clip-path", "demo_clip_path"),
+    ("panel-pattern", "demo_pattern"),
     ("panel-tspan", "demo_tspan"),
     ("panel-events-click", "demo_events_click"),
     ("panel-events-colour", "demo_events_colour"),

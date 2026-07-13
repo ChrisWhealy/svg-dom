@@ -4,9 +4,10 @@ use crate::{
     root::{
         attrs::{AttrWriter, SvgAttrs},
         clip_path::SvgClipPath,
-        defs::{validate_clip_path_id, validate_gradient_id, validate_marker_id},
+        defs::{validate_clip_path_id, validate_gradient_id, validate_marker_id, validate_pattern_id},
         gradient::{linear::SvgLinearGradient, radial::SvgRadialGradient},
         marker::SvgMarker,
+        pattern::SvgPattern,
     },
 };
 
@@ -496,6 +497,53 @@ impl SvgNode {
     /// the gradient handle.
     pub fn set_stroke_radial_gradient(&self, gradient: &SvgRadialGradient) -> Result<(), Error> {
         self.set_stroke_gradient(gradient.id())
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the `fill` attribute to reference a pattern by its bare `id`.
+    ///
+    /// The `url(#...)` wrapper is added automatically.
+    ///
+    /// The same validation rules that apply at pattern construction time are also enforced here: an id that does not
+    /// match the pattern `[A-Za-z_][A-Za-z0-9_-]*` will return [`Error::InvalidPatternId`].
+    ///
+    /// Prefer [`set_fill_pattern_ref`](Self::set_fill_pattern_ref) when you have the pattern handle available, as it
+    /// eliminates the risk of typos and `url(#...)` double-wrapping.
+    pub fn set_fill_pattern(&self, pattern_id: &str) -> Result<(), Error> {
+        validate_pattern_id(pattern_id)?;
+        self.set_attr("fill", &format!("url(#{pattern_id})"))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the `stroke` attribute to reference a pattern by its bare `id`.
+    ///
+    /// The `url(#...)` wrapper is added automatically.
+    ///
+    /// The same validation rules that apply at pattern construction time are also enforced here: an id that does not
+    /// match the pattern `[A-Za-z_][A-Za-z0-9_-]*` will return [`Error::InvalidPatternId`].
+    ///
+    /// Prefer [`set_stroke_pattern_ref`](Self::set_stroke_pattern_ref) when you have the pattern handle available.
+    pub fn set_stroke_pattern(&self, pattern_id: &str) -> Result<(), Error> {
+        validate_pattern_id(pattern_id)?;
+        self.set_attr("stroke", &format!("url(#{pattern_id})"))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the `fill` attribute to reference a [`SvgPattern`] by its `id`.
+    ///
+    /// This is the preferred alternative to [`set_fill_pattern`](Self::set_fill_pattern): the id is taken directly from
+    /// the pattern handle, so there is no risk of typos or `url(#...)` double-wrapping.
+    pub fn set_fill_pattern_ref(&self, pattern: &SvgPattern) -> Result<(), Error> {
+        self.set_fill_pattern(pattern.id())
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the `stroke` attribute to reference a [`SvgPattern`] by its `id`.
+    ///
+    /// This is the preferred alternative to [`set_stroke_pattern`](Self::set_stroke_pattern): the id is taken directly
+    /// from the pattern handle, so there is no risk of typos or `url(#...)` double-wrapping.
+    pub fn set_stroke_pattern_ref(&self, pattern: &SvgPattern) -> Result<(), Error> {
+        self.set_stroke_pattern(pattern.id())
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

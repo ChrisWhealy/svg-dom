@@ -13,6 +13,7 @@ use super::{
     clip_path::SvgClipPath,
     gradient::{linear::SvgLinearGradient, radial::SvgRadialGradient},
     marker::SvgMarker,
+    pattern::SvgPattern,
     svg_root::SvgRoot,
     symbol::SvgSymbol,
 };
@@ -32,6 +33,7 @@ fn is_valid_svg_id(id: &str) -> bool {
     }
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Rejects marker ids that would produce broken or ambiguous `url(#...)` references.
 ///
 /// A valid id must match `[A-Za-z_][A-Za-z0-9_-]*`: it must begin with an ASCII letter or underscore,
@@ -46,6 +48,7 @@ pub(crate) fn validate_marker_id(id: &str) -> Result<(), Error> {
     }
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Rejects gradient ids that would produce broken or ambiguous `url(#...)` references.
 ///
 /// Applies the same allow-list as [`validate_marker_id`]: the id must match `[A-Za-z_][A-Za-z0-9_-]*`.
@@ -57,6 +60,7 @@ pub(crate) fn validate_gradient_id(id: &str) -> Result<(), Error> {
     }
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Rejects clip-path ids that would produce broken or ambiguous `url(#...)` references.
 ///
 /// Applies the same allow-list as [`validate_marker_id`]: the id must match `[A-Za-z_][A-Za-z0-9_-]*`.
@@ -68,6 +72,7 @@ pub(crate) fn validate_clip_path_id(id: &str) -> Result<(), Error> {
     }
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Rejects symbol ids that would produce broken `#id` fragment references.
 ///
 /// Applies the same allow-list as [`validate_marker_id`]: the id must match `[A-Za-z_][A-Za-z0-9_-]*`.
@@ -76,6 +81,18 @@ pub(crate) fn validate_symbol_id(id: &str) -> Result<(), Error> {
         Ok(())
     } else {
         Err(Error::InvalidSymbolId(id.to_owned()))
+    }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Rejects pattern ids that would produce broken or ambiguous `url(#...)` references.
+///
+/// Applies the same allow-list as [`validate_marker_id`]: the id must match `[A-Za-z_][A-Za-z0-9_-]*`.
+pub(crate) fn validate_pattern_id(id: &str) -> Result<(), Error> {
+    if is_valid_svg_id(id) {
+        Ok(())
+    } else {
+        Err(Error::InvalidPatternId(id.to_owned()))
     }
 }
 
@@ -92,6 +109,8 @@ pub(crate) fn validate_symbol_id(id: &str) -> Result<(), Error> {
 /// | [`SvgLinearGradient`] | [`linear_gradient`](Self::linear_gradient) | [`build_linear_gradient`](Self::build_linear_gradient) |
 /// | [`SvgRadialGradient`] | [`radial_gradient`](Self::radial_gradient) | [`build_radial_gradient`](Self::build_radial_gradient) |
 /// | [`SvgClipPath`] | [`clip_path`](Self::clip_path) | [`build_clip_path`](Self::build_clip_path) |
+/// | [`SvgSymbol`] | [`symbol`](Self::symbol) | [`build_symbol`](Self::build_symbol) |
+/// | [`SvgPattern`] | [`pattern`](Self::pattern) | [`build_pattern`](Self::build_pattern) |
 ///
 /// Obtain one from [`SvgRoot::defs`].
 ///
@@ -403,6 +422,104 @@ impl SvgDefs {
         build(&sym)?;
         self.element.append_child(sym.as_element()).map_err(dom_err)?;
         Ok(sym)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Creates a `<pattern>` child element with the given `id`, immediately appends it to `<defs>` then returns its
+    /// handle.
+    ///
+    /// The `id` is used to reference the pattern from shapes via
+    /// [`set_fill_pattern`](crate::SvgNode::set_fill_pattern) and its stroke sibling.
+    ///
+    /// Each shape added to the returned [`SvgPattern`] is appended to the live element one at a time. Use this when you
+    /// need to add tile shapes dynamically after initial construction.
+    ///
+    /// Prefer [`build_pattern`](Self::build_pattern) when all tile contents are known upfront: that variant holds the
+    /// `<pattern>` element detached until the closure succeeds, so a mid-build error leaves no partial element in
+    /// `<defs>`.
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::InvalidPatternId`] — `id` failed validation.
+    /// - [`Error::Dom`] — the browser refused to create or append the element.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::{pattern::PatternUnits, utils::{Point, Size}}};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    /// let pat  = defs.pattern("dots")?;
+    /// pat.set_pattern_units(PatternUnits::UserSpaceOnUse)?;
+    /// pat.set_width(20.0)?;
+    /// pat.set_height(20.0)?;
+    /// pat.circle(Point::new(10.0, 10.0), 6.0)?.set_fill("white")?;
+    ///
+    /// let rect = svg.rect(Point::origin(), Size::new(300.0, 200.0))?;
+    /// rect.set_fill_pattern("dots")?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn pattern(&self, id: &str) -> Result<SvgPattern, Error> {
+        validate_pattern_id(id)?;
+        let el = super::create_svg_element::<SvgElement>(&self.document, "pattern", "SvgElement")?;
+        el.set_attribute("id", id).map_err(dom_err)?;
+        self.element.append_child(&el).map_err(dom_err)?;
+        Ok(SvgPattern::new(id.to_owned(), el, self.document.clone()))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Builds a `<pattern>` and all its tile shapes in one shot, appending to `<defs>` only after the closure
+    /// succeeds.
+    ///
+    /// The closure receives a reference to the new [`SvgPattern`]. All shapes added inside the closure are appended to
+    /// a detached element.
+    ///
+    /// If the closure returns `Ok(())`, the pattern is appended to `<defs>` and the handle is returned.
+    /// If the closure returns `Err`, the element is dropped without being attached to `<defs>`.
+    ///
+    /// This is the preferred way to build a pattern when all its tile content is known upfront.
+    /// For dynamically adding shapes over time, use [`pattern`](Self::pattern) instead.
+    ///
+    /// # Errors
+    ///
+    /// - Any error returned by `build`.
+    /// - [`Error::InvalidPatternId`] — `id` failed validation.
+    /// - [`Error::Dom`] — the browser refused to create or append the element.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::{pattern::PatternUnits, utils::{Point, Size}}};
+    ///
+    /// let svg = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    ///
+    /// defs.build_pattern("checker", |p| {
+    ///     p.set_pattern_units(PatternUnits::UserSpaceOnUse)?;
+    ///     p.set_width(20.0)?;
+    ///     p.set_height(20.0)?;
+    ///     p.rect(Point::new(0.0, 0.0), Size::new(20.0, 20.0))?.set_fill("teal")?;
+    ///     p.rect(Point::new(0.0, 0.0), Size::new(10.0, 10.0))?.set_fill("white")?;
+    ///     p.rect(Point::new(10.0, 10.0), Size::new(10.0, 10.0))?.set_fill("white")?;
+    ///     Ok(())
+    /// })?;
+    ///
+    /// let rect = svg.rect(Point::origin(), Size::new(300.0, 200.0))?;
+    /// rect.set_fill_pattern("checker")?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn build_pattern<F>(&self, id: &str, build: F) -> Result<SvgPattern, Error>
+    where
+        F: FnOnce(&SvgPattern) -> Result<(), Error>,
+    {
+        validate_pattern_id(id)?;
+        let el = super::create_svg_element::<SvgElement>(&self.document, "pattern", "SvgElement")?;
+        el.set_attribute("id", id).map_err(dom_err)?;
+        let pat = SvgPattern::new(id.to_owned(), el, self.document.clone());
+        build(&pat)?;
+        self.element.append_child(pat.as_element()).map_err(dom_err)?;
+        Ok(pat)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
