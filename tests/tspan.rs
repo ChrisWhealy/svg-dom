@@ -199,7 +199,9 @@ fn should_reset_horizontal_position_to_x_for_tspan_line() -> Result<(), String> 
 
     let actual_x = pos.x() as f64;
     if (actual_x - 30.0).abs() > 0.5 {
-        return Err(format!("expected rendered x ≈ 30, got {actual_x:.2} — tspan_line did not reset horizontal position"));
+        return Err(format!(
+            "expected rendered x ≈ 30, got {actual_x:.2} — tspan_line did not reset horizontal position"
+        ));
     }
     Ok(())
 }
