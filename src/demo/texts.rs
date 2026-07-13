@@ -106,24 +106,24 @@ pub(super) fn demo_text() -> Result<(), Error> {
 pub(super) fn demo_tspan() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-tspan", Size::new(W, H))?;
 
-    // ── multi-line (dy) ───────────────────────────────────────────────────────
-    // A <text> with three <tspan> children, each advancing 22px down via dy.
-    // The first tspan inherits x/y from the parent; subsequent ones use dy to
-    // step to the next line without needing absolute y coordinates.
+    // ── multi-line (tspan_line) ───────────────────────────────────────────────
+    // A <text> with three <tspan> children.  The first inherits x from <text>. Subsequent spans use `tspan_line`, which
+    // resets `x` to the same absolute coordinate and advances `y` by `dy`, so every line aligns with the left edge.
+    const LINE_X: f64 = 50.0;
     const LINE_DY: f64 = 22.0;
-    let ml = svg.text(Point::new(50.0, 50.0 + PAD_Y), "")?;
+    let ml = svg.text(Point::new(LINE_X, 50.0 + PAD_Y), "")?;
     ml.set_fill(PLAIN_TEXT)?;
     ml.set_font_size(15.0)?;
 
     ml.tspan("The quick brown fox")?;
-    ml.tspan_dy(LINE_DY, "jumps over the")?;
-    ml.tspan_dy(LINE_DY, "lazy dog.")?;
+    ml.tspan_line(LINE_X, LINE_DY, "jumps over the")?;
+    ml.tspan_line(LINE_X, LINE_DY, "lazy dog.")?;
 
-    caption(&svg, 200.0, "multi-line (tspan dy)")?;
+    caption(&svg, 200.0, "multi-line (tspan_line)")?;
 
     // ── inline mixed styles ───────────────────────────────────────────────────
-    // A single <text> element whose <tspan> children each override fill and
-    // font-size, producing a mixed-style run on one baseline.
+    // A single <text> element whose <tspan> children each override fill and font-size, producing a mixed-style run on
+    // one baseline.
     let mx = svg.text(Point::new(420.0, 90.0 + PAD_Y), "")?;
 
     let w1 = mx.tspan("small ")?;

@@ -21,7 +21,7 @@ type RafHandle = Rc<Cell<i32>>;
 /// | ----- | ----------- |
 /// | `Idle` | The loop is running; no callback is currently executing. |
 /// | `Dispatching` | The RAF wrapper is currently inside `callback(ts)`. |
-/// | `StopPending` | `stop()` was called during dispatch; deferred closure cleanup is scheduled.<br><br>A subsequent call to `stop()` are no-ops, as is firing the `Drop` impl because the handle was dropped inside the callback.  This prevents a use-after-free of the still-running closure body. |
+/// | `StopPending` | `stop()` was called during dispatch; deferred closure cleanup is scheduled. Subsequent calls to `stop()` are no-ops, as is firing the `Drop` impl because the handle was dropped inside the callback.  This prevents a use-after-free of the still-running closure body. |
 /// | `Stopped` | The loop has fully stopped; the closure slot has been (or will be) cleared.
 #[derive(Clone, Copy, PartialEq)]
 enum AnimLoopState {

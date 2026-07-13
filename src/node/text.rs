@@ -287,8 +287,13 @@ impl SvgNode {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the vertical offset in user units, relative to the current text position.
     ///
-    /// The primary use is line breaks inside `<text>` via `<tspan>` children: set `dy` on each span after the first to
-    /// advance to the next line.
+    /// `dy` shifts the text position downward (positive values) or upward (negative values) without resetting the
+    /// horizontal position.  This makes it useful for superscripts, subscripts, and controlled vertical nudges,
+    /// but **not** for aligned multi-line text: after each span the horizontal position advances by the glyph advance
+    /// width, so successive `dy`-only spans drift rightward.
+    ///
+    /// For aligned multi-line text — where every line should start at the same `x` coordinate — use
+    /// [`tspan_line`](Self::tspan_line), which combines an absolute `x` reset with a `dy` advance.
     ///
     /// # Example
     ///
@@ -296,9 +301,9 @@ impl SvgNode {
     /// use svg_dom::{SvgRoot, root::utils::Point};
     /// let svg = SvgRoot::attach("diagram")?;
     /// let txt = svg.text(Point::new(20.0, 50.0), "")?;
-    /// txt.tspan("Line one")?;
-    /// let line2 = txt.tspan("Line two")?;
-    /// line2.set_dy(18.0)?; // move 18 user units down (one line)
+    /// let span = txt.tspan("H")?;
+    /// let sup  = span.tspan("2")?;
+    /// sup.set_dy(-6.0)?;  // raise the superscript above the baseline
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn set_dy(&self, dy: f64) -> Result<(), Error> {
@@ -353,13 +358,14 @@ impl SvgNode {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Creates a `<tspan>` child with `content` and a `dy` vertical offset, then returns the handle.
+    /// Creates a `<tspan>` child with `content` and a relative vertical displacement `dy`, then returns the handle.
     ///
-    /// This is the idiomatic way to add a new text line inside a `<text>` element: each call advances the text position
-    /// by `dy` user units downward before rendering `content`.
+    /// Sets only `dy` — **no `x` attribute is written**.  The span continues the text run at the horizontal position
+    /// where the previous span ended, then shifts down by `dy` user units.  Subsequent spans therefore start further
+    /// right than the first line, producing a staircase rather than left-aligned text.
     ///
-    /// `dy` is relative to the end of the previous span (or the `<text>` element's `y` for the first span), so a
-    /// consistent `dy` value gives uniform line spacing.
+    /// This is correct for superscripts, subscripts, and deliberate vertical nudges within a single run.
+    /// For aligned multi-line text use [`tspan_line`](Self::tspan_line), which also sets an absolute `x` coordinate.
     ///
     /// # Errors
     ///
@@ -369,16 +375,64 @@ impl SvgNode {
     ///
     /// ```rust,no_run
     /// use svg_dom::{SvgRoot, root::utils::Point};
-    /// let svg = SvgRoot::attach("diagram")?;
-    /// let txt = svg.text(Point::new(20.0, 40.0), "")?;
-    /// txt.tspan("Line one")?;
-    /// txt.tspan_dy(20.0, "Line two")?;
-    /// txt.tspan_dy(20.0, "Line three")?;
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let txt  = svg.text(Point::new(20.0, 60.0), "CO")?;
+    /// let sub2 = txt.tspan("2")?;
+    /// sub2.set_font_size(9.0)?;
+    /// txt.tspan_dy(4.0, "")?;  // nudge back down after a manual superscript/subscript
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn tspan_dy(&self, dy: f64, content: &str) -> Result<SvgNode, Error> {
         let node = self.tspan(content)?;
         node.set_dy(dy)?;
+        Ok(node)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Creates a `<tspan>` child with `content`, an absolute horizontal position `x`, and a relative vertical
+    /// displacement `dy`, then returns the handle.
+    ///
+    /// This is the idiomatic way to produce aligned multi-line text inside a `<text>` element.
+    /// The `x` attribute resets the horizontal start position to an absolute coordinate for each new line, so every
+    /// line begins at the same `x` regardless of the rendered width of the preceding content.
+    /// The `dy` attribute then advances the vertical position by that many user units relative to the previous line.
+    ///
+    /// The element is constructed detached: the `x` and `dy` attributes are written before the node is appended to the
+    /// parent, so any failures during construction leave the parent element unchanged.
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::Dom`] — the browser refused to create the element or write an attribute.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::Point};
+    /// let svg = SvgRoot::attach("diagram")?;
+    /// let txt = svg.text(Point::new(20.0, 40.0), "")?;
+    /// txt.tspan("Line one")?;                      // inherits x=20 from <text>
+    /// txt.tspan_line(20.0, 20.0, "Line two")?;    // resets to x=20, advances 20 down
+    /// txt.tspan_line(20.0, 20.0, "Line three")?;  // same — each line starts at x=20
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn tspan_line(&self, x: f64, dy: f64, content: &str) -> Result<SvgNode, Error> {
+        let doc = self
+            .inner
+            .element
+            .owner_document()
+            .ok_or_else(|| Error::Dom("tspan_line: element has no owner document".into()))?;
+        let el = doc
+            .create_element_ns(Some(SVG_NS), "tspan")
+            .map_err(dom_err)?
+            .dyn_into::<web_sys::SvgElement>()
+            .map_err(|_| Error::CastFailed("SvgElement"))?;
+        let node = SvgNode::new(el);
+        node.set_text(content);
+        // Write x and dy before appending so a write failure leaves the parent unchanged.
+        let mut attrs = SvgAttrs::new();
+        attrs.display(&node, "x", x)?;
+        attrs.display(&node, "dy", dy)?;
+        self.inner.element.append_child(node.as_element()).map_err(dom_err)?;
         Ok(node)
     }
 }
