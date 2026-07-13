@@ -17,7 +17,7 @@ use web_sys::{Document, SvgElement};
 /// Switch to [`UserSpaceOnUse`](GradientUnits::UserSpaceOnUse) when you need the gradient to be anchored to a fixed
 /// coordinate in the SVG canvas rather than scaled to each element individually.
 ///
-/// Passed to [`SvgLinearGradient::set_gradient_units`] and [`SvgRadialGradient::set_gradient_units`].
+/// Passed to [`crate::SvgLinearGradient::set_gradient_units`] and [`crate::SvgRadialGradient::set_gradient_units`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GradientUnits {
     /// Geometry attributes are fractions of the element's bounding box in [0.0, 1.0].
@@ -39,7 +39,7 @@ impl GradientUnits {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Controls how a gradient is rendered outside its defined [0.0, 1.0] stop range.
 ///
-/// Passed to [`SvgLinearGradient::set_spread_method`] and [`SvgRadialGradient::set_spread_method`].
+/// Passed to [`crate::SvgLinearGradient::set_spread_method`] and [`crate::SvgRadialGradient::set_spread_method`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SpreadMethod {
     /// Extend the colour of the nearest stop to fill the remaining area (default).
