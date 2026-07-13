@@ -30,6 +30,7 @@
             <button type="button" class="menu-item" data-target="panel-linear-gradient">linearGradient</button>
             <button type="button" class="menu-item" data-target="panel-radial-gradient">radialGradient</button>
             <button type="button" class="menu-item" data-target="panel-clip-path">clipPath</button>
+            <button type="button" class="menu-item" data-target="panel-tspan">tspan</button>
 
             <div class="menu-group">Event handling</div>
             <button type="button" class="menu-item" data-target="panel-events-click">Click counter</button>
@@ -253,6 +254,21 @@
                         <strong>polygon clip</strong> (radial gradient revealed through a hexagon) ·
                         <strong>group clip</strong> (three coloured bands clipped to an arrow path,
                         demonstrating that <code>clip-path</code> applies to <code>&lt;g&gt;</code> elements too)
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- tspan -->
+            <section class="section" id="panel-tspan">
+                <h2><code>&lt;tspan&gt;</code> — inline text spans within <code>&lt;text&gt;</code></h2>
+                <figure>
+                    <div class="canvas" id="demo-tspan"></div>
+                    <figcaption>
+                        <strong>multi-line</strong> — three <code>&lt;tspan&gt;</code> children each advance 22&thinsp;px
+                        via <strong>tspan_dy</strong>, producing line breaks without absolute <code>y</code>
+                        coordinates ·
+                        <strong>inline mixed styles</strong> — three spans inside one <code>&lt;text&gt;</code>,
+                        each overriding <code>fill</code> and <code>font-size</code> independently
                     </figcaption>
                 </figure>
             </section>

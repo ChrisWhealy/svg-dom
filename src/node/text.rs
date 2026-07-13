@@ -1,4 +1,4 @@
-use crate::{SvgNode, error::Error, root::attrs::SvgAttrs};
+use crate::{SvgNode, dom_err, error::Error, root::{SVG_NS, attrs::SvgAttrs}};
 use wasm_bindgen::JsCast;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -257,5 +257,124 @@ impl SvgNode {
     /// ```
     pub fn set_dominant_baseline(&self, baseline: DominantBaseline) -> Result<(), Error> {
         self.set_attr("dominant-baseline", baseline.as_str())
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the horizontal offset in user units, relative to the current text position.
+    ///
+    /// Useful on `<tspan>` children to shift individual words or characters horizontally without forcing a full
+    /// absolute repositioning via `x`.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::Point};
+    /// let svg = SvgRoot::attach("diagram")?;
+    /// let txt = svg.text(Point::new(20.0, 50.0), "")?;
+    /// let span = txt.tspan("shifted")?;
+    /// span.set_dx(8.0)?; // move 8 user units right
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn set_dx(&self, dx: f64) -> Result<(), Error> {
+        let mut attrs = SvgAttrs::new();
+        attrs.display(self, "dx", dx)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the vertical offset in user units, relative to the current text position.
+    ///
+    /// The primary use is line breaks inside `<text>` via `<tspan>` children: set `dy` on each span after the first to
+    /// advance to the next line.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::Point};
+    /// let svg = SvgRoot::attach("diagram")?;
+    /// let txt = svg.text(Point::new(20.0, 50.0), "")?;
+    /// txt.tspan("Line one")?;
+    /// let line2 = txt.tspan("Line two")?;
+    /// line2.set_dy(18.0)?; // move 18 user units down (one line)
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn set_dy(&self, dy: f64) -> Result<(), Error> {
+        let mut attrs = SvgAttrs::new();
+        attrs.display(self, "dy", dy)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Creates a `<tspan>` child element with `content` as its text, appends it to `self` and returns a handle.
+    ///
+    /// `<tspan>` inherits all text presentation attributes (`font-family`, `font-size`, `fill` etc) from its `<text>`
+    /// parent; any attribute set on the returned `SvgNode` overrides the inherited value for that span only.
+    ///
+    /// The first `<tspan>` in a `<text>` inherits the parent's `x` / `y` position.
+    /// Subsequent spans need a `dy` (or `dx`) to advance the current text position; use [`tspan_dy`](Self::tspan_dy)
+    /// as a convenience, or call [`set_dy`](Self::set_dy) on the returned handle.
+    ///
+    /// When a `<text>` element contains `<tspan>` children the text content set directly on `<text>` should be empty
+    /// (the factory sets it to `""` for you when you call [`SvgRoot::text`](crate::SvgRoot::text) with `""`).
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::Dom`] — the browser refused to create or append the element.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::Point};
+    /// let svg = SvgRoot::attach("diagram")?;
+    /// let txt = svg.text(Point::new(20.0, 50.0), "")?;
+    /// let line1 = txt.tspan("Hello, ")?;
+    /// let line2 = txt.tspan("world")?;
+    /// line2.set_fill("steelblue")?;
+    /// line2.set_font_size(20.0)?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn tspan(&self, content: &str) -> Result<SvgNode, Error> {
+        let doc = self
+            .inner
+            .element
+            .owner_document()
+            .ok_or_else(|| Error::Dom("tspan: element has no owner document".into()))?;
+        let el = doc
+            .create_element_ns(Some(SVG_NS), "tspan")
+            .map_err(dom_err)?
+            .dyn_into::<web_sys::SvgElement>()
+            .map_err(|_| Error::CastFailed("SvgElement"))?;
+        let node = SvgNode::new(el);
+        node.set_text(content);
+        self.inner.element.append_child(node.as_element()).map_err(dom_err)?;
+        Ok(node)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Creates a `<tspan>` child with `content` and a `dy` vertical offset, then returns the handle.
+    ///
+    /// This is the idiomatic way to add a new text line inside a `<text>` element: each call advances the text position
+    /// by `dy` user units downward before rendering `content`.
+    ///
+    /// `dy` is relative to the end of the previous span (or the `<text>` element's `y` for the first span), so a
+    /// consistent `dy` value gives uniform line spacing.
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::Dom`] — the browser refused to create or append the element, or failed to write `dy`.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::Point};
+    /// let svg = SvgRoot::attach("diagram")?;
+    /// let txt = svg.text(Point::new(20.0, 40.0), "")?;
+    /// txt.tspan("Line one")?;
+    /// txt.tspan_dy(20.0, "Line two")?;
+    /// txt.tspan_dy(20.0, "Line three")?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn tspan_dy(&self, dy: f64, content: &str) -> Result<SvgNode, Error> {
+        let node = self.tspan(content)?;
+        node.set_dy(dy)?;
+        Ok(node)
     }
 }

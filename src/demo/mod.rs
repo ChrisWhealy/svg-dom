@@ -105,6 +105,7 @@ pub fn run_demo() -> Result<(), JsValue> {
     demo_linear_gradient().map_err(e)?;
     demo_radial_gradient().map_err(e)?;
     demo_clip_path().map_err(e)?;
+    demo_tspan().map_err(e)?;
 
     // Event-handling gallery
     demo_events_click().map_err(e)?;
@@ -154,6 +155,7 @@ const DEMO_SOURCES: &[(&str, &str)] = &[
     ("panel-linear-gradient", "demo_linear_gradient"),
     ("panel-radial-gradient", "demo_radial_gradient"),
     ("panel-clip-path", "demo_clip_path"),
+    ("panel-tspan", "demo_tspan"),
     ("panel-events-click", "demo_events_click"),
     ("panel-events-colour", "demo_events_colour"),
     ("panel-events-modifiers", "demo_events_modifiers"),
@@ -1065,6 +1067,52 @@ fn demo_clip_path() -> Result<(), Error> {
     })?;
     arrow_group.set_clip_path("cp-arrow")?;
     caption(&svg, 665.0, "path clip on a group")?;
+
+    Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// tspan — multi-line and inline mixed-style text
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+fn demo_tspan() -> Result<(), Error> {
+    let svg = SvgRoot::create_in("demo-tspan", Size::new(W, H))?;
+
+    // ── multi-line (dy) ───────────────────────────────────────────────────────
+    // A <text> with three <tspan> children, each advancing 22px down via dy.
+    // The first tspan inherits x/y from the parent; subsequent ones use dy to
+    // step to the next line without needing absolute y coordinates.
+    const LINE_DY: f64 = 22.0;
+    let ml = svg.text(Point::new(50.0, 50.0 + PAD_Y), "")?;
+    ml.set_fill(PLAIN_TEXT)?;
+    ml.set_font_size(15.0)?;
+
+    ml.tspan("The quick brown fox")?;
+    ml.tspan_dy(LINE_DY, "jumps over the")?;
+    ml.tspan_dy(LINE_DY, "lazy dog.")?;
+
+    caption(&svg, 200.0, "multi-line (tspan dy)")?;
+
+    // ── inline mixed styles ───────────────────────────────────────────────────
+    // A single <text> element whose <tspan> children each override fill and
+    // font-size, producing a mixed-style run on one baseline.
+    let mx = svg.text(Point::new(420.0, 90.0 + PAD_Y), "")?;
+
+    let w1 = mx.tspan("small ")?;
+    w1.set_fill(PLAIN_TEXT)?;
+    w1.set_font_size(12.0)?;
+    w1.set_dominant_baseline(DominantBaseline::Middle)?;
+
+    let w2 = mx.tspan("MEDIUM ")?;
+    w2.set_fill(STEELBLUE)?;
+    w2.set_font_size(18.0)?;
+    w2.set_dominant_baseline(DominantBaseline::Middle)?;
+
+    let w3 = mx.tspan("LARGE")?;
+    w3.set_fill(CORAL)?;
+    w3.set_font_size(26.0)?;
+    w3.set_dominant_baseline(DominantBaseline::Middle)?;
+
+    caption(&svg, 600.0, "inline mixed styles (tspan)")?;
 
     Ok(())
 }

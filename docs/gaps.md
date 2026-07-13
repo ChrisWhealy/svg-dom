@@ -13,7 +13,6 @@ The following SVG elements still need to be implemented:
 |---|---|
 | `<pattern>` | Tiled fill patterns
 | `<symbol>` | Named reusable viewport; the companion to `<use>` for scaled/clipped stamp copies
-| `<tspan>` | Multi-line or mixed-style text within a `<text>`
 | `<textPath>` | Allows text to follow a curve
 | `<filter>` and primitives | Drop shadows, blur, colour matrix, compositing etc
 
