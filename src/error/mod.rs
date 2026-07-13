@@ -8,10 +8,11 @@
 /// - you asked for a non-existent element by id ([`Error::ElementNotFound`])
 /// - a `web-sys` call returned a JavaScript error ([`Error::Dom`])
 /// - a JavaScript value couldn't be cast to the expected Rust type ([`Error::CastFailed`])
-/// - a marker id string was rejected by crate-level validation ([`Error::InvalidMarkerId`])
-/// - a gradient id string was rejected by crate-level validation ([`Error::InvalidGradientId`])
-/// - a clip-path id string was rejected by crate-level validation ([`Error::InvalidClipPathId`])
-/// - a symbol id string was rejected by crate-level validation ([`Error::InvalidSymbolId`])
+/// - Four types of crate-level validation error exist for id strings
+///   - a bad marker id ([`Error::InvalidMarkerId`])
+///   - a bad gradient id ([`Error::InvalidGradientId`])
+///   - a bad clip-path string ([`Error::InvalidClipPathId`])
+///   - a bad symbol id ([`Error::InvalidSymbolId`])
 /// - a generic setter was called with an attribute name that has a dedicated typed setter ([`Error::ReservedAttribute`])
 #[derive(Debug)]
 pub enum Error {
