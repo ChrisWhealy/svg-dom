@@ -24,6 +24,7 @@ The reasoning is preserved here so the same ideas are not repeatedly re-proposed
 17. [Unifying marker references on handles and making marker IDs immutable](#17-unifying-marker-references-on-handles-and-making-marker-ids-immutable)
 18. [Listener removal has documented unsafe lifecycle caveats](#18-listener-removal-has-documented-unsafe-lifecycle-caveats)
 19. [Making `AnimationLoop::start_with_frame` the canonical animation API](#19-making-animationloopstart_with_frame-the-canonical-animation-api)
+20. [Typed cached-attribute wrappers for scalar values (`CachedF64Attr` / `CachedAttr::set_display`)](#20-typed-cached-attribute-wrappers-for-scalar-values-cachedf64attr--cachedattrset_display)
 
 ## 1) Splitting `SvgNode` into passive and interactive types
 
@@ -739,3 +740,74 @@ The `start` doc comment includes the remark "For a crate-managed buffer, see `st
 Callers are directed to the performance path without it being forced on them.
 
 Removing `start` would be a breaking change that delivers no benefit for the majority of animation callbacks, while adding a mandatory, unused parameter for every caller that does not need to format attributes.
+
+## 20) Typed cached-attribute wrappers for scalar values (`CachedF64Attr` / `CachedAttr::set_display`)
+
+An external review suggested two related additions to reduce the verbosity of caching small numeric or scalar attribute states:
+
+```rust
+// Option A — a new public type that bakes in the attribute name and precision
+let mut opacity = CachedF64Attr::new("opacity", 3);
+opacity.set(&node, alpha)?;
+
+// Option B — a new method on the existing CachedAttr
+cached.set_display(&node, "opacity", alpha, &mut scratch)?;
+```
+
+The reviewer correctly hedged Option B by stating "The latter may already be close to `CachedAttr::set_fmt`; if so, I would not add another API merely for convenience" &mdash; and that hedge applies.
+
+Neither addition was adopted.
+
+### `CachedAttr::set_fmt` already covers every stated use case
+
+`CachedAttr` already exposes four methods: `set` (string value), `set_text` (text content), `set_fmt` (formatted attribute), and `set_text_fmt` (formatted text content).
+`set_fmt` takes a caller-owned scratch buffer and `fmt::Arguments`, formats into the buffer and delegates to `set`, which skips the DOM write when the formatted string matches the value already present in the cache.
+
+Every use case the review named is already handled today:
+
+```rust
+// snapped coordinate
+cache.set_fmt(&node, "x",        &mut scratch, format_args!("{:.1}", snapped_x))?;
+
+// zoom percentage  
+cache.set_fmt(&node, "font-size",&mut scratch, format_args!("{:.0}%", zoom))?;
+
+// rounded opacity
+cache.set_fmt(&node, "opacity",  &mut scratch, format_args!("{:.2}", alpha))?;
+
+// frame counter (text content)
+cache.set_text_fmt(&mut scratch, &node,         format_args!("frame {frame_n}"))?;
+```
+
+The no-allocation no-DOM-write path is already present: the unchanged case is a plain `&str` comparison against the cache's `String`, with no JS crossing.
+
+### Against `CachedF64Attr`
+
+A new public type that bakes in an attribute name and a precision would require a `String` scratch buffer as a struct field and would narrow the formatting to a fixed-precision float &mdash; `CachedF64Attr::new("opacity", 3)` implies `"{:.3}"`.
+That is a subset of what `set_fmt` already provides.
+The only benefit is moving the attribute name and precision from the call site to the constructor; the caller must still provide a value per call.
+
+Against that minor ergonomic shift sits a new `pub struct`, its documentation and its `impl` block.
+Further, every future caller must still answer the question "which one do I use?": which amounts to a permanent surface cost for a temporary convenience gain.
+
+### Against `CachedAttr::set_display`
+
+`set_display<T: Display>` taking a generic value rather than `fmt::Arguments` would save writing `format_args!("{}", n)` at the call site, replacing it with just `n`.
+This is a real but extremely narrow ergonomic win.
+
+More importantly, it does not help the specific cases the review lists.
+Floating-point values displayed as `"{:.2}"` or `"{:.0}%"` require a format string beyond `{}`, so `set_display` would not apply and callers would still reach for `set_fmt`.
+The only realistic beneficiaries are integer-valued states (frame counters, selection indices) whose `{}` output is exactly what is needed — but for those, `format_args!("{}", n)` is the entire overhead being eliminated and adding a new method to remove it is not worth the extra API surface.
+
+Adding `set_display` alongside `set_fmt` would also create a two-method decision: callers who see both would need to reason about when each applies.
+The cognitive load added by saying *"use `set_display` only when `{}` is the right format and you don't need a format string"* outweighs any call-site saving.
+
+### The Profiling Caveat
+
+The review correctly notes that cached writes are worthwhile only when values repeat after quantisation and that for continuously changing values that never cause a cache hit, the comparison cost is pure overhead.
+
+This consideration is already documented in `cached.rs`: the module-level notes contrast it with `SvgNode::set_attr_if_changed`, which pays the cost of a JS round-trip for the comparison, whereas `CachedAttr` keeps the last value on the Rust side.
+
+The guidance that a `CachedAttr` should be dedicated to a single *frequently-touched-but-rarely-changing* attribute (a cursor style, a discrete state indicator, a grid-snapped position) is already in place.
+
+No new type or method is needed to convey it.
