@@ -130,6 +130,30 @@ fn should_error_on_invalid_marker_id_inner_value() -> Result<(), String> {
 }
 
 #[test]
+fn should_error_on_display_invalid_clip_path_id() -> Result<(), String> {
+    let err = Error::InvalidClipPathId("url(#clip)".into());
+    ensure_eq!(err.to_string(), r#"invalid svg clip-path id: "url(#clip)""#);
+    Ok(())
+}
+
+#[test]
+fn should_error_on_debug_invalid_clip_path_id() -> Result<(), String> {
+    let err = Error::InvalidClipPathId("bad id".into());
+    ensure_eq!(format!("{err:?}"), r#"InvalidClipPathId("bad id")"#);
+    Ok(())
+}
+
+#[test]
+fn should_error_on_invalid_clip_path_id_inner_value() -> Result<(), String> {
+    let id = "url(#x)";
+    let Error::InvalidClipPathId(inner) = Error::InvalidClipPathId(id.into()) else {
+        return Err("expected InvalidClipPathId variant".into());
+    };
+    ensure_eq!(inner, id);
+    Ok(())
+}
+
+#[test]
 fn should_error_on_display_reserved_attribute() -> Result<(), String> {
     let err = Error::ReservedAttribute("id");
     ensure_eq!(err.to_string(), r#"attribute "id" is reserved; use the dedicated setter"#);

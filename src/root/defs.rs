@@ -10,6 +10,7 @@ use std::cell::RefCell;
 use web_sys::{Document, SvgElement};
 
 use super::{
+    clip_path::SvgClipPath,
     gradient::{linear::SvgLinearGradient, radial::SvgRadialGradient},
     marker::SvgMarker,
     svg_root::SvgRoot,
@@ -55,6 +56,17 @@ pub(crate) fn validate_gradient_id(id: &str) -> Result<(), Error> {
     }
 }
 
+/// Rejects clip-path ids that would produce broken or ambiguous `url(#...)` references.
+///
+/// Applies the same allow-list as [`validate_marker_id`]: the id must match `[A-Za-z_][A-Za-z0-9_-]*`.
+pub(crate) fn validate_clip_path_id(id: &str) -> Result<(), Error> {
+    if is_valid_svg_id(id) {
+        Ok(())
+    } else {
+        Err(Error::InvalidClipPathId(id.to_owned()))
+    }
+}
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// A `<defs>` element that holds reusable SVG assets such as markers and gradients.
 ///
@@ -67,6 +79,7 @@ pub(crate) fn validate_gradient_id(id: &str) -> Result<(), Error> {
 /// | [`SvgMarker`] | [`marker`](Self::marker) | [`build_marker`](Self::build_marker) |
 /// | [`SvgLinearGradient`] | [`linear_gradient`](Self::linear_gradient) | [`build_linear_gradient`](Self::build_linear_gradient) |
 /// | [`SvgRadialGradient`] | [`radial_gradient`](Self::radial_gradient) | [`build_radial_gradient`](Self::build_radial_gradient) |
+/// | [`SvgClipPath`] | [`clip_path`](Self::clip_path) | [`build_clip_path`](Self::build_clip_path) |
 ///
 /// Obtain one from [`SvgRoot::defs`].
 ///
@@ -189,6 +202,105 @@ impl SvgDefs {
         build(&marker)?;
         self.element.append_child(marker.as_element()).map_err(dom_err)?;
         Ok(marker)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Creates a `<clipPath>` child element with the given `id`, appends it to `<defs>` immediately and returns its
+    /// handle.
+    ///
+    /// The `id` is used to reference the clip path from any element via
+    /// [`set_clip_path_ref`](crate::SvgNode::set_clip_path_ref) or
+    /// [`set_clip_path`](crate::SvgNode::set_clip_path).
+    ///
+    /// Each shape added to the returned [`SvgClipPath`] is appended to the live element one at a time.
+    /// Use this when you need to add clip shapes dynamically after initial construction.
+    ///
+    /// Prefer [`build_clip_path`](Self::build_clip_path) when all clip shapes are known upfront: that variant holds the
+    /// `<clipPath>` element detached until the closure succeeds, so a mid-build error leaves no partial element in
+    /// `<defs>`.
+    /// With this method, if a shape or attribute setter fails after `clip_path()` returns, the partial `<clipPath>`
+    /// remains in `<defs>` (though an incomplete clip path is harmless — it clips nothing unless referenced).
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::InvalidClipPathId`] — `id` failed validation.
+    /// - [`Error::Dom`] — the browser refused to create or append the element.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::{Point, Size}};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    /// let clip = defs.clip_path("round-viewport")?;
+    /// clip.circle(Point::new(60.0, 60.0), 55.0)?;
+    ///
+    /// let bg = svg.rect(Point::origin(), Size::new(120.0, 120.0))?;
+    /// bg.set_fill("steelblue")?;
+    /// bg.set_clip_path_ref(&clip)?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn clip_path(&self, id: &str) -> Result<SvgClipPath, Error> {
+        validate_clip_path_id(id)?;
+        let el = super::create_svg_element::<SvgElement>(&self.document, "clipPath", "SvgElement")?;
+        el.set_attribute("id", id).map_err(dom_err)?;
+        self.element.append_child(&el).map_err(dom_err)?;
+        Ok(SvgClipPath::new(id.to_owned(), el, self.document.clone()))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Builds a `<clipPath>` and all its clip shapes in one shot, appending to `<defs>` only after the closure
+    /// succeeds.
+    ///
+    /// The closure receives a reference to the new [`SvgClipPath`].
+    /// All shapes added inside the closure are appended to a detached element.
+    ///
+    /// If the closure returns `Ok(())`, the clip path is appended to `<defs>` and the handle is returned.
+    /// If the closure returns `Err`, the element is dropped without being attached to `<defs>`.
+    ///
+    /// This is the preferred way to build a clip path when all its shapes are known upfront.
+    /// For dynamically adding shapes over time, use [`clip_path`](Self::clip_path) instead.
+    ///
+    /// # Errors
+    ///
+    /// - Any error returned by `build`.
+    /// - [`Error::InvalidClipPathId`] — `id` failed validation.
+    /// - [`Error::Dom`] — the browser refused to create or append the element.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::{Point, Size}};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    ///
+    /// // Clip a gradient rectangle to a hexagon.
+    /// let clip = defs.build_clip_path("hex-frame", |c| {
+    ///     c.polygon(&[
+    ///         Point::new(60.0,  5.0), Point::new(115.0, 35.0), Point::new(115.0, 85.0),
+    ///         Point::new(60.0, 115.0), Point::new( 5.0, 85.0), Point::new(  5.0, 35.0),
+    ///     ])?;
+    ///     Ok(())
+    /// })?;
+    ///
+    /// let rect = svg.rect(Point::origin(), Size::new(120.0, 120.0))?;
+    /// rect.set_fill("steelblue")?;
+    /// rect.set_clip_path_ref(&clip)?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn build_clip_path<F>(&self, id: &str, build: F) -> Result<SvgClipPath, Error>
+    where
+        F: FnOnce(&SvgClipPath) -> Result<(), Error>,
+    {
+        validate_clip_path_id(id)?;
+        let el = super::create_svg_element::<SvgElement>(&self.document, "clipPath", "SvgElement")?;
+        el.set_attribute("id", id).map_err(dom_err)?;
+        let clip = SvgClipPath::new(id.to_owned(), el, self.document.clone());
+        build(&clip)?;
+        self.element.append_child(clip.as_element()).map_err(dom_err)?;
+        Ok(clip)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

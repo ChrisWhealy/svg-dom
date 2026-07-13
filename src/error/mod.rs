@@ -56,6 +56,19 @@ pub enum Error {
     /// The inner `String` is the rejected id.
     InvalidGradientId(String),
 
+    /// A clip-path `id` string was rejected before reaching the DOM.
+    ///
+    /// Valid clip-path ids must match the pattern `[A-Za-z_][A-Za-z0-9_-]*`: an ASCII letter or underscore followed
+    /// by zero or more ASCII letters, digits, underscores, or hyphens.
+    ///
+    /// This error is returned when a non-conforming string is passed to
+    /// [`SvgDefs::clip_path`](crate::SvgDefs::clip_path),
+    /// [`SvgDefs::build_clip_path`](crate::SvgDefs::build_clip_path), or
+    /// [`SvgNode::set_clip_path`](crate::SvgNode::set_clip_path).
+    ///
+    /// The inner `String` is the rejected id.
+    InvalidClipPathId(String),
+
     /// A generic attribute setter was called with an attribute name that is managed by a dedicated typed setter.
     ///
     /// The `id` attribute on [`SvgMarker`](crate::SvgMarker) is managed by [`SvgMarker::set_id`](crate::SvgMarker::set_id),
@@ -97,6 +110,7 @@ impl std::fmt::Display for Error {
             Error::CastFailed(ty) => write!(f, "JsCast to {ty} failed"),
             Error::InvalidMarkerId(id) => write!(f, "invalid svg marker id: {id:?}"),
             Error::InvalidGradientId(id) => write!(f, "invalid svg gradient id: {id:?}"),
+            Error::InvalidClipPathId(id) => write!(f, "invalid svg clip-path id: {id:?}"),
             Error::ReservedAttribute(name) => {
                 write!(f, "attribute {name:?} is reserved; use the dedicated setter")
             },

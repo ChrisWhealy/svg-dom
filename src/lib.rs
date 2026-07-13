@@ -15,6 +15,7 @@
 //! | [`error`] | [`Error`] | Wrapper for Browser DOM errors |
 //! | [`root`] | [`SvgRoot`] / [`SvgAttrs`] | Wraps the `<svg>` root; factory for all child elements; reusable attribute writing |
 //! | [`root::gradient`] | [`SvgLinearGradient`] / [`SvgRadialGradient`] | Gradient paint servers defined in `<defs>` |
+//! | [`root::clip_path`] | [`SvgClipPath`] | Clipping region defined in `<defs>`, applied with `set_clip_path_ref` |
 //! | [`animate`] | [`AnimationLoop`] | `requestAnimationFrame` loop |
 //! | [`node`] | [`SvgNode`] | Live element handle that provides access to attributes, events and tree operations |
 //!
@@ -73,6 +74,7 @@ pub use node::{CachedAttr, SvgNode, WeakSvgNode};
 pub use root::{
     attrs::{AttrWriter, SvgAttrs},
     batch::SvgBatch,
+    clip_path::{ClipPathUnits, SvgClipPath},
     defs::SvgDefs,
     gradient::{GradientUnits, SpreadMethod, linear::SvgLinearGradient, radial::SvgRadialGradient},
     marker::{MarkerUnits, SvgMarker},

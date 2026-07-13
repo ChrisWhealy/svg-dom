@@ -3,7 +3,8 @@ use crate::{
     error::Error,
     root::{
         attrs::{AttrWriter, SvgAttrs},
-        defs::{validate_gradient_id, validate_marker_id},
+        clip_path::SvgClipPath,
+        defs::{validate_clip_path_id, validate_gradient_id, validate_marker_id},
         gradient::{linear::SvgLinearGradient, radial::SvgRadialGradient},
         marker::SvgMarker,
     },
@@ -495,6 +496,66 @@ impl SvgNode {
     /// the gradient handle.
     pub fn set_stroke_radial_gradient(&self, gradient: &SvgRadialGradient) -> Result<(), Error> {
         self.set_stroke_gradient(gradient.id())
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the `clip-path` attribute by bare clip-path `id`, restricting the rendered region of this element to the
+    /// shapes defined inside the named [`SvgClipPath`].
+    ///
+    /// `clip_path_id` is the bare `id` of a [`SvgClipPath`] defined in a [`SvgDefs`](crate::SvgDefs) block;
+    /// the `url(#...)` wrapper is added automatically.
+    /// The same validation rules that apply at clip-path construction time are enforced here: an id that does not match
+    /// `[A-Za-z_][A-Za-z0-9_-]*` returns [`Error::InvalidClipPathId`].
+    ///
+    /// Prefer [`set_clip_path_ref`](Self::set_clip_path_ref) when you have the [`SvgClipPath`] handle available,
+    /// as it eliminates the risk of typos and `url(#...)` double-wrapping.
+    ///
+    /// To remove the clip, call [`remove_clip_path`](Self::remove_clip_path).
+    pub fn set_clip_path(&self, clip_path_id: &str) -> Result<(), Error> {
+        validate_clip_path_id(clip_path_id)?;
+        self.set_attr("clip-path", &format!("url(#{clip_path_id})"))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the `clip-path` attribute from a live [`SvgClipPath`] handle.
+    ///
+    /// This is the preferred alternative to [`set_clip_path`](Self::set_clip_path): the id is taken directly from the
+    /// handle, so there is no risk of typos or `url(#...)` double-wrapping.
+    ///
+    /// The written attribute stores the clip path's id as a string at call time.
+    /// If the clip path is later renamed with [`SvgClipPath::set_id`](crate::SvgClipPath::set_id), this element's
+    /// attribute is not updated automatically — reapply the reference after renaming if needed.
+    ///
+    /// To remove the clip, call [`remove_clip_path`](Self::remove_clip_path).
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::{Point, Size}};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    ///
+    /// let clip = defs.build_clip_path("viewport", |c| {
+    ///     c.circle(Point::new(60.0, 60.0), 55.0)?;
+    ///     Ok(())
+    /// })?;
+    ///
+    /// let bg = svg.rect(Point::origin(), Size::new(120.0, 120.0))?;
+    /// bg.set_fill("steelblue")?;
+    /// bg.set_clip_path_ref(&clip)?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn set_clip_path_ref(&self, clip: &SvgClipPath) -> Result<(), Error> {
+        self.set_clip_path(clip.id())
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Removes the `clip-path` attribute from this element, making the full element visible again.
+    ///
+    /// Has no effect if no clip path is currently applied.
+    pub fn remove_clip_path(&self) -> Result<(), Error> {
+        self.remove_attr("clip-path")
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

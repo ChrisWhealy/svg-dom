@@ -29,8 +29,24 @@ Chrome or Firefox must be installed (headless mode is used — no window opens).
 ### Running
 
 ```sh
-wasm-pack test --headless --chrome    # or --firefox
+wasm-pack test --headless --firefox   # always works
+
+wasm-pack test --headless --chrome    # requires Chrome to be on the latest stable release
 ```
+
+**Chrome version note.**
+wasm-pack 0.15+ always downloads the latest stable ChromeDriver from the Chrome for Testing endpoint rather than detecting the installed Chrome version.
+If your Chrome lags behind the stable channel (e.g. managed machines, delayed auto-updates), ChromeDriver and Chrome will be mismatched and all Chrome tests will fail with an HTTP 404 session error.
+The fix is to update Chrome to the latest stable release so its major version matches the downloaded ChromeDriver.
+If you cannot update Chrome immediately, point wasm-pack at a compatible driver with the `--chromedriver` flag:
+
+```sh
+# Replace the path with a chromedriver binary whose major version matches your Chrome.
+wasm-pack test --headless --chrome \
+  --chromedriver ~/.wasm-pack/cache/chromedriver-<hash>/chromedriver
+```
+
+`wasm-pack` caches previously downloaded drivers under `~/Library/Caches/.wasm-pack/` on macOS; inspect that directory to find one whose version matches your Chrome.
 
 ### How it works
 

@@ -2,6 +2,8 @@
 pub mod attrs;
 /// The [`SvgBatch`](crate::SvgBatch) builder that appends many elements to the DOM in one operation.
 pub mod batch;
+/// The [`SvgClipPath`](crate::SvgClipPath) element and its [`ClipPathUnits`](crate::ClipPathUnits) enum.
+pub mod clip_path;
 /// The [`SvgDefs`](crate::SvgDefs) container for reusable SVG assets.
 pub mod defs;
 /// The [`SvgLinearGradient`](crate::SvgLinearGradient), [`SvgRadialGradient`](crate::SvgRadialGradient),

@@ -33,7 +33,7 @@ That said, all reasonable, conventional steps have been taken to provide a secur
   - [x] `<defs>`
   - [x] `<linearGradient>` / `<radialGradient>`
   - [ ] `<pattern>`
-  - [ ] `<clipPath>`
+  - [x] `<clipPath>`
   - [x] `<marker>`
   - [x] `<image>`
   - [x] `<use>`
@@ -51,6 +51,7 @@ That said, all reasonable, conventional steps have been taken to provide a secur
 - [Quick start](#quick-start)
 - [Testing](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/testing.md)
 - [Design Notes](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/design_notes.md)
+- [Supported SVG Elements](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/elements.md)
 - [Gap Analysis](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/gaps.md)
 
 ## What this crate is
@@ -61,7 +62,7 @@ The `svg-dom` crate acts as a thin wrapper for `web-sys` SVG DOM bindings that a
 - Create new `<svg>` element programmatically
 - Add a basic set of SVG elements:
    - Helper functions exist for `<rect>`, `<circle>`, `<ellipse>`, `<line>`, `<polyline>`, `<polygon>`, `<path>`, `<text>`, `<g>`
-   - `<defs>` (`SvgDefs`) and `<marker>` (`SvgMarker`) are supported for defining reusable assets such as arrowheads, with deferred-append helpers (`build_defs` / `build_marker`) that only commit the element to the DOM once construction succeeds
+   - `<defs>` (`SvgDefs`), `<marker>` (`SvgMarker`), and `<clipPath>` (`SvgClipPath`) are supported for defining reusable assets, with deferred-append helpers (`build_defs` / `build_marker` / `build_clip_path`) that only commit the element to the DOM once construction succeeds; apply a clip path to any element with `set_clip_path_ref`
    - `<use>` is supported via `SvgRoot::use_node` / `SvgBatch::use_node` — stamps a copy of any element referenced by `id` without duplicating DOM nodes; each copy is independently positionable and styleable
    - `<image>` is supported via `SvgRoot::image` / `SvgBatch::image` — embeds a raster image or SVG by URL or `data:` URI with full `preserveAspectRatio` control
    - You get back a cheap-to-clone handle (`SvgNode`) that holds a live reference to the real DOM node
@@ -122,11 +123,12 @@ The coding used in the actual demo implementation is shown beneath each example.
 |---|---|
 | `SvgRoot` | Wraps the root `<svg>` element; entry point for all element creation
 | `SvgNode` | Cheap-to-clone handle to a live DOM element; attribute + event API
-| `SvgDefs` | `<defs>` container for reusable assets; factory for `SvgMarker` and shape elements
+| `SvgDefs` | `<defs>` container for reusable assets; factory for `SvgMarker`, `SvgClipPath`, gradients, and shape elements
 | `SvgMarker` | `<marker>` element for arrowheads and other path decorations; owned id cache + shape factories
+| `SvgClipPath` | `<clipPath>` element that restricts rendered region to an arbitrary shape; owned id cache + shape factories
 | `AnimationLoop` | Drives a `requestAnimationFrame` loop; stops on `Drop`
 | `SvgAttrs` / `AttrWriter` | Reusable scratch buffer for allocation-light attribute writing
-| `Error` | All failure modes: element not found, DOM error, cast failure, or invalid SVG marker id
+| `Error` | All failure modes: element not found, DOM error, cast failure, invalid id (marker / gradient / clip-path), or reserved attribute
 
 ## Minimal Demo
 
