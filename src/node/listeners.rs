@@ -314,20 +314,76 @@ impl SvgNode {
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `wheel` handler.
+    ///
+    /// Call [`prevent_default`](web_sys::Event::prevent_default) inside to suppress the browser's default scroll
+    /// or zoom behaviour.
+    /// When scroll prevention is not needed, prefer [`on_wheel_passive`](Self::on_wheel_passive), which registers
+    /// the listener with `{ passive: true }` so the compositor thread is never blocked.
     pub fn on_wheel<F: FnMut(WheelEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_wheel_listener("wheel", handler)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Registers a passive `wheel` handler.
+    ///
+    /// Unlike [`on_wheel`](Self::on_wheel), the listener is registered with `{ passive: true }`.
+    /// The browser does not wait for the handler to return before beginning its scroll or zoom update, so the
+    /// compositor thread is never blocked.
+    ///
+    /// Any [`prevent_default`](web_sys::Event::prevent_default) call made inside the handler is silently ignored.
+    ///
+    /// Prefer this over [`on_wheel`](Self::on_wheel) when the handler only *reads* wheel data (e.g. accumulates a zoom
+    /// level) without needing to suppress the browser's default scroll behaviour.
+    pub fn on_wheel_passive<F: FnMut(WheelEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
+        self.add_wheel_listener_passive(handler)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `touchstart` handler. Prefer pointer events when browser support allows it.
+    ///
+    /// When suppressing the default touch behaviour is not needed, prefer
+    /// [`on_touchstart_passive`](Self::on_touchstart_passive).
     pub fn on_touchstart<F: FnMut(TouchEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_touch_listener("touchstart", handler)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Registers a passive `touchstart` handler.
+    ///
+    /// Registered with `{ passive: true }`: the browser may begin handling the initial touch contact immediately
+    /// without waiting for the handler.
+    /// Any [`prevent_default`](web_sys::Event::prevent_default) call made inside the handler is silently ignored.
+    ///
+    /// Use this when the handler only records the start position without needing to suppress the browser's default
+    /// touch behaviour (e.g. pull-to-refresh or page scroll from the first contact).
+    ///
+    /// When suppression from the first contact is required, use [`on_touchstart`](Self::on_touchstart) instead.
+    pub fn on_touchstart_passive<F: FnMut(TouchEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
+        self.add_touch_listener_passive("touchstart", handler)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Registers a `touchmove` handler. Prefer pointer events when browser support allows it.
+    ///
+    /// When suppressing touch-scroll is not needed, prefer [`on_touchmove_passive`](Self::on_touchmove_passive).
     pub fn on_touchmove<F: FnMut(TouchEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
         self.add_touch_listener("touchmove", handler)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Registers a passive `touchmove` handler.
+    ///
+    /// Registered with `{ passive: true }`: the browser may begin its touch-scroll immediately without waiting for
+    /// the handler.
+    /// Any [`prevent_default`](web_sys::Event::prevent_default) call made inside the handler is silently ignored.
+    ///
+    /// Use this when the handler only *reads* touch coordinates (e.g. for an on-screen readout) without needing to
+    /// suppress the browser's touch-scroll behaviour.
+    ///
+    /// When scroll suppression is required (e.g. a custom drag gesture), use [`on_touchmove`](Self::on_touchmove)
+    /// instead.
+    pub fn on_touchmove_passive<F: FnMut(TouchEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
+        self.add_touch_listener_passive("touchmove", handler)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

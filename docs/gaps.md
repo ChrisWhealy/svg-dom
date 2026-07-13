@@ -151,6 +151,9 @@ Managed wrappers now cover the SVG interaction events expected by ordinary appli
 * `on_event_once` — a generic one-shot variant; accepts any event type `E` via an `instanceof` cast at runtime.
 * Typed one-shot wrappers for every named event: `on_click_once`, `on_pointerdown_once`, `on_pointerenter_once`, `on_pointerleave_once`, and equivalents for all other named events.
   These bake in the correct event type so the `instanceof` mismatch footgun cannot occur.
+* Passive variants for the three high-frequency scroll events — `on_wheel_passive`, `on_touchstart_passive`, and `on_touchmove_passive` — registered with `{ passive: true }` so the compositor thread is never blocked.
+  Any `prevent_default()` call made inside a passive handler is silently ignored by the browser.
+  If you do need to suppress the default scroll or touch behaviour, then use the non-passive sibling instead.
 
 Prefer `pointerenter` / `pointerleave` for hover behaviour because they do not bubble through child elements.
 The legacy `mouseover` / `mouseout` wrappers remain available for compatibility reasons, but have been marked as deprecated.

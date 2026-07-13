@@ -335,6 +335,41 @@ impl SvgNode {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Registers a listener using `{ passive: true }`.
+    ///
+    /// The browser never waits for the handler to return before proceeding with its scroll or touch update, so the
+    /// compositor thread is not blocked. Any `prevent_default()` call made inside the handler is silently ignored by
+    /// the browser (it does not panic or error on the Rust side).
+    fn store_listener_passive(&self, event_type: &'static str, closure: EventClosure) -> Result<(), Error> {
+        let options = AddEventListenerOptions::new();
+        options.set_passive(true);
+        self.inner
+            .element
+            .add_event_listener_with_callback_and_add_event_listener_options(
+                event_type,
+                closure.callback_ref(),
+                &options,
+            )
+            .map_err(dom_err)?;
+        self.push_listener(event_type, closure);
+        Ok(())
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    fn add_touch_listener_passive<F: FnMut(TouchEvent) + 'static>(
+        &self,
+        event_type: &'static str,
+        handler: F,
+    ) -> Result<(), Error> {
+        self.store_listener_passive(event_type, EventClosure::Touch(Closure::new(handler)))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    fn add_wheel_listener_passive<F: FnMut(WheelEvent) + 'static>(&self, handler: F) -> Result<(), Error> {
+        self.store_listener_passive("wheel", EventClosure::Wheel(Closure::new(handler)))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fn add_drag_listener<F: FnMut(DragEvent) + 'static>(
         &self,
         event_type: &'static str,

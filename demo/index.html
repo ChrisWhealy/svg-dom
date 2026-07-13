@@ -39,6 +39,7 @@
             <button type="button" class="menu-item" data-target="panel-events-pointer">Pointer lifecycle</button>
             <button type="button" class="menu-item" data-target="panel-events-keyboard-wheel">Keyboard &amp; wheel</button>
             <button type="button" class="menu-item" data-target="panel-events-drag-drop-touch">Native drag/touch</button>
+            <button type="button" class="menu-item" data-target="panel-events-passive">Passive Event Listeners</button>
         </nav>
 
         <!-- Title panel  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -358,6 +359,21 @@
                         The card and zone also exercise managed <strong>dragstart / drag / dragend / dragenter /
                         dragleave / dragover / drop</strong>, <strong>touchstart / touchmove / touchend / touchcancel</strong>,
                         and a generic <strong>on_event("auxclick")</strong> handler.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- passive event listeners -->
+            <section class="section" id="panel-events-passive">
+                <h2><code>passive</code> event listeners</h2>
+                <figure>
+                    <div class="canvas" id="demo-events-passive"></div>
+                    <figcaption>
+                        <strong>on_wheel_passive</strong> · <strong>on_touchstart_passive</strong> ·
+                        <strong>on_touchmove_passive</strong> — registered with <code>{ passive: true }</code> so
+                        the browser never waits for the handler before scrolling or panning.
+                        <code>preventDefault()</code> inside a passive handler is silently ignored; use the
+                        non-passive sibling when you need to suppress default scroll behaviour.
                     </figcaption>
                 </figure>
             </section>
