@@ -16,6 +16,7 @@ The following SVG elements are supported:
 * `polygon`
 * `polyline`
 * `radialGradient` (with `stop`)
+* `symbol`
 * `text` (with `tspan`)
 * `use`
 
@@ -167,6 +168,43 @@ A fully qualified prefix such as `"my-app-sky-gradient"` is a practical guard ag
 Apply it to any stroked element — `<line>`, `<path>`, `<polyline>`, `<polygon>` — via `SvgNode::set_marker_start`, `set_marker_mid`, or `set_marker_end`.
 The `MarkerUnits` enum controls whether `markerWidth`/`markerHeight` are relative to `strokeWidth` (default) or user coordinates.
 
+---
+
+## `<symbol>`
+
+A `<symbol>` defines a reusable viewport.
+Unlike a plain `<g>` in `<defs>`, it can carry its own `viewBox` and `preserveAspectRatio`.
+The browser scales the symbol's content to fit the `<use>` element's `width` and `height`, exactly as it would an embedded `<svg>` &mdash; so the same definition renders correctly at any size with no manual rescaling.
+
+**API** — obtain a handle via `SvgDefs::symbol(id)` or the transactional `SvgDefs::build_symbol(id, closure)`:
+
+| Method | Description |
+|---|---|
+| `set_view_box(x, y, w, h)` | Establishes the symbol's internal coordinate space |
+| `set_preserve_aspect_ratio(value)` | Controls alignment / clipping when the `<use>` dimensions differ from the `viewBox` aspect ratio |
+| `set_id(&mut self, id)` | Renames the symbol (updates both the DOM and the cached id) |
+| `set_attr(name, value)` | Generic setter for unlisted attributes (`class`, `style`, `overflow` …) |
+
+All shape factory methods (`rect`, `circle`, `ellipse`, `line`, `path`, `polyline`, `polygon`, `text`, `group`) are available on `SvgSymbol`.
+
+**Stamping copies** — pass the symbol's id (prefixed with `#`) to `SvgRoot::use_node`:
+
+```rust,no_run
+defs.build_symbol("badge", |s| {
+    s.set_view_box(0.0, 0.0, 40.0, 40.0)?;
+    s.circle(Point::new(20.0, 20.0), 18.0)?.set_fill("steelblue")?;
+    Ok(())
+})?;
+
+// Each <use> can have its own width/height; the viewBox scales the content automatically.
+svg.use_node("#badge", Point::new(10.0, 10.0))?.set_attr("width", "40")?;
+svg.use_node("#badge", Point::new(60.0, 10.0))?.set_attr("width", "80")?;
+```
+
+**id rules** — symbol ids follow the same allow-list as markers and gradients: `[A-Za-z_][A-Za-z0-9_-]*`.
+A non-conforming id causes `Error::InvalidSymbolId` to be raised before any DOM call is made.
+
+Always use `SvgSymbol::set_id` to rename a symbol after construction; `set_attr("id", ...)` will be rejected with `Error::ReservedAttribute` to protect the cached value.
 
 ---
 
@@ -226,4 +264,4 @@ Obtain a handle via `SvgRoot::use_node(href, at)` or `SvgBatch::use_node(href, a
 - To change the referenced element after creation, call `SvgNode::set_href("#other-shape")`.
 
 Any change to the original definition is immediately visible in all copies.
-`<symbol>` is not yet supported; for now, define reusable content directly inside `<defs>` with a shape or group that carries an `id`.
+A `<use>` element can reference any element by id, including a `<symbol>` (see the `<symbol>` section above).

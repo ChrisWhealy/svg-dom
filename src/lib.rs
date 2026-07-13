@@ -79,4 +79,5 @@ pub use root::{
     gradient::{GradientUnits, SpreadMethod, linear::SvgLinearGradient, radial::SvgRadialGradient},
     marker::{MarkerUnits, SvgMarker},
     svg_root::SvgRoot,
+    symbol::SvgSymbol,
 };

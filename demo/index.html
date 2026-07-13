@@ -27,6 +27,7 @@
             <button type="button" class="menu-item" data-target="panel-marker">defs / marker</button>
             <button type="button" class="menu-item" data-target="panel-use">use</button>
             <button type="button" class="menu-item" data-target="panel-image">image</button>
+            <button type="button" class="menu-item" data-target="panel-symbol">symbol</button>
             <button type="button" class="menu-item" data-target="panel-linear-gradient">linearGradient</button>
             <button type="button" class="menu-item" data-target="panel-radial-gradient">radialGradient</button>
             <button type="button" class="menu-item" data-target="panel-clip-path">clipPath</button>
@@ -211,6 +212,20 @@
                         The same 60&times;40 source image (a four-quadrant colour grid) placed in a 100&times;100 box
                         with three different <strong>preserveAspectRatio</strong> modes, plus a fourth slot that
                         demonstrates <strong>set_href</strong> swapping the image source after creation.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- symbol -->
+            <section class="section" id="panel-symbol">
+                <h2><code>&lt;symbol&gt;</code> — reusable scaled viewport</h2>
+                <figure>
+                    <div class="canvas" id="demo-symbol"></div>
+                    <figcaption>
+                        A badge icon defined once in <code>&lt;defs&gt;</code> with <strong>viewBox="0 0 40 40"</strong>
+                        and stamped five times at increasing sizes via <strong>use_node</strong>.
+                        The <code>viewBox</code> scales the content automatically to fit each <code>&lt;use&gt;</code>
+                        element's <code>width</code> and <code>height</code> — no manual rescaling needed.
                     </figcaption>
                 </figure>
             </section>

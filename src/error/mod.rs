@@ -3,13 +3,15 @@
 ///
 /// Every fallible function in this crate returns `Result<_, Error>`.
 ///
-/// The variants cover six categories:
+/// The variants cover eight categories:
 ///
 /// - you asked for a non-existent element by id ([`Error::ElementNotFound`])
 /// - a `web-sys` call returned a JavaScript error ([`Error::Dom`])
 /// - a JavaScript value couldn't be cast to the expected Rust type ([`Error::CastFailed`])
 /// - a marker id string was rejected by crate-level validation ([`Error::InvalidMarkerId`])
 /// - a gradient id string was rejected by crate-level validation ([`Error::InvalidGradientId`])
+/// - a clip-path id string was rejected by crate-level validation ([`Error::InvalidClipPathId`])
+/// - a symbol id string was rejected by crate-level validation ([`Error::InvalidSymbolId`])
 /// - a generic setter was called with an attribute name that has a dedicated typed setter ([`Error::ReservedAttribute`])
 #[derive(Debug)]
 pub enum Error {
@@ -69,6 +71,18 @@ pub enum Error {
     /// The inner `String` is the rejected id.
     InvalidClipPathId(String),
 
+    /// A symbol `id` string was rejected before reaching the DOM.
+    ///
+    /// Valid symbol ids must match the pattern `[A-Za-z_][A-Za-z0-9_-]*`: an ASCII letter or underscore followed
+    /// by zero or more ASCII letters, digits, underscores, or hyphens.
+    ///
+    /// This error is returned when a non-conforming string is passed to
+    /// [`SvgDefs::symbol`](crate::SvgDefs::symbol) or
+    /// [`SvgDefs::build_symbol`](crate::SvgDefs::build_symbol).
+    ///
+    /// The inner `String` is the rejected id.
+    InvalidSymbolId(String),
+
     /// A generic attribute setter was called with an attribute name that is managed by a dedicated typed setter.
     ///
     /// The `id` attribute on [`SvgMarker`](crate::SvgMarker) is managed by [`SvgMarker::set_id`](crate::SvgMarker::set_id),
@@ -111,6 +125,7 @@ impl std::fmt::Display for Error {
             Error::InvalidMarkerId(id) => write!(f, "invalid svg marker id: {id:?}"),
             Error::InvalidGradientId(id) => write!(f, "invalid svg gradient id: {id:?}"),
             Error::InvalidClipPathId(id) => write!(f, "invalid svg clip-path id: {id:?}"),
+            Error::InvalidSymbolId(id) => write!(f, "invalid svg symbol id: {id:?}"),
             Error::ReservedAttribute(name) => {
                 write!(f, "attribute {name:?} is reserved; use the dedicated setter")
             },

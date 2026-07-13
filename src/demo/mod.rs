@@ -97,6 +97,7 @@ pub fn run_demo() -> Result<(), JsValue> {
     structure::demo_marker().map_err(e)?;
     structure::demo_use().map_err(e)?;
     structure::demo_image().map_err(e)?;
+    structure::demo_symbol().map_err(e)?;
     paint::demo_linear_gradient().map_err(e)?;
     paint::demo_radial_gradient().map_err(e)?;
     paint::demo_clip_path().map_err(e)?;
@@ -153,6 +154,7 @@ const DEMO_SOURCES: &[(&str, &str)] = &[
     ("panel-marker", "demo_marker"),
     ("panel-use", "demo_use"),
     ("panel-image", "demo_image"),
+    ("panel-symbol", "demo_symbol"),
     ("panel-linear-gradient", "demo_linear_gradient"),
     ("panel-radial-gradient", "demo_radial_gradient"),
     ("panel-clip-path", "demo_clip_path"),

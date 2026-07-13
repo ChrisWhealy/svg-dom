@@ -154,6 +154,30 @@ fn should_error_on_invalid_clip_path_id_inner_value() -> Result<(), String> {
 }
 
 #[test]
+fn should_error_on_display_invalid_symbol_id() -> Result<(), String> {
+    let err = Error::InvalidSymbolId("url(#sym)".into());
+    ensure_eq!(err.to_string(), r#"invalid svg symbol id: "url(#sym)""#);
+    Ok(())
+}
+
+#[test]
+fn should_error_on_debug_invalid_symbol_id() -> Result<(), String> {
+    let err = Error::InvalidSymbolId("bad id".into());
+    ensure_eq!(format!("{err:?}"), r#"InvalidSymbolId("bad id")"#);
+    Ok(())
+}
+
+#[test]
+fn should_error_on_invalid_symbol_id_inner_value() -> Result<(), String> {
+    let id = "url(#x)";
+    let Error::InvalidSymbolId(inner) = Error::InvalidSymbolId(id.into()) else {
+        return Err("expected InvalidSymbolId variant".into());
+    };
+    ensure_eq!(inner, id);
+    Ok(())
+}
+
+#[test]
 fn should_error_on_display_reserved_attribute() -> Result<(), String> {
     let err = Error::ReservedAttribute("id");
     ensure_eq!(err.to_string(), r#"attribute "id" is reserved; use the dedicated setter"#);

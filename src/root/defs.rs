@@ -14,6 +14,7 @@ use super::{
     gradient::{linear::SvgLinearGradient, radial::SvgRadialGradient},
     marker::SvgMarker,
     svg_root::SvgRoot,
+    symbol::SvgSymbol,
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -64,6 +65,17 @@ pub(crate) fn validate_clip_path_id(id: &str) -> Result<(), Error> {
         Ok(())
     } else {
         Err(Error::InvalidClipPathId(id.to_owned()))
+    }
+}
+
+/// Rejects symbol ids that would produce broken `#id` fragment references.
+///
+/// Applies the same allow-list as [`validate_marker_id`]: the id must match `[A-Za-z_][A-Za-z0-9_-]*`.
+pub(crate) fn validate_symbol_id(id: &str) -> Result<(), Error> {
+    if is_valid_svg_id(id) {
+        Ok(())
+    } else {
+        Err(Error::InvalidSymbolId(id.to_owned()))
     }
 }
 
@@ -301,6 +313,96 @@ impl SvgDefs {
         build(&clip)?;
         self.element.append_child(clip.as_element()).map_err(dom_err)?;
         Ok(clip)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Creates a `<symbol>` child element with the given `id`, appends it to `<defs>` immediately and returns its
+    /// handle.
+    ///
+    /// A `<symbol>` defines a reusable viewport: unlike a plain `<g>` in `<defs>`, it can carry a `viewBox` so
+    /// that each `<use>` instance scales the content to its own `width` and `height`.
+    ///
+    /// Each shape added to the returned [`SvgSymbol`] is appended to the live element one at a time.
+    /// Use this when you need to add shapes to a symbol dynamically after initial construction.
+    ///
+    /// Prefer [`build_symbol`](Self::build_symbol) when all symbol contents are known upfront: that variant holds the
+    /// element detached until the closure succeeds, so a mid-build error leaves no partial symbol in `<defs>`.
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::InvalidSymbolId`] — `id` failed validation.
+    /// - [`Error::Dom`] — the browser refused to create or append the element.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::{Point, Size}};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    /// let sym  = defs.symbol("icon")?;
+    /// sym.set_view_box(0.0, 0.0, 40.0, 40.0)?;
+    /// sym.circle(Point::new(20.0, 20.0), 18.0)?.set_fill("steelblue")?;
+    ///
+    /// svg.use_node("#icon", Point::new(10.0, 10.0))?.set_attr("width", "40")?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn symbol(&self, id: &str) -> Result<SvgSymbol, Error> {
+        validate_symbol_id(id)?;
+        let el = super::create_svg_element::<SvgElement>(&self.document, "symbol", "SvgElement")?;
+        el.set_attribute("id", id).map_err(dom_err)?;
+        self.element.append_child(&el).map_err(dom_err)?;
+        Ok(SvgSymbol::new(id.to_owned(), el, self.document.clone()))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Builds a `<symbol>` and all its child shapes in one shot, appending to `<defs>` only after the closure
+    /// succeeds.
+    ///
+    /// The closure receives a reference to the new [`SvgSymbol`].
+    /// All shapes added inside the closure are appended to a detached element.
+    ///
+    /// If the closure returns `Ok(())`, the symbol is appended to `<defs>` and the handle is returned.
+    /// If the closure returns `Err`, the element is dropped without being attached to `<defs>`.
+    ///
+    /// This is the preferred way to build a symbol when all its content is known upfront.
+    /// For dynamically adding shapes over time, use [`symbol`](Self::symbol) instead.
+    ///
+    /// # Errors
+    ///
+    /// - Any error returned by `build`.
+    /// - [`Error::InvalidSymbolId`] — `id` failed validation.
+    /// - [`Error::Dom`] — the browser refused to create or append the element.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::{Point, Size}};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    ///
+    /// // Build a badge icon; the viewBox scales it automatically at any <use> size.
+    /// defs.build_symbol("badge", |s| {
+    ///     s.set_view_box(0.0, 0.0, 40.0, 40.0)?;
+    ///     s.circle(Point::new(20.0, 20.0), 18.0)?.set_fill("steelblue")?;
+    ///     Ok(())
+    /// })?;
+    ///
+    /// svg.use_node("#badge", Point::new(10.0, 10.0))?.set_attr("width", "80")?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn build_symbol<F>(&self, id: &str, build: F) -> Result<SvgSymbol, Error>
+    where
+        F: FnOnce(&SvgSymbol) -> Result<(), Error>,
+    {
+        validate_symbol_id(id)?;
+        let el = super::create_svg_element::<SvgElement>(&self.document, "symbol", "SvgElement")?;
+        el.set_attribute("id", id).map_err(dom_err)?;
+        let sym = SvgSymbol::new(id.to_owned(), el, self.document.clone());
+        build(&sym)?;
+        self.element.append_child(sym.as_element()).map_err(dom_err)?;
+        Ok(sym)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
