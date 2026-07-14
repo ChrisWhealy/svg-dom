@@ -74,7 +74,9 @@ pub mod demo;
 pub use animate::{anim_frame::AnimationFrame, anim_loop::AnimationLoop};
 pub use error::Error;
 pub(crate) use error::dom_err;
-pub use node::{CachedAttr, DominantBaseline, SvgNode, TextAnchor, WeakSvgNode};
+pub use node::{
+    CachedAttr, DominantBaseline, SvgNode, TextAnchor, TextPathMethod, TextPathSide, TextPathSpacing, WeakSvgNode,
+};
 pub use root::{
     attrs::{AttrWriter, SvgAttrs},
     batch::SvgBatch,

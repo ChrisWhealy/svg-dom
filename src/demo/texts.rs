@@ -145,3 +145,75 @@ pub(super) fn demo_tspan() -> Result<(), Error> {
 
     Ok(())
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Builds an SVG path `d` string tracing `periods` cycles of a sine wave, `width` user units wide and `amplitude`
+/// tall, starting at `(x0, y0)`.
+///
+/// Sampled as short straight-line segments (`STEP` user units apart) rather than fitted with Bézier curves — dense
+/// enough to read as a smooth curve at demo scale, and far simpler than deriving cubic control points that actually
+/// hug a sine function (a circular arc's Bézier approximation constant does not carry over to a sine curve).
+fn sine_wave_path(x0: f64, y0: f64, width: f64, amplitude: f64, periods: f64) -> String {
+    use std::fmt::Write;
+    const STEP: f64 = 4.0;
+
+    let mut path_d = format!("M {x0:.1} {y0:.1}");
+    let mut x = STEP;
+    while x <= width {
+        let y = y0 - amplitude * (2.0 * std::f64::consts::PI * periods * x / width).sin();
+        let _ = write!(path_d, " L {:.1} {:.1}", x0 + x, y);
+        x += STEP;
+    }
+    path_d
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// textPath — gluing text to a curve
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+pub(super) fn demo_text_path() -> Result<(), Error> {
+    let svg = SvgRoot::create_in("demo-text-path", Size::new(W, H))?;
+
+    // ── follows a sine wave ──────────────────────────────────────────────────────
+    // The guide wave lives in <defs> — it is never rendered itself, only referenced by `href` — which is the usual
+    // way to use textPath: the geometry is a pure positioning aid for the text. The text only covers part of the
+    // path's full length, so more periods are packed in than will actually be traversed, letting several full
+    // up/down cycles show through the glyphs that do get drawn.
+    let wave_d = sine_wave_path(20.0, 90.0, 750.0, 26.0, 4.0);
+    let defs = svg.build_defs(|d| {
+        d.path(&wave_d)?.set_attr("id", "demo-tp-wave")?;
+        Ok(())
+    })?;
+    let _ = defs; // held only to construct the wave; the id reference below is what matters
+
+    let curve = svg.text(Point::origin(), "")?;
+    let curve_path = curve.text_path("#demo-tp-wave", "Now riding a sine wave, up and down")?;
+    curve_path.set_fill(PLAIN_TEXT)?;
+    curve_path.set_font_size(14.0)?;
+
+    caption(&svg, 200.0, "textPath — follows a sine wave")?;
+
+    // ── startOffset ───────────────────────────────────────────────────────────────
+    // Here the guide arc is drawn directly on the canvas (dashed) rather than hidden in <defs>, so the effect of
+    // set_start_offset is visible: two independent <textPath> elements share the same path but start at different
+    // distances along it.
+    let guide = svg.path("M 430 130 Q 600 45 770 130")?;
+    guide.set_attr("id", "demo-tp-offset-arc")?;
+    guide.set_fill(NONE)?;
+    guide.set_stroke(GUIDE)?;
+    guide.set_attr("stroke-dasharray", "4 3")?;
+
+    let start = svg.text(Point::origin(), "")?;
+    let start_path = start.text_path("#demo-tp-offset-arc", "offset 0")?;
+    start_path.set_fill(PLAIN_TEXT)?;
+    start_path.set_font_size(14.0)?;
+
+    let shifted = svg.text(Point::origin(), "")?;
+    let shifted_path = shifted.text_path("#demo-tp-offset-arc", "offset 200")?;
+    shifted_path.set_fill(CORAL)?;
+    shifted_path.set_font_size(14.0)?;
+    shifted_path.set_start_offset(200.0)?;
+
+    caption(&svg, 600.0, "startOffset — slides text along the path")?;
+
+    Ok(())
+}

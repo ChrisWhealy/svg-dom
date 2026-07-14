@@ -33,6 +33,7 @@
             <button type="button" class="menu-item" data-target="panel-clip-path">clipPath</button>
             <button type="button" class="menu-item" data-target="panel-pattern">pattern</button>
             <button type="button" class="menu-item" data-target="panel-tspan">tspan</button>
+            <button type="button" class="menu-item" data-target="panel-text-path">textPath</button>
 
             <div class="menu-group">Event handling</div>
             <button type="button" class="menu-item" data-target="panel-events-click">Click counter</button>
@@ -301,6 +302,21 @@
                         coordinates ·
                         <strong>inline mixed styles</strong> — three spans inside one <code>&lt;text&gt;</code>,
                         each overriding <code>fill</code> and <code>font-size</code> independently
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- textPath -->
+            <section class="section" id="panel-text-path">
+                <h2><code>&lt;textPath&gt;</code> — gluing text to a curve</h2>
+                <figure>
+                    <div class="canvas" id="demo-text-path"></div>
+                    <figcaption>
+                        <strong>follows a sine wave</strong> — text runs along a sine curve defined (and hidden)
+                        in <code>&lt;defs&gt;</code> ·
+                        <strong>startOffset</strong> — two <code>&lt;textPath&gt;</code> elements share one
+                        visible dashed arc, starting at different distances along it via
+                        <strong>set_start_offset</strong>
                     </figcaption>
                 </figure>
             </section>

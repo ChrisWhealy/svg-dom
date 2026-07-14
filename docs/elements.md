@@ -18,7 +18,7 @@ The following SVG elements are supported:
 * `polyline`
 * `radialGradient` (with `stop`)
 * `symbol`
-* `text` (with `tspan`)
+* `text` (with `tspan`, `textPath`)
 * `use`
 
 # Implemented Tree operations
@@ -302,6 +302,30 @@ Four typed helpers are available on any `SvgNode` for styling text:
 The default (`Auto`/`Alphabetic`) places the alphabetic baseline on `y`, so ascenders rise above it.
 Use `Middle` or `Central` to vertically centre text on a coordinate.
 Use `Hanging` for scripts (Devanagari, Tibetan, etc.) whose bodies hang from the top of the line box.
+
+---
+
+## `<textPath>`
+
+`<textPath>` glues a `<text>` string to the outline of a `<path>` (or, per SVG2, a basic shape).
+In other words, the baseline of the letters follow the outline defined by the path instead of a straight line.
+
+Obtain a handle by calling `text_path(href, content)` on any `SvgNode` that wraps a `<text>` element (or another `<tspan>`/`<textPath>`).
+
+| Method | Effect |
+|---|---|
+| `node.text_path(href, content)` | Appends a `<textPath>` with `content`, following the path referenced by `href`. |
+| `node.set_start_offset(offset)` | Sets `startOffset` — the distance in user units along the path where the text begins. |
+| `node.set_text_path_method(TextPathMethod)` | Sets `method` — `Align` (default) rotates whole glyphs onto the path; `Stretch` distorts glyph outlines to match its curvature. |
+| `node.set_text_path_spacing(TextPathSpacing)` | Sets `spacing` — `Auto` (default) compensates spacing for curvature; `Exact` uses the font's natural advance widths. |
+| `node.set_text_path_side(TextPathSide)` | Sets the SVG2 `side` attribute — `Left` (default) or `Right` of the path. |
+
+- `href` is a local fragment reference such as `"#wave"` (the `id` attribute of the target `<path>`).
+- The referenced path is typically defined inside `<defs>`, or given no fill/stroke, so only the text is visible rather than the guide geometry.
+- All text styling helpers (`set_fill`, `set_font_size`, `set_font_family`) work on the returned `SvgNode` exactly as they do for `<tspan>`.
+- To offset by a percentage of the path length instead of an absolute distance, call `set_attr("startOffset", "50%")` directly.
+
+**Browser support:** `side` is an SVG2 addition; verify it renders as expected on every browser you target before relying on `TextPathSide::Right` in production.
 
 ---
 

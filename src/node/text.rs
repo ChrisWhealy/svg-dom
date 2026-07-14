@@ -76,16 +76,94 @@ impl DominantBaseline {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Controls how glyphs are fitted onto the path referenced by a `<textPath>`.
+///
+/// Maps to the `method` attribute of `<textPath>`.
+/// The default is [`Align`](TextPathMethod::Align).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TextPathMethod {
+    /// Each glyph is rendered at its natural size, then rotated and translated so it sits on the path.
+    /// This is the SVG default and the only method with broad, reliable browser support.
+    Align,
+    /// Each glyph outline is stretched so consecutive glyphs follow the path's curvature without gaps.
+    ///
+    /// ⚠️ Caution ⚠️
+    /// Support for `Stretch` is inconsistent across browser engines and can result in visual distortion; therefore,
+    /// unless you have verified that `Stretch` renders acceptably on every target browser, you should prefer the use
+    /// of `Align`.
+    Stretch,
+}
+
+impl TextPathMethod {
+    fn as_str(self) -> &'static str {
+        match self {
+            TextPathMethod::Align => "align",
+            TextPathMethod::Stretch => "stretch",
+        }
+    }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Controls glyph-spacing adjustment along the path referenced by a `<textPath>`.
+///
+/// Maps to the `spacing` attribute of `<textPath>`.
+/// The default is [`Auto`](TextPathSpacing::Auto).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TextPathSpacing {
+    /// The renderer automatically adjusts spacing to compensate for the path's curvature (SVG default).
+    Auto,
+    /// Spacing between glyphs follows the font's natural advance widths exactly, with no curvature compensation —
+    /// text can visibly bunch or gap on tight curves.
+    Exact,
+}
+
+impl TextPathSpacing {
+    fn as_str(self) -> &'static str {
+        match self {
+            TextPathSpacing::Auto => "auto",
+            TextPathSpacing::Exact => "exact",
+        }
+    }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Controls which side of the path a `<textPath>`'s text is rendered on.
+///
+/// Maps to the SVG2 `side` attribute of `<textPath>`.
+/// The default is [`Left`](TextPathSide::Left).
+///
+/// **Browser support caveat:** `side` is an SVG2 addition; verify it renders as expected on every browser you target
+/// before relying on [`Right`](TextPathSide::Right) in production.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TextPathSide {
+    /// Text is placed along the path in its natural direction, reading left-to-right as the path is traversed
+    /// (SVG default).
+    Left,
+    /// Text is placed on the opposite side of the path, as if the path were reversed.
+    Right,
+}
+
+impl TextPathSide {
+    fn as_str(self) -> &'static str {
+        match self {
+            TextPathSide::Left => "left",
+            TextPathSide::Right => "right",
+        }
+    }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 impl SvgNode {
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// # Text measurement
     ///
     /// Returns the rendered advance width of a text element's content, in user units, by wrapping
     /// [`SVGTextContentElement.getComputedTextLength()`]. Returns `None` for non-text elements.
     ///
-    /// This reflects the actual font metrics in effect (family, size, `letter-spacing`, `word-spacing`), so it is the
-    /// reliable way to discover, for example, the width of a monospace digit (the CSS `ch` unit) at runtime rather than
-    /// hard-coding a guess. The element must be attached to a rendered document for the measurement to be meaningful.
+    /// This reflects the actual font metrics in effect (family, size, `letter-spacing`, `word-spacing` etc), so it is
+    /// the most reliable way to discover, for example, the width of a monospace digit (the CSS `ch` unit) at runtime
+    /// rather than hard-coding a guess.
+    ///
+    /// The element must be attached to a rendered document for the measurement to be meaningful.
     ///
     /// **Performance:** this call triggers a browser layout read — the browser must compute font metrics and text layout
     /// before it can return a value. Do not call it inside a hot animation or pointer-move callback unless you have
@@ -434,5 +512,116 @@ impl SvgNode {
         attrs.display(&node, "dy", dy)?;
         self.inner.element.append_child(node.as_element()).map_err(dom_err)?;
         Ok(node)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Creates a `<textPath>` child element that glues `content` to the path referenced by `href`, appends it to
+    /// `self` (a `<text>` element) and returns a handle.
+    ///
+    /// # Arguments
+    ///
+    /// * `href` — fragment reference to the path the text should follow, e.g. `"#wave"`, where `"wave"` is the `id`
+    ///   attribute of the target `<path>` (or, per SVG2, a basic shape such as `<circle>` or `<rect>`).
+    ///   The target is typically defined inside [`SvgDefs`](crate::SvgDefs) so it is not rendered on its own; give it
+    ///   a stroke and no fill (or place it in `<defs>`) to keep the guide path invisible.
+    /// * `content` — the visible text string that is drawn along the path, starting from [`set_start_offset`]
+    ///   (default `0`, the path's own start point).
+    ///
+    /// Like [`tspan`](Self::tspan), the returned handle accepts the usual text styling helpers (`set_fill`,
+    /// `set_font_size`, `set_font_family`) which override whatever the parent `<text>` inherited, plus the
+    /// `<textPath>`-specific setters [`set_start_offset`](Self::set_start_offset),
+    /// [`set_text_path_method`](Self::set_text_path_method), [`set_text_path_spacing`](Self::set_text_path_spacing),
+    /// and [`set_text_path_side`](Self::set_text_path_side).
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::Dom`] — the browser refused to create or append the element, or failed to write `href`.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::Point};
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    ///
+    /// // An invisible guide path the text will follow.
+    /// let arc = defs.path("M 20 120 Q 200 20 380 120")?;
+    /// arc.set_attr("id", "arc")?;
+    ///
+    /// let txt = svg.text(Point::origin(), "")?;
+    /// let path_text = txt.text_path("#arc", "Curving along the path")?;
+    /// path_text.set_font_size(16.0)?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn text_path(&self, href: &str, content: &str) -> Result<SvgNode, Error> {
+        let doc = self
+            .inner
+            .element
+            .owner_document()
+            .ok_or_else(|| Error::Dom("text_path: element has no owner document".into()))?;
+        let el = doc
+            .create_element_ns(Some(SVG_NS), "textPath")
+            .map_err(dom_err)?
+            .dyn_into::<web_sys::SvgElement>()
+            .map_err(|_| Error::CastFailed("SvgElement"))?;
+        let node = SvgNode::new(el);
+        node.set_attr("href", href)?;
+        node.set_text(content);
+        self.inner.element.append_child(node.as_element()).map_err(dom_err)?;
+        Ok(node)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the `startOffset` attribute on a `<textPath>`, in user units measured along the referenced path.
+    ///
+    /// Determines where the text begins: `0.0` (the default) starts at the path's own start point; larger values
+    /// slide the text further along the path (in the direction determined by [`TextPathSide`](Self::TextPathSide))
+    /// before the first glyph is drawn.
+    ///
+    /// To offset by a percentage of the path length instead of an absolute distance, use
+    /// [`set_attr`](Self::set_attr) directly, e.g. `path_text.set_attr("startOffset", "50%")`.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::Point};
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    /// let arc  = defs.path("M 20 120 Q 200 20 380 120")?;
+    /// arc.set_attr("id", "arc")?;
+    ///
+    /// let txt = svg.text(Point::origin(), "")?;
+    /// let path_text = txt.text_path("#arc", "starts halfway along")?;
+    /// path_text.set_start_offset(190.0)?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn set_start_offset(&self, offset: f64) -> Result<(), Error> {
+        let mut attrs = SvgAttrs::new();
+        attrs.display(self, "startOffset", offset)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the `method` attribute on a `<textPath>`, controlling how glyphs are fitted onto the path.
+    ///
+    /// See [`TextPathMethod`] for the available values; the SVG default is [`TextPathMethod::Align`].
+    pub fn set_text_path_method(&self, method: TextPathMethod) -> Result<(), Error> {
+        self.set_attr("method", method.as_str())
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the `spacing` attribute on a `<textPath>`, controlling glyph-spacing adjustment along the path.
+    ///
+    /// See [`TextPathSpacing`] for the available values; the SVG default is [`TextPathSpacing::Auto`].
+    pub fn set_text_path_spacing(&self, spacing: TextPathSpacing) -> Result<(), Error> {
+        self.set_attr("spacing", spacing.as_str())
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the SVG2 `side` attribute on a `<textPath>`, controlling which side of the path the text renders on.
+    ///
+    /// See [`TextPathSide`] for the available values and a browser-support caveat; the SVG default is
+    /// [`TextPathSide::Left`].
+    pub fn set_text_path_side(&self, side: TextPathSide) -> Result<(), Error> {
+        self.set_attr("side", side.as_str())
     }
 }
