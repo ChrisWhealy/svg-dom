@@ -213,6 +213,9 @@ The SVG arc commands (`A`/`a`) take two boolean flags (`large-arc-flag`, `sweep-
 As adjacent positional `bool`s in a tuple variant, they are easy to transpose — `(true, false)` vs `(false, true)` looks the same at a glance and the compiler cannot catch the swap.
 `ArcSize` (`Small`/`Large`) and `ArcSweep` (`CounterClockwise`/`Clockwise`) turn each flag into a self-documenting enum, and bundling all five arc parameters into one named-field `EllipticalArc` struct (rather than a five-argument tuple variant) means every field is labelled at the construction site instead of positional.
 
+`EllipticalArc::write` takes a `cmd: char` so the one method can serve both the `A` and `a` forms without duplicating its formatting body, but a bare `char` parameter accepts anything — nothing about the argument type stops a caller passing some nonsense value such as `'X'` and producing a command letter no SVG parser recognises.
+The two real call sites (`path_def.rs`, passing the literal `'A'`/`'a'`) are the only ones that need to exist, so `write` is `pub(super)`, not `pub`, even though `EllipticalArc` itself is public: the struct's fields must stay public for callers to construct `PathDefAbsolute::EllipticalArcTo(EllipticalArc { .. })` literals, but the serialization method is purely internal machinery, and leaving it `pub` would have let a caller bypass `PathDef`'s well-formed-command guarantee through this one method while every other route into a `d` string stayed safe.
+
 ### Formatting matches the existing `write_points` convention
 
 Coordinates are written with plain `{}` (`Display`) formatting (Rust's shortest round-trip representation) rather than a fixed decimal count, mirroring `write_points`'s default-precision path in `root::utils`.

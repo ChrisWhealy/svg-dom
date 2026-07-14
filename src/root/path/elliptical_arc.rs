@@ -75,7 +75,12 @@ impl EllipticalArc {
     /// one `"0"` or `"1"` digit, not a decimal number, so they are always written via `ArcSize`/`ArcSweep`'s `u8`
     /// `Display` regardless of the requested precision — rounding them would either be a no-op (they are already
     /// integral) or, worse, invalid path syntax if ever formatted with a decimal point.
-    pub fn write(&self, out: &mut String, cmd: char, dps: Option<usize>) {
+    ///
+    /// `cmd` is restricted to `'A'`/`'a'` by construction, not by validation: `pub(super)` keeps this callable only
+    /// from the two known-correct call sites in `path_def.rs`, so an external caller can never pass an arbitrary
+    /// `char` here and produce an invalid command letter — the same guarantee `PathDef` gives the `d` string as a
+    /// whole would otherwise leak right back out through this one method.
+    pub(super) fn write(&self, out: &mut String, cmd: char, dps: Option<usize>) {
         match dps {
             Some(n) => {
                 let n = n.min(MAX_DPS);
