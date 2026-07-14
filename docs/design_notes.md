@@ -278,6 +278,34 @@ Computing a precise per-variant estimate would mean a second pass over `defs`, m
 The two functions serve different callers: `write_points` has no one-shot sibling to shoulder the sizing concern, so it has to do double duty.
 `write_d` does have one (`build_d`), so the buffer-reusing function stays lean — clear, then append — and relies on the caller-owned buffer's capacity already being retained from a previous call (or, for a caller who cares about even the first call, constructing the buffer via `SvgAttrs::with_capacity` upfront rather than `SvgAttrs::new()`).
 
+### What "prevents malformed path data" actually covers
+
+Early documentation for `PathDef` claimed the resulting `d` string "can never contain a mistyped command letter, a missing argument, or *any other* malformed path data."
+The last clause overstated the guarantee: `PathDef` prevents malformed *commands* — spelling, argument arity, arc-flag validity — but was silent about two ways a *sequence* of individually well-formed commands can still fail to be a valid path.
+
+**SVG requires a non-empty path to start with a moveto.**
+
+`[PathDef::Abs(PathDefAbsolute::LineTo(..))]` formats into perfectly well-formed path *syntax* — `"L1 1"` — that is nonetheless not valid path *data*: the SVG grammar requires a non-empty path to begin with an `M`/`m`.
+Not only will a conforming user agent silently render nothing for a path that starts with anything else, it will also not report an error.
+This is cheap to catch (an O(1) look at `defs.first()`), so `path_from_defs`, `SvgNode::set_d_from_defs`, `SvgAttrs::d_from_defs` / `d_from_defs_fixed`, and `AnimationFrame::set_d_from_defs` / `set_d_from_defs_fixed` all call `validate_starts_with_moveto` and return `Error::InvalidPathData` if it fails — including the per-frame `SvgAttrs`/`AnimationFrame` methods, since the check costs nothing beyond that single comparison regardless of call frequency.
+
+A leading relative moveto (`m`) is accepted because no current point yet exists to which a relative point can refer, so the SVG spec always treats a path's very first moveto command as absolute, irrespective of whether `m` or `M` is used.
+
+`build_d` / `write_d` (and their `_fixed` siblings) deliberately do **not** call this check.
+They are the lowest-level formatters in the module and may legitimately be asked to build a path-data *fragment* that isn't meant to stand alone (e.g. a caller is assembling several `PathDef` slices before concatenating them) so enforcing "must start with a moveto" at this location would reject legitimate uses.
+The check exists only at the boundary where a sequence is committed to an element's actual `d` attribute.
+
+**Coordinates are unconstrained `f64` values.**
+
+Nothing with the definition of a `Point` field stops it from holding values such as `f64::NAN` or `f64::INFINITY`.
+
+The SVG number grammar has no token for either, so Rust's `Display` output for them (`"NaN"`, `"inf"`, `"-inf"`) is not valid path syntax, and unlike the moveto check, catching this is *not* cheap: it means visiting every numeric argument of every command, an O(total arguments) traversal rather than an O(1) look at one element.
+That cost would land squarely on `write_d`/`write_d_fixed`, the functions this whole feature exists to keep cheap for a per-frame caller, so this crate does not check for it anywhere in the path API.
+
+⚠️ Caution ⚠️
+
+A caller whose coordinates come from a calculation that could produce a non-finite value (division, trigonometry) is expected to validate with `f64::is_finite()` before constructing the `PathDef` — the same "caller's responsibility at the boundary" shape as the `set_attr` security caveat elsewhere in this crate.
+
 # Performance Patterns
 
 ## High-frequency event coalescing

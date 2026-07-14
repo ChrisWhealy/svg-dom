@@ -5,7 +5,7 @@ pub use writer::AttrWriter;
 use crate::{
     Error, SvgNode, dom_err,
     root::{
-        path::path_def::{PathDef, write_d, write_d_fixed},
+        path::path_def::{PathDef, validate_starts_with_moveto, write_d, write_d_fixed},
         utils::{Point, write_points},
     },
 };
@@ -147,6 +147,11 @@ impl SvgAttrs {
     /// Use this (or [`AnimationFrame::set_d_from_defs`](crate::AnimationFrame::set_d_from_defs) inside an animation
     /// callback) when a `<path>` is morphed repeatedly, such as on every `pointermove` event or every animation frame.
     ///
+    /// # Errors
+    ///
+    /// - [`Error::InvalidPathData`] — `defs` is non-empty and its first command is not a `MoveTo`. This is an O(1)
+    ///   check of `defs[0]`, not a traversal, so the cost of adding it to the hot path is negligible.
+    ///
     /// # Example
     ///
     /// ```rust,no_run
@@ -162,6 +167,7 @@ impl SvgAttrs {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn d_from_defs(&mut self, node: &SvgNode, defs: &[PathDef]) -> Result<(), Error> {
+        validate_starts_with_moveto(defs)?;
         write_d(&mut self.scratch, defs);
         node.set_attr("d", &self.scratch)
     }
@@ -174,6 +180,10 @@ impl SvgAttrs {
     /// animation, a procedurally sampled curve — so the emitted `d` string does not carry more digits of precision
     /// than the caller actually needs. The two `EllipticalArc` flags are never rounded; see
     /// [`write_d_fixed`] for why.
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::InvalidPathData`] — `defs` is non-empty and its first command is not a `MoveTo`.
     ///
     /// # Example
     ///
@@ -190,6 +200,7 @@ impl SvgAttrs {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn d_from_defs_fixed(&mut self, node: &SvgNode, defs: &[PathDef], dps: usize) -> Result<(), Error> {
+        validate_starts_with_moveto(defs)?;
         write_d_fixed(&mut self.scratch, defs, dps);
         node.set_attr("d", &self.scratch)
     }

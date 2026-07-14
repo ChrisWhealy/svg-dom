@@ -57,7 +57,12 @@ impl SvgRoot {
     /// its [`SvgNode`] handle.
     ///
     /// This is the type-safe alternative to [`path`](Self::path): the `d` attribute is built internally by [`build_d`]
-    /// from `defs` making malformed path strings impossible.
+    /// from `defs`, so a mistyped command letter, wrong argument count or invalid arc flag is impossible — see
+    /// [`PathDef`]'s own documentation for exactly what is and is not guaranteed.
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::InvalidPathData`] — `defs` is non-empty and its first command is not a `MoveTo`.
     ///
     /// # Example
     ///

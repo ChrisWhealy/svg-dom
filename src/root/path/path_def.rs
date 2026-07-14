@@ -1,5 +1,8 @@
 use super::elliptical_arc::EllipticalArc;
-use crate::root::utils::{MAX_DPS, Point};
+use crate::{
+    Error,
+    root::utils::{MAX_DPS, Point},
+};
 use std::fmt::Write;
 
 /// Rough per-command byte estimate used only by [`build_d`] / [`build_d_fixed`] to pre-size their fresh `String`,
@@ -213,14 +216,39 @@ impl PathDefRelative {
 /// A single SVG path-data command, in either absolute or relative form.
 ///
 /// A `<path>`'s `d` attribute is built from an ordered sequence of these — see [`write_d`] / [`build_d`], or the
-/// `path_from_defs` factory method available everywhere [`SvgRoot::path`](crate::SvgRoot::path) is.  Because each
-/// segment is a typed, well-formed command rather than free text, the resulting `d` string can never contain a
-/// mistyped command letter, a missing argument, or any other malformed path data — mistakes a hand-written `d`
-/// string can make silently, since an SVG path parser accepts a partially-broken string and simply stops rendering
-/// at the first bad token rather than rejecting it outright.
+/// `path_from_defs` factory method available everywhere [`SvgRoot::path`](crate::SvgRoot::path) is.
 ///
 /// Absolute and relative commands can be freely mixed in the same sequence, exactly as real SVG path data allows —
 /// for example an initial [`PathDefAbsolute::MoveTo`] followed by a run of [`PathDefRelative`] draw commands.
+///
+/// # What this type does and does not guarantee
+///
+/// Since each segment is a typed, well-formed command rather than free text, a `d` string built from one or more
+/// `PathDef` values can never contain a mistyped command letter, a missing or extra argument or an elliptical-arc flag
+/// that isn't a bare `0`/`1`.
+///
+/// These are all mistakes a hand-written `d` string can make.  To make matters worse, if the SVG path parser encounters
+/// a sequence of mostly well-formed commands, it will render up to the first bad token, then silently stop.
+/// No error will be reported to the browser.
+///
+/// That guarantee does not extend to every way a *sequence* of otherwise well-formed commands can still fail to be
+/// a valid path:
+///
+/// - **A non-empty path must start with a moveto.** `[PathDef::Abs(PathDefAbsolute::LineTo(..))]` is a sequence of
+///   individually well-formed commands that is nonetheless not valid path data — an SVG user agent renders nothing
+///   for a path whose first command isn't `M`/`m`, silently, with no error. The `path_from_defs` factory method,
+///   [`SvgNode::set_d_from_defs`](crate::SvgNode::set_d_from_defs), and the `SvgAttrs` / `AnimationFrame`
+///   `d_from_defs` methods all check this and return [`Error::InvalidPathData`](crate::Error::InvalidPathData) if
+///   it fails. [`build_d`] / [`write_d`] (and their `_fixed` siblings) do **not** check this — they are
+///   general-purpose formatters that may legitimately be asked to build a path-data *fragment* not meant to stand
+///   alone, so they format whatever sequence they are given.
+/// - **Coordinates are unconstrained `f64` values.** Nothing stops a `Point` field from holding `f64::NAN` or
+///   `f64::INFINITY`; the SVG number grammar has no representation for either, so Rust's `Display` output for them
+///   (`"NaN"`, `"inf"`, `"-inf"`) is not valid path syntax. None of the functions in this module check for this —
+///   doing so would mean visiting every numeric argument of every command, which is real, non-trivial per-call work
+///   this crate is not willing to add to `write_d`/`write_d_fixed`, the buffer-reusing functions meant for a hot
+///   per-frame path. If your coordinates come from a calculation that could produce a non-finite value (division,
+///   trigonometry), validate with [`f64::is_finite`] before constructing the `PathDef`.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum PathDef {
     /// An absolute-coordinate command.
@@ -235,6 +263,28 @@ impl PathDef {
             PathDef::Abs(cmd) => cmd.write(out, dps),
             PathDef::Rel(cmd) => cmd.write(out, dps),
         }
+    }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Rejects a non-empty `defs` slice whose first command is not a `MoveTo`.
+///
+/// An empty slice is not rejected: an empty (or all-whitespace) `d` attribute is valid SVG, per the path grammar's
+/// optional `moveto-drawto-command-groups?` — it just renders nothing, which is not an error condition.
+///
+/// A relative MoveTo (`m`) as the very first command will also be accepted, as per the SVG spec.  A leading `m` is
+/// treated as an absolute moveto, since there is no current point yet for it to be relative to.
+///
+/// This is an O(1) check (it only ever looks at `defs[0]`), so every "commit this to a live `d` attribute" entry
+/// point in the crate calls it; see [`PathDef`]'s own documentation for exactly which functions do and do not.
+pub(crate) fn validate_starts_with_moveto(defs: &[PathDef]) -> Result<(), Error> {
+    match defs.first() {
+        None => Ok(()),
+        Some(PathDef::Abs(PathDefAbsolute::MoveTo(_))) => Ok(()),
+        Some(PathDef::Rel(PathDefRelative::MoveTo(_))) => Ok(()),
+        Some(_) => Err(Error::InvalidPathData(
+            "a non-empty path must start with a MoveTo command".into(),
+        )),
     }
 }
 

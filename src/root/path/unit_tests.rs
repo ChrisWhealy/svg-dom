@@ -1,5 +1,5 @@
 use super::{elliptical_arc::*, path_def::*};
-use crate::root::utils::Point;
+use crate::{Error, root::utils::Point};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // build_d — one command per SVG letter
@@ -260,4 +260,74 @@ fn write_d_does_not_preemptively_reserve_like_build_d_does() {
         buf.capacity() < defs.len() * 24,
         "write_d should not pre-reserve a build_d-sized allocation for a single short command"
     );
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Check paths start with moveto command
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+#[test]
+fn should_accept_empty_slice() {
+    assert!(validate_starts_with_moveto(&[]).is_ok());
+}
+
+#[test]
+fn should_accept_absolute_move_first() {
+    let defs = [
+        PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(0.0, 0.0))),
+        PathDef::Abs(PathDefAbsolute::LineTo(Point::new(1.0, 1.0))),
+    ];
+    assert!(validate_starts_with_moveto(&defs).is_ok());
+}
+
+/// A leading relative `m` is accepted too: per the SVG spec, a path's very first moveto is always treated as
+/// absolute, even when written with the lowercase letter, since there is no current point yet for it to be
+/// relative to.
+#[test]
+fn should_accept_relative_move_first() {
+    let defs = [PathDef::Rel(PathDefRelative::MoveTo(Point::new(0.0, 0.0)))];
+    assert!(validate_starts_with_moveto(&defs).is_ok());
+}
+
+#[test]
+fn should_reject_line_to_first() {
+    let defs = [PathDef::Abs(PathDefAbsolute::LineTo(Point::new(1.0, 1.0)))];
+    assert!(matches!(validate_starts_with_moveto(&defs), Err(Error::InvalidPathData(_))));
+}
+
+#[test]
+fn should_reject_close_path_first() {
+    let defs = [PathDef::Abs(PathDefAbsolute::ClosePath)];
+    assert!(matches!(validate_starts_with_moveto(&defs), Err(Error::InvalidPathData(_))));
+}
+
+#[test]
+fn should_reject_elliptical_arc_first() {
+    let defs = [PathDef::Rel(PathDefRelative::EllipticalArcTo(EllipticalArc {
+        radii: Point::new(5.0, 5.0),
+        x_axis_rotation: 0.0,
+        size: ArcSize::Small,
+        sweep: ArcSweep::CounterClockwise,
+        to: Point::new(10.0, 0.0),
+    }))];
+    assert!(matches!(validate_starts_with_moveto(&defs), Err(Error::InvalidPathData(_))));
+}
+
+/// Only the first command matters: a later command that isn't a moveto is fine.
+#[test]
+fn should_ignore_later_commands() {
+    let defs = [
+        PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(0.0, 0.0))),
+        PathDef::Abs(PathDefAbsolute::ClosePath),
+        PathDef::Abs(PathDefAbsolute::LineTo(Point::new(1.0, 1.0))),
+    ];
+    assert!(validate_starts_with_moveto(&defs).is_ok());
+}
+
+/// `build_d` / `write_d` deliberately do not call `validate_starts_with_moveto`: they are general-purpose
+/// formatters that may be used to build a path-data fragment, not necessarily a complete, standalone path.
+#[test]
+fn should_accept_that_build_d_does_not_validate_leading_command() {
+    let defs = [PathDef::Abs(PathDefAbsolute::LineTo(Point::new(1.0, 1.0)))];
+    assert_eq!(build_d(&defs), "L1 1");
 }

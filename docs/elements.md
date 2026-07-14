@@ -175,8 +175,18 @@ The `MarkerUnits` enum controls whether `markerWidth`/`markerHeight` are relativ
 
 A `<path>` is created either from a hand-written `d` string (`SvgRoot::path(d)`) or, type-safely, from a sequence of typed `PathDef` segments (`SvgRoot::path_from_defs(&[PathDef])`).
 
-A hand-written `d` string is free text: a typo'd command letter, a missing argument, or a mismatched flag are all accepted silently by the SVG parser, which just stops rendering at the bad token rather than reporting an error.
-`path_from_defs` removes that failure mode — the `d` attribute is built internally from `PathDef` values, so malformed path data cannot be constructed in the first place.
+A hand-written `d` string is free text: any typos will be silently accepted by the SVG parser, which will then just stop rendering at the first bad token rather than reporting an error.
+`path_from_defs` removes that failure mode for individual commands — the `d` attribute is built internally from `PathDef` values, so a mistyped command letter, wrong argument count, or invalid arc flag can never be constructed.
+
+That guarantee is about individual commands, yet it is still possible to create a sequence of them that fails to be a valid path:
+
+- A non-empty path must start with a moveto (`M`/`m`); a browser silently renders nothing for a path that starts with anything else. 
+   `path_from_defs`, `SvgNode::set_d_from_defs`, and the `SvgAttrs` / `AnimationFrame` `d_from_defs` methods all check this (requiring an O(1) look at the first command) and return `Error::InvalidPathData` if it fails.
+   `build_d` / `write_d` (and their `_fixed` siblings) do **not** check this, since they may legitimately be used to build path-data *fragments* rather than a complete, standalone path.
+
+- Coordinates are unconstrained `f64` values, so nothing stops `f64::NAN` or `f64::INFINITY` from being supplied — the SVG number grammar has no representation for either, so `PathDef` cannot format a valid path from one.
+   No function in the path API checks for this, since doing so would mean visiting every numeric argument of every command on every call, including the buffer-reusing per-frame ones.
+   Validate with `f64::is_finite()` before constructing a `PathDef` if your coordinates come from a calculation (division, trigonometry) that could produce one.
 
 **Building path data:**
 

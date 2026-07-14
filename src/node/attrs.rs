@@ -7,7 +7,7 @@ use crate::{
         defs::{validate_clip_path_id, validate_gradient_id, validate_marker_id, validate_pattern_id},
         gradient::{linear::SvgLinearGradient, radial::SvgRadialGradient},
         marker::SvgMarker,
-        path::path_def::{PathDef, build_d},
+        path::path_def::{PathDef, build_d, validate_starts_with_moveto},
         pattern::SvgPattern,
     },
 };
@@ -413,8 +413,9 @@ impl SvgNode {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the `d` (path data) attribute on a `<path>` element from a sequence of typed [`PathDef`] segments.
     ///
-    /// The type-safe alternative to [`set_d`](Self::set_d): the `d` string is built internally by [`build_d`], so it is
-    /// always a syntactically valid SVG path data.
+    /// The type-safe alternative to [`set_d`](Self::set_d): the `d` string is built internally by [`build_d`] from
+    /// well-formed commands, and the sequence is checked to ensure it begins with a `MoveTo` — see [`PathDef`]'s own
+    /// documentation for exactly what is and is not guaranteed.
     ///
     /// This convenience setter formats through a fresh, short-lived `String` allocated and dropped on each call
     /// (fine for an occasional update); however, if you need to morph a path on the hot path (e.g. a `pointermove`
@@ -422,6 +423,10 @@ impl SvgNode {
     /// [`AttrWriter::d_from_defs`](crate::AttrWriter::d_from_defs) or
     /// [`AnimationFrame::set_d_from_defs`](crate::AnimationFrame::set_d_from_defs), which reuse a caller-owned
     /// buffer instead.
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::InvalidPathData`] — `defs` is non-empty and its first command is not a `MoveTo`.
     ///
     /// # Example
     ///
@@ -438,6 +443,7 @@ impl SvgNode {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn set_d_from_defs(&self, defs: &[PathDef]) -> Result<(), Error> {
+        validate_starts_with_moveto(defs)?;
         self.set_d(&build_d(defs))
     }
 

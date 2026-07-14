@@ -3,7 +3,7 @@
 ///
 /// Every fallible function in this crate returns `Result<_, Error>`.
 ///
-/// The variants cover nine categories:
+/// The variants cover ten categories:
 ///
 /// - you asked for a non-existent element by id ([`Error::ElementNotFound`])
 /// - a `web-sys` call returned a JavaScript error ([`Error::Dom`])
@@ -15,6 +15,7 @@
 ///   - a bad symbol id ([`Error::InvalidSymbolId`])
 ///   - a bad pattern id ([`Error::InvalidPatternId`])
 /// - a generic setter was called with an attribute name that has a dedicated typed setter ([`Error::ReservedAttribute`])
+/// - a non-empty [`PathDef`](crate::PathDef) sequence was supplied that did not begin with a `MoveTo` command ([`Error::InvalidPathData`])
 #[derive(Debug)]
 pub enum Error {
     /// No element with the given id exists in the current document.
@@ -108,6 +109,29 @@ pub enum Error {
     ///
     /// The inner `&'static str` names the reserved attribute.
     ReservedAttribute(&'static str),
+
+    /// A non-empty [`PathDef`](crate::PathDef) sequence did not begin with a `MoveTo` command.
+    ///
+    /// The SVG path grammar requires every non-empty path to start with a moveto (`M`/`m`).
+    /// All compliant SVG user agents will silently render nothing for a path whose first command is anything else,
+    /// neither will they report any error to the browser.
+    ///
+    /// This check catches that problem before it reaches the DOM.
+    ///
+    /// Returned by the `path_from_defs` factory method (on [`SvgRoot`](crate::SvgRoot) and its siblings),
+    /// [`SvgNode::set_d_from_defs`](crate::SvgNode::set_d_from_defs), [`SvgAttrs::d_from_defs`](crate::SvgAttrs::d_from_defs)
+    /// / [`d_from_defs_fixed`](crate::SvgAttrs::d_from_defs_fixed), and their
+    /// [`AnimationFrame`](crate::AnimationFrame) counterparts.
+    ///
+    /// Not returned by the lower-level [`build_d`](crate::build_d) / [`write_d`](crate::write_d) (or their `_fixed`
+    /// siblings): those are general-purpose formatters that may legitimately be used to build a path-data *fragment*
+    /// that is not meant to stand alone, so they format whatever `PathDef` sequence they are given without this check.
+    ///
+    /// This error is raised only by functions existing at the boundary where a path sequence about to be committed to
+    /// an element's live `d` attribute.
+    ///
+    /// The inner `String` describes the problem.
+    InvalidPathData(String),
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -146,6 +170,7 @@ impl std::fmt::Display for Error {
             Error::ReservedAttribute(name) => {
                 write!(f, "attribute {name:?} is reserved; use the dedicated setter")
             },
+            Error::InvalidPathData(msg) => write!(f, "invalid path data: {msg}"),
         }
     }
 }

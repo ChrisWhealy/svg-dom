@@ -1578,15 +1578,18 @@ fn should_write_fixed_precision_d_from_defs() -> Result<(), String> {
     frame
         .set_d_from_defs_fixed(
             &path,
-            &[PathDef::Abs(PathDefAbsolute::EllipticalArcTo(EllipticalArc {
-                radii: Point::new(1.6, 2.4),
-                x_axis_rotation: 0.0,
-                size: ArcSize::Small,
-                sweep: ArcSweep::CounterClockwise,
-                to: Point::new(1.6, 2.4),
-            }))],
+            &[
+                PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(0.0, 0.0))),
+                PathDef::Abs(PathDefAbsolute::EllipticalArcTo(EllipticalArc {
+                    radii: Point::new(1.6, 2.4),
+                    x_axis_rotation: 0.0,
+                    size: ArcSize::Small,
+                    sweep: ArcSweep::CounterClockwise,
+                    to: Point::new(1.6, 2.4),
+                })),
+            ],
             0,
         )
         .map_err(|e| e.to_string())?;
-    common::check_eq(path.attr("d"), Some("A2 2 0 0 0 2 2".into()))
+    common::check_eq(path.attr("d"), Some("M0 0A2 2 0 0 0 2 2".into()))
 }

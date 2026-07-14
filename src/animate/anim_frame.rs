@@ -2,7 +2,7 @@ use crate::{
     error::Error,
     node::SvgNode,
     root::{
-        path::path_def::{PathDef, write_d, write_d_fixed},
+        path::path_def::{PathDef, validate_starts_with_moveto, write_d, write_d_fixed},
         utils::{Point, write_points},
     },
 };
@@ -99,10 +99,16 @@ impl AnimationFrame {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Writes `defs` into the reusable buffer via [`write_d`] and sets the node's `d` attribute.
     ///
-    /// The per-frame counterpart to [`SvgAttrs::d_from_defs`](crate::SvgAttrs::d_from_defs): use it to morph a
-    /// `<path>` from inside an [`AnimationLoop::start_with_frame`](crate::AnimationLoop::start_with_frame) callback
-    /// from typed [`PathDef`] segments, without allocating a fresh string each frame.
+    /// The per-frame counterpart to [`SvgAttrs::d_from_defs`](crate::SvgAttrs::d_from_defs): use it to morph a `<path>`
+    /// from inside an [`AnimationLoop::start_with_frame`](crate::AnimationLoop::start_with_frame) callback from typed
+    /// [`PathDef`] segments, without allocating a fresh string each frame.
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::InvalidPathData`] — `defs` is non-empty and its first command is not a `MoveTo`. This is an O(1)
+    ///   check of `defs[0]`, not a traversal, so it costs nothing extra per frame.
     pub fn set_d_from_defs(&mut self, node: &SvgNode, defs: &[PathDef]) -> Result<(), Error> {
+        validate_starts_with_moveto(defs)?;
         write_d(&mut self.scratch, defs);
         node.set_attr("d", &self.scratch)
     }
@@ -113,7 +119,12 @@ impl AnimationFrame {
     /// The per-frame counterpart to [`SvgAttrs::d_from_defs_fixed`](crate::SvgAttrs::d_from_defs_fixed) — shorter
     /// per-frame output for a path whose coordinates come from a calculation, where the full-precision string would
     /// otherwise dominate the data crossing the WASM/JS boundary each frame.
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::InvalidPathData`] — `defs` is non-empty and its first command is not a `MoveTo`.
     pub fn set_d_from_defs_fixed(&mut self, node: &SvgNode, defs: &[PathDef], dps: usize) -> Result<(), Error> {
+        validate_starts_with_moveto(defs)?;
         write_d_fixed(&mut self.scratch, defs, dps);
         node.set_attr("d", &self.scratch)
     }

@@ -293,6 +293,19 @@ fn should_create_path_from_defs_with_correct_d_attribute() -> Result<(), String>
     common::check_eq(path.attr("d"), Some("M0 0L100 100".into()))
 }
 
+/// `path_from_defs` rejects a non-empty sequence whose first command is not a `MoveTo` — an SVG user agent renders
+/// nothing for such a path, silently, so this is caught before it reaches the DOM.
+#[wasm_bindgen_test]
+fn should_reject_path_from_defs_not_starting_with_moveto() -> Result<(), String> {
+    common::div("path-from-defs-bad-start");
+    let svg = SvgRoot::create_in("path-from-defs-bad-start", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    match svg.path_from_defs(&[PathDef::Abs(PathDefAbsolute::LineTo(Point::new(1.0, 1.0)))]) {
+        Err(Error::InvalidPathData(_)) => Ok(()),
+        Err(e) => Err(format!("wrong error variant: {e:?}")),
+        Ok(_) => Err("expected Err, got Ok".into()),
+    }
+}
+
 /// `text` creates a `<text>` child at the correct position with the correct string content.
 #[wasm_bindgen_test]
 fn should_create_text_with_position_and_content() -> Result<(), String> {
