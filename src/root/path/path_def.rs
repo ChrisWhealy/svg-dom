@@ -63,7 +63,11 @@ impl PathDefAbsolute {
             },
             (Self::CubicBezierTo(c1, c2, to), Some(n)) => {
                 let n = n.min(MAX_DPS);
-                let _ = write!(out, "C{:.n$} {:.n$} {:.n$} {:.n$} {:.n$} {:.n$}", c1.x, c1.y, c2.x, c2.y, to.x, to.y);
+                let _ = write!(
+                    out,
+                    "C{:.n$} {:.n$} {:.n$} {:.n$} {:.n$} {:.n$}",
+                    c1.x, c1.y, c2.x, c2.y, to.x, to.y
+                );
             },
             (Self::CubicBezierTo(c1, c2, to), None) => {
                 let _ = write!(out, "C{} {} {} {} {} {}", c1.x, c1.y, c2.x, c2.y, to.x, to.y);
@@ -155,7 +159,11 @@ impl PathDefRelative {
             },
             (Self::CubicBezierTo(c1, c2, to), Some(n)) => {
                 let n = n.min(MAX_DPS);
-                let _ = write!(out, "c{:.n$} {:.n$} {:.n$} {:.n$} {:.n$} {:.n$}", c1.x, c1.y, c2.x, c2.y, to.x, to.y);
+                let _ = write!(
+                    out,
+                    "c{:.n$} {:.n$} {:.n$} {:.n$} {:.n$} {:.n$}",
+                    c1.x, c1.y, c2.x, c2.y, to.x, to.y
+                );
             },
             (Self::CubicBezierTo(c1, c2, to), None) => {
                 let _ = write!(out, "c{} {} {} {} {} {}", c1.x, c1.y, c2.x, c2.y, to.x, to.y);

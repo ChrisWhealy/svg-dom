@@ -160,7 +160,10 @@ fn build_d_fixed_rounds_horizontal_and_vertical_line_arguments() {
 fn build_d_fixed_rounds_smooth_and_quadratic_bezier_arguments() {
     let d = build_d_fixed(
         &[
-            PathDef::Abs(PathDefAbsolute::SmoothCubicBezierTo(Point::new(1.0 / 3.0, 0.0), Point::new(0.0, 0.0))),
+            PathDef::Abs(PathDefAbsolute::SmoothCubicBezierTo(
+                Point::new(1.0 / 3.0, 0.0),
+                Point::new(0.0, 0.0),
+            )),
             PathDef::Abs(PathDefAbsolute::SmoothQuadraticBezierTo(Point::new(1.0 / 3.0, 0.0))),
         ],
         2,
@@ -192,7 +195,10 @@ fn write_d_fixed_clamps_dps_to_max() {
     let defs = [PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(1.5, 2.5)))];
     write_d_fixed(&mut clamped, &defs, usize::MAX);
     write_d_fixed(&mut at_max, &defs, 20);
-    assert_eq!(clamped, at_max, "usize::MAX dps must produce the same output as the MAX_DPS clamp");
+    assert_eq!(
+        clamped, at_max,
+        "usize::MAX dps must produce the same output as the MAX_DPS clamp"
+    );
 }
 
 #[test]
