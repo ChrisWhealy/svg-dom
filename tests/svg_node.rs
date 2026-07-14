@@ -1484,13 +1484,13 @@ fn should_update_d_via_reusable_buffer() -> Result<(), String> {
             PathDef::Abs(PathDefAbsolute::LineTo(Point::new(100.0, 100.0))),
         ])
         .map_err(|e| e.to_string())?;
-    common::check_eq(path.attr("d"), Some("M 0 0 L 100 100".into()))?;
+    common::check_eq(path.attr("d"), Some("M0 0L100 100".into()))?;
 
     // Reuse the same buffer for another update.
     path.attrs(&mut attrs)
         .d_from_defs(&[PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(5.0, 5.0)))])
         .map_err(|e| e.to_string())?;
-    common::check_eq(path.attr("d"), Some("M 5 5".into()))
+    common::check_eq(path.attr("d"), Some("M5 5".into()))
 }
 
 /// `AnimationFrame::set_d_from_defs` writes a path's `d` attribute through the frame's reusable buffer (the
@@ -1512,13 +1512,13 @@ fn should_update_d_via_animation_frame() -> Result<(), String> {
             ],
         )
         .map_err(|e| e.to_string())?;
-    common::check_eq(path.attr("d"), Some("M 0 0 L 20 20".into()))?;
+    common::check_eq(path.attr("d"), Some("M0 0L20 20".into()))?;
 
     // Reuse across frames: the latest value wins.
     frame
         .set_d_from_defs(&path, &[PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(9.0, 9.0)))])
         .map_err(|e| e.to_string())?;
-    common::check_eq(path.attr("d"), Some("M 9 9".into()))
+    common::check_eq(path.attr("d"), Some("M9 9".into()))
 }
 
 /// `SvgRoot::path_from_defs` (and therefore every `path_from_defs` factory sibling) now writes `d` through the
@@ -1539,6 +1539,6 @@ fn should_create_path_from_defs_reusing_factory_buffer() -> Result<(), String> {
         .path_from_defs(&[PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(2.0, 2.0)))])
         .map_err(|e| e.to_string())?;
 
-    common::check_eq(first.attr("d"), Some("M 0 0 L 1 1".into()))?;
-    common::check_eq(second.attr("d"), Some("M 2 2".into()))
+    common::check_eq(first.attr("d"), Some("M0 0L1 1".into()))?;
+    common::check_eq(second.attr("d"), Some("M2 2".into()))
 }

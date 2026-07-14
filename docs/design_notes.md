@@ -216,9 +216,29 @@ As adjacent positional `bool`s in a tuple variant, they are easy to transpose â€
 ### Formatting matches the existing `write_points` convention
 
 Coordinates are written with plain `{}` (`Display`) formatting (Rust's shortest round-trip representation) rather than a fixed decimal count, mirroring `write_points`'s default-precision path in `root::utils`.
-This keeps whole-number demo coordinates (`"M 70 10"`, not `"M 70.0 10.0"`) exactly as compact as the hand-written strings they replace.
+This keeps whole-number demo coordinates compact (`"70"`, not `"70.0"`).
 
 There is deliberately no fixed-precision variant analogous to `points_fixed`: unlike a `<polyline>`'s point list, path data mixes several different argument shapes (coordinates, a rotation angle, two single-bit flags), so a uniform *"n decimal places for everything"* knob would not obviously do the right thing across all of them; a caller who needs shorter numbers can round the `f64` before constructing the `PathDef`.
+
+### Path `d` strings omit whitespace
+
+The Backus-Naur Form (BNF) of the SVG path-data allows every command to have zero or more whitespace characters (`wsp*`) between the command letter and the first argument, not one or more (`wsp+`).
+Since a command letter can never appear inside a number, that command letter unambiguously terminates whichever number preceded it, meaning the separator between a command's last argument and the next command's letter is grammatically unnecessary.
+`write_d` and every per-command `write` method rely on both of these facts: thus we can write `"M{} {}"` instead of `"M {} {}"` for the command/first-argument boundary, and within the `write_d` loop, there is no need to add whitespace between commands.
+
+`"M10 10L100 50L10 90Z"` and `"M 10 10 L 100 50 L 10 90 Z"` parse to the identical path in every conforming SVG implementation â€” this is a standard, lossless minification technique (the same one tools like SVGO apply), not an approximation, so there is no loss of precision or correctness trade-off.
+
+For a path of `N` commands, of which `K` of them take arguments, this removes exactly `(N - 1) + K` bytes.
+So for a long, procedurally-generated path (e.g. a fine-grained curve sampled as many `LineTo` segments), the saving is proportional to the number of commands, which is exactly the case where a smaller `d` string matters most: less data serialized means less data has to cross the WASM/JS boundary resulting in a shorter DOM attribute.
+
+Separator elision between arguments *within* a command is deliberately not attempted (e.g. relying on a leading `-` or `.` to glue two numbers together without a space).
+That trick is real per the SVG grammar too, but it depends on the sign and shape of each emitted number and requires per-value inspection to stay unambiguous
+In reality, thus buys us far less than the always-safe, context-free whitespace removal described above.
+
+**NOTE**:Eliding a repeated command letter (`"M0 0L10 10 20 20 30 30"` instead of `"M0 0L10 10L20 20L30 30"`) is also permitted by the grammar but has not been implemented as this requires stateful serialization (tracking the previous command's letter in both the absolute and relative forms across multiple iterations).
+This in turn introduces a real correctness hazard specific to the move (`M`/`m`) command: a repeated move command's extra coordinate pairs are reinterpreted by the parser as implicit `L`/`l` commands, so naively eliding a repeated `M` changes the path's meaning, not just its byte count.
+
+That complexity is only worth taking on for paths long enough that the extra savings are measurable; until then, the always-safe whitespace removal above is the better cost/benefit trade-off.
 
 ### Two allocation tiers, mirroring `points` / `set_attr_display`
 

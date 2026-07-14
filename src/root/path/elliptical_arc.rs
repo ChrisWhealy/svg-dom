@@ -70,7 +70,7 @@ impl EllipticalArc {
     pub fn write(self, out: &mut String, cmd: char) {
         let _ = write!(
             out,
-            "{cmd} {} {} {} {} {} {} {}",
+            "{cmd}{} {} {} {} {} {} {}",
             self.radii.x,
             self.radii.y,
             self.x_axis_rotation,

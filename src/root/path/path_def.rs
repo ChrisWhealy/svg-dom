@@ -36,28 +36,28 @@ impl PathDefAbsolute {
     fn write(self, out: &mut String) {
         match self {
             Self::MoveTo(p) => {
-                let _ = write!(out, "M {} {}", p.x, p.y);
+                let _ = write!(out, "M{} {}", p.x, p.y);
             },
             Self::LineTo(p) => {
-                let _ = write!(out, "L {} {}", p.x, p.y);
+                let _ = write!(out, "L{} {}", p.x, p.y);
             },
             Self::HorizontalLineTo(x) => {
-                let _ = write!(out, "H {x}");
+                let _ = write!(out, "H{x}");
             },
             Self::VerticalLineTo(y) => {
-                let _ = write!(out, "V {y}");
+                let _ = write!(out, "V{y}");
             },
             Self::CubicBezierTo(c1, c2, to) => {
-                let _ = write!(out, "C {} {} {} {} {} {}", c1.x, c1.y, c2.x, c2.y, to.x, to.y);
+                let _ = write!(out, "C{} {} {} {} {} {}", c1.x, c1.y, c2.x, c2.y, to.x, to.y);
             },
             Self::SmoothCubicBezierTo(c2, to) => {
-                let _ = write!(out, "S {} {} {} {}", c2.x, c2.y, to.x, to.y);
+                let _ = write!(out, "S{} {} {} {}", c2.x, c2.y, to.x, to.y);
             },
             Self::QuadraticBezierTo(c, to) => {
-                let _ = write!(out, "Q {} {} {} {}", c.x, c.y, to.x, to.y);
+                let _ = write!(out, "Q{} {} {} {}", c.x, c.y, to.x, to.y);
             },
             Self::SmoothQuadraticBezierTo(to) => {
-                let _ = write!(out, "T {} {}", to.x, to.y);
+                let _ = write!(out, "T{} {}", to.x, to.y);
             },
             Self::EllipticalArcTo(arc) => arc.write(out, 'A'),
             Self::ClosePath => out.push('Z'),
@@ -99,28 +99,28 @@ impl PathDefRelative {
     fn write(self, out: &mut String) {
         match self {
             Self::MoveTo(p) => {
-                let _ = write!(out, "m {} {}", p.x, p.y);
+                let _ = write!(out, "m{} {}", p.x, p.y);
             },
             Self::LineTo(p) => {
-                let _ = write!(out, "l {} {}", p.x, p.y);
+                let _ = write!(out, "l{} {}", p.x, p.y);
             },
             Self::HorizontalLineTo(x) => {
-                let _ = write!(out, "h {x}");
+                let _ = write!(out, "h{x}");
             },
             Self::VerticalLineTo(y) => {
-                let _ = write!(out, "v {y}");
+                let _ = write!(out, "v{y}");
             },
             Self::CubicBezierTo(c1, c2, to) => {
-                let _ = write!(out, "c {} {} {} {} {} {}", c1.x, c1.y, c2.x, c2.y, to.x, to.y);
+                let _ = write!(out, "c{} {} {} {} {} {}", c1.x, c1.y, c2.x, c2.y, to.x, to.y);
             },
             Self::SmoothCubicBezierTo(c2, to) => {
-                let _ = write!(out, "s {} {} {} {}", c2.x, c2.y, to.x, to.y);
+                let _ = write!(out, "s{} {} {} {}", c2.x, c2.y, to.x, to.y);
             },
             Self::QuadraticBezierTo(c, to) => {
-                let _ = write!(out, "q {} {} {} {}", c.x, c.y, to.x, to.y);
+                let _ = write!(out, "q{} {} {} {}", c.x, c.y, to.x, to.y);
             },
             Self::SmoothQuadraticBezierTo(to) => {
-                let _ = write!(out, "t {} {}", to.x, to.y);
+                let _ = write!(out, "t{} {}", to.x, to.y);
             },
             Self::EllipticalArcTo(arc) => arc.write(out, 'a'),
             Self::ClosePath => out.push('z'),
@@ -163,12 +163,16 @@ impl PathDef {
 ///
 /// This is the buffer-reusing counterpart to [`build_d`]; use it on a hot path — an animation that rebuilds a curve
 /// every frame, say — to avoid allocating a fresh `String` on every call.
+///
+/// No whitespace is written between commands for the same reason that a command letter cannot appear inside a number.
+/// Therefore, a command letter unambiguously terminates the previous command's last argument.
+///
+/// Omitting the whitespace both after a command letter and before the next argument is a standard, lossless path-size
+/// optimisation.  For example, `"M10 10L100 50Z"` is semantically identical to `"M 10 10 L 100 50 Z"` in every
+/// conforming SVG implementation, so the emitted `d` string can be shorter without sacrificing precision or validity.
 pub fn write_d(out: &mut String, defs: &[PathDef]) {
     out.clear();
-    for (i, def) in defs.iter().enumerate() {
-        if i > 0 {
-            out.push(' ');
-        }
+    for def in defs {
         def.write(out);
     }
 }
@@ -176,8 +180,8 @@ pub fn write_d(out: &mut String, defs: &[PathDef]) {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Builds a fresh SVG path-data (`d` attribute) string from a sequence of [`PathDef`] commands.
 ///
-/// See [`write_d`] for a version that reuses a caller-owned buffer instead of allocating a new `String` on every
-/// call.
+/// See [`write_d`] for a version that reuses a caller-owned buffer instead of allocating a new `String` on every call,
+/// and for why the output omits whitespace that the SVG path grammar does not require.
 ///
 /// # Example
 ///
@@ -190,7 +194,7 @@ pub fn write_d(out: &mut String, defs: &[PathDef]) {
 ///     PathDef::Abs(PathDefAbsolute::LineTo(Point::new(10.0, 90.0))),
 ///     PathDef::Abs(PathDefAbsolute::ClosePath),
 /// ]);
-/// assert_eq!(d, "M 10 10 L 100 50 L 10 90 Z");
+/// assert_eq!(d, "M10 10L100 50L10 90Z");
 /// ```
 pub fn build_d(defs: &[PathDef]) -> String {
     let mut out = String::new();

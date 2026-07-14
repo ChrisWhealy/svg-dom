@@ -13,7 +13,7 @@ fn build_d_writes_absolute_move_and_line() {
         PathDef::Abs(PathDefAbsolute::LineTo(Point::new(10.0, 90.0))),
         PathDef::Abs(PathDefAbsolute::ClosePath),
     ]);
-    assert_eq!(d, "M 10 10 L 100 50 L 10 90 Z");
+    assert_eq!(d, "M10 10L100 50L10 90Z");
 }
 
 #[test]
@@ -23,7 +23,7 @@ fn build_d_writes_relative_move_and_line() {
         PathDef::Rel(PathDefRelative::LineTo(Point::new(90.0, 40.0))),
         PathDef::Rel(PathDefRelative::ClosePath),
     ]);
-    assert_eq!(d, "m 10 10 l 90 40 z");
+    assert_eq!(d, "m10 10l90 40z");
 }
 
 #[test]
@@ -35,7 +35,7 @@ fn build_d_writes_horizontal_and_vertical_lines() {
         PathDef::Rel(PathDefRelative::HorizontalLineTo(-10.0)),
         PathDef::Rel(PathDefRelative::VerticalLineTo(-5.0)),
     ]);
-    assert_eq!(d, "M 0 0 H 50 V 25 h -10 v -5");
+    assert_eq!(d, "M0 0H50V25h-10v-5");
 }
 
 #[test]
@@ -52,7 +52,7 @@ fn build_d_writes_cubic_and_smooth_cubic_bezier() {
             Point::new(50.0, 0.0),
         )),
     ]);
-    assert_eq!(d, "M 0 0 C 10 10 20 10 30 0 S 40 10 50 0");
+    assert_eq!(d, "M0 0C10 10 20 10 30 0S40 10 50 0");
 }
 
 #[test]
@@ -65,7 +65,7 @@ fn build_d_writes_quadratic_and_smooth_quadratic_bezier() {
         )),
         PathDef::Abs(PathDefAbsolute::SmoothQuadraticBezierTo(Point::new(30.0, 0.0))),
     ]);
-    assert_eq!(d, "M 0 0 Q 10 10 20 0 T 30 0");
+    assert_eq!(d, "M0 0Q10 10 20 0T30 0");
 }
 
 #[test]
@@ -80,7 +80,7 @@ fn build_d_writes_elliptical_arc_with_size_and_sweep_flags() {
             to: Point::new(130.0, 65.0),
         })),
     ]);
-    assert_eq!(d, "M 10 65 A 60 60 0 1 1 130 65");
+    assert_eq!(d, "M10 65A60 60 0 1 1 130 65");
 }
 
 #[test]
@@ -92,7 +92,7 @@ fn build_d_writes_small_counter_clockwise_arc_flags_as_zero() {
         sweep: ArcSweep::CounterClockwise,
         to: Point::new(10.0, 0.0),
     }))]);
-    assert_eq!(d, "a 5 5 0 0 0 10 0");
+    assert_eq!(d, "a5 5 0 0 0 10 0");
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -103,7 +103,7 @@ fn build_d_writes_small_counter_clockwise_arc_flags_as_zero() {
 fn write_d_clears_previous_contents_before_writing() {
     let mut buf = String::from("stale contents that must not survive");
     write_d(&mut buf, &[PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(1.0, 2.0)))]);
-    assert_eq!(buf, "M 1 2");
+    assert_eq!(buf, "M1 2");
 }
 
 #[test]
