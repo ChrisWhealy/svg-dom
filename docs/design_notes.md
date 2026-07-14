@@ -403,6 +403,20 @@ It costs nothing to add primitives around a plain `SvgNode` — `gaussian_blur` 
 
 This decision will be revisited once several more primitives exist and a genuine cross-primitive pattern (such as a shared `in`/`result` typed setter, or a `feMerge`-shaped child-list builder) becomes visible from real usage rather than anticipated in advance.
 
+### `feOffset` and `feMerge` confirm the plain-`SvgNode` decision, rather than forcing a redesign
+
+`offset` was a second flat-attribute primitive (`dx`, `dy`), no surprises — the same shape as `gaussian_blur`.
+
+`merge` was the first real test: `<feMerge>` has ordered `<feMergeNode>` children rather than a flat attribute bag, exactly the case flagged above as a possible reason to introduce a typed, child-list builder.
+
+In practice it does not need one.
+
+`merge(&["offset-blur", "SourceGraphic"])` takes the list of `in` values as a plain `&[&str]` parameter and builds the `<feMergeNode>` children internally in one pass, still handing back a plain `SvgNode` for the outer `<feMerge>` (which has nothing but `result` left to set).
+There was no ordering, mutation, or per-node configuration requirement that a closure-based builder (in the `SvgClipPath`/`build_clip_path` style) would have served better.
+Each `feMergeNode` is only ever an `in` value, so a slice is already the natural shape for "an ordered list of input names."
+
+The general shape of the decision therefore still stands after three primitives: reach for a closure/child-builder API only when a primitive's children need more than one attribute each, or when they must be added incrementally rather than known upfront — neither of which has come up yet.
+
 See [`docs/gaps.md`](gaps.md) for the primitives and region-attribute setters (`filterUnits`, `primitiveUnits`, typed `x`/`y`/`width`/`height`) still to be added.
 
 # Performance Patterns

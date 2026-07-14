@@ -139,6 +139,113 @@ fn should_set_result_via_generic_escape_hatch() -> Result<(), String> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// offset primitive
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `offset` appends a `<feOffset>` child to the `<filter>` element.
+#[wasm_bindgen_test]
+fn should_add_offset_to_filter() -> Result<(), String> {
+    let svg = make_svg("filter-offset-child");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("fo").map_err(|e| e.to_string())?;
+    filter.offset(4.0, 4.0).map_err(|e| e.to_string())?;
+    check_eq(filter.as_element().child_element_count(), 1)
+}
+
+/// The appended child has tag name `"feOffset"`.
+#[wasm_bindgen_test]
+fn should_create_fe_offset_element() -> Result<(), String> {
+    let svg = make_svg("filter-offset-tag");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("fot").map_err(|e| e.to_string())?;
+    let offset = filter.offset(4.0, 4.0).map_err(|e| e.to_string())?;
+    check_eq(offset.as_element().tag_name(), "feOffset".to_owned())
+}
+
+/// `offset` writes the `dx` and `dy` attributes.
+#[wasm_bindgen_test]
+fn should_set_dx_dy() -> Result<(), String> {
+    let svg = make_svg("filter-offset-dxdy");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("fdd").map_err(|e| e.to_string())?;
+    let offset = filter.offset(3.5, -2.0).map_err(|e| e.to_string())?;
+    check_eq(offset.as_element().get_attribute("dx"), Some("3.5".into()))?;
+    check_eq(offset.as_element().get_attribute("dy"), Some("-2".into()))
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// merge primitive
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `merge` appends a single `<feMerge>` child to the `<filter>` element.
+#[wasm_bindgen_test]
+fn should_add_merge_to_filter() -> Result<(), String> {
+    let svg = make_svg("filter-merge-child");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("fmg").map_err(|e| e.to_string())?;
+    filter.merge(&["a", "b"]).map_err(|e| e.to_string())?;
+    check_eq(filter.as_element().child_element_count(), 1)
+}
+
+/// The appended child has tag name `"feMerge"`.
+#[wasm_bindgen_test]
+fn should_create_fe_merge_element() -> Result<(), String> {
+    let svg = make_svg("filter-merge-tag");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("fmt").map_err(|e| e.to_string())?;
+    let merge = filter.merge(&["a", "b"]).map_err(|e| e.to_string())?;
+    check_eq(merge.as_element().tag_name(), "feMerge".to_owned())
+}
+
+/// `merge` appends one `<feMergeNode>` per input, in order.
+#[wasm_bindgen_test]
+fn should_add_one_merge_node_per_input() -> Result<(), String> {
+    let svg = make_svg("filter-merge-nodes");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("fmn").map_err(|e| e.to_string())?;
+    let merge = filter.merge(&["offset-blur", "SourceGraphic"]).map_err(|e| e.to_string())?;
+    let el = merge.as_element();
+    check_eq(el.child_element_count(), 2)?;
+    let first = el.first_element_child().ok_or("missing first feMergeNode")?;
+    let second = first.next_element_sibling().ok_or("missing second feMergeNode")?;
+    check_eq(first.tag_name(), "feMergeNode".to_owned())?;
+    check_eq(first.get_attribute("in"), Some("offset-blur".into()))?;
+    check_eq(second.tag_name(), "feMergeNode".to_owned())?;
+    check_eq(second.get_attribute("in"), Some("SourceGraphic".into()))
+}
+
+/// `merge` with an empty input slice appends a `<feMerge>` with no children.
+#[wasm_bindgen_test]
+fn should_add_empty_merge_for_no_inputs() -> Result<(), String> {
+    let svg = make_svg("filter-merge-empty");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("fme").map_err(|e| e.to_string())?;
+    let merge = filter.merge(&[]).map_err(|e| e.to_string())?;
+    check_eq(merge.as_element().child_element_count(), 0)
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// A full blur + offset + merge drop-shadow chain
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// The three primitives compose into a working drop-shadow filter: blur the source alpha, offset it, then merge
+/// it underneath the original graphic.
+#[wasm_bindgen_test]
+fn should_build_drop_shadow_filter_chain() -> Result<(), String> {
+    let svg = make_svg("filter-drop-shadow");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs
+        .build_filter("shadow", |f| {
+            f.gaussian_blur(4.0)?.set_attrs([("in", "SourceAlpha"), ("result", "blur")])?;
+            f.offset(4.0, 4.0)?.set_attrs([("in", "blur"), ("result", "offset-blur")])?;
+            f.merge(&["offset-blur", "SourceGraphic"])?;
+            Ok(())
+        })
+        .map_err(|e| e.to_string())?;
+    check_eq(filter.as_element().child_element_count(), 3)
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Region attributes via the generic escape hatch
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

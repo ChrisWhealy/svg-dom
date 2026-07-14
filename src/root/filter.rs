@@ -18,16 +18,17 @@ use web_sys::{Document, SvgElement};
 ///
 /// # Primitive coverage
 ///
-/// Only [`gaussian_blur`](Self::gaussian_blur) (`<feGaussianBlur>`) is implemented so far — the SVG filter
-/// specification defines around fifteen primitives in total (`feOffset`, `feColorMatrix`, `feComposite`,
-/// `feMerge`/`feMergeNode`, `feFlood`, `feBlend`, and others), each with its own attribute grammar. See
-/// `docs/gaps.md` for the primitives still to be added.
+/// [`gaussian_blur`](Self::gaussian_blur) (`<feGaussianBlur>`), [`offset`](Self::offset) (`<feOffset>`), and
+/// [`merge`](Self::merge) (`<feMerge>`/`<feMergeNode>`) are implemented — together enough to build a drop shadow
+/// (blur the source alpha, offset it, then merge it underneath the original graphic; see [`merge`](Self::merge)'s
+/// example). The SVG filter specification defines around fifteen primitives in total (`feColorMatrix`,
+/// `feComposite`, `feFlood`, `feBlend`, and others), each with its own attribute grammar. See `docs/gaps.md` for
+/// the primitives still to be added.
 ///
 /// In the meantime, [`set_attr`](Self::set_attr) / [`set_attr_display`](Self::set_attr_display) on the `SvgFilter`
 /// itself cover region attributes (`x`, `y`, `width`, `height`, `filterUnits`, `primitiveUnits`) not yet wrapped by a
 /// named setter, and [`SvgNode::set_attr`](crate::SvgNode::set_attr) on any node returned by a primitive method
-/// (such as [`gaussian_blur`](Self::gaussian_blur)) covers that primitive's own attributes not yet wrapped by a
-/// named parameter (`in`, `result`, and so on).
+/// covers that primitive's own attributes not yet wrapped by a named parameter (`in`, `result`, and so on).
 ///
 /// # Example
 ///
@@ -199,6 +200,84 @@ impl SvgFilter {
     pub fn gaussian_blur(&self, std_deviation: f64) -> Result<SvgNode, Error> {
         let el = create_svg_element::<SvgElement>(&self.document, "feGaussianBlur", "SvgElement")?;
         self.attrs.borrow_mut().display_element(&el, "stdDeviation", std_deviation)?;
+        self.element.append_child(&el).map_err(dom_err)?;
+        Ok(SvgNode::new(el))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Appends a `<feOffset>` primitive to this filter, shifting its input by `(dx, dy)` user units.
+    ///
+    /// The most common use is shifting a blurred alpha silhouette to build a drop shadow — see [`merge`](Self::merge)
+    /// for combining the result back with the original graphic.
+    ///
+    /// If this is the filter's first primitive, its implicit input is `SourceGraphic`. Use the returned
+    /// [`SvgNode`]'s [`set_attr`](crate::SvgNode::set_attr) to set `in` or `result`, neither of which has a dedicated
+    /// setter yet.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Dom`] if the browser refuses to create or append the `<feOffset>` element.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::SvgRoot;
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    /// let shadow = defs.filter("shadow")?;
+    /// shadow.gaussian_blur(4.0)?.set_attrs([("in", "SourceAlpha"), ("result", "blur")])?;
+    /// shadow.offset(4.0, 4.0)?.set_attr("in", "blur")?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn offset(&self, dx: f64, dy: f64) -> Result<SvgNode, Error> {
+        let el = create_svg_element::<SvgElement>(&self.document, "feOffset", "SvgElement")?;
+        {
+            let mut attrs = self.attrs.borrow_mut();
+            attrs.display_element(&el, "dx", dx)?;
+            attrs.display_element(&el, "dy", dy)?;
+        }
+        self.element.append_child(&el).map_err(dom_err)?;
+        Ok(SvgNode::new(el))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Appends a `<feMerge>` primitive to this filter, stacking `inputs` on top of one another in the given order
+    /// (later entries painted last, i.e. on top).
+    ///
+    /// Each entry in `inputs` becomes one `<feMergeNode in="...">` child, in order — the standard way to layer, for
+    /// example, an offset blurred shadow underneath the original graphic: `merge(&["offset-blur", "SourceGraphic"])`.
+    ///
+    /// Unlike [`gaussian_blur`](Self::gaussian_blur) and [`offset`](Self::offset), `<feMerge>` has no attributes of its
+    /// own to set beyond the generic `result` — its content is entirely the ordered list of `<feMergeNode>` children
+    /// this method builds, so there is nothing for the returned [`SvgNode`]'s [`set_attr`](crate::SvgNode::set_attr) to
+    /// configure except `result`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Dom`] if the browser refuses to create or append the `<feMerge>` element or any of its
+    /// `<feMergeNode>` children.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::SvgRoot;
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    /// let shadow = defs.filter("shadow")?;
+    /// shadow.gaussian_blur(4.0)?.set_attrs([("in", "SourceAlpha"), ("result", "blur")])?;
+    /// shadow.offset(4.0, 4.0)?.set_attrs([("in", "blur"), ("result", "offset-blur")])?;
+    /// shadow.merge(&["offset-blur", "SourceGraphic"])?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn merge(&self, inputs: &[&str]) -> Result<SvgNode, Error> {
+        let el = create_svg_element::<SvgElement>(&self.document, "feMerge", "SvgElement")?;
+        for input in inputs {
+            let node = create_svg_element::<SvgElement>(&self.document, "feMergeNode", "SvgElement")?;
+            node.set_attribute("in", input).map_err(dom_err)?;
+            el.append_child(&node).map_err(dom_err)?;
+        }
         self.element.append_child(&el).map_err(dom_err)?;
         Ok(SvgNode::new(el))
     }

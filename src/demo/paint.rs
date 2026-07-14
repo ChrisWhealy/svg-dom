@@ -1,7 +1,7 @@
 use super::colours::*;
 use super::{BAND, H, PAD_Y, W, caption};
 use crate::{
-    Error, PathDef, PathDefAbsolute, SvgRoot,
+    Error, PathDef, PathDefAbsolute, SvgRoot, TextAnchor,
     root::{
         gradient::SpreadMethod,
         pattern::PatternUnits,
@@ -355,10 +355,10 @@ pub(super) fn demo_pattern() -> Result<(), Error> {
 pub(super) fn demo_filter() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-filter", Size::new(W, H))?;
 
-    // Four filters, each wrapping a single feGaussianBlur at a different stdDeviation. The SVG default filter
-    // region (-10%/-10%/120%/120% of the referencing element's bounding box) is too tight for the widest blur
-    // here, so each filter widens its region via the generic set_attrs escape hatch to avoid visibly clipping
-    // the blurred edge.
+    // Four blur-only filters at increasing stdDeviation, plus one drop-shadow filter chaining
+    // feGaussianBlur -> feOffset -> feMerge. The SVG default filter region (-10%/-10%/120%/120% of the
+    // referencing element's bounding box) is too tight for the widest blur and the offset shadow, so every
+    // filter here widens its region via the generic set_attrs escape hatch to avoid visibly clipping the edge.
     svg.build_defs(|d| {
         d.build_filter("demo-filter-0", |f| {
             f.set_attrs([("x", "-50%"), ("y", "-50%"), ("width", "200%"), ("height", "200%")])?;
@@ -380,31 +380,59 @@ pub(super) fn demo_filter() -> Result<(), Error> {
             f.gaussian_blur(12.0)?;
             Ok(())
         })?;
+
+        // Drop shadow: blur a copy of the source graphic, offset it down and to the right, then merge it underneath the
+        // original (SourceGraphic painted last, on top). Blurring SourceGraphic rather than SourceAlpha keeps the
+        // shadow tinted the shape's own colour instead of solid black, which would be nearly invisible against this
+        // dark canvas background.
+        d.build_filter("demo-filter-shadow", |f| {
+            f.set_attrs([("x", "-50%"), ("y", "-50%"), ("width", "200%"), ("height", "200%")])?;
+            f.gaussian_blur(4.0)?.set_attr("result", "blur")?;
+            f.offset(6.0, 6.0)?.set_attrs([("in", "blur"), ("result", "offset-blur")])?;
+            f.merge(&["offset-blur", "SourceGraphic"])?;
+            Ok(())
+        })?;
         Ok(())
     })?;
 
     let mid_y = PAD_Y + BAND / 2.0;
-    let xs: [f64; 4] = [95.0, 285.0, 475.0, 665.0];
 
-    let c1 = svg.circle(Point::new(xs[0], mid_y), 45.0)?;
+    // Four smaller blur-only circles, left-aligned, leaving the right two-thirds of the canvas free for the
+    // drop-shadow banner text below. Captions are just the stdDeviation value — the figcaption below the canvas
+    // spells out what they mean — since the full "stdDeviation: N" label is too wide for this tighter spacing.
+    let xs: [f64; 4] = [55.0, 150.0, 245.0, 340.0];
+
+    let c1 = svg.circle(Point::new(xs[0], mid_y), 30.0)?;
     c1.set_fill(STEELBLUE)?;
     c1.set_filter("demo-filter-0")?;
-    caption(&svg, xs[0], "stdDeviation: 0")?;
+    caption(&svg, xs[0], "stdDeviation 0")?;
 
-    let c2 = svg.circle(Point::new(xs[1], mid_y), 45.0)?;
+    let c2 = svg.circle(Point::new(xs[1], mid_y), 30.0)?;
     c2.set_fill(STEELBLUE)?;
     c2.set_filter("demo-filter-3")?;
-    caption(&svg, xs[1], "stdDeviation: 3")?;
+    caption(&svg, xs[1], "3")?;
 
-    let c3 = svg.circle(Point::new(xs[2], mid_y), 45.0)?;
+    let c3 = svg.circle(Point::new(xs[2], mid_y), 30.0)?;
     c3.set_fill(STEELBLUE)?;
     c3.set_filter("demo-filter-6")?;
-    caption(&svg, xs[2], "stdDeviation: 6")?;
+    caption(&svg, xs[2], "6")?;
 
-    let c4 = svg.circle(Point::new(xs[3], mid_y), 45.0)?;
+    let c4 = svg.circle(Point::new(xs[3], mid_y), 30.0)?;
     c4.set_fill(STEELBLUE)?;
     c4.set_filter("demo-filter-12")?;
-    caption(&svg, xs[3], "stdDeviation: 12")?;
+    caption(&svg, xs[3], "12")?;
+
+
+    // Drop-shadow banner text: the same blur -> offset -> merge chain applied to real text content rather than
+    // a plain shape, the effect's most common real-world use.
+    let banner_x = 590.0;
+    let banner = svg.text(Point::new(banner_x, mid_y + 12.0), "DROP SHADOW")?;
+    banner.set_fill(STEELBLUE)?;
+    banner.set_font_size(42.0)?;
+    banner.set_text_anchor(TextAnchor::Middle)?;
+    banner.set_attr("font-weight", "bold")?;
+    banner.set_filter("demo-filter-shadow")?;
+    caption(&svg, banner_x, "text banner: blur + offset + merge")?;
 
     Ok(())
 }

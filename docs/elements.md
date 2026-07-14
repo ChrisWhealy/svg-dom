@@ -6,7 +6,7 @@ The following SVG elements are supported:
 * `clipPath`
 * `defs`
 * `ellipse`
-* `filter` (with `feGaussianBlur`)
+* `filter` (with `feGaussianBlur`, `feOffset`, `feMerge`/`feMergeNode`)
 * `g`
 * `image`
 * `line`
@@ -117,9 +117,11 @@ Remove the filter with `SvgNode::remove_filter()`.
 | Method | Element | Description |
 |---|---|---|
 | `gaussian_blur(std_deviation)` | `<feGaussianBlur>` | Blurs the input; larger `std_deviation` blurs more. Returns an `SvgNode`, so `in`/`result` (not yet wrapped by a named setter) can be set via `set_attr`. |
+| `offset(dx, dy)` | `<feOffset>` | Shifts the input by `(dx, dy)` user units. Returns an `SvgNode` for `in`/`result`, as above. |
+| `merge(inputs)` | `<feMerge>` (with `<feMergeNode>` children) | Stacks each `&str` in `inputs` as one `<feMergeNode in="...">` child, in order (later entries painted on top). The standard way to layer a shadow underneath the original graphic. |
 
-Only `feGaussianBlur` is implemented so far.
-See `docs/gaps.md` for the primitives (`feOffset`, `feColorMatrix`, `feComposite`, `feMerge`, `feFlood`, `feBlend`, and others) still to be added.
+`gaussian_blur` + `offset` + `merge` together are enough to build a drop shadow: blur a copy of the graphic, offset it, then merge it underneath the original — see the `<filter>` demo panel or `SvgFilter::merge`'s doc example.
+See `docs/gaps.md` for the primitives (`feColorMatrix`, `feComposite`, `feFlood`, `feBlend`, and others) still to be added.
 
 **Region and coordinate-space attributes** (`x`, `y`, `width`, `height`, `filterUnits`, `primitiveUnits`) are not yet wrapped by named setters; use `SvgFilter::set_attr`/`set_attrs`.
 The SVG default filter region (`-10% -10% 120% 120%` of the referencing element's bounding box) can clip a wide blur; widen it explicitly for large `stdDeviation` values, e.g. `filter.set_attrs([("x", "-50%"), ("y", "-50%"), ("width", "200%"), ("height", "200%")])`.

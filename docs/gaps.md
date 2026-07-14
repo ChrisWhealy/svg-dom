@@ -7,14 +7,13 @@ These gaps will be filled in time, but for now, this crate must be treated as a 
 
 ## Missing SVG elements
 
-`<filter>` itself and one primitive (`<feGaussianBlur>`) are implemented — see [Supported SVG Elements](elements.md#filter).
+`<filter>` itself and three primitives (`<feGaussianBlur>`, `<feOffset>`, `<feMerge>`/`<feMergeNode>`) are implemented — see [Supported SVG Elements](elements.md#filter).
+Those three together are enough for a basic drop shadow (blur a copy of the graphic, offset it, merge it underneath the original); a true black/tinted shadow with independent opacity needs `feFlood`/`feComposite` below.
 The following filter primitives still need to be implemented:
 
 | Missing Primitive | Why it matters
 |---|---|
-| `<feOffset>` | Shifts an input; combined with blur, the basis of a drop shadow |
-| `<feMerge>` / `<feMergeNode>` | Composites several primitive outputs into one, e.g. layering a drop shadow under the original graphic |
-| `<feFlood>` / `<feComposite>` | Solid colour fill and Porter-Duff compositing; needed for a proper drop shadow's colour and opacity |
+| `<feFlood>` / `<feComposite>` | Solid colour fill and Porter-Duff compositing; needed for a proper drop shadow's colour and opacity (rather than a blurred copy of the source graphic itself) |
 | `<feColorMatrix>` | Colour transforms — greyscale, saturation, hue rotation |
 | `<feDropShadow>` | Shorthand combining offset + blur + flood + composite in one primitive |
 | `<feBlend>`, `<feTile>`, `<feMorphology>`, `<feConvolveMatrix>`, `<feDisplacementMap>`, `<feTurbulence>`, `<feComponentTransfer>`, `<feDiffuseLighting>` / `<feSpecularLighting>`, `<feImage>` | Less commonly needed effects; lower priority |
