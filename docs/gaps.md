@@ -7,11 +7,20 @@ These gaps will be filled in time, but for now, this crate must be treated as a 
 
 ## Missing SVG elements
 
-The following SVG elements still need to be implemented:
+`<filter>` itself and one primitive (`<feGaussianBlur>`) are implemented — see [Supported SVG Elements](elements.md#filter).
+The following filter primitives still need to be implemented:
 
-| Missing Element | Why it matters
+| Missing Primitive | Why it matters
 |---|---|
-| `<filter>` and primitives | Drop shadows, blur, colour matrix, compositing etc
+| `<feOffset>` | Shifts an input; combined with blur, the basis of a drop shadow |
+| `<feMerge>` / `<feMergeNode>` | Composites several primitive outputs into one, e.g. layering a drop shadow under the original graphic |
+| `<feFlood>` / `<feComposite>` | Solid colour fill and Porter-Duff compositing; needed for a proper drop shadow's colour and opacity |
+| `<feColorMatrix>` | Colour transforms — greyscale, saturation, hue rotation |
+| `<feDropShadow>` | Shorthand combining offset + blur + flood + composite in one primitive |
+| `<feBlend>`, `<feTile>`, `<feMorphology>`, `<feConvolveMatrix>`, `<feDisplacementMap>`, `<feTurbulence>`, `<feComponentTransfer>`, `<feDiffuseLighting>` / `<feSpecularLighting>`, `<feImage>` | Less commonly needed effects; lower priority |
+
+Also missing on `SvgFilter` itself: typed setters for the filter region and coordinate-space attributes (`x`, `y`, `width`, `height`, `filterUnits`, `primitiveUnits`) — reachable today only via the generic `set_attr`/`set_attrs` escape hatch.
+See `docs/design_notes.md`, "`<filter>` primitives return a plain `SvgNode`", for why a typed per-primitive wrapper was deferred rather than built now.
 
 # Missing Tree operations
 

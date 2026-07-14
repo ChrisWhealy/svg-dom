@@ -348,3 +348,63 @@ pub(super) fn demo_pattern() -> Result<(), Error> {
 
     Ok(())
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// filter — feGaussianBlur at increasing stdDeviation, applied via set_filter
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+pub(super) fn demo_filter() -> Result<(), Error> {
+    let svg = SvgRoot::create_in("demo-filter", Size::new(W, H))?;
+
+    // Four filters, each wrapping a single feGaussianBlur at a different stdDeviation. The SVG default filter
+    // region (-10%/-10%/120%/120% of the referencing element's bounding box) is too tight for the widest blur
+    // here, so each filter widens its region via the generic set_attrs escape hatch to avoid visibly clipping
+    // the blurred edge.
+    svg.build_defs(|d| {
+        d.build_filter("demo-filter-0", |f| {
+            f.set_attrs([("x", "-50%"), ("y", "-50%"), ("width", "200%"), ("height", "200%")])?;
+            f.gaussian_blur(0.0)?;
+            Ok(())
+        })?;
+        d.build_filter("demo-filter-3", |f| {
+            f.set_attrs([("x", "-50%"), ("y", "-50%"), ("width", "200%"), ("height", "200%")])?;
+            f.gaussian_blur(3.0)?;
+            Ok(())
+        })?;
+        d.build_filter("demo-filter-6", |f| {
+            f.set_attrs([("x", "-50%"), ("y", "-50%"), ("width", "200%"), ("height", "200%")])?;
+            f.gaussian_blur(6.0)?;
+            Ok(())
+        })?;
+        d.build_filter("demo-filter-12", |f| {
+            f.set_attrs([("x", "-50%"), ("y", "-50%"), ("width", "200%"), ("height", "200%")])?;
+            f.gaussian_blur(12.0)?;
+            Ok(())
+        })?;
+        Ok(())
+    })?;
+
+    let mid_y = PAD_Y + BAND / 2.0;
+    let xs: [f64; 4] = [95.0, 285.0, 475.0, 665.0];
+
+    let c1 = svg.circle(Point::new(xs[0], mid_y), 45.0)?;
+    c1.set_fill(STEELBLUE)?;
+    c1.set_filter("demo-filter-0")?;
+    caption(&svg, xs[0], "stdDeviation: 0")?;
+
+    let c2 = svg.circle(Point::new(xs[1], mid_y), 45.0)?;
+    c2.set_fill(STEELBLUE)?;
+    c2.set_filter("demo-filter-3")?;
+    caption(&svg, xs[1], "stdDeviation: 3")?;
+
+    let c3 = svg.circle(Point::new(xs[2], mid_y), 45.0)?;
+    c3.set_fill(STEELBLUE)?;
+    c3.set_filter("demo-filter-6")?;
+    caption(&svg, xs[2], "stdDeviation: 6")?;
+
+    let c4 = svg.circle(Point::new(xs[3], mid_y), 45.0)?;
+    c4.set_fill(STEELBLUE)?;
+    c4.set_filter("demo-filter-12")?;
+    caption(&svg, xs[3], "stdDeviation: 12")?;
+
+    Ok(())
+}

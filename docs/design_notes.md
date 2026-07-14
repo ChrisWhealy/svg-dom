@@ -13,6 +13,7 @@
 - [Reusable attribute formatting](#reusable-attribute-formatting)
 - [Shared element factory implementation](#shared-element-factory-implementation)
 - [Typesafe Path Data Builder](#typesafe-path-data-builder)
+- [`<filter>` primitives return a plain `SvgNode`](#filter-primitives-return-a-plain-svgnode)
 - [Ideas Considered and Rejected](rejected_ideas.md)
 - [Performance Patterns](#performance-patterns)
 
@@ -381,6 +382,28 @@ Removing it and relying solely on `SvgAttrs::d_from_defs`'s check would mean a b
 `SvgAttrs::d_from_defs` is therefore split into two: the public method still validates (a caller reaching it directly — via `AttrWriter` or by hand — has had no earlier chance to check), then delegates to `pub(crate) fn d_from_validated_defs`, the unchecked core that just writes.
 `create_path_from_defs` calls `d_from_validated_defs` directly, skipping the redundant second pass over the same three-or-so-byte slice prefix it already inspected moments earlier.
 The saving is not the point since an O(1) check is not worth optimising away for its own sake, but leaving it in obscured which validation call in the sequence was the one actually performing the protection, which on clarity grounds alone, is worth fixing.
+
+## `<filter>` primitives return a plain `SvgNode`
+
+`SvgFilter` (`src/root/filter.rs`) is structurally identical to `SvgClipPath` and `SvgPattern`: that is, it is an id-cached container obtained from `SvgDefs::filter`/`build_filter`, applied to any element via `SvgNode::set_filter_ref`/`set_filter`, with the usual `set_attr`/`set_attrs`/`set_attr_display` escape hatch for attributes not yet wrapped by a named setter.
+That much follows established precedent directly; the one new decision is what a filter-primitive *builder method* — `gaussian_blur`, and whatever `fe*` methods follow it — should hand back.
+
+The SVG filter primitives are a large, mostly-orthogonal vocabulary: around fifteen elements (`feGaussianBlur`, `feOffset`, `feColorMatrix`, `feComposite`, `feMerge`/`feMergeNode`, `feFlood`, `feBlend`, and others), each with its own attribute grammar, but sharing two attributes across nearly all of them — `in` (identifies the upstream input or named result to be read) and `result` (the name under which this primitive's output is published, and which a later primitive's `in`/`in2` can reference).
+
+Two designs were available for the return type of a method like `gaussian_blur`:
+
+1. A typed wrapper per primitive (`FeGaussianBlur`, mirroring `SvgClipPath`'s own typed methods), or a `FilterPrimitive` enum in the `PathDef` style, with `in`/`result` as named fields or setters.
+2. A plain `SvgNode` — the same handle already returned by every ordinary shape factory (`create_rect`, `create_circle`, ...) — relying on the existing generic `SvgNode::set_attr` for `in`, `result`, and any primitive-specific attribute not yet promoted to a named parameter.
+
+Option 2 was chosen for this first primitive.
+
+Unlike `PathDef`, which models a single, closed, well-understood grammar (SVG path data) that benefits from exhaustive compile-time coverage, the filter primitive vocabulary is still only one primitive deep in this crate; committing to a typed wrapper (or a `PathDef`-style enum) per primitive now would mean guessing at a shape for fourteen more elements this crate does not yet implement, several of which (`feMerge`'s ordered `feMergeNode` children, `feComponentTransfer`'s per-channel `feFunc*` children) have structure closer to `SvgClipPath`'s child-shape factories than to a flat attribute bag.
+
+It costs nothing to add primitives around a plain `SvgNode` — `gaussian_blur` is a thin `create_svg_element` + attribute write + `append_child`, the same shape as `GradientInner::add_stop` — and does not pre-commit the crate to an API surface for primitives not yet built.
+
+This decision will be revisited once several more primitives exist and a genuine cross-primitive pattern (such as a shared `in`/`result` typed setter, or a `feMerge`-shaped child-list builder) becomes visible from real usage rather than anticipated in advance.
+
+See [`docs/gaps.md`](gaps.md) for the primitives and region-attribute setters (`filterUnits`, `primitiveUnits`, typed `x`/`y`/`width`/`height`) still to be added.
 
 # Performance Patterns
 

@@ -12,6 +12,7 @@ use web_sys::{Document, SvgElement};
 
 use super::{
     clip_path::SvgClipPath,
+    filter::SvgFilter,
     gradient::{linear::SvgLinearGradient, radial::SvgRadialGradient},
     marker::SvgMarker,
     pattern::SvgPattern,
@@ -74,6 +75,18 @@ pub(crate) fn validate_clip_path_id(id: &str) -> Result<(), Error> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Rejects filter ids that would produce broken or ambiguous `url(#...)` references.
+///
+/// Applies the same allow-list as [`validate_marker_id`]: the id must match `[A-Za-z_][A-Za-z0-9_-]*`.
+pub(crate) fn validate_filter_id(id: &str) -> Result<(), Error> {
+    if is_valid_svg_id(id) {
+        Ok(())
+    } else {
+        Err(Error::InvalidFilterId(id.to_owned()))
+    }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Rejects symbol ids that would produce broken `#id` fragment references.
 ///
 /// Applies the same allow-list as [`validate_marker_id`]: the id must match `[A-Za-z_][A-Za-z0-9_-]*`.
@@ -112,6 +125,7 @@ pub(crate) fn validate_pattern_id(id: &str) -> Result<(), Error> {
 /// | [`SvgClipPath`] | [`clip_path`](Self::clip_path) | [`build_clip_path`](Self::build_clip_path) |
 /// | [`SvgSymbol`] | [`symbol`](Self::symbol) | [`build_symbol`](Self::build_symbol) |
 /// | [`SvgPattern`] | [`pattern`](Self::pattern) | [`build_pattern`](Self::build_pattern) |
+/// | [`SvgFilter`] | [`filter`](Self::filter) | [`build_filter`](Self::build_filter) |
 ///
 /// Obtain one from [`SvgRoot::defs`].
 ///
@@ -333,6 +347,99 @@ impl SvgDefs {
         build(&clip)?;
         self.element.append_child(clip.as_element()).map_err(dom_err)?;
         Ok(clip)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Creates a `<filter>` child element with the given `id`, appends it to `<defs>` immediately and returns its
+    /// handle.
+    ///
+    /// The `id` is used to reference the filter from any element via
+    /// [`set_filter_ref`](crate::SvgNode::set_filter_ref) or [`set_filter`](crate::SvgNode::set_filter).
+    ///
+    /// Each primitive added to the returned [`SvgFilter`] is appended to the live element one at a time.
+    /// Use this when you need to add primitives dynamically after initial construction.
+    ///
+    /// Prefer [`build_filter`](Self::build_filter) when all primitives are known upfront: that variant holds the
+    /// `<filter>` element detached until the closure succeeds, so a mid-build error leaves no partial element in
+    /// `<defs>`.
+    /// With this method, if a primitive or attribute setter fails after `filter()` returns, the partial `<filter>`
+    /// remains in `<defs>` (though an incomplete filter is harmless — it applies no effect unless referenced).
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::InvalidFilterId`] — `id` failed validation.
+    /// - [`Error::Dom`] — the browser refused to create or append the element.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::{Point, Size}};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    /// let blur = defs.filter("soft-blur")?;
+    /// blur.gaussian_blur(4.0)?;
+    ///
+    /// let rect = svg.rect(Point::origin(), Size::new(120.0, 80.0))?;
+    /// rect.set_fill("steelblue")?;
+    /// rect.set_filter_ref(&blur)?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn filter(&self, id: &str) -> Result<SvgFilter, Error> {
+        validate_filter_id(id)?;
+        let el = super::create_svg_element::<SvgElement>(&self.document, "filter", "SvgElement")?;
+        el.set_attribute("id", id).map_err(dom_err)?;
+        self.element.append_child(&el).map_err(dom_err)?;
+        Ok(SvgFilter::new(id.to_owned(), el, self.document.clone()))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Builds a `<filter>` and all its primitives in one shot, appending to `<defs>` only after the closure succeeds.
+    ///
+    /// The closure receives a reference to the new [`SvgFilter`].
+    /// All primitives added inside the closure are appended to a detached element.
+    ///
+    /// If the closure returns `Ok(())`, the filter is appended to `<defs>` and the handle is returned.
+    /// If the closure returns `Err`, the element is dropped without being attached to `<defs>`.
+    ///
+    /// This is the preferred way to build a filter when all its primitives are known upfront.
+    /// For dynamically adding primitives over time, use [`filter`](Self::filter) instead.
+    ///
+    /// # Errors
+    ///
+    /// - Any error returned by `build`.
+    /// - [`Error::InvalidFilterId`] — `id` failed validation.
+    /// - [`Error::Dom`] — the browser refused to create or append the element.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::{Point, Size}};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    ///
+    /// let blur = defs.build_filter("soft-blur", |f| {
+    ///     f.gaussian_blur(4.0)?;
+    ///     Ok(())
+    /// })?;
+    ///
+    /// let rect = svg.rect(Point::origin(), Size::new(120.0, 80.0))?;
+    /// rect.set_fill("steelblue")?;
+    /// rect.set_filter_ref(&blur)?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn build_filter<F>(&self, id: &str, build: F) -> Result<SvgFilter, Error>
+    where
+        F: FnOnce(&SvgFilter) -> Result<(), Error>,
+    {
+        validate_filter_id(id)?;
+        let el = super::create_svg_element::<SvgElement>(&self.document, "filter", "SvgElement")?;
+        el.set_attribute("id", id).map_err(dom_err)?;
+        let filter = SvgFilter::new(id.to_owned(), el, self.document.clone());
+        build(&filter)?;
+        self.element.append_child(filter.as_element()).map_err(dom_err)?;
+        Ok(filter)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

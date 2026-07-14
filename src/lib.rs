@@ -14,9 +14,10 @@
 //! | [`demo`] | | Provides a set of SVG element examples.  Run `cargo demo` then visit http://localhost:8080/demo. |
 //! | [`error`] | [`Error`] | Wrapper for Browser DOM errors |
 //! | [`root`] | [`SvgRoot`] / [`SvgAttrs`] | Wraps the `<svg>` root; factory for all child elements; reusable attribute writing |
-//! | [`root::defs`] | [`SvgDefs`] | `<defs>` container; factory for markers, gradients, clip-paths, patterns, and symbols |
+//! | [`root::defs`] | [`SvgDefs`] | `<defs>` container; factory for markers, gradients, clip-paths, patterns, filters, and symbols |
 //! | [`root::gradient`] | [`SvgLinearGradient`] / [`SvgRadialGradient`] | Gradient paint servers defined in `<defs>` |
 //! | [`root::clip_path`] | [`SvgClipPath`] / [`ClipPathUnits`] | Clipping region defined in `<defs>`, applied with `set_clip_path_ref` |
+//! | [`root::filter`] | [`SvgFilter`] | Raster-effect filter (`<feGaussianBlur>`, ...) defined in `<defs>`, applied with `set_filter_ref` |
 //! | [`root::marker`] | [`SvgMarker`] / [`MarkerUnits`] | Path-decoration markers (`<marker>`) with shape factories |
 //! | [`root::path`] | [`PathDef`] | Type-safe `<path>` `d`-attribute builder from a sequence of typed segments |
 //! | [`root::pattern`] | [`SvgPattern`] / [`PatternUnits`] | Tiled pattern paint server defined in `<defs>`, applied with `set_fill_pattern_ref` |
@@ -83,6 +84,7 @@ pub use root::{
     batch::SvgBatch,
     clip_path::{ClipPathUnits, SvgClipPath},
     defs::SvgDefs,
+    filter::SvgFilter,
     gradient::{GradientUnits, SpreadMethod, linear::SvgLinearGradient, radial::SvgRadialGradient},
     marker::{MarkerUnits, SvgMarker},
     path::{

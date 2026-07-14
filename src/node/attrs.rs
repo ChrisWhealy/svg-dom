@@ -4,7 +4,10 @@ use crate::{
     root::{
         attrs::{AttrWriter, SvgAttrs},
         clip_path::SvgClipPath,
-        defs::{validate_clip_path_id, validate_gradient_id, validate_marker_id, validate_pattern_id},
+        defs::{
+            validate_clip_path_id, validate_filter_id, validate_gradient_id, validate_marker_id, validate_pattern_id,
+        },
+        filter::SvgFilter,
         gradient::{linear::SvgLinearGradient, radial::SvgRadialGradient},
         marker::SvgMarker,
         path::path_def::{PathDef, build_d, validate_starts_with_moveto},
@@ -642,6 +645,66 @@ impl SvgNode {
     /// Has no effect if no clip path is currently applied.
     pub fn remove_clip_path(&self) -> Result<(), Error> {
         self.remove_attr("clip-path")
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the `filter` attribute identified by filter `id`, applying the raster effects defined inside the named
+    /// [`SvgFilter`] to this element.
+    ///
+    /// `filter_id` is the bare `id` of an [`SvgFilter`] defined in a [`SvgDefs`](crate::SvgDefs) block;
+    /// the `url(#...)` wrapper is added automatically.
+    /// The same validation rules that apply at filter construction time are enforced here: an id that does not match
+    /// the pattern `[A-Za-z_][A-Za-z0-9_-]*` returns [`Error::InvalidFilterId`].
+    ///
+    /// Prefer [`set_filter_ref`](Self::set_filter_ref) when you have the [`SvgFilter`] handle available, as it
+    /// eliminates the risk of typos and `url(#...)` double-wrapping.
+    ///
+    /// To remove the filter, call [`remove_filter`](Self::remove_filter).
+    pub fn set_filter(&self, filter_id: &str) -> Result<(), Error> {
+        validate_filter_id(filter_id)?;
+        self.set_attr("filter", &format!("url(#{filter_id})"))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the `filter` attribute from a live [`SvgFilter`] handle.
+    ///
+    /// This is the preferred alternative to [`set_filter`](Self::set_filter): the id is taken directly from the handle,
+    /// so there is no risk of typos or `url(#...)` double-wrapping.
+    ///
+    /// The written attribute stores the filter's id as a string at call time. If the filter is later renamed using
+    /// [`SvgFilter::set_id`](crate::SvgFilter::set_id), this element's attribute is not updated automatically — you
+    /// must reapply the reference after renaming if needed.
+    ///
+    /// To remove the filter, call [`remove_filter`](Self::remove_filter).
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::{Point, Size}};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    ///
+    /// let blur = defs.build_filter("soft-blur", |f| {
+    ///     f.gaussian_blur(4.0)?;
+    ///     Ok(())
+    /// })?;
+    ///
+    /// let rect = svg.rect(Point::origin(), Size::new(120.0, 80.0))?;
+    /// rect.set_fill("steelblue")?;
+    /// rect.set_filter_ref(&blur)?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn set_filter_ref(&self, filter: &SvgFilter) -> Result<(), Error> {
+        self.set_filter(filter.id())
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Removes the `filter` attribute from this element, making its normal (unfiltered) rendering visible again.
+    ///
+    /// Has no effect if no filter is currently applied.
+    pub fn remove_filter(&self) -> Result<(), Error> {
+        self.remove_attr("filter")
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

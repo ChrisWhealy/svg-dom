@@ -6,6 +6,7 @@ The following SVG elements are supported:
 * `clipPath`
 * `defs`
 * `ellipse`
+* `filter` (with `feGaussianBlur`)
 * `g`
 * `image`
 * `line`
@@ -99,6 +100,34 @@ Remove the clip with `SvgNode::remove_clip_path()`.
 
 `<defs>` is the standard SVG container for reusable assets and can be obtained from `SvgRoot::defs()`.
 All shape factory methods are available on `SvgDefs` for building inner content.
+
+---
+
+## `<filter>`
+
+A `<filter>` applies raster effects (blur, colour manipulation, compositing, ...) to any element that references it.
+The browser evaluates the filter's primitive children in document order and paints the result in place of the referencing element.
+
+Obtain one from `SvgDefs::filter(id)` (live-append) or `SvgDefs::build_filter(id, closure)` (detached until the closure succeeds).
+Apply it to any element with `SvgNode::set_filter_ref(&filter)` or `SvgNode::set_filter("id")`.
+Remove the filter with `SvgNode::remove_filter()`.
+
+**Primitive factories** available on `SvgFilter`:
+
+| Method | Element | Description |
+|---|---|---|
+| `gaussian_blur(std_deviation)` | `<feGaussianBlur>` | Blurs the input; larger `std_deviation` blurs more. Returns an `SvgNode`, so `in`/`result` (not yet wrapped by a named setter) can be set via `set_attr`. |
+
+Only `feGaussianBlur` is implemented so far.
+See `docs/gaps.md` for the primitives (`feOffset`, `feColorMatrix`, `feComposite`, `feMerge`, `feFlood`, `feBlend`, and others) still to be added.
+
+**Region and coordinate-space attributes** (`x`, `y`, `width`, `height`, `filterUnits`, `primitiveUnits`) are not yet wrapped by named setters; use `SvgFilter::set_attr`/`set_attrs`.
+The SVG default filter region (`-10% -10% 120% 120%` of the referencing element's bounding box) can clip a wide blur; widen it explicitly for large `stdDeviation` values, e.g. `filter.set_attrs([("x", "-50%"), ("y", "-50%"), ("width", "200%"), ("height", "200%")])`.
+
+***IMPORTANT***
+
+* All filter ids must match the pattern `[A-Za-z_][A-Za-z0-9_-]*`.
+* Ids are document-scoped, so they must be globally unique across all `<svg>` elements on the page.
 
 ---
 

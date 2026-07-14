@@ -6,6 +6,8 @@ pub mod batch;
 pub mod clip_path;
 /// The [`SvgDefs`](crate::SvgDefs) container for reusable SVG assets.
 pub mod defs;
+/// The [`SvgFilter`](crate::SvgFilter) element and its filter-primitive builder methods.
+pub mod filter;
 /// The [`SvgLinearGradient`](crate::SvgLinearGradient), [`SvgRadialGradient`](crate::SvgRadialGradient),
 /// [`GradientUnits`](crate::GradientUnits), and [`SpreadMethod`](crate::SpreadMethod) types.
 pub mod gradient;

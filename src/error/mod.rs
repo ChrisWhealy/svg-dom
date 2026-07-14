@@ -8,12 +8,13 @@
 /// - you asked for a non-existent element by id ([`Error::ElementNotFound`])
 /// - a `web-sys` call returned a JavaScript error ([`Error::Dom`])
 /// - a JavaScript value couldn't be cast to the expected Rust type ([`Error::CastFailed`])
-/// - Five types of crate-level validation error exist for id strings
+/// - Six types of crate-level validation error exist for id strings
 ///   - a bad marker id ([`Error::InvalidMarkerId`])
 ///   - a bad gradient id ([`Error::InvalidGradientId`])
 ///   - a bad clip-path id ([`Error::InvalidClipPathId`])
 ///   - a bad symbol id ([`Error::InvalidSymbolId`])
 ///   - a bad pattern id ([`Error::InvalidPatternId`])
+///   - a bad filter id ([`Error::InvalidFilterId`])
 /// - a generic setter was called with an attribute name that has a dedicated typed setter ([`Error::ReservedAttribute`])
 /// - a non-empty [`PathDef`](crate::PathDef) sequence was supplied that did not begin with a `MoveTo` command ([`Error::InvalidPathData`])
 #[derive(Debug)]
@@ -100,6 +101,19 @@ pub enum Error {
     /// The inner `String` is the rejected id.
     InvalidPatternId(String),
 
+    /// A filter `id` string was rejected before reaching the DOM.
+    ///
+    /// Valid filter ids must match the pattern `[A-Za-z_][A-Za-z0-9_-]*`: an ASCII letter or underscore followed
+    /// by zero or more ASCII letters, digits, underscores, or hyphens.
+    ///
+    /// This error is returned when a non-conforming string is passed to
+    /// [`SvgDefs::filter`](crate::SvgDefs::filter),
+    /// [`SvgDefs::build_filter`](crate::SvgDefs::build_filter), or
+    /// [`SvgNode::set_filter`](crate::SvgNode::set_filter).
+    ///
+    /// The inner `String` is the rejected id.
+    InvalidFilterId(String),
+
     /// A generic attribute setter was called with an attribute name that is managed by a dedicated typed setter.
     ///
     /// The `id` attribute on [`SvgMarker`](crate::SvgMarker) is managed by [`SvgMarker::set_id`](crate::SvgMarker::set_id),
@@ -167,6 +181,7 @@ impl std::fmt::Display for Error {
             Error::InvalidClipPathId(id) => write!(f, "invalid svg clip-path id: {id:?}"),
             Error::InvalidSymbolId(id) => write!(f, "invalid svg symbol id: {id:?}"),
             Error::InvalidPatternId(id) => write!(f, "invalid svg pattern id: {id:?}"),
+            Error::InvalidFilterId(id) => write!(f, "invalid svg filter id: {id:?}"),
             Error::ReservedAttribute(name) => {
                 write!(f, "attribute {name:?} is reserved; use the dedicated setter")
             },

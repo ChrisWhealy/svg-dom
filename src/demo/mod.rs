@@ -102,6 +102,7 @@ pub fn run_demo() -> Result<(), JsValue> {
     paint::demo_radial_gradient().map_err(e)?;
     paint::demo_clip_path().map_err(e)?;
     paint::demo_pattern().map_err(e)?;
+    paint::demo_filter().map_err(e)?;
     texts::demo_tspan().map_err(e)?;
     texts::demo_text_path().map_err(e)?;
 
@@ -161,6 +162,7 @@ const DEMO_SOURCES: &[(&str, &str)] = &[
     ("panel-radial-gradient", "demo_radial_gradient"),
     ("panel-clip-path", "demo_clip_path"),
     ("panel-pattern", "demo_pattern"),
+    ("panel-filter", "demo_filter"),
     ("panel-tspan", "demo_tspan"),
     ("panel-text-path", "demo_text_path"),
     ("panel-events-click", "demo_events_click"),
