@@ -2,7 +2,7 @@ pub(crate) mod elliptical_arc;
 pub(crate) mod path_def;
 
 pub use elliptical_arc::EllipticalArc;
-pub use path_def::{PathDef, PathDefAbsolute, PathDefRelative, build_d, write_d};
+pub use path_def::{PathDef, PathDefAbsolute, PathDefRelative, build_d, build_d_fixed, write_d, write_d_fixed};
 
 use crate::{SvgRoot, error::Error, node::SvgNode, root::factory::SvgFactory};
 

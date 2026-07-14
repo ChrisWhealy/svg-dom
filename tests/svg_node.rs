@@ -1542,3 +1542,51 @@ fn should_create_path_from_defs_reusing_factory_buffer() -> Result<(), String> {
     common::check_eq(first.attr("d"), Some("M0 0L1 1".into()))?;
     common::check_eq(second.attr("d"), Some("M2 2".into()))
 }
+
+/// `AttrWriter::d_from_defs_fixed` writes each coordinate at the requested fixed precision (rounding), trimming the
+/// `d` string; `AnimationFrame::set_d_from_defs_fixed` produces the same output through the frame buffer.
+/// The elliptical-arc flags are never rounded, since the SVG `flag` grammar production is a single `"0"`/`"1"`
+/// digit, not a decimal number.
+#[wasm_bindgen_test]
+fn should_write_fixed_precision_d_from_defs() -> Result<(), String> {
+    use svg_dom::{ArcSize, ArcSweep, EllipticalArc, PathDef, PathDefAbsolute};
+
+    let svg = make_svg("node-d-from-defs-fixed");
+    let path = svg.path("M 0 0").map_err(|e| e.to_string())?;
+
+    // Via the chainable writer (also exercises SvgAttrs::d_from_defs_fixed): 1 decimal place, with rounding.
+    let mut attrs = svg_dom::SvgAttrs::new();
+    path.attrs(&mut attrs)
+        .d_from_defs_fixed(
+            &[
+                PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(1.23456, 2.0))),
+                PathDef::Abs(PathDefAbsolute::EllipticalArcTo(EllipticalArc {
+                    radii: Point::new(1.0 / 3.0, 1.0 / 3.0),
+                    x_axis_rotation: 0.0,
+                    size: ArcSize::Large,
+                    sweep: ArcSweep::Clockwise,
+                    to: Point::new(3.0, 4.98765),
+                })),
+            ],
+            1,
+        )
+        .map_err(|e| e.to_string())?;
+    common::check_eq(path.attr("d"), Some("M1.2 2.0A0.3 0.3 0.0 1 1 3.0 5.0".into()))?;
+
+    // The AnimationFrame counterpart, at 0 decimals (integer rounding); flags still un-rounded.
+    let mut frame = svg_dom::AnimationFrame::new();
+    frame
+        .set_d_from_defs_fixed(
+            &path,
+            &[PathDef::Abs(PathDefAbsolute::EllipticalArcTo(EllipticalArc {
+                radii: Point::new(1.6, 2.4),
+                x_axis_rotation: 0.0,
+                size: ArcSize::Small,
+                sweep: ArcSweep::CounterClockwise,
+                to: Point::new(1.6, 2.4),
+            }))],
+            0,
+        )
+        .map_err(|e| e.to_string())?;
+    common::check_eq(path.attr("d"), Some("A2 2 0 0 0 2 2".into()))
+}

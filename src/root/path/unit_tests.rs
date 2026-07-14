@@ -121,3 +121,87 @@ fn write_d_matches_build_d_for_the_same_input() {
 fn build_d_of_empty_slice_is_empty_string() {
     assert_eq!(build_d(&[]), "");
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// build_d_fixed / write_d_fixed
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+#[test]
+fn build_d_fixed_rounds_coordinates_to_requested_precision() {
+    let d = build_d_fixed(
+        &[
+            PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(1.0 / 3.0, 2.0 / 3.0))),
+            PathDef::Abs(PathDefAbsolute::LineTo(Point::new(10.0, 20.0))),
+        ],
+        2,
+    );
+    assert_eq!(d, "M0.33 0.67L10.00 20.00");
+}
+
+#[test]
+fn build_d_fixed_at_zero_decimals_rounds_to_integers() {
+    let d = build_d_fixed(&[PathDef::Abs(PathDefAbsolute::LineTo(Point::new(1.6, 2.4)))], 0);
+    assert_eq!(d, "L2 2");
+}
+
+#[test]
+fn build_d_fixed_rounds_horizontal_and_vertical_line_arguments() {
+    let d = build_d_fixed(
+        &[
+            PathDef::Abs(PathDefAbsolute::HorizontalLineTo(1.0 / 3.0)),
+            PathDef::Rel(PathDefRelative::VerticalLineTo(-1.0 / 3.0)),
+        ],
+        1,
+    );
+    assert_eq!(d, "H0.3v-0.3");
+}
+
+#[test]
+fn build_d_fixed_rounds_smooth_and_quadratic_bezier_arguments() {
+    let d = build_d_fixed(
+        &[
+            PathDef::Abs(PathDefAbsolute::SmoothCubicBezierTo(Point::new(1.0 / 3.0, 0.0), Point::new(0.0, 0.0))),
+            PathDef::Abs(PathDefAbsolute::SmoothQuadraticBezierTo(Point::new(1.0 / 3.0, 0.0))),
+        ],
+        2,
+    );
+    assert_eq!(d, "S0.33 0.00 0.00 0.00T0.33 0.00");
+}
+
+/// The two elliptical-arc flags must never be affected by `dps`: the SVG `flag` grammar production is exactly one
+/// `"0"` or `"1"` digit, not a decimal number, so rounding them to `"0.00"`/`"1.00"` would be invalid path syntax.
+#[test]
+fn build_d_fixed_never_rounds_elliptical_arc_flags() {
+    let d = build_d_fixed(
+        &[PathDef::Abs(PathDefAbsolute::EllipticalArcTo(EllipticalArc {
+            radii: Point::new(1.0 / 3.0, 1.0 / 3.0),
+            x_axis_rotation: 1.0 / 3.0,
+            size: ArcSize::Large,
+            sweep: ArcSweep::Clockwise,
+            to: Point::new(1.0 / 3.0, 1.0 / 3.0),
+        }))],
+        2,
+    );
+    assert_eq!(d, "A0.33 0.33 0.33 1 1 0.33 0.33");
+}
+
+#[test]
+fn write_d_fixed_clamps_dps_to_max() {
+    let mut clamped = String::new();
+    let mut at_max = String::new();
+    let defs = [PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(1.5, 2.5)))];
+    write_d_fixed(&mut clamped, &defs, usize::MAX);
+    write_d_fixed(&mut at_max, &defs, 20);
+    assert_eq!(clamped, at_max, "usize::MAX dps must produce the same output as the MAX_DPS clamp");
+}
+
+#[test]
+fn write_d_fixed_matches_build_d_fixed_for_the_same_input() {
+    let defs = [
+        PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(0.0, 0.0))),
+        PathDef::Abs(PathDefAbsolute::LineTo(Point::new(5.0 / 3.0, 5.0 / 3.0))),
+    ];
+    let mut buf = String::new();
+    write_d_fixed(&mut buf, &defs, 3);
+    assert_eq!(buf, build_d_fixed(&defs, 3));
+}

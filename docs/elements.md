@@ -206,6 +206,8 @@ A hand-written `d` string is free text: a typo'd command letter, a missing argum
 | `SvgAttrs::d_from_defs(&node, &[PathDef])` | Writes `d` through `SvgAttrs`'s reusable scratch buffer. |
 | `AttrWriter::d_from_defs(&[PathDef])` | The chainable-writer equivalent, via `node.attrs(&mut attrs)`. |
 | `AnimationFrame::set_d_from_defs(&node, &[PathDef])` | The per-frame equivalent, for use inside `AnimationLoop::start_with_frame`. |
+| `write_d_fixed(&mut String, &[PathDef], dps)` / `build_d_fixed(&[PathDef], dps)` | Like `write_d`/`build_d`, but every coordinate, length, and rotation angle is rounded to `dps` decimal places (clamped to 20). The elliptical-arc flags are never rounded — the SVG grammar requires them to stay a bare `0`/`1`. |
+| `SvgAttrs::d_from_defs_fixed` / `AttrWriter::d_from_defs_fixed` / `AnimationFrame::set_d_from_defs_fixed` | The fixed-precision counterparts of the three methods above, mirroring `points_fixed`/`set_points_fixed`. Use these for path data computed during an animation, where the default shortest-round-trip formatting would otherwise carry more digits than needed. |
 
 ### Example
 

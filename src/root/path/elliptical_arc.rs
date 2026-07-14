@@ -1,4 +1,4 @@
-use crate::root::utils::Point;
+use crate::root::utils::{MAX_DPS, Point};
 use std::fmt::Write;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -67,17 +67,43 @@ pub struct EllipticalArc {
 
 impl EllipticalArc {
     /// Outputs a path segment for this elliptical arc using the given command character.
-    pub fn write(self, out: &mut String, cmd: char) {
-        let _ = write!(
-            out,
-            "{cmd}{} {} {} {} {} {} {}",
-            self.radii.x,
-            self.radii.y,
-            self.x_axis_rotation,
-            self.size.flag(),
-            self.sweep.flag(),
-            self.to.x,
-            self.to.y,
-        );
+    ///
+    /// `dps` (clamped to `MAX_DPS` = 20) fixes the decimal precision of the radii, rotation, and end point — `None`
+    /// uses the default shortest round-trip representation.
+    ///
+    /// The two flags are deliberately never subject to `dps`: the SVG path grammar's `flag` production is exactly
+    /// one `"0"` or `"1"` digit, not a decimal number, so they are always written via `ArcSize`/`ArcSweep`'s `u8`
+    /// `Display` regardless of the requested precision — rounding them would either be a no-op (they are already
+    /// integral) or, worse, invalid path syntax if ever formatted with a decimal point.
+    pub fn write(self, out: &mut String, cmd: char, dps: Option<usize>) {
+        match dps {
+            Some(n) => {
+                let n = n.min(MAX_DPS);
+                let _ = write!(
+                    out,
+                    "{cmd}{:.n$} {:.n$} {:.n$} {} {} {:.n$} {:.n$}",
+                    self.radii.x,
+                    self.radii.y,
+                    self.x_axis_rotation,
+                    self.size.flag(),
+                    self.sweep.flag(),
+                    self.to.x,
+                    self.to.y,
+                );
+            },
+            None => {
+                let _ = write!(
+                    out,
+                    "{cmd}{} {} {} {} {} {} {}",
+                    self.radii.x,
+                    self.radii.y,
+                    self.x_axis_rotation,
+                    self.size.flag(),
+                    self.sweep.flag(),
+                    self.to.x,
+                    self.to.y,
+                );
+            },
+        }
     }
 }

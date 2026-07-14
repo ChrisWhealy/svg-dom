@@ -2,7 +2,7 @@ use crate::{
     error::Error,
     node::SvgNode,
     root::{
-        path::path_def::{PathDef, write_d},
+        path::path_def::{PathDef, write_d, write_d_fixed},
         utils::{Point, write_points},
     },
 };
@@ -104,6 +104,17 @@ impl AnimationFrame {
     /// from typed [`PathDef`] segments, without allocating a fresh string each frame.
     pub fn set_d_from_defs(&mut self, node: &SvgNode, defs: &[PathDef]) -> Result<(), Error> {
         write_d(&mut self.scratch, defs);
+        node.set_attr("d", &self.scratch)
+    }
+
+    /// Like [`set_d_from_defs`](Self::set_d_from_defs), but writes each coordinate, length, and rotation angle with
+    /// `dps` fixed decimal places (clamped to 20).
+    ///
+    /// The per-frame counterpart to [`SvgAttrs::d_from_defs_fixed`](crate::SvgAttrs::d_from_defs_fixed) — shorter
+    /// per-frame output for a path whose coordinates come from a calculation, where the full-precision string would
+    /// otherwise dominate the data crossing the WASM/JS boundary each frame.
+    pub fn set_d_from_defs_fixed(&mut self, node: &SvgNode, defs: &[PathDef], dps: usize) -> Result<(), Error> {
+        write_d_fixed(&mut self.scratch, defs, dps);
         node.set_attr("d", &self.scratch)
     }
 

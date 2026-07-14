@@ -5,7 +5,7 @@ pub use writer::AttrWriter;
 use crate::{
     Error, SvgNode, dom_err,
     root::{
-        path::path_def::{PathDef, write_d},
+        path::path_def::{PathDef, write_d, write_d_fixed},
         utils::{Point, write_points},
     },
 };
@@ -163,6 +163,34 @@ impl SvgAttrs {
     /// ```
     pub fn d_from_defs(&mut self, node: &SvgNode, defs: &[PathDef]) -> Result<(), Error> {
         write_d(&mut self.scratch, defs);
+        node.set_attr("d", &self.scratch)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Like [`d_from_defs`](Self::d_from_defs), but writes every coordinate, length, and rotation angle with `dps`
+    /// fixed decimal places (clamped to 20).
+    ///
+    /// Mirrors [`points_fixed`](Self::points_fixed): use this when the path data comes from a calculation — an
+    /// animation, a procedurally sampled curve — so the emitted `d` string does not carry more digits of precision
+    /// than the caller actually needs. The two `EllipticalArc` flags are never rounded; see
+    /// [`write_d_fixed`] for why.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{PathDef, PathDefAbsolute, SvgAttrs, SvgRoot, root::utils::Point};
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let path = svg.path("M 0 0 L 100 100")?;
+    ///
+    /// let mut attrs = SvgAttrs::new();
+    /// attrs.d_from_defs_fixed(&path, &[
+    ///     PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(0.0, 0.0))),
+    ///     PathDef::Abs(PathDefAbsolute::LineTo(Point::new(33.333, 66.667))),
+    /// ], 1)?; // "M0.0 0.0L33.3 66.7"
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn d_from_defs_fixed(&mut self, node: &SvgNode, defs: &[PathDef], dps: usize) -> Result<(), Error> {
+        write_d_fixed(&mut self.scratch, defs, dps);
         node.set_attr("d", &self.scratch)
     }
 

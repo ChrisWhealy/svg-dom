@@ -86,9 +86,9 @@ pub use root::{
     gradient::{GradientUnits, SpreadMethod, linear::SvgLinearGradient, radial::SvgRadialGradient},
     marker::{MarkerUnits, SvgMarker},
     path::{
-        PathDef, PathDefAbsolute, PathDefRelative, build_d,
+        PathDef, PathDefAbsolute, PathDefRelative, build_d, build_d_fixed,
         elliptical_arc::{ArcSize, ArcSweep, EllipticalArc},
-        write_d,
+        write_d, write_d_fixed,
     },
     pattern::{PatternUnits, SvgPattern},
     svg_root::SvgRoot,

@@ -218,7 +218,12 @@ As adjacent positional `bool`s in a tuple variant, they are easy to transpose â€
 Coordinates are written with plain `{}` (`Display`) formatting (Rust's shortest round-trip representation) rather than a fixed decimal count, mirroring `write_points`'s default-precision path in `root::utils`.
 This keeps whole-number demo coordinates compact (`"70"`, not `"70.0"`).
 
-There is deliberately no fixed-precision variant analogous to `points_fixed`: unlike a `<polyline>`'s point list, path data mixes several different argument shapes (coordinates, a rotation angle, two single-bit flags), so a uniform *"n decimal places for everything"* knob would not obviously do the right thing across all of them; a caller who needs shorter numbers can round the `f64` before constructing the `PathDef`.
+`write_d_fixed` / `build_d_fixed` (and the `d_from_defs_fixed` methods layered on top, mirroring `points_fixed`) do add a fixed-precision mode â€” but the "n decimal places for everything" knob only ever reaches the genuinely continuous arguments: coordinates, lengths, and the arc's `x_axis_rotation`.
+It deliberately never reaches the two Boolean flags belonging to [`EllipticalArc`].
+`large-arc-flag` and `sweep-flag` are written via `ArcSize`/`ArcSweep`'s `u8` `Display` regardless of `dps`, because the SVG `flag` grammar require Boolean `true` and `false` to be represented as `"0"` or `"1"`.
+
+This is the concrete version of the general caution about path data mixing several different argument shapes: a uniform `dps` is safe for every numeric field *except* the numeric representation of a Boolean value.
+So those two fields are simply carved out of the fixed-precision path entirely rather than trusting a caller to remember not to round them.
 
 ### Path `d` strings omit whitespace
 

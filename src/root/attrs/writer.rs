@@ -88,6 +88,16 @@ impl<'a> AttrWriter<'a> {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Writes path-data `d` through the reusable scratch buffer, with each coordinate at `dps` fixed decimal places
+    /// (clamped to 20).
+    ///
+    /// See [`SvgAttrs::d_from_defs_fixed`] for the full rationale.
+    pub fn d_from_defs_fixed(&mut self, defs: &[PathDef], dps: usize) -> Result<&mut Self, Error> {
+        self.attrs.d_from_defs_fixed(self.node, defs, dps)?;
+        Ok(self)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Writes a `<polyline>` / `<polygon>` `points` list through the reusable scratch buffer.
     ///
     /// See [`SvgAttrs::points`] for the allocation-light, animation-friendly rationale.

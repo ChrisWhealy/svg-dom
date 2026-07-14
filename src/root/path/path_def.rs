@@ -1,5 +1,5 @@
 use super::elliptical_arc::EllipticalArc;
-use crate::root::utils::Point;
+use crate::root::utils::{MAX_DPS, Point};
 use std::fmt::Write;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -33,34 +33,63 @@ pub enum PathDefAbsolute {
 }
 
 impl PathDefAbsolute {
-    fn write(self, out: &mut String) {
-        match self {
-            Self::MoveTo(p) => {
+    fn write(self, out: &mut String, dps: Option<usize>) {
+        match (self, dps) {
+            (Self::MoveTo(p), Some(n)) => {
+                let n = n.min(MAX_DPS);
+                let _ = write!(out, "M{:.n$} {:.n$}", p.x, p.y);
+            },
+            (Self::MoveTo(p), None) => {
                 let _ = write!(out, "M{} {}", p.x, p.y);
             },
-            Self::LineTo(p) => {
+            (Self::LineTo(p), Some(n)) => {
+                let n = n.min(MAX_DPS);
+                let _ = write!(out, "L{:.n$} {:.n$}", p.x, p.y);
+            },
+            (Self::LineTo(p), None) => {
                 let _ = write!(out, "L{} {}", p.x, p.y);
             },
-            Self::HorizontalLineTo(x) => {
+            (Self::HorizontalLineTo(x), Some(n)) => {
+                let _ = write!(out, "H{:.*}", n.min(MAX_DPS), x);
+            },
+            (Self::HorizontalLineTo(x), None) => {
                 let _ = write!(out, "H{x}");
             },
-            Self::VerticalLineTo(y) => {
+            (Self::VerticalLineTo(y), Some(n)) => {
+                let _ = write!(out, "V{:.*}", n.min(MAX_DPS), y);
+            },
+            (Self::VerticalLineTo(y), None) => {
                 let _ = write!(out, "V{y}");
             },
-            Self::CubicBezierTo(c1, c2, to) => {
+            (Self::CubicBezierTo(c1, c2, to), Some(n)) => {
+                let n = n.min(MAX_DPS);
+                let _ = write!(out, "C{:.n$} {:.n$} {:.n$} {:.n$} {:.n$} {:.n$}", c1.x, c1.y, c2.x, c2.y, to.x, to.y);
+            },
+            (Self::CubicBezierTo(c1, c2, to), None) => {
                 let _ = write!(out, "C{} {} {} {} {} {}", c1.x, c1.y, c2.x, c2.y, to.x, to.y);
             },
-            Self::SmoothCubicBezierTo(c2, to) => {
+            (Self::SmoothCubicBezierTo(c2, to), Some(n)) => {
+                let n = n.min(MAX_DPS);
+                let _ = write!(out, "S{:.n$} {:.n$} {:.n$} {:.n$}", c2.x, c2.y, to.x, to.y);
+            },
+            (Self::SmoothCubicBezierTo(c2, to), None) => {
                 let _ = write!(out, "S{} {} {} {}", c2.x, c2.y, to.x, to.y);
             },
-            Self::QuadraticBezierTo(c, to) => {
+            (Self::QuadraticBezierTo(c, to), Some(n)) => {
+                let n = n.min(MAX_DPS);
+                let _ = write!(out, "Q{:.n$} {:.n$} {:.n$} {:.n$}", c.x, c.y, to.x, to.y);
+            },
+            (Self::QuadraticBezierTo(c, to), None) => {
                 let _ = write!(out, "Q{} {} {} {}", c.x, c.y, to.x, to.y);
             },
-            Self::SmoothQuadraticBezierTo(to) => {
+            (Self::SmoothQuadraticBezierTo(to), Some(n)) => {
+                let _ = write!(out, "T{:.*} {:.*}", n.min(MAX_DPS), to.x, n.min(MAX_DPS), to.y);
+            },
+            (Self::SmoothQuadraticBezierTo(to), None) => {
                 let _ = write!(out, "T{} {}", to.x, to.y);
             },
-            Self::EllipticalArcTo(arc) => arc.write(out, 'A'),
-            Self::ClosePath => out.push('Z'),
+            (Self::EllipticalArcTo(arc), dps) => arc.write(out, 'A', dps),
+            (Self::ClosePath, _) => out.push('Z'),
         }
     }
 }
@@ -96,34 +125,63 @@ pub enum PathDefRelative {
 }
 
 impl PathDefRelative {
-    fn write(self, out: &mut String) {
-        match self {
-            Self::MoveTo(p) => {
+    fn write(self, out: &mut String, dps: Option<usize>) {
+        match (self, dps) {
+            (Self::MoveTo(p), Some(n)) => {
+                let n = n.min(MAX_DPS);
+                let _ = write!(out, "m{:.n$} {:.n$}", p.x, p.y);
+            },
+            (Self::MoveTo(p), None) => {
                 let _ = write!(out, "m{} {}", p.x, p.y);
             },
-            Self::LineTo(p) => {
+            (Self::LineTo(p), Some(n)) => {
+                let n = n.min(MAX_DPS);
+                let _ = write!(out, "l{:.n$} {:.n$}", p.x, p.y);
+            },
+            (Self::LineTo(p), None) => {
                 let _ = write!(out, "l{} {}", p.x, p.y);
             },
-            Self::HorizontalLineTo(x) => {
+            (Self::HorizontalLineTo(x), Some(n)) => {
+                let _ = write!(out, "h{:.*}", n.min(MAX_DPS), x);
+            },
+            (Self::HorizontalLineTo(x), None) => {
                 let _ = write!(out, "h{x}");
             },
-            Self::VerticalLineTo(y) => {
+            (Self::VerticalLineTo(y), Some(n)) => {
+                let _ = write!(out, "v{:.*}", n.min(MAX_DPS), y);
+            },
+            (Self::VerticalLineTo(y), None) => {
                 let _ = write!(out, "v{y}");
             },
-            Self::CubicBezierTo(c1, c2, to) => {
+            (Self::CubicBezierTo(c1, c2, to), Some(n)) => {
+                let n = n.min(MAX_DPS);
+                let _ = write!(out, "c{:.n$} {:.n$} {:.n$} {:.n$} {:.n$} {:.n$}", c1.x, c1.y, c2.x, c2.y, to.x, to.y);
+            },
+            (Self::CubicBezierTo(c1, c2, to), None) => {
                 let _ = write!(out, "c{} {} {} {} {} {}", c1.x, c1.y, c2.x, c2.y, to.x, to.y);
             },
-            Self::SmoothCubicBezierTo(c2, to) => {
+            (Self::SmoothCubicBezierTo(c2, to), Some(n)) => {
+                let n = n.min(MAX_DPS);
+                let _ = write!(out, "s{:.n$} {:.n$} {:.n$} {:.n$}", c2.x, c2.y, to.x, to.y);
+            },
+            (Self::SmoothCubicBezierTo(c2, to), None) => {
                 let _ = write!(out, "s{} {} {} {}", c2.x, c2.y, to.x, to.y);
             },
-            Self::QuadraticBezierTo(c, to) => {
+            (Self::QuadraticBezierTo(c, to), Some(n)) => {
+                let n = n.min(MAX_DPS);
+                let _ = write!(out, "q{:.n$} {:.n$} {:.n$} {:.n$}", c.x, c.y, to.x, to.y);
+            },
+            (Self::QuadraticBezierTo(c, to), None) => {
                 let _ = write!(out, "q{} {} {} {}", c.x, c.y, to.x, to.y);
             },
-            Self::SmoothQuadraticBezierTo(to) => {
+            (Self::SmoothQuadraticBezierTo(to), Some(n)) => {
+                let _ = write!(out, "t{:.*} {:.*}", n.min(MAX_DPS), to.x, n.min(MAX_DPS), to.y);
+            },
+            (Self::SmoothQuadraticBezierTo(to), None) => {
                 let _ = write!(out, "t{} {}", to.x, to.y);
             },
-            Self::EllipticalArcTo(arc) => arc.write(out, 'a'),
-            Self::ClosePath => out.push('z'),
+            (Self::EllipticalArcTo(arc), dps) => arc.write(out, 'a', dps),
+            (Self::ClosePath, _) => out.push('z'),
         }
     }
 }
@@ -149,10 +207,10 @@ pub enum PathDef {
 }
 
 impl PathDef {
-    fn write(self, out: &mut String) {
+    fn write(self, out: &mut String, dps: Option<usize>) {
         match self {
-            PathDef::Abs(cmd) => cmd.write(out),
-            PathDef::Rel(cmd) => cmd.write(out),
+            PathDef::Abs(cmd) => cmd.write(out, dps),
+            PathDef::Rel(cmd) => cmd.write(out, dps),
         }
     }
 }
@@ -170,10 +228,33 @@ impl PathDef {
 /// Omitting the whitespace both after a command letter and before the next argument is a standard, lossless path-size
 /// optimisation.  For example, `"M10 10L100 50Z"` is semantically identical to `"M 10 10 L 100 50 Z"` in every
 /// conforming SVG implementation, so the emitted `d` string can be shorter without sacrificing precision or validity.
+///
+/// Every numeric argument uses the default shortest round-trip representation; see [`write_d_fixed`] for a version
+/// that trims each coordinate to a fixed number of decimal places instead.
 pub fn write_d(out: &mut String, defs: &[PathDef]) {
     out.clear();
     for def in defs {
-        def.write(out);
+        def.write(out, None);
+    }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Like [`write_d`], but writes every coordinate, length, and rotation angle with `dps` fixed decimal places
+/// (clamped to `MAX_DPS` = 20).  The basic principle at work here is that shorter path strings mean less data needs to
+/// be sent across the WASM/JS boundary and consequently requires less DOM attribute storage.
+///
+/// Mirrors `write_points`'s fixed-precision mode (the shared internal helper behind
+/// [`SvgAttrs::points_fixed`](crate::SvgAttrs::points_fixed)): use this for path data whose coordinates come from a
+/// calculation (an animation, a procedurally sampled curve) rather than a literal value, so the emitted `d` string
+/// does not carry more digits of precision than the caller actually needs.
+///
+/// The two [`EllipticalArc`] flags (`large-arc-flag`, `sweep-flag`) are never affected by `dps`: the SVG grammar
+/// requires these Boolean flags to be represented by the digits `"0"` or `"1"`.  Consequently, they are always written
+/// as plain integers regardless of the requested precision.
+pub fn write_d_fixed(out: &mut String, defs: &[PathDef], dps: usize) {
+    out.clear();
+    for def in defs {
+        def.write(out, Some(dps));
     }
 }
 
@@ -199,5 +280,26 @@ pub fn write_d(out: &mut String, defs: &[PathDef]) {
 pub fn build_d(defs: &[PathDef]) -> String {
     let mut out = String::new();
     write_d(&mut out, defs);
+    out
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Like [`build_d`], but writes every coordinate, length, and rotation angle with `dps` fixed decimal places
+/// (clamped to `MAX_DPS` = 20). See [`write_d_fixed`] for the full rationale.
+///
+/// # Example
+///
+/// ```rust
+/// use svg_dom::{PathDef, PathDefAbsolute, build_d_fixed, root::utils::Point};
+///
+/// let d = build_d_fixed(&[
+///     PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(1.0 / 3.0, 2.0 / 3.0))),
+///     PathDef::Abs(PathDefAbsolute::LineTo(Point::new(10.0, 20.0))),
+/// ], 2);
+/// assert_eq!(d, "M0.33 0.67L10.00 20.00");
+/// ```
+pub fn build_d_fixed(defs: &[PathDef], dps: usize) -> String {
+    let mut out = String::new();
+    write_d_fixed(&mut out, defs, dps);
     out
 }
