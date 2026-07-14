@@ -11,6 +11,7 @@
 - [Caller-owned attribute cache for genuinely hot paths](#caller-owned-attribute-cache-for-genuinely-hot-paths)
 - [Multi-attribute updates](#multi-attribute-updates)
 - [Reusable attribute formatting](#reusable-attribute-formatting)
+- [`_ref` setters skip revalidating an already-validated id](#_ref-setters-skip-revalidating-an-already-validated-id)
 - [Shared element factory implementation](#shared-element-factory-implementation)
 - [Typesafe Path Data Builder](#typesafe-path-data-builder)
 - [`<filter>` primitives return a plain `SvgNode`](#filter-primitives-return-a-plain-svgnode)
@@ -174,6 +175,24 @@ Both the pointer-lifecycle and drag/touch demos route *every* `last: ...` readou
 The essential rule is that *all* writers should share one cache: partial caching, where some writers bypass it, is what would let the cache skip a genuinely needed write (which is why the cache is fed even from handlers, such as the native `drag` wrappers, that fire between `pointermove`s).
 
 The drag/touch demo's live *coordinate* readout is a separate node that changes on every move, so it keeps using `set_text_fmt` with a scratch buffer shared with the card's transform rather than the cache.
+
+## `_ref` setters skip revalidating an already-validated id
+
+Every reference-attribute setter on `SvgNode` (`set_marker_start`/`_mid`/`_end`, `set_fill_gradient`/`set_stroke_gradient`, `set_fill_pattern`/`set_stroke_pattern`, `set_clip_path`, `set_filter`) takes a bare `&str` id, validates it, then writes it as `attr="url(#id)"`.
+Each also has one or more handle-based `_ref` siblings (`set_marker_start_ref`, `set_fill_linear_gradient`, `set_fill_pattern_ref`, `set_clip_path_ref`, `set_filter_ref`, ...) that take the live element handle (`SvgMarker`, `SvgLinearGradient`, `SvgPattern`, `SvgClipPath`, `SvgFilter`) and forward its cached `id()` through the same bare-id setter — which re-validates a string that cannot possibly be invalid.
+
+Every one of these handle types guarantees its cached id is already valid: `validate_*_id` runs once at construction (`SvgDefs::marker`/`clip_path`/`filter`/`pattern`/`linear_gradient`/`radial_gradient` and their `build_*` siblings) and again inside each handle's own `set_id`, and each handle's generic `set_attr`/`set_attr_display` explicitly reject `"id"` (`Error::ReservedAttribute`) so the normal API can never desynchronise the cache from the DOM.
+The only bypass is writing through `as_element()` directly, already documented as an escape hatch that forfeits every crate-level guarantee.
+So by the time a `_ref` method reads `handle.id()`, re-scanning it is a repeated check of a string that has already been proven to be correct.
+
+This generalises the same principle that `create_path_from_defs` and `d_from_validated_defs` already apply to path data (see above): validate once at the untrusted boundary (a bare `&str` from arbitrary caller code), and let a path that started from an already-validated source skip straight to the write.
+
+Concretely, every bare-id setter now delegates to a private `SvgNode::set_url_ref(attr, id)` that only formats `url(#id)` and writes the attribute, while every `_ref` setter calls `set_url_ref` directly with the handle's cached id, bypassing the bare-id setter (and its validation) entirely.
+
+One private helper shared across all nine reference-attribute pairs, rather than one per attribute kind, since the `url(#...)` wrapping and write are identical regardless of which attribute or id kind is involved — only the attribute name and id string differ, and both are already parameters.
+
+The saving is one string scan per call — the same order of magnitude as the path-validation case above, and for the same reason, it is not worth optimising away on its own merits for a single call.
+It compounds when one handle (a shared marker, a reusable gradient) is applied to many elements, which is a common pattern this crate's own demos use (e.g. arrowhead markers applied to several lines).
 
 ## Shared element factory implementation
 

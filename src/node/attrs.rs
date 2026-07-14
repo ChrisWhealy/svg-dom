@@ -279,6 +279,24 @@ impl SvgNode {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Writes `attr="url(#id)"`, the shared shape behind every paint-server / marker / clip-path / filter reference
+    /// attribute.
+    ///
+    /// Does not validate `id`. Every validated public setter below (`set_marker_start`, `set_fill_gradient`, ...)
+    /// calls [`validate_marker_id`] or its siblings first, then delegates here.
+    ///
+    /// Every `_ref` variant instead calls this directly with the id already cached on the referenced handle
+    /// (`SvgMarker::id`, `SvgLinearGradient::id`, ...), which is guaranteed to be valid — checked once at the handle's
+    /// construction time and, if renamed, again by its own `set_id` — so re-scanning it here would only repeat work
+    /// already done.
+    ///
+    /// This mirrors `SvgAttrs::d_from_validated_defs`: validate once at the untrusted boundary, then let the already-
+    /// validated path skip straight to the write.
+    fn set_url_ref(&self, attr: &str, id: &str) -> Result<(), Error> {
+        self.set_attr(attr, &format!("url(#{id})"))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the `marker-start` attribute, painting the given marker at the first vertex of the element's stroke.
     ///
     /// `marker_id` is the bare `id` of an [`SvgMarker`] defined in a [`SvgDefs`](crate::SvgDefs) block;
@@ -290,7 +308,7 @@ impl SvgNode {
     /// as it eliminates the risk of typos and `url(#...)` double-wrapping.
     pub fn set_marker_start(&self, marker_id: &str) -> Result<(), Error> {
         validate_marker_id(marker_id)?;
-        self.set_attr("marker-start", &format!("url(#{marker_id})"))
+        self.set_url_ref("marker-start", marker_id)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -305,7 +323,7 @@ impl SvgNode {
     /// as it eliminates the risk of typos and `url(#...)` double-wrapping.
     pub fn set_marker_mid(&self, marker_id: &str) -> Result<(), Error> {
         validate_marker_id(marker_id)?;
-        self.set_attr("marker-mid", &format!("url(#{marker_id})"))
+        self.set_url_ref("marker-mid", marker_id)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -319,7 +337,7 @@ impl SvgNode {
     /// eliminates the risk of typos and `url(#...)` double-wrapping.
     pub fn set_marker_end(&self, marker_id: &str) -> Result<(), Error> {
         validate_marker_id(marker_id)?;
-        self.set_attr("marker-end", &format!("url(#{marker_id})"))
+        self.set_url_ref("marker-end", marker_id)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -332,7 +350,7 @@ impl SvgNode {
     /// If the marker is later renamed with [`SvgMarker::set_id`](crate::SvgMarker::set_id), this element's attribute is
     /// not updated automatically — reapply the reference after renaming if needed.
     pub fn set_marker_start_ref(&self, marker: &SvgMarker) -> Result<(), Error> {
-        self.set_marker_start(marker.id())
+        self.set_url_ref("marker-start", marker.id())
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -345,7 +363,7 @@ impl SvgNode {
     /// If the marker is later renamed with [`SvgMarker::set_id`](crate::SvgMarker::set_id), this element's attribute is
     /// not updated automatically — reapply the reference after renaming if needed.
     pub fn set_marker_mid_ref(&self, marker: &SvgMarker) -> Result<(), Error> {
-        self.set_marker_mid(marker.id())
+        self.set_url_ref("marker-mid", marker.id())
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -373,7 +391,7 @@ impl SvgNode {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn set_marker_end_ref(&self, marker: &SvgMarker) -> Result<(), Error> {
-        self.set_marker_end(marker.id())
+        self.set_url_ref("marker-end", marker.id())
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -463,7 +481,7 @@ impl SvgNode {
     /// they eliminate the risk of typos and `url(#...)` double-wrapping.
     pub fn set_fill_gradient(&self, gradient_id: &str) -> Result<(), Error> {
         validate_gradient_id(gradient_id)?;
-        self.set_attr("fill", &format!("url(#{gradient_id})"))
+        self.set_url_ref("fill", gradient_id)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -479,7 +497,7 @@ impl SvgNode {
     /// they eliminate the risk of typos and `url(#...)` double-wrapping.
     pub fn set_stroke_gradient(&self, gradient_id: &str) -> Result<(), Error> {
         validate_gradient_id(gradient_id)?;
-        self.set_attr("stroke", &format!("url(#{gradient_id})"))
+        self.set_url_ref("stroke", gradient_id)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -510,7 +528,7 @@ impl SvgNode {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn set_fill_linear_gradient(&self, gradient: &SvgLinearGradient) -> Result<(), Error> {
-        self.set_fill_gradient(gradient.id())
+        self.set_url_ref("fill", gradient.id())
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -519,7 +537,7 @@ impl SvgNode {
     /// This is the preferred alternative to [`set_stroke_gradient`](Self::set_stroke_gradient) when you have
     /// the gradient handle.
     pub fn set_stroke_linear_gradient(&self, gradient: &SvgLinearGradient) -> Result<(), Error> {
-        self.set_stroke_gradient(gradient.id())
+        self.set_url_ref("stroke", gradient.id())
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -528,7 +546,7 @@ impl SvgNode {
     /// This is the preferred alternative to [`set_fill_gradient`](Self::set_fill_gradient) when you have
     /// the gradient handle.
     pub fn set_fill_radial_gradient(&self, gradient: &SvgRadialGradient) -> Result<(), Error> {
-        self.set_fill_gradient(gradient.id())
+        self.set_url_ref("fill", gradient.id())
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -537,7 +555,7 @@ impl SvgNode {
     /// This is the preferred alternative to [`set_stroke_gradient`](Self::set_stroke_gradient) when you have
     /// the gradient handle.
     pub fn set_stroke_radial_gradient(&self, gradient: &SvgRadialGradient) -> Result<(), Error> {
-        self.set_stroke_gradient(gradient.id())
+        self.set_url_ref("stroke", gradient.id())
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -552,7 +570,7 @@ impl SvgNode {
     /// eliminates the risk of typos and `url(#...)` double-wrapping.
     pub fn set_fill_pattern(&self, pattern_id: &str) -> Result<(), Error> {
         validate_pattern_id(pattern_id)?;
-        self.set_attr("fill", &format!("url(#{pattern_id})"))
+        self.set_url_ref("fill", pattern_id)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -566,7 +584,7 @@ impl SvgNode {
     /// Prefer [`set_stroke_pattern_ref`](Self::set_stroke_pattern_ref) when you have the pattern handle available.
     pub fn set_stroke_pattern(&self, pattern_id: &str) -> Result<(), Error> {
         validate_pattern_id(pattern_id)?;
-        self.set_attr("stroke", &format!("url(#{pattern_id})"))
+        self.set_url_ref("stroke", pattern_id)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -575,7 +593,7 @@ impl SvgNode {
     /// This is the preferred alternative to [`set_fill_pattern`](Self::set_fill_pattern): the id is taken directly from
     /// the pattern handle, so there is no risk of typos or `url(#...)` double-wrapping.
     pub fn set_fill_pattern_ref(&self, pattern: &SvgPattern) -> Result<(), Error> {
-        self.set_fill_pattern(pattern.id())
+        self.set_url_ref("fill", pattern.id())
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -584,7 +602,7 @@ impl SvgNode {
     /// This is the preferred alternative to [`set_stroke_pattern`](Self::set_stroke_pattern): the id is taken directly
     /// from the pattern handle, so there is no risk of typos or `url(#...)` double-wrapping.
     pub fn set_stroke_pattern_ref(&self, pattern: &SvgPattern) -> Result<(), Error> {
-        self.set_stroke_pattern(pattern.id())
+        self.set_url_ref("stroke", pattern.id())
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -602,7 +620,7 @@ impl SvgNode {
     /// To remove the clip, call [`remove_clip_path`](Self::remove_clip_path).
     pub fn set_clip_path(&self, clip_path_id: &str) -> Result<(), Error> {
         validate_clip_path_id(clip_path_id)?;
-        self.set_attr("clip-path", &format!("url(#{clip_path_id})"))
+        self.set_url_ref("clip-path", clip_path_id)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -636,7 +654,7 @@ impl SvgNode {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn set_clip_path_ref(&self, clip: &SvgClipPath) -> Result<(), Error> {
-        self.set_clip_path(clip.id())
+        self.set_url_ref("clip-path", clip.id())
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -662,7 +680,7 @@ impl SvgNode {
     /// To remove the filter, call [`remove_filter`](Self::remove_filter).
     pub fn set_filter(&self, filter_id: &str) -> Result<(), Error> {
         validate_filter_id(filter_id)?;
-        self.set_attr("filter", &format!("url(#{filter_id})"))
+        self.set_url_ref("filter", filter_id)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -696,7 +714,7 @@ impl SvgNode {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn set_filter_ref(&self, filter: &SvgFilter) -> Result<(), Error> {
-        self.set_filter(filter.id())
+        self.set_url_ref("filter", filter.id())
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
