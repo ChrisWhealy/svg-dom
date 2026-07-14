@@ -201,6 +201,32 @@ It is commonplace for callers to mix both absolute and relative path definitions
 
 `PathDef::{Abs, Rel}` is the thinnest possible wrapper that permits this: a single `Vec<PathDef>` (or array/slice literal) can freely interleave absolute and relative segments, exactly as hand-written path data would, while each individual segment stays unambiguous about which coordinate space it uses.
 
+### Measuring the nested-enum layout cost, rather than assuming it
+
+Rust does not guarantee enum layout, so whether wrapping `PathDefAbsolute`/`PathDefRelative` in `PathDef` actually costs anything beyond a single flattened enum is a question best answered by using `size_of`/`align_of`, not intuition.
+
+The `pathdef_size_diagnostics` unit test (`src/root/path/unit_tests.rs`) measures it directly and prints the numbers on every run (`cargo nextest run --lib pathdef_size_diagnostics --no-capture`), rather than asserting a fixed byte count that could legitimately change across targets or compiler versions.
+
+Measured on both the host target (x86_64/aarch64, `usize` = 8 bytes) and `wasm32-unknown-unknown` (`usize` = 4 bytes) — the numbers were identical on both, because every field in these types is an `f64`, `Point`, or a small fieldless enum, so alignment is driven entirely by `f64`'s 8-byte alignment, not by pointer width:
+
+| Type | `size_of` | `align_of` |
+|---|---|---|
+| `Point` | 16 | 8 |
+| `EllipticalArc` | 48 | 8 |
+| `PathDefAbsolute` | 56 | 8 |
+| `PathDefRelative` | 56 | 8 |
+| `PathDef` | 64 | 8 |
+
+`PathDef` is 8 bytes larger than either inner enum alone — a real, measured cost, not a hypothetical one.
+`ArcSize`/`ArcSweep` are two-variant fieldless enums, which do have a spare-bit-pattern niche a wrapping enum's discriminant could in principle occupy, but rustc's current layout algorithm does not thread that niche out through `EllipticalArc` and then through `PathDefAbsolute`/`PathDefRelative` to `PathDef`; instead the outer discriminant gets its own padded slot, sized to the type's 8-byte alignment.
+That slot is exactly one alignment unit, not an unbounded amount — `pathdef_size_diagnostics` asserts `size_of::<PathDef>() <= size_of::<PathDefAbsolute>() + align_of::<PathDefAbsolute>()` (and the `PathDefRelative` equivalent) as a structural regression guard, so a future accidental size regression (e.g. an added field, or a future rustc layout change that stops finding even this bound) fails the test rather than going unnoticed.
+
+For a `Vec<PathDef>` holding many commands, that is a genuine ~14% (8/56) memory overhead per command versus a single flattened ~20-variant enum, which, because its own largest variant is no bigger than `PathDefAbsolute`'s, would likely pay the same one-alignment-unit discriminant cost but only once, not twice.
+
+This difference is real and worth knowing about, but on its own, this is not a reason to flatten: it only matters if a program builds and retains large `Vec<PathDef>` arrays long-term (most callers build a `d` string once via `build_d`/`write_d` and then discard or reuse the `defs` slice), and flattening would double the variant count and duplicate the absolute/relative distinction across every command name — the API cost [`Two enums, not one, wrapped in a third`](#two-enums-not-one-wrapped-in-a-third) above already weighed against.
+
+Revisit only if profiling (not this measurement alone) shows stored `PathDef` arrays materially affecting memory footprint or serializer dispatch time in a real caller.
+
 ### `HorizontalLineTo` / `VerticalLineTo` take `f64`, not `Point`
 
 The SVG `H`/`h` and `V`/`v` commands each take a single coordinate.

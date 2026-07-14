@@ -390,3 +390,43 @@ fn should_accept_that_build_d_does_not_validate_leading_command() {
     let defs = [PathDef::Abs(PathDefAbsolute::LineTo(Point::new(1.0, 1.0)))];
     assert_eq!(build_d(&defs), "L1 1");
 }
+
+/// Diagnostic, not a portability assertion: layout is not guaranteed by Rust, so this deliberately does not
+/// `assert_eq!` against a fixed byte count (see `docs/design_notes.md`, "Measuring `PathDef`'s nested-enum
+/// layout cost" for the rationale and the numbers observed on the host and wasm32 targets at the time of writing).
+///
+/// The one assertion here is a structural regression guard rather than a target-specific magic number: wrapping
+/// `PathDefAbsolute`/`PathDefRelative` in `PathDef` can cost at most one extra alignment unit (the padded slot
+/// Rust's enum layout reserves for the outer discriminant when it cannot find a spare niche in the inner type),
+/// so `PathDef` must never be larger than that — if it were, either the outer wrapper stopped being a single
+/// niche-or-one-word tag, or an inner variant grew unexpectedly.
+#[test]
+fn pathdef_size_diagnostics() {
+    use std::mem::{align_of, size_of};
+
+    eprintln!(
+        "size_of: Point={} EllipticalArc={} PathDefAbsolute={} PathDefRelative={} PathDef={} \
+         Vec<PathDef> (64 commands)={}",
+        size_of::<Point>(),
+        size_of::<EllipticalArc>(),
+        size_of::<PathDefAbsolute>(),
+        size_of::<PathDefRelative>(),
+        size_of::<PathDef>(),
+        64 * size_of::<PathDef>(),
+    );
+
+    assert!(
+        size_of::<PathDef>() <= size_of::<PathDefAbsolute>() + align_of::<PathDefAbsolute>(),
+        "PathDef ({} bytes) grew by more than one alignment unit ({}) over PathDefAbsolute ({} bytes)",
+        size_of::<PathDef>(),
+        align_of::<PathDefAbsolute>(),
+        size_of::<PathDefAbsolute>(),
+    );
+    assert!(
+        size_of::<PathDef>() <= size_of::<PathDefRelative>() + align_of::<PathDefRelative>(),
+        "PathDef ({} bytes) grew by more than one alignment unit ({}) over PathDefRelative ({} bytes)",
+        size_of::<PathDef>(),
+        align_of::<PathDefRelative>(),
+        size_of::<PathDefRelative>(),
+    );
+}
