@@ -106,7 +106,8 @@ impl SvgFilter {
     pub fn set_id(&mut self, id: &str) -> Result<(), Error> {
         super::defs::validate_filter_id(id)?;
         self.element.set_attribute("id", id).map_err(dom_err)?;
-        self.id = id.to_owned();
+        self.id.clear();
+        self.id.push_str(id);
         Ok(())
     }
 

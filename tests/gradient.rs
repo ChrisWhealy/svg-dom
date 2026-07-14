@@ -9,10 +9,11 @@ use wasm_bindgen_test::*;
 
 wasm_bindgen_test_configure!(run_in_browser);
 
-// This file covers only the SvgNode id-reference setters (set_fill_gradient/set_stroke_gradient and their
-// set_*_linear_gradient/set_*_radial_gradient handle-based siblings) — the part of the gradient API touched by
-// the set_url_ref refactor. Broader gradient coverage (stops, axis/focal coordinates, spreadMethod,
-// gradientUnits/gradientTransform) is a separate, pre-existing gap, not attempted here.
+// This file covers construction, id() / set_id() (including the cached-id-allocation-reuse change), and the
+// SvgNode id-reference setters (set_fill_gradient/set_stroke_gradient and their set_*_linear_gradient /
+// set_*_radial_gradient handle-based siblings) — the parts of the gradient API touched across recent changes.
+// Broader gradient coverage (stops, axis/focal coordinates, spreadMethod, gradientUnits/gradientTransform) is a
+// separate, pre-existing gap, not attempted here.
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Construction sanity
@@ -34,6 +35,70 @@ fn should_create_radial_gradient_element() -> Result<(), String> {
     let defs = svg.defs().map_err(|e| e.to_string())?;
     let grad = defs.radial_gradient("rg").map_err(|e| e.to_string())?;
     check_eq(grad.as_element().tag_name(), "radialGradient".to_owned())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// id() / set_id()
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `SvgLinearGradient::id()` returns the cached id without a DOM round-trip.
+#[wasm_bindgen_test]
+fn should_return_cached_linear_gradient_id() -> Result<(), String> {
+    let svg = make_svg("grad-lin-cached-id");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let grad = defs.linear_gradient("cached-lin").map_err(|e| e.to_string())?;
+    check_eq(grad.id(), "cached-lin")
+}
+
+/// `set_id` updates both the DOM attribute and the cached value on `SvgLinearGradient`.
+#[wasm_bindgen_test]
+fn should_set_linear_gradient_id_via_set_id() -> Result<(), String> {
+    let svg = make_svg("grad-lin-set-id");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let mut grad = defs.linear_gradient("old-lin").map_err(|e| e.to_string())?;
+    grad.set_id("new-lin").map_err(|e| e.to_string())?;
+    check_eq(grad.id(), "new-lin")?;
+    check_eq(grad.as_element().get_attribute("id"), Some("new-lin".into()))
+}
+
+/// `set_id` updates both the DOM attribute and the cached value on `SvgRadialGradient`.
+#[wasm_bindgen_test]
+fn should_set_radial_gradient_id_via_set_id() -> Result<(), String> {
+    let svg = make_svg("grad-rad-set-id");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let mut grad = defs.radial_gradient("old-rad").map_err(|e| e.to_string())?;
+    grad.set_id("new-rad").map_err(|e| e.to_string())?;
+    check_eq(grad.id(), "new-rad")?;
+    check_eq(grad.as_element().get_attribute("id"), Some("new-rad".into()))
+}
+
+/// `set_id` with an invalid id returns `Error::InvalidGradientId` and leaves the cached id unchanged.
+#[wasm_bindgen_test]
+fn should_reject_invalid_id_on_set_id() -> Result<(), String> {
+    let svg = make_svg("grad-set-id-invalid");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let mut grad = defs.linear_gradient("still-valid").map_err(|e| e.to_string())?;
+    let result = grad.set_id("url(#bad)");
+    check(
+        matches!(result, Err(Error::InvalidGradientId(_))),
+        "expected InvalidGradientId error from set_id with bad id",
+    )?;
+    check_eq(grad.id(), "still-valid")
+}
+
+/// Renaming to a longer id still round-trips correctly (exercises the id `String` growing past whatever
+/// capacity the previous id left it with).
+#[wasm_bindgen_test]
+fn should_set_gradient_id_longer_than_previous() -> Result<(), String> {
+    let svg = make_svg("grad-set-id-longer");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let mut grad = defs.linear_gradient("a").map_err(|e| e.to_string())?;
+    grad.set_id("a-much-longer-replacement-id").map_err(|e| e.to_string())?;
+    check_eq(grad.id(), "a-much-longer-replacement-id")?;
+    check_eq(
+        grad.as_element().get_attribute("id"),
+        Some("a-much-longer-replacement-id".into()),
+    )
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -123,5 +188,8 @@ fn should_set_stroke_radial_gradient() -> Result<(), String> {
     let grad = defs.radial_gradient("g-stroke-rad-ref").map_err(|e| e.to_string())?;
     let circle = svg.circle(Point::new(50.0, 50.0), 40.0).map_err(|e| e.to_string())?;
     circle.set_stroke_radial_gradient(&grad).map_err(|e| e.to_string())?;
-    check_eq(circle.as_element().get_attribute("stroke"), Some("url(#g-stroke-rad-ref)".into()))
+    check_eq(
+        circle.as_element().get_attribute("stroke"),
+        Some("url(#g-stroke-rad-ref)".into()),
+    )
 }
