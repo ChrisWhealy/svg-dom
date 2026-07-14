@@ -92,7 +92,9 @@ fn should_write_method_attribute() -> Result<(), String> {
     let svg = make_svg("text-path-method");
     let txt = svg.text(Point::new(10.0, 20.0), "").map_err(|e| e.to_string())?;
     let path_text = txt.text_path("#arc", "hello").map_err(|e| e.to_string())?;
-    path_text.set_text_path_method(TextPathMethod::Stretch).map_err(|e| e.to_string())?;
+    path_text
+        .set_text_path_method(TextPathMethod::Stretch)
+        .map_err(|e| e.to_string())?;
     check_eq(path_text.as_element().get_attribute("method"), Some("stretch".to_owned()))
 }
 
@@ -102,7 +104,9 @@ fn should_write_spacing_attribute() -> Result<(), String> {
     let svg = make_svg("text-path-spacing");
     let txt = svg.text(Point::new(10.0, 20.0), "").map_err(|e| e.to_string())?;
     let path_text = txt.text_path("#arc", "hello").map_err(|e| e.to_string())?;
-    path_text.set_text_path_spacing(TextPathSpacing::Exact).map_err(|e| e.to_string())?;
+    path_text
+        .set_text_path_spacing(TextPathSpacing::Exact)
+        .map_err(|e| e.to_string())?;
     check_eq(path_text.as_element().get_attribute("spacing"), Some("exact".to_owned()))
 }
 
