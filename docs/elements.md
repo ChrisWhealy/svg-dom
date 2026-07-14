@@ -116,7 +116,8 @@ Remove the filter with `SvgNode::remove_filter()`.
 
 | Method | Element | Description |
 |---|---|---|
-| `gaussian_blur(std_deviation)` | `<feGaussianBlur>` | Blurs the input; larger `std_deviation` blurs more. Returns an `SvgNode`, so `in`/`result` (not yet wrapped by a named setter) can be set via `set_attr`. |
+| `gaussian_blur(std_deviation)` | `<feGaussianBlur>` | Blurs the input equally on both axes; larger `std_deviation` blurs more. Returns an `SvgNode`, so `in`/`result` (not yet wrapped by a named setter) can be set via `set_attr`. |
+| `gaussian_blur_xy(std_deviation_x, std_deviation_y)` | `<feGaussianBlur>` | Independent horizontal/vertical deviation, writing the SVG two-number `stdDeviation="x y"` form in a single attribute write. Pass `0.0` for one axis to blur only along the other. |
 | `offset(dx, dy)` | `<feOffset>` | Shifts the input by `(dx, dy)` user units. Returns an `SvgNode` for `in`/`result`, as above. |
 | `merge(inputs)` | `<feMerge>` (with `<feMergeNode>` children) | Stacks each `&str` in `inputs` as one `<feMergeNode in="...">` child, in order (later entries painted on top). The standard way to layer a shadow underneath the original graphic. |
 

@@ -2,7 +2,7 @@ use crate::{
     Error, SvgNode, dom_err,
     root::{attrs::SvgAttrs, create_svg_element},
 };
-use std::cell::RefCell;
+use std::{cell::RefCell, fmt};
 use web_sys::{Document, SvgElement};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -18,10 +18,11 @@ use web_sys::{Document, SvgElement};
 ///
 /// # Primitive coverage
 ///
-/// [`gaussian_blur`](Self::gaussian_blur) (`<feGaussianBlur>`), [`offset`](Self::offset) (`<feOffset>`), and
-/// [`merge`](Self::merge) (`<feMerge>`/`<feMergeNode>`) are implemented — together enough to build a drop shadow
-/// (blur the source alpha, offset it, then merge it underneath the original graphic; see [`merge`](Self::merge)'s
-/// example). The SVG filter specification defines around fifteen primitives in total (`feColorMatrix`,
+/// [`gaussian_blur`](Self::gaussian_blur) / [`gaussian_blur_xy`](Self::gaussian_blur_xy) (`<feGaussianBlur>`),
+/// [`offset`](Self::offset) (`<feOffset>`), and [`merge`](Self::merge) (`<feMerge>`/`<feMergeNode>`) are
+/// implemented — together enough to build a drop shadow (blur the source alpha, offset it, then merge it
+/// underneath the original graphic; see [`merge`](Self::merge)'s example). The SVG filter specification defines
+/// around fifteen primitives in total (`feColorMatrix`,
 /// `feComposite`, `feFlood`, `feBlend`, and others), each with its own attribute grammar. See `docs/gaps.md` for
 /// the primitives still to be added.
 ///
@@ -172,10 +173,32 @@ impl SvgFilter {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Appends a `<feGaussianBlur>` primitive to this filter, blurring its input by `std_deviation`.
+    /// Shared implementation behind [`gaussian_blur`](Self::gaussian_blur) and
+    /// [`gaussian_blur_xy`](Self::gaussian_blur_xy): creates a `<feGaussianBlur>`, writes `std_deviation` as its
+    /// `stdDeviation` attribute, and appends it.
+    ///
+    /// `std_deviation` is a pre-built [`fmt::Arguments`] rather than a `&str` so the two public callers can pass either
+    /// a single number or an `"x y"` pair through [`display_element`](SvgAttrs::display_element)'s retained scratch
+    /// buffer without first collecting into an owned `String`.  This is the same technique used by
+    /// [`SvgPattern::set_view_box`](crate::SvgPattern::set_view_box) and
+    /// [`SvgSymbol::set_view_box`](crate::SvgSymbol::set_view_box) to combine several numbers into one attribute.
+    fn gaussian_blur_args(&self, std_deviation: fmt::Arguments<'_>) -> Result<SvgNode, Error> {
+        let el = create_svg_element::<SvgElement>(&self.document, "feGaussianBlur", "SvgElement")?;
+        self.attrs.borrow_mut().display_element(&el, "stdDeviation", std_deviation)?;
+        self.element.append_child(&el).map_err(dom_err)?;
+        Ok(SvgNode::new(el))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Appends a `<feGaussianBlur>` primitive to this filter, blurring its input equally on both axes by
+    /// `std_deviation`.
     ///
     /// `std_deviation` is the standard deviation of the Gaussian blur kernel, in user units; larger values blur more.
     /// A `std_deviation` of `0.0` produces no blur (the input passes through unchanged).
+    ///
+    /// See [`gaussian_blur_xy`](Self::gaussian_blur_xy) for a blur with independent horizontal and vertical
+    /// deviations — the SVG `stdDeviation` attribute accepts either one or two numbers, and this method covers only
+    /// the one-number form.
     ///
     /// If this is the filter's first primitive, its implicit input is `SourceGraphic` (the referencing element as
     /// normally rendered). Use the returned [`SvgNode`]'s [`set_attr`](crate::SvgNode::set_attr) to set `in` (e.g.
@@ -198,10 +221,38 @@ impl SvgFilter {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn gaussian_blur(&self, std_deviation: f64) -> Result<SvgNode, Error> {
-        let el = create_svg_element::<SvgElement>(&self.document, "feGaussianBlur", "SvgElement")?;
-        self.attrs.borrow_mut().display_element(&el, "stdDeviation", std_deviation)?;
-        self.element.append_child(&el).map_err(dom_err)?;
-        Ok(SvgNode::new(el))
+        self.gaussian_blur_args(format_args!("{std_deviation}"))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Appends a `<feGaussianBlur>` primitive to this filter with independent horizontal and vertical standard
+    /// deviations, writing the SVG `stdDeviation="std_deviation_x std_deviation_y"` two-number form.
+    ///
+    /// Pass `0.0` for one axis to blur only along the other — for example `gaussian_blur_xy(0.0, 6.0)` blurs
+    /// vertically only, useful for a horizontal motion-blur effect.
+    ///
+    /// For an equal blur on both axes, prefer [`gaussian_blur`](Self::gaussian_blur): passing the same value twice
+    /// here writes the same two-number attribute the one-number form already implies, at no benefit.
+    ///
+    /// See [`gaussian_blur`](Self::gaussian_blur) for the `in`/`result` attributes, which apply identically here.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Dom`] if the browser refuses to create or append the `<feGaussianBlur>` element.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::SvgRoot;
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    /// let blur = defs.filter("streak")?;
+    /// blur.gaussian_blur_xy(12.0, 0.0)?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn gaussian_blur_xy(&self, std_deviation_x: f64, std_deviation_y: f64) -> Result<SvgNode, Error> {
+        self.gaussian_blur_args(format_args!("{std_deviation_x} {std_deviation_y}"))
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

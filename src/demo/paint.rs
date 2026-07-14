@@ -422,12 +422,15 @@ pub(super) fn demo_filter() -> Result<(), Error> {
     c4.set_filter("demo-filter-12")?;
     caption(&svg, xs[3], "12")?;
 
-
     // Drop-shadow banner text: the same blur -> offset -> merge chain applied to real text content rather than
-    // a plain shape, the effect's most common real-world use.
+    // a plain shape, the effect's most common real-world use. White fill with a narrow dark grey border keeps the
+    // glyphs legible against the dark canvas background; the shadow filter itself (colour and offset) is
+    // unchanged — it blurs whatever SourceGraphic renders to, so it naturally follows this fill/stroke change.
     let banner_x = 590.0;
     let banner = svg.text(Point::new(banner_x, mid_y + 12.0), "DROP SHADOW")?;
-    banner.set_fill(STEELBLUE)?;
+    banner.set_fill(WHITE)?;
+    banner.set_stroke("#333333")?;
+    banner.set_stroke_width(1.0)?;
     banner.set_font_size(42.0)?;
     banner.set_text_anchor(TextAnchor::Middle)?;
     banner.set_attr("font-weight", "bold")?;

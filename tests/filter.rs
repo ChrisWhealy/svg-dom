@@ -139,6 +139,63 @@ fn should_set_result_via_generic_escape_hatch() -> Result<(), String> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// gaussian_blur_xy primitive
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `gaussian_blur_xy` appends a `<feGaussianBlur>` child to the `<filter>` element.
+#[wasm_bindgen_test]
+fn should_add_gaussian_blur_xy_to_filter() -> Result<(), String> {
+    let svg = make_svg("filter-blur-xy-child");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("fbxy").map_err(|e| e.to_string())?;
+    filter.gaussian_blur_xy(3.0, 6.5).map_err(|e| e.to_string())?;
+    check_eq(filter.as_element().child_element_count(), 1)
+}
+
+/// The appended child has tag name `"feGaussianBlur"`, the same element `gaussian_blur` produces.
+#[wasm_bindgen_test]
+fn should_create_fe_gaussian_blur_element_via_xy() -> Result<(), String> {
+    let svg = make_svg("filter-blur-xy-tag");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("fbxyt").map_err(|e| e.to_string())?;
+    let blur = filter.gaussian_blur_xy(3.0, 6.5).map_err(|e| e.to_string())?;
+    check_eq(blur.as_element().tag_name(), "feGaussianBlur".to_owned())
+}
+
+/// `gaussian_blur_xy(3.0, 6.5)` writes the two-number `stdDeviation="3 6.5"` form in a single attribute, exactly
+/// as the SVG `<number-optional-number>` grammar for `stdDeviation` requires.
+#[wasm_bindgen_test]
+fn should_set_std_deviation_as_two_numbers() -> Result<(), String> {
+    let svg = make_svg("filter-blur-xy-std-dev");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("fbxysd").map_err(|e| e.to_string())?;
+    let blur = filter.gaussian_blur_xy(3.0, 6.5).map_err(|e| e.to_string())?;
+    check_eq(blur.as_element().get_attribute("stdDeviation"), Some("3 6.5".into()))
+}
+
+/// Passing `0.0` for one axis blurs only along the other, per the SVG grammar's documented use case.
+#[wasm_bindgen_test]
+fn should_allow_zero_on_one_axis() -> Result<(), String> {
+    let svg = make_svg("filter-blur-xy-zero-axis");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("fbxyz").map_err(|e| e.to_string())?;
+    let blur = filter.gaussian_blur_xy(0.0, 8.0).map_err(|e| e.to_string())?;
+    check_eq(blur.as_element().get_attribute("stdDeviation"), Some("0 8".into()))
+}
+
+/// The generic `SvgNode::set_attr` escape hatch works identically on a `gaussian_blur_xy` node as on a
+/// `gaussian_blur` one, since both return the same kind of handle around the same element.
+#[wasm_bindgen_test]
+fn should_set_result_on_gaussian_blur_xy_via_generic_escape_hatch() -> Result<(), String> {
+    let svg = make_svg("filter-blur-xy-result");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("fbxyr").map_err(|e| e.to_string())?;
+    let blur = filter.gaussian_blur_xy(3.0, 6.5).map_err(|e| e.to_string())?;
+    blur.set_attr("result", "blurred").map_err(|e| e.to_string())?;
+    check_eq(blur.as_element().get_attribute("result"), Some("blurred".into()))
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // offset primitive
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
