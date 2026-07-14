@@ -33,7 +33,7 @@ pub enum PathDefAbsolute {
 }
 
 impl PathDefAbsolute {
-    fn write(self, out: &mut String, dps: Option<usize>) {
+    fn write(&self, out: &mut String, dps: Option<usize>) {
         match (self, dps) {
             (Self::MoveTo(p), Some(n)) => {
                 let n = n.min(MAX_DPS);
@@ -129,7 +129,7 @@ pub enum PathDefRelative {
 }
 
 impl PathDefRelative {
-    fn write(self, out: &mut String, dps: Option<usize>) {
+    fn write(&self, out: &mut String, dps: Option<usize>) {
         match (self, dps) {
             (Self::MoveTo(p), Some(n)) => {
                 let n = n.min(MAX_DPS);
@@ -215,7 +215,7 @@ pub enum PathDef {
 }
 
 impl PathDef {
-    fn write(self, out: &mut String, dps: Option<usize>) {
+    fn write(&self, out: &mut String, dps: Option<usize>) {
         match self {
             PathDef::Abs(cmd) => cmd.write(out, dps),
             PathDef::Rel(cmd) => cmd.write(out, dps),
