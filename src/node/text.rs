@@ -524,8 +524,8 @@ impl SvgNode {
     ///   attribute of the target `<path>` (or, per SVG2, a basic shape such as `<circle>` or `<rect>`).
     ///   The target is typically defined inside [`SvgDefs`](crate::SvgDefs) so it is not rendered on its own; give it
     ///   a stroke and no fill (or place it in `<defs>`) to keep the guide path invisible.
-    /// * `content` — the visible text string that is drawn along the path, starting from [`set_start_offset`]
-    ///   (default `0`, the path's own start point).
+    /// * `content` — the visible text string that is drawn along the path, starting from
+    ///   [`set_start_offset`](Self::set_start_offset) (default `0`, the path's own start point).
     ///
     /// Like [`tspan`](Self::tspan), the returned handle accepts the usual text styling helpers (`set_fill`,
     /// `set_font_size`, `set_font_family`) which override whatever the parent `<text>` inherited, plus the
@@ -575,8 +575,8 @@ impl SvgNode {
     /// Sets the `startOffset` attribute on a `<textPath>`, in user units measured along the referenced path.
     ///
     /// Determines where the text begins: `0.0` (the default) starts at the path's own start point; larger values
-    /// slide the text further along the path (in the direction determined by [`TextPathSide`](Self::TextPathSide))
-    /// before the first glyph is drawn.
+    /// slide the text further along the path (in the direction determined by [`TextPathSide`]) before the first
+    /// glyph is drawn.
     ///
     /// To offset by a percentage of the path length instead of an absolute distance, use
     /// [`set_attr`](Self::set_attr) directly, e.g. `path_text.set_attr("startOffset", "50%")`.
