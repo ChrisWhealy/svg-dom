@@ -51,6 +51,7 @@ pub struct CachedAttr {
     written: bool,
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 impl CachedAttr {
     /// Creates an empty cache that has not yet written a value.
     ///

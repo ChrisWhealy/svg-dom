@@ -193,11 +193,19 @@ A hand-written `d` string is free text: a typo'd command letter, a missing argum
 | Method | Available on | Effect |
 |---|---|---|
 | `path(d)` | `SvgRoot`, `SvgBatch`, `SvgDefs`, `SvgClipPath`, `SvgMarker`, `SvgPattern`, `SvgSymbol` | Creates a `<path>` from a raw `d` string. |
-| `path_from_defs(&[PathDef])` | Same set of types | Creates a `<path>` from typed segments. |
+| `path_from_defs(&[PathDef])` | Same set of types | Creates a `<path>` from typed segments, writing `d` through the factory's own retained `SvgAttrs` buffer — no extra allocation beyond the first call. |
 | `SvgNode::set_d(d)` | Any `SvgNode` | Updates an existing `<path>`'s `d` string. |
-| `SvgNode::set_d_from_defs(&[PathDef])` | Any `SvgNode` | Updates an existing `<path>`'s `d` from typed segments. |
+| `SvgNode::set_d_from_defs(&[PathDef])` | Any `SvgNode` | Updates an existing `<path>`'s `d` from typed segments. Allocates a fresh `String` per call; consequently, this should only be used for occasional updates. See below for the hot-path alternatives. |
 | `build_d(&[PathDef])` | Free function | Builds a `d` string without creating or updating any element — useful for composing a path in pieces. |
 | `write_d(&mut String, &[PathDef])` | Free function | The buffer-reusing counterpart to `build_d`, for a hot path that rebuilds a curve every frame. |
+
+**Allocation-light updates**, mirroring the existing `points`/`points_fixed` pattern:
+
+| Method | Effect |
+|---|---|
+| `SvgAttrs::d_from_defs(&node, &[PathDef])` | Writes `d` through `SvgAttrs`'s reusable scratch buffer. |
+| `AttrWriter::d_from_defs(&[PathDef])` | The chainable-writer equivalent, via `node.attrs(&mut attrs)`. |
+| `AnimationFrame::set_d_from_defs(&node, &[PathDef])` | The per-frame equivalent, for use inside `AnimationLoop::start_with_frame`. |
 
 ### Example
 

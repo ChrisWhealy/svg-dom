@@ -16,7 +16,6 @@ use super::SvgNode;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 impl SvgNode {
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// # Attribute access
     ///
     /// Sets an arbitrary attribute on this element.
@@ -377,7 +376,8 @@ impl SvgNode {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the `d` (path data) attribute on a `<path>` element.
     ///
-    /// Alters an existing path created by [`SvgRoot::path`](crate::SvgRoot::path) without needing to recreate the DOM element.
+    /// Alters an existing path created by [`SvgRoot::path`](crate::SvgRoot::path) without needing to recreate the DOM
+    /// element.
     ///
     /// The `d` string uses standard SVG path commands where the arguments to the uppercase command supply absolute
     /// coordinates, and the arguments to the lowercase commands supply relative coordinates.
@@ -411,11 +411,17 @@ impl SvgNode {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Sets the `d` (path data) attribute on a `<path>` element from a sequence of typed
-    /// [`PathDef`] segments.
+    /// Sets the `d` (path data) attribute on a `<path>` element from a sequence of typed [`PathDef`] segments.
     ///
-    /// The type-safe alternative to [`set_d`](Self::set_d): the `d` string is built internally by
-    /// [`build_d`], so it is always syntactically valid SVG path data.
+    /// The type-safe alternative to [`set_d`](Self::set_d): the `d` string is built internally by [`build_d`], so it is
+    /// always a syntactically valid SVG path data.
+    ///
+    /// This convenience setter formats through a fresh, short-lived `String` allocated and dropped on each call
+    /// (fine for an occasional update); however, if you need to morph a path on the hot path (e.g. a `pointermove`
+    /// handler, or on every animation frame), then prefer [`SvgAttrs::d_from_defs`](crate::SvgAttrs::d_from_defs) /
+    /// [`AttrWriter::d_from_defs`](crate::AttrWriter::d_from_defs) or
+    /// [`AnimationFrame::set_d_from_defs`](crate::AnimationFrame::set_d_from_defs), which reuse a caller-owned
+    /// buffer instead.
     ///
     /// # Example
     ///

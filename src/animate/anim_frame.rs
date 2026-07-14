@@ -1,7 +1,10 @@
 use crate::{
     error::Error,
     node::SvgNode,
-    root::utils::{Point, write_points},
+    root::{
+        path::path_def::{PathDef, write_d},
+        utils::{Point, write_points},
+    },
 };
 use std::fmt::{self, Write};
 
@@ -41,12 +44,14 @@ pub struct AnimationFrame {
     pub scratch: String,
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 impl AnimationFrame {
     /// Creates an `AnimationFrame` with an empty scratch buffer.
     pub fn new() -> Self {
         Self { scratch: String::new() }
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Returns the reusable backing buffer used by this frame.
     ///
     /// This is useful when you want to build a value manually with `write!` and then pass it to one of the existing
@@ -55,6 +60,7 @@ impl AnimationFrame {
         &mut self.scratch
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Formats `args` into the reusable buffer and sets `name` on `node`.
     ///
     /// This is the allocation-light equivalent of:
@@ -72,21 +78,36 @@ impl AnimationFrame {
         node.set_attr(name, &self.scratch)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Writes a displayable value into the reusable buffer and sets `name` on `node`.
     pub fn set_attr<T: fmt::Display>(&mut self, node: &SvgNode, name: &str, value: T) -> Result<(), Error> {
         self.set_attr_fmt(node, name, format_args!("{value}"))
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Formats and sets the `fill` attribute.
     pub fn set_fill_fmt(&mut self, node: &SvgNode, args: fmt::Arguments<'_>) -> Result<(), Error> {
         self.set_attr_fmt(node, "fill", args)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Formats and sets the `d` path-data attribute.
     pub fn set_d_fmt(&mut self, node: &SvgNode, args: fmt::Arguments<'_>) -> Result<(), Error> {
         self.set_attr_fmt(node, "d", args)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Writes `defs` into the reusable buffer via [`write_d`] and sets the node's `d` attribute.
+    ///
+    /// The per-frame counterpart to [`SvgAttrs::d_from_defs`](crate::SvgAttrs::d_from_defs): use it to morph a
+    /// `<path>` from inside an [`AnimationLoop::start_with_frame`](crate::AnimationLoop::start_with_frame) callback
+    /// from typed [`PathDef`] segments, without allocating a fresh string each frame.
+    pub fn set_d_from_defs(&mut self, node: &SvgNode, defs: &[PathDef]) -> Result<(), Error> {
+        write_d(&mut self.scratch, defs);
+        node.set_attr("d", &self.scratch)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Formats and replaces the node's text content.
     pub fn set_text_fmt(&mut self, node: &SvgNode, args: fmt::Arguments<'_>) -> Result<(), Error> {
         self.scratch.clear();
@@ -95,6 +116,7 @@ impl AnimationFrame {
         Ok(())
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Formats `points` into the reusable buffer and sets the node's `points` attribute (`"x,y x,y ..."`).
     ///
     /// The per-frame counterpart to [`SvgAttrs::points`](crate::SvgAttrs::points): use it to animate the vertices of a
@@ -105,6 +127,7 @@ impl AnimationFrame {
         node.set_attr("points", &self.scratch)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Like [`set_points`](Self::set_points), but writes each coordinate with `decimals` fixed decimal places
     /// (clamped to 20).
     ///

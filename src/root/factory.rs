@@ -6,7 +6,7 @@ use crate::{Error, SvgNode};
 
 use super::{
     attrs::SvgAttrs,
-    path::path_def::{PathDef, build_d},
+    path::path_def::PathDef,
     utils::{Point, Size},
 };
 
@@ -94,8 +94,13 @@ pub(crate) trait SvgFactory {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // Writes `d` through the factory's own retained scratch buffer (see `create_rect` etc. above) instead of `build_d`,
+    // which allocates a fresh `String` on every call.
     fn create_path_from_defs(&self, defs: &[PathDef]) -> Result<SvgNode, Error> {
-        self.create_path(&build_d(defs))
+        let node = self.make_node("path")?;
+        self.attrs().borrow_mut().d_from_defs(&node, defs)?;
+        self.append_node(&node)?;
+        Ok(node)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

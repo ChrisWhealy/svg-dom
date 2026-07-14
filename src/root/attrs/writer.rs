@@ -1,5 +1,5 @@
 use super::SvgAttrs;
-use crate::{Error, SvgNode, root::utils::Point};
+use crate::{Error, PathDef, SvgNode, root::utils::Point};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Chainable attribute writer bound to a single [`SvgNode`].
@@ -21,6 +21,7 @@ impl<'a> AttrWriter<'a> {
         Self { attrs, node }
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets a string attribute.
     pub fn set(&mut self, name: &str, value: &str) -> Result<&mut Self, Error> {
         self.attrs.set(self.node, name, value)?;
@@ -75,6 +76,15 @@ impl<'a> AttrWriter<'a> {
     /// Convenience wrapper for path-data `d`.
     pub fn d(&mut self, path: &str) -> Result<&mut Self, Error> {
         self.set("d", path)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Writes path-data `d` through the reusable scratch buffer from typed [`PathDef`](crate::PathDef) segments.
+    ///
+    /// See [`SvgAttrs::d_from_defs`] for the allocation-light rationale.
+    pub fn d_from_defs(&mut self, defs: &[PathDef]) -> Result<&mut Self, Error> {
+        self.attrs.d_from_defs(self.node, defs)?;
+        Ok(self)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

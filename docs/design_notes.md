@@ -12,7 +12,7 @@
 - [Multi-attribute updates](#multi-attribute-updates)
 - [Reusable attribute formatting](#reusable-attribute-formatting)
 - [Shared element factory implementation](#shared-element-factory-implementation)
-- [Type-safe path-data builder](#type-safe-path-data-builder)
+- [Typesafe Path Data Builder](#typesafe-path-data-builder)
 - [Ideas Considered and Rejected](rejected_ideas.md)
 - [Performance Patterns](#performance-patterns)
 
@@ -188,7 +188,7 @@ A hand-written `d` string is free text, so there are no safeguards against it be
 The SVG parser does not reject a malformed `d` string outright; it simply stops rendering at the first token it cannot parse, so the failure is silent and possibly quite difficult to debug
 
 `PathDef` (in `root::path::path_def`, re-exported at the crate root) removes that failure mode by definition.
-A `<path>`'s `d` attribute is built from an ordered `&[PathDef]` slice instead of a string; `build_d` / `write_d` do the formatting, and these are wrapped by `path_from_defs` and `set_d_from_defs` for the create and update cases respectively.
+A `<path>`'s `d` attribute is built from an ordered `&[PathDef]` slice instead of a string; `build_d` / `write_d` do the formatting.
 
 Since a `PathDef` can only ever represent one well-formed SVG command, there is no possibility of creating a malformed `d` string.
 
@@ -219,6 +219,20 @@ Coordinates are written with plain `{}` (`Display`) formatting (Rust's shortest 
 This keeps whole-number demo coordinates (`"M 70 10"`, not `"M 70.0 10.0"`) exactly as compact as the hand-written strings they replace.
 
 There is deliberately no fixed-precision variant analogous to `points_fixed`: unlike a `<polyline>`'s point list, path data mixes several different argument shapes (coordinates, a rotation angle, two single-bit flags), so a uniform *"n decimal places for everything"* knob would not obviously do the right thing across all of them; a caller who needs shorter numbers can round the `f64` before constructing the `PathDef`.
+
+### Two allocation tiers, mirroring `points` / `set_attr_display`
+
+An earlier version of this feature had `path_from_defs` and `SvgNode::set_d_from_defs` both call `build_d`, which allocates a fresh `String` on every call.
+That included the shared `SvgFactory::create_path_from_defs` default method used by every `path_from_defs` factory sibling — nothing in the shipped API actually called `write_d` outside of `build_d`'s own body, contradicting `write_d`'s own documentation, which describes it as the buffer-reusing path for hot call sites.
+
+The fix follows the crate's existing two-tier split for `points`, verbatim:
+
+- **Node *creation*** (`path_from_defs` on `SvgRoot` and its factory siblings) now writes `d` through the factory's own retained `SvgAttrs` buffer — the same `self.attrs().borrow_mut()` pattern `create_rect` and friends already use — so repeated calls on one factory allocate at most once (for buffer growth), not once per call.
+
+- **Node *updates* on a live `SvgNode`** still have two tiers, exactly as `set_font_size` (allocating) and `set_attr_display` (caller-owned buffer) do for other attributes: `SvgNode::set_d_from_defs` remains a convenience that allocates a short-lived `String` per call (which is fine for an occasional update) while `SvgAttrs::d_from_defs` / `AttrWriter::d_from_defs` and `AnimationFrame::set_d_from_defs` reuse a caller-owned buffer for a path that is morphed on every `pointermove` event or every animation frame.
+
+`SvgNode` has no buffer of its own to reuse (it is a lightweight `Rc` handle, not a factory), which is exactly why the crate's hot-path attribute setters — `set_attr_display`, the transform setters, `AnimationFrame` — all take the scratch buffer as a parameter rather than owning one.
+`d_from_defs` follows that same shape rather than inventing a new one.
 
 # Performance Patterns
 

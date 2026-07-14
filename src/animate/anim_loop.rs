@@ -12,6 +12,7 @@ type SharedClosure = Rc<RefCell<Option<FrameClosure>>>;
 /// Shared cell holding the pending `requestAnimationFrame` handle so it can be cancelled.
 type RafHandle = Rc<Cell<i32>>;
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Dispatch state for the RAF loop.
 ///
 /// Tracks the dispatch lifecycle so that `stop()` is genuinely idempotent when called multiple times, or via `Drop`
@@ -31,6 +32,7 @@ enum AnimLoopState {
     Stopped,
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// # A running `window.requestAnimationFrame` loop.
 ///
 /// `requestAnimationFrame` is the browser API that schedules a callback immediately before the browser paints the next
@@ -110,6 +112,7 @@ impl AnimationLoop {
         Self::start_inner(callback)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Starts a `requestAnimationFrame` loop and gives each callback a reusable [`AnimationFrame`] buffer.
     ///
     /// This is intended for hot animation paths that update attributes such as `x`, `y`, `transform`, `d`, or text every
@@ -120,6 +123,7 @@ impl AnimationLoop {
         Self::start_inner(move |ts| callback(ts, &mut frame))
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fn start_inner<F: FnMut(f64) + 'static>(mut callback: F) -> Result<Self, Error> {
         let window = web_sys::window().ok_or_else(|| Error::Dom("no window".into()))?;
 

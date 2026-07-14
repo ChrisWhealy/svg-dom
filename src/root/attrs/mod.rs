@@ -4,7 +4,10 @@ pub use writer::AttrWriter;
 
 use crate::{
     Error, SvgNode, dom_err,
-    root::utils::{Point, write_points},
+    root::{
+        path::path_def::{PathDef, write_d},
+        utils::{Point, write_points},
+    },
 };
 use std::fmt::{self, Write};
 use web_sys::Element;
@@ -133,6 +136,34 @@ impl SvgAttrs {
     pub fn points_fixed(&mut self, node: &SvgNode, points: &[Point], dps: usize) -> Result<(), Error> {
         write_points(&mut self.scratch, points, Some(dps));
         node.set_attr("points", &self.scratch)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Formats `defs` into the reusable scratch buffer via [`write_d`] and writes it as the node's `d` attribute.
+    ///
+    /// This is the allocation-light counterpart to [`SvgNode::set_d_from_defs`](crate::SvgNode::set_d_from_defs),
+    /// which allocates a fresh `String` on every call via [`build_d`](crate::build_d).
+    ///
+    /// Use this (or [`AnimationFrame::set_d_from_defs`](crate::AnimationFrame::set_d_from_defs) inside an animation
+    /// callback) when a `<path>` is morphed repeatedly, such as on every `pointermove` event or every animation frame.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{PathDef, PathDefAbsolute, SvgAttrs, SvgRoot, root::utils::Point};
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let path = svg.path("M 0 0 L 100 100")?;
+    ///
+    /// let mut attrs = SvgAttrs::new();
+    /// attrs.d_from_defs(&path, &[
+    ///     PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(0.0, 0.0))),
+    ///     PathDef::Abs(PathDefAbsolute::QuadraticBezierTo(Point::new(50.0, 0.0), Point::new(100.0, 100.0))),
+    /// ])?; // no per-call String allocation
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn d_from_defs(&mut self, node: &SvgNode, defs: &[PathDef]) -> Result<(), Error> {
+        write_d(&mut self.scratch, defs);
+        node.set_attr("d", &self.scratch)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

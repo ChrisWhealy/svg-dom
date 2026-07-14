@@ -1467,3 +1467,78 @@ fn should_write_fixed_precision_points() -> Result<(), String> {
         .map_err(|e| e.to_string())?;
     common::check_eq(poly.attr("points"), Some("2,2".into()))
 }
+
+/// `AttrWriter::d_from_defs` updates a path's `d` attribute through the reusable buffer, and the same buffer can be
+/// reused for a second update (the latest value wins) — the allocation-light counterpart to `SvgNode::set_d_from_defs`.
+#[wasm_bindgen_test]
+fn should_update_d_via_reusable_buffer() -> Result<(), String> {
+    use svg_dom::{PathDef, PathDefAbsolute};
+
+    let svg = make_svg("node-d-from-defs");
+    let path = svg.path("M 0 0 L 1 1").map_err(|e| e.to_string())?;
+
+    let mut attrs = svg_dom::SvgAttrs::new();
+    path.attrs(&mut attrs)
+        .d_from_defs(&[
+            PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(0.0, 0.0))),
+            PathDef::Abs(PathDefAbsolute::LineTo(Point::new(100.0, 100.0))),
+        ])
+        .map_err(|e| e.to_string())?;
+    common::check_eq(path.attr("d"), Some("M 0 0 L 100 100".into()))?;
+
+    // Reuse the same buffer for another update.
+    path.attrs(&mut attrs)
+        .d_from_defs(&[PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(5.0, 5.0)))])
+        .map_err(|e| e.to_string())?;
+    common::check_eq(path.attr("d"), Some("M 5 5".into()))
+}
+
+/// `AnimationFrame::set_d_from_defs` writes a path's `d` attribute through the frame's reusable buffer (the
+/// per-frame counterpart to `SvgAttrs::d_from_defs`).
+#[wasm_bindgen_test]
+fn should_update_d_via_animation_frame() -> Result<(), String> {
+    use svg_dom::{PathDef, PathDefAbsolute};
+
+    let svg = make_svg("node-frame-d-from-defs");
+    let path = svg.path("M 0 0 L 1 1").map_err(|e| e.to_string())?;
+
+    let mut frame = svg_dom::AnimationFrame::new();
+    frame
+        .set_d_from_defs(
+            &path,
+            &[
+                PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(0.0, 0.0))),
+                PathDef::Abs(PathDefAbsolute::LineTo(Point::new(20.0, 20.0))),
+            ],
+        )
+        .map_err(|e| e.to_string())?;
+    common::check_eq(path.attr("d"), Some("M 0 0 L 20 20".into()))?;
+
+    // Reuse across frames: the latest value wins.
+    frame
+        .set_d_from_defs(&path, &[PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(9.0, 9.0)))])
+        .map_err(|e| e.to_string())?;
+    common::check_eq(path.attr("d"), Some("M 9 9".into()))
+}
+
+/// `SvgRoot::path_from_defs` (and therefore every `path_from_defs` factory sibling) now writes `d` through the
+/// factory's own retained `SvgAttrs` buffer rather than allocating a fresh `String` per call — this exercises that
+/// path directly, distinct from the `SvgNode::set_d_from_defs` update path covered above.
+#[wasm_bindgen_test]
+fn should_create_path_from_defs_reusing_factory_buffer() -> Result<(), String> {
+    use svg_dom::{PathDef, PathDefAbsolute};
+
+    let svg = make_svg("node-path-from-defs-factory");
+    let first = svg
+        .path_from_defs(&[
+            PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(0.0, 0.0))),
+            PathDef::Abs(PathDefAbsolute::LineTo(Point::new(1.0, 1.0))),
+        ])
+        .map_err(|e| e.to_string())?;
+    let second = svg
+        .path_from_defs(&[PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(2.0, 2.0)))])
+        .map_err(|e| e.to_string())?;
+
+    common::check_eq(first.attr("d"), Some("M 0 0 L 1 1".into()))?;
+    common::check_eq(second.attr("d"), Some("M 2 2".into()))
+}
