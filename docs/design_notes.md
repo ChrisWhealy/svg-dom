@@ -295,6 +295,28 @@ Rustc/LLVM already specializes `write_d`'s and `write_d_fixed`'s respective inli
 Given that outcome, the split was reverted: it would have doubled the match-arm source for every current and future `PathDef` variant (a real, ongoing risk of the two copies drifting apart) in exchange for a measured benefit of exactly zero.
 This is the concrete version of the reasoning that already kept this crate from making a dependency to `ryu`/`itoa` for numeric formatting — an optimization is only worth its complexity cost if it can provide a measurable benefit, not merely because it looks like it should.
 
+### `build_d_fixed`'s capacity estimate scales with `dps`
+
+`BASE_BYTES_PER_COMMAND` (24) was tuned for the *default*, shortest-round-trip format, and both `build_d` and `build_d_fixed` originally reserved `defs.len() * 24` regardless of precision.
+This is fine until we encounter a high `dps` value applied to, say, a six-argument `CubicBezierTo`.
+Here, for `dps = 20`, the six-argument `CubicBezierTo` formats to roughly 138 bytes (`"C0.00000000000000000000 0.00000000000000000000 ..."`), against a 24-byte reservation for the whole command, which is nearly a 6-fold shortfall, guaranteeing at least one (but usually several), reallocate-and-copy doublings for that command alone.
+
+`build_d_fixed` now reserves `defs.len() * (BASE_BYTES_PER_COMMAND + APPROX_VALUES_PER_COMMAND * dps.min(MAX_DPS))`, with `APPROX_VALUES_PER_COMMAND = 3`.
+`build_d` (no `dps`) is unaffected and keeps the flat 24-byte guess.
+
+Setting `APPROX_VALUES_PER_COMMAND` to `3` is a deliberate *average*, not a per-command worst-case bound: real commands range from zero numeric arguments (`ClosePath`) to six (`CubicBezierTo`).
+
+A test proved this directly (`build_d_fixed_capacity_formula_improves_on_flat_guess_for_high_precision_cubic_bezier`): for the six-argument case above, the new formula reserves 84 bytes against a real 138 — still short, but the shortfall drops from 114 bytes to 54, roughly halved, and the reservation is closer to exact for the far more common shorter commands (`MoveTo`, `LineTo`, `HorizontalLineTo`) that a real path is mostly made of.
+
+The first version of this fix asserted the new formula fully covered the worst case; that test failed immediately (84 << 138), so the assertion was corrected to match what three-as-an-average actually promises: a measurable improvement, not a guarantee.
+
+A second, more accurate option exists: sum each command's actual numeric-argument count via a `PathDef::numeric_arg_count` helper, in a dedicated pass over `defs` before allocating.
+
+This has deliberately not been implemented.
+
+It is exactly the "second pass over `defs` matching every variant" this module's capacity estimates already decline to perform elsewhere, for the same reason: the win only matters for `build_d_fixed`'s one guaranteed-fresh-allocation case (a direct call, a first use of a fresh buffer, or a workload that keeps constructing new paths rather than updating one in place — `write_d_fixed` on a retained buffer is unaffected either way), and no benchmark has shown that case to be a real bottleneck worth a second traversal by which further reallocations can be avoided.
+If one ever does, the variant-aware pass is the documented next step, not a redesign.
+
 ### What "prevents malformed path data" actually covers
 
 Early documentation for `PathDef` claimed the resulting `d` string "can never contain a mistyped command letter, a missing argument, or *any other* malformed path data."

@@ -5,8 +5,9 @@ use crate::{
 };
 use std::fmt::Write;
 
-/// Rough per-command byte estimate used only by [`build_d`] / [`build_d_fixed`] to pre-size their fresh `String`,
-/// matching the flat default-precision guess `write_points` already uses per point.
+/// Rough per-command byte estimate used by [`build_d`] (unscaled) and [`build_d_fixed`] (as the base term added to
+/// [`APPROX_VALUES_PER_COMMAND`]`* dps`) to pre-size their fresh `String`, matching the flat default-precision guess
+/// `write_points` already uses per point.
 ///
 /// Command sizes vary hugely — `ClosePath` is one byte, a `CubicBezierTo` with six large float arguments can be
 /// several times this — so the estimate is deliberately not variant-aware: getting it exactly right would mean a
@@ -18,7 +19,22 @@ use std::fmt::Write;
 /// caller-owned buffer that is typically reused across many calls (an animation frame, a `pointermove` handler), so
 /// its capacity is already retained from earlier calls after the first one. A caller who wants to avoid even that
 /// first-call growth can pre-size the buffer directly via `SvgAttrs::with_capacity`.
-const APPROX_BYTES_PER_COMMAND: usize = 24;
+const BASE_BYTES_PER_COMMAND: usize = 24;
+
+/// Rough average count of numeric arguments per [`PathDef`] command, used only by [`build_d_fixed`] to scale its
+/// capacity estimate by the requested precision.
+///
+/// At high `dps`, [`BASE_BYTES_PER_COMMAND`] alone badly undershoots: a six-argument `CubicBezierTo` at `dps = 20`
+/// formats to roughly 138 bytes (`"C0.00000000000000000000 0.00000000000000000000 ..."`), nearly six times the
+/// flat 24-byte guess that was tuned for the *default*, shortest-round-trip format. Scaling the estimate by `dps`
+/// narrows that gap without a second pass over `defs`, though it does not eliminate it for a command shaped like
+/// that worst case: real commands range from zero numeric arguments (`ClosePath`) to six (`CubicBezierTo`) or seven
+/// raw fields (`EllipticalArcTo`, two of which — the flags — are never affected by `dps`), and three is a
+/// deliberately approximate *average* across that range, not a per-command worst-case bound — a true worst-case
+/// guarantee would need exactly the variant-aware pass this estimate exists to avoid. The reservation is closer to
+/// exact for the more common shorter commands (`MoveTo`, `LineTo`, `HorizontalLineTo`) and undershoots most for the
+/// rarer six-argument ones, which is the better trade-off on average.
+const APPROX_VALUES_PER_COMMAND: usize = 3;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// One SVG path-data command using coordinates absolute in the current user-coordinate system (the uppercase SVG
@@ -344,7 +360,7 @@ pub fn write_d_fixed(out: &mut String, defs: &[PathDef], dps: usize) {
 /// assert_eq!(d, "M10 10L100 50L10 90Z");
 /// ```
 pub fn build_d(defs: &[PathDef]) -> String {
-    let mut out = String::with_capacity(defs.len().saturating_mul(APPROX_BYTES_PER_COMMAND));
+    let mut out = String::with_capacity(defs.len().saturating_mul(BASE_BYTES_PER_COMMAND));
     write_d(&mut out, defs);
     out
 }
@@ -352,6 +368,11 @@ pub fn build_d(defs: &[PathDef]) -> String {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Like [`build_d`], but writes every coordinate, length, and rotation angle with `dps` fixed decimal places
 /// (clamped to `MAX_DPS` = 20). See [`write_d_fixed`] for the full rationale.
+///
+/// The capacity reservation scales with `dps`: at a high requested precision, a single number can be far longer
+/// than the flat `BASE_BYTES_PER_COMMAND` guess tuned for the default, shortest-round-trip format alone (see
+/// `APPROX_VALUES_PER_COMMAND`), so a high-precision fresh path still avoids most of the reallocate-and-copy
+/// doublings [`build_d`] avoids at the default precision.
 ///
 /// # Example
 ///
@@ -365,7 +386,8 @@ pub fn build_d(defs: &[PathDef]) -> String {
 /// assert_eq!(d, "M0.33 0.67L10.00 20.00");
 /// ```
 pub fn build_d_fixed(defs: &[PathDef], dps: usize) -> String {
-    let mut out = String::with_capacity(defs.len().saturating_mul(APPROX_BYTES_PER_COMMAND));
+    let per_command = BASE_BYTES_PER_COMMAND.saturating_add(APPROX_VALUES_PER_COMMAND.saturating_mul(dps.min(MAX_DPS)));
+    let mut out = String::with_capacity(defs.len().saturating_mul(per_command));
     write_d_fixed(&mut out, defs, dps);
     out
 }

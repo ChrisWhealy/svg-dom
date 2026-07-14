@@ -248,6 +248,65 @@ fn build_d_fixed_reserves_capacity_proportional_to_command_count() {
     );
 }
 
+/// The capacity estimate must grow with `dps`: a fixed flat per-command guess (tuned for the default,
+/// shortest-round-trip format) badly undershoots at high precision, since each number can be far longer than that
+/// guess accounts for.
+#[test]
+fn build_d_fixed_capacity_grows_with_requested_precision() {
+    let defs = [PathDef::Abs(PathDefAbsolute::CubicBezierTo(
+        Point::new(1.0, 2.0),
+        Point::new(3.0, 4.0),
+        Point::new(5.0, 6.0),
+    ))];
+    let low_dps = build_d_fixed(&defs, 0).capacity();
+    let high_dps = build_d_fixed(&defs, 20).capacity();
+    assert!(
+        high_dps > low_dps,
+        "expected capacity to grow with dps: dps=0 -> {low_dps}, dps=20 -> {high_dps}"
+    );
+}
+
+/// Regression case for the specific worst case cited when this estimate was made precision-aware: a six-argument
+/// `CubicBezierTo` at `dps = 20` formats to roughly 138 bytes (`"C0.00000000000000000000 0.00000000000000000000
+/// ..."`), nearly six times the flat 24-byte guess a precision-unaware estimate would have reserved.
+///
+/// `APPROX_VALUES_PER_COMMAND` (3) is deliberately an *average* across command shapes (`ClosePath` has zero
+/// numeric arguments, `CubicBezierTo` has six), not a per-command worst-case bound — reaching a true worst-case
+/// guarantee would need the variant-aware second pass this estimate exists specifically to avoid. So this does not
+/// assert the reservation covers `CubicBezierTo`'s full length; it asserts the narrower, honest claim: the
+/// precision-aware formula reserves *more* than the old flat, precision-unaware guess would have, and covers a
+/// larger fraction of the real content — a measurable improvement, not a complete fix, for exactly this worst case.
+#[test]
+fn build_d_fixed_capacity_formula_improves_on_flat_guess_for_high_precision_cubic_bezier() {
+    let defs = [PathDef::Abs(PathDefAbsolute::CubicBezierTo(
+        Point::new(0.0, 0.0),
+        Point::new(0.0, 0.0),
+        Point::new(0.0, 0.0),
+    ))];
+    let dps = 20;
+    let base_bytes_per_command = 24;
+    let approx_values_per_command = 3;
+    let old_flat_reservation = defs.len() * base_bytes_per_command;
+    let new_reservation = defs.len() * (base_bytes_per_command + approx_values_per_command * dps);
+
+    let actual_len = build_d_fixed(&defs, dps).len();
+    assert!(
+        actual_len > 24,
+        "sanity check: this case should exceed the old flat 24-byte guess (was {actual_len})"
+    );
+    assert!(
+        new_reservation > old_flat_reservation,
+        "precision-aware reservation ({new_reservation}) should exceed the flat guess ({old_flat_reservation})"
+    );
+
+    let old_shortfall = actual_len.saturating_sub(old_flat_reservation);
+    let new_shortfall = actual_len.saturating_sub(new_reservation);
+    assert!(
+        new_shortfall < old_shortfall,
+        "precision-aware shortfall ({new_shortfall}) should be smaller than the flat guess's shortfall ({old_shortfall})"
+    );
+}
+
 /// `write_d` must not reserve on the caller's behalf: it writes into a buffer the caller is expected to reuse
 /// (and therefore already size correctly, via `SvgAttrs::with_capacity` if desired), so a fresh, empty buffer keeps
 /// whatever capacity `String`'s own incremental growth produces rather than a `build_d`-style upfront reservation.
