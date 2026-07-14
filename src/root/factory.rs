@@ -6,6 +6,7 @@ use crate::{Error, SvgNode};
 
 use super::{
     attrs::SvgAttrs,
+    path::path_def::{PathDef, build_d},
     utils::{Point, Size},
 };
 
@@ -90,6 +91,11 @@ pub(crate) trait SvgFactory {
         node.set_attr("d", d)?;
         self.append_node(&node)?;
         Ok(node)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    fn create_path_from_defs(&self, defs: &[PathDef]) -> Result<SvgNode, Error> {
+        self.create_path(&build_d(defs))
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

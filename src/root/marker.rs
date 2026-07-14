@@ -3,6 +3,7 @@ use crate::{
     root::{
         attrs::SvgAttrs,
         factory::SvgFactory,
+        path::path_def::PathDef,
         utils::{Point, Size},
     },
 };
@@ -251,6 +252,15 @@ impl SvgMarker {
     /// Creates a `<path>` child inside the marker.
     pub fn path(&self, d: &str) -> Result<SvgNode, Error> {
         self.create_path(d)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Creates a `<path>` child inside the marker from a sequence of typed [`PathDef`] segments.
+    ///
+    /// The type-safe alternative to [`path`](Self::path); see [`SvgRoot::path_from_defs`](crate::SvgRoot::path_from_defs)
+    /// for the full rationale.
+    pub fn path_from_defs(&self, defs: &[PathDef]) -> Result<SvgNode, Error> {
+        self.create_path_from_defs(defs)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -1,5 +1,5 @@
 use svg_dom::{
-    Error, SvgNode, SvgRoot,
+    Error, PathDef, PathDefAbsolute, SvgNode, SvgRoot,
     root::utils::{Point, Size},
 };
 use wasm_bindgen_test::*;
@@ -275,6 +275,21 @@ fn should_create_path_with_d_attribute() -> Result<(), String> {
     common::div("path-factory");
     let svg = SvgRoot::create_in("path-factory", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
     let path = svg.path("M 0 0 L 100 100").map_err(|e| e.to_string())?;
+    common::check_eq(path.attr("d"), Some("M 0 0 L 100 100".into()))
+}
+
+/// `path_from_defs` builds the `d` attribute from typed [`PathDef`] segments, producing the same string a
+/// hand-written `d` would, but without the possibility of creating a malformed path string.
+#[wasm_bindgen_test]
+fn should_create_path_from_defs_with_correct_d_attribute() -> Result<(), String> {
+    common::div("path-from-defs-factory");
+    let svg = SvgRoot::create_in("path-from-defs-factory", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let path = svg
+        .path_from_defs(&[
+            PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(0.0, 0.0))),
+            PathDef::Abs(PathDefAbsolute::LineTo(Point::new(100.0, 100.0))),
+        ])
+        .map_err(|e| e.to_string())?;
     common::check_eq(path.attr("d"), Some("M 0 0 L 100 100".into()))
 }
 

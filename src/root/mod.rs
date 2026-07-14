@@ -11,6 +11,9 @@ pub mod defs;
 pub mod gradient;
 /// The [`SvgMarker`](crate::SvgMarker) element and its [`MarkerUnits`](crate::MarkerUnits) enum.
 pub mod marker;
+/// The [`SvgRoot::path`](crate::SvgRoot::path) / [`SvgRoot::path_from_defs`](crate::SvgRoot::path_from_defs)
+/// factories and the type-safe [`PathDef`](crate::PathDef) path-segment builder.
+pub mod path;
 /// The [`SvgPattern`](crate::SvgPattern) element and its [`PatternUnits`](crate::PatternUnits) enum.
 pub mod pattern;
 /// The [`SvgSymbol`](crate::SvgSymbol) element.
@@ -35,8 +38,6 @@ mod group;
 mod image;
 /// The [`SvgRoot::line`](crate::SvgRoot::line) factory.
 mod line;
-/// The [`SvgRoot::path`](crate::SvgRoot::path) factory.
-mod path;
 /// The [`SvgRoot::polygon`](crate::SvgRoot::polygon) factory.
 mod polygon;
 /// The [`SvgRoot::polyline`](crate::SvgRoot::polyline) factory.

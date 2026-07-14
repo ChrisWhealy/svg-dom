@@ -3,6 +3,7 @@ use crate::{
     root::{
         attrs::SvgAttrs,
         factory::SvgFactory,
+        path::path_def::PathDef,
         utils::{Point, Size},
     },
 };
@@ -74,6 +75,16 @@ impl SvgBatch {
     /// Creates a detached `<path>` element in this batch and returns its [`SvgNode`] handle.
     pub fn path(&self, d: &str) -> Result<SvgNode, Error> {
         self.create_path(d)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Creates a detached `<path>` element in this batch from a sequence of typed [`PathDef`] segments, and returns its
+    /// [`SvgNode`] handle.
+    ///
+    /// The type-safe alternative to [`path`](Self::path); see [`SvgRoot::path_from_defs`](crate::SvgRoot::path_from_defs)
+    /// for the full rationale.
+    pub fn path_from_defs(&self, defs: &[PathDef]) -> Result<SvgNode, Error> {
+        self.create_path_from_defs(defs)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

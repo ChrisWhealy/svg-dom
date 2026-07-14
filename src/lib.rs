@@ -18,6 +18,7 @@
 //! | [`root::gradient`] | [`SvgLinearGradient`] / [`SvgRadialGradient`] | Gradient paint servers defined in `<defs>` |
 //! | [`root::clip_path`] | [`SvgClipPath`] / [`ClipPathUnits`] | Clipping region defined in `<defs>`, applied with `set_clip_path_ref` |
 //! | [`root::marker`] | [`SvgMarker`] / [`MarkerUnits`] | Path-decoration markers (`<marker>`) with shape factories |
+//! | [`root::path`] | [`PathDef`] | Type-safe `<path>` `d`-attribute builder from a sequence of typed segments |
 //! | [`root::pattern`] | [`SvgPattern`] / [`PatternUnits`] | Tiled pattern paint server defined in `<defs>`, applied with `set_fill_pattern_ref` |
 //! | [`root::symbol`] | [`SvgSymbol`] | Reusable scaled viewport defined in `<defs>`, stamped via `<use>` |
 //! | [`animate`] | [`AnimationLoop`] | `requestAnimationFrame` loop |
@@ -84,6 +85,11 @@ pub use root::{
     defs::SvgDefs,
     gradient::{GradientUnits, SpreadMethod, linear::SvgLinearGradient, radial::SvgRadialGradient},
     marker::{MarkerUnits, SvgMarker},
+    path::{
+        PathDef, PathDefAbsolute, PathDefRelative, build_d,
+        elliptical_arc::{ArcSize, ArcSweep, EllipticalArc},
+        write_d,
+    },
     pattern::{PatternUnits, SvgPattern},
     svg_root::SvgRoot,
     symbol::SvgSymbol,

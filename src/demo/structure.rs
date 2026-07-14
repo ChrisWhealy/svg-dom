@@ -1,7 +1,7 @@
 use super::colours::*;
 use super::{BAND, H, PAD_Y, W, caption, keep_demo_anim};
 use crate::{
-    AnimationLoop, Error, SvgRoot,
+    AnimationLoop, Error, PathDef, PathDefAbsolute, SvgRoot,
     root::utils::{Point, Size},
 };
 
@@ -196,7 +196,13 @@ pub(super) fn demo_use() -> Result<(), Error> {
 
     // Define a diamond-shaped path once inside <defs>; it is not rendered until referenced.
     svg.build_defs(|d| {
-        let gem = d.path("M 0,-28 L 22,0 L 0,28 L -22,0 Z")?;
+        let gem = d.path_from_defs(&[
+            PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(0.0, -28.0))),
+            PathDef::Abs(PathDefAbsolute::LineTo(Point::new(22.0, 0.0))),
+            PathDef::Abs(PathDefAbsolute::LineTo(Point::new(0.0, 28.0))),
+            PathDef::Abs(PathDefAbsolute::LineTo(Point::new(-22.0, 0.0))),
+            PathDef::Abs(PathDefAbsolute::ClosePath),
+        ])?;
         gem.set_attr("id", "gem")?;
         gem.set_fill(ACCENT_BLUE)?;
         gem.set_stroke(WHITE)?;

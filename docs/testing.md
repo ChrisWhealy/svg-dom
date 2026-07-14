@@ -6,7 +6,7 @@ The test suite has two tiers that use different runners.
 
 Pure Rust tests with no browser dependency.
 
-Currently covers the `Error` type's `Display` and `Debug` implementations and its inner-value accessors.
+Currently covers the `Error` type's `Display` and `Debug` implementations and its inner-value accessors, plus the `PathDef` → `d`-string formatting logic in `root::path::unit_tests` (one command per SVG path letter, buffer-reuse behaviour in `write_d`).
 Also covers doc tests.
 
 ```sh

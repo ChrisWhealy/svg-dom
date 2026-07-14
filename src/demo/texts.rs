@@ -1,7 +1,7 @@
 use super::colours::*;
 use super::{H, PAD_Y, W, caption};
 use crate::{
-    DominantBaseline, Error, SvgRoot, TextAnchor,
+    DominantBaseline, Error, PathDef, PathDefAbsolute, SvgRoot, TextAnchor,
     root::utils::{Point, Size},
 };
 
@@ -178,7 +178,7 @@ pub(super) fn demo_text_path() -> Result<(), Error> {
     // way to use textPath: the geometry is a pure positioning aid for the text. The text only covers part of the
     // path's full length, so more periods are packed in than will actually be traversed, letting several full
     // up/down cycles show through the glyphs that do get drawn.
-    let wave_d = sine_wave_path(20.0, 90.0, 750.0, 26.0, 4.0);
+    let wave_d = sine_wave_path(20.0, 90.0, 1000.0, 40.0, 4.0);
     let defs = svg.build_defs(|d| {
         d.path(&wave_d)?.set_attr("id", "demo-tp-wave")?;
         Ok(())
@@ -196,7 +196,13 @@ pub(super) fn demo_text_path() -> Result<(), Error> {
     // Here the guide arc is drawn directly on the canvas (dashed) rather than hidden in <defs>, so the effect of
     // set_start_offset is visible: two independent <textPath> elements share the same path but start at different
     // distances along it.
-    let guide = svg.path("M 430 130 Q 600 45 770 130")?;
+    let guide = svg.path_from_defs(&[
+        PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(430.0, 130.0))),
+        PathDef::Abs(PathDefAbsolute::QuadraticBezierTo(
+            Point::new(600.0, 45.0),
+            Point::new(770.0, 130.0),
+        )),
+    ])?;
     guide.set_attr("id", "demo-tp-offset-arc")?;
     guide.set_fill(NONE)?;
     guide.set_stroke(GUIDE)?;

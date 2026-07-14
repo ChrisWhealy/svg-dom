@@ -52,8 +52,9 @@ That said, all reasonable, conventional steps have been taken to provide a secur
   - [x] `<use>`
   - [x] `<symbol>`
   - [x] `<tspan>`
-  - [ ] `<textPath>`
+  - [x] `<textPath>`
   - [ ] `<filter>` and `<fe>` elements
+- [x] Type-safe `<path>` `d`-attribute builder (`PathDef` / `path_from_defs`) as a typesafe alternative to hand-written `d` strings
 
 ## What This Crate Is
 
@@ -128,6 +129,7 @@ The coding used in the actual demo implementation is shown beneath each example.
 | `SvgMarker` | `<marker>` element for arrowheads and other path decorations; owned id cache + shape factories
 | `SvgClipPath` | `<clipPath>` element that restricts rendered region to an arbitrary shape; owned id cache + shape factories
 | `SvgPattern` | `<pattern>` element that tiles its content as a fill or stroke paint server; owned id cache + shape factories
+| `PathDef` | Typesafe `<path>` `d`-attribute segment; builds a path from `&[PathDef]` via `path_from_defs` that avoids the possibility of creating a malformed `d` string
 | `AnimationLoop` | Drives a `requestAnimationFrame` loop; stops on `Drop`
 | `SvgAttrs` / `AttrWriter` | Reusable scratch buffer for allocation-light attribute writing
 | `Error` | All failure modes: element not found, DOM error, cast failure, invalid id (marker / gradient / clip-path / symbol / pattern), or reserved attribute

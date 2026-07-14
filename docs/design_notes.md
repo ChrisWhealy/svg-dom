@@ -12,6 +12,7 @@
 - [Multi-attribute updates](#multi-attribute-updates)
 - [Reusable attribute formatting](#reusable-attribute-formatting)
 - [Shared element factory implementation](#shared-element-factory-implementation)
+- [Type-safe path-data builder](#type-safe-path-data-builder)
 - [Ideas Considered and Rejected](rejected_ideas.md)
 - [Performance Patterns](#performance-patterns)
 
@@ -179,6 +180,45 @@ The drag/touch demo's live *coordinate* readout is a separate node that changes 
 Internally, those factories delegate to a shared `SvgFactory` implementation, so shape-specific creation logic and initial attribute writes exist in one place only.
 
 The only difference between the two paths is the append target: `SvgRoot` appends directly to the live `<svg>`, while `SvgBatch` appends to its `DocumentFragment` until `commit()` is called.
+
+## Typesafe Path Data Builder
+
+`SvgRoot::path(d: &str)` (and its siblings on `SvgBatch`, `SvgDefs`, `SvgClipPath`, `SvgMarker`, `SvgPattern`, `SvgSymbol`) writes a `d` path verbatim.
+A hand-written `d` string is free text, so there are no safeguards against it being malformed such as a wrong command letter, a missing argument or a transposed flag.
+The SVG parser does not reject a malformed `d` string outright; it simply stops rendering at the first token it cannot parse, so the failure is silent and possibly quite difficult to debug
+
+`PathDef` (in `root::path::path_def`, re-exported at the crate root) removes that failure mode by definition.
+A `<path>`'s `d` attribute is built from an ordered `&[PathDef]` slice instead of a string; `build_d` / `write_d` do the formatting, and these are wrapped by `path_from_defs` and `set_d_from_defs` for the create and update cases respectively.
+
+Since a `PathDef` can only ever represent one well-formed SVG command, there is no possibility of creating a malformed `d` string.
+
+### Two enums, not one, wrapped in a third
+
+`PathDefAbsolute` and `PathDefRelative` mirror each other variant-for-variant (`MoveTo`, `LineTo`, `EllipticalArcTo` etc.), differing only in whether the emitted command is upper- or lower-case.
+
+Real SVG path data routinely mixes both within a single path: an initial absolute move command (`M`) followed by a run of relative line (`l`) or curve (`c`) commands is the idiomatic, compact way to define path data by hand.
+It is commonplace for callers to mix both absolute and relative path definitions within the same `d` string.
+
+`PathDef::{Abs, Rel}` is the thinnest possible wrapper that permits this: a single `Vec<PathDef>` (or array/slice literal) can freely interleave absolute and relative segments, exactly as hand-written path data would, while each individual segment stays unambiguous about which coordinate space it uses.
+
+### `HorizontalLineTo` / `VerticalLineTo` take `f64`, not `Point`
+
+The SVG `H`/`h` and `V`/`v` commands each take a single coordinate.
+`H` takes a bare `x` and `V` takes a bare `y`, not a full `(x, y)` coordinate pair.
+
+### `EllipticalArc` is a named-field struct, not a five-element tuple
+
+The SVG arc commands (`A`/`a`) take two boolean flags (`large-arc-flag`, `sweep-flag`) to select between the (up to) four geometric solutions for an arc between two points at a given radius.
+
+As adjacent positional `bool`s in a tuple variant, they are easy to transpose — `(true, false)` vs `(false, true)` looks the same at a glance and the compiler cannot catch the swap.
+`ArcSize` (`Small`/`Large`) and `ArcSweep` (`CounterClockwise`/`Clockwise`) turn each flag into a self-documenting enum, and bundling all five arc parameters into one named-field `EllipticalArc` struct (rather than a five-argument tuple variant) means every field is labelled at the construction site instead of positional.
+
+### Formatting matches the existing `write_points` convention
+
+Coordinates are written with plain `{}` (`Display`) formatting (Rust's shortest round-trip representation) rather than a fixed decimal count, mirroring `write_points`'s default-precision path in `root::utils`.
+This keeps whole-number demo coordinates (`"M 70 10"`, not `"M 70.0 10.0"`) exactly as compact as the hand-written strings they replace.
+
+There is deliberately no fixed-precision variant analogous to `points_fixed`: unlike a `<polyline>`'s point list, path data mixes several different argument shapes (coordinates, a rotation angle, two single-bit flags), so a uniform *"n decimal places for everything"* knob would not obviously do the right thing across all of them; a caller who needs shorter numbers can round the `f64` before constructing the `PathDef`.
 
 # Performance Patterns
 

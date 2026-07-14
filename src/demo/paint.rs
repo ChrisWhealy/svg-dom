@@ -1,7 +1,7 @@
 use super::colours::*;
 use super::{BAND, H, PAD_Y, W, caption};
 use crate::{
-    Error, SvgRoot,
+    Error, PathDef, PathDefAbsolute, SvgRoot,
     root::{
         gradient::SpreadMethod,
         pattern::PatternUnits,
@@ -227,7 +227,16 @@ pub(super) fn demo_clip_path() -> Result<(), Error> {
         // Clip 3: right-pointing arrow centred at (665, 90).
         // Rectangular body (595..645, y 70..110) plus a triangular head pointing at x = 735.
         d.build_clip_path("cp-arrow", |c| {
-            c.path("M 595,70 L 645,70 L 645,50 L 735,90 L 645,130 L 645,110 L 595,110 Z")?;
+            c.path_from_defs(&[
+                PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(595.0, 70.0))),
+                PathDef::Abs(PathDefAbsolute::LineTo(Point::new(645.0, 70.0))),
+                PathDef::Abs(PathDefAbsolute::LineTo(Point::new(645.0, 50.0))),
+                PathDef::Abs(PathDefAbsolute::LineTo(Point::new(735.0, 90.0))),
+                PathDef::Abs(PathDefAbsolute::LineTo(Point::new(645.0, 130.0))),
+                PathDef::Abs(PathDefAbsolute::LineTo(Point::new(645.0, 110.0))),
+                PathDef::Abs(PathDefAbsolute::LineTo(Point::new(595.0, 110.0))),
+                PathDef::Abs(PathDefAbsolute::ClosePath),
+            ])?;
             Ok(())
         })?;
         Ok(())

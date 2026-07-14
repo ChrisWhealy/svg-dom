@@ -13,7 +13,7 @@ The following SVG elements are supported:
 * `marker`
 * `pattern`
 * `rect`
-* `path`
+* `path` (with a type-safe `PathDef` builder — see below — as an alternative to hand-written `d` strings)
 * `polygon`
 * `polyline`
 * `radialGradient` (with `stop`)
@@ -168,6 +168,57 @@ A fully qualified prefix such as `"my-app-sky-gradient"` is a practical guard ag
 
 Apply it to any stroked element — `<line>`, `<path>`, `<polyline>`, `<polygon>` — via `SvgNode::set_marker_start`, `set_marker_mid`, or `set_marker_end`.
 The `MarkerUnits` enum controls whether `markerWidth`/`markerHeight` are relative to `strokeWidth` (default) or user coordinates.
+
+---
+
+## `<path>`
+
+A `<path>` is created either from a hand-written `d` string (`SvgRoot::path(d)`) or, type-safely, from a sequence of typed `PathDef` segments (`SvgRoot::path_from_defs(&[PathDef])`).
+
+A hand-written `d` string is free text: a typo'd command letter, a missing argument, or a mismatched flag are all accepted silently by the SVG parser, which just stops rendering at the bad token rather than reporting an error.
+`path_from_defs` removes that failure mode — the `d` attribute is built internally from `PathDef` values, so malformed path data cannot be constructed in the first place.
+
+**Building path data:**
+
+| Type | Purpose |
+|---|---|
+| `PathDef` | One path-data command: `Abs(PathDefAbsolute)` or `Rel(PathDefRelative)`. Absolute and relative commands can be freely mixed in the same sequence, exactly as real SVG path data allows. |
+| `PathDefAbsolute` / `PathDefRelative` | The ten SVG path commands (`MoveTo`, `LineTo`, `HorizontalLineTo`, `VerticalLineTo`, `CubicBezierTo`, `SmoothCubicBezierTo`, `QuadraticBezierTo`, `SmoothQuadraticBezierTo`, `EllipticalArcTo`, `ClosePath`) in absolute or relative form respectively. |
+| `EllipticalArc` | Named-field parameters for an arc segment — `radii`, `x_axis_rotation`, `size`, `sweep`, `to` — instead of a five-element tuple. |
+| `ArcSize` | `Small` / `Large` — the SVG `large-arc-flag`, replacing a bare `bool` that gives no clue at the call site which arc solution it selects. |
+| `ArcSweep` | `CounterClockwise` / `Clockwise` — the SVG `sweep-flag`, replacing the second bare `bool`. |
+
+**Creating and updating paths:**
+
+| Method | Available on | Effect |
+|---|---|---|
+| `path(d)` | `SvgRoot`, `SvgBatch`, `SvgDefs`, `SvgClipPath`, `SvgMarker`, `SvgPattern`, `SvgSymbol` | Creates a `<path>` from a raw `d` string. |
+| `path_from_defs(&[PathDef])` | Same set of types | Creates a `<path>` from typed segments. |
+| `SvgNode::set_d(d)` | Any `SvgNode` | Updates an existing `<path>`'s `d` string. |
+| `SvgNode::set_d_from_defs(&[PathDef])` | Any `SvgNode` | Updates an existing `<path>`'s `d` from typed segments. |
+| `build_d(&[PathDef])` | Free function | Builds a `d` string without creating or updating any element — useful for composing a path in pieces. |
+| `write_d(&mut String, &[PathDef])` | Free function | The buffer-reusing counterpart to `build_d`, for a hot path that rebuilds a curve every frame. |
+
+### Example
+
+```rust,no_run
+use svg_dom::{ArcSize, ArcSweep, EllipticalArc, PathDef, PathDefAbsolute, SvgRoot, root::utils::Point};
+
+let svg = SvgRoot::attach("diagram")?;
+let arc = svg.path_from_defs(&[
+    PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(10.0, 65.0))),
+    PathDef::Abs(PathDefAbsolute::EllipticalArcTo(EllipticalArc {
+        radii: Point::new(60.0, 60.0),
+        x_axis_rotation: 0.0,
+        size: ArcSize::Large,
+        sweep: ArcSweep::Clockwise,
+        to: Point::new(130.0, 65.0),
+    })),
+])?;
+arc.set_fill("none")?;
+arc.set_stroke("coral")?;
+Ok::<(), svg_dom::Error>(())
+```
 
 ---
 

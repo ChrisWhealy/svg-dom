@@ -7,6 +7,7 @@ use crate::{
         defs::{validate_clip_path_id, validate_gradient_id, validate_marker_id, validate_pattern_id},
         gradient::{linear::SvgLinearGradient, radial::SvgRadialGradient},
         marker::SvgMarker,
+        path::path_def::{PathDef, build_d},
         pattern::SvgPattern,
     },
 };
@@ -407,6 +408,31 @@ impl SvgNode {
     /// ```
     pub fn set_d(&self, path: &str) -> Result<(), Error> {
         self.set_attr("d", path)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the `d` (path data) attribute on a `<path>` element from a sequence of typed
+    /// [`PathDef`] segments.
+    ///
+    /// The type-safe alternative to [`set_d`](Self::set_d): the `d` string is built internally by
+    /// [`build_d`], so it is always syntactically valid SVG path data.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{PathDef, PathDefAbsolute, SvgRoot, root::utils::Point};
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let path = svg.path("M 0 0 L 100 100")?;
+    ///
+    /// // Later: morph the path without touching any other attributes.
+    /// path.set_d_from_defs(&[
+    ///     PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(0.0, 0.0))),
+    ///     PathDef::Abs(PathDefAbsolute::QuadraticBezierTo(Point::new(50.0, 0.0), Point::new(100.0, 100.0))),
+    /// ])?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn set_d_from_defs(&self, defs: &[PathDef]) -> Result<(), Error> {
+        self.set_d(&build_d(defs))
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
