@@ -6,6 +6,7 @@
 - `f20c907` Implement offset and merge filter effects (2026-07-14)
 - `2420868` Add an allocation-light two-axis Gaussian blur factory (2026-07-14)
 - `6af69d5` Avoid redundant id revalidation in set_filter_ref (2026-07-14)
+- `cab4312` Reuse the cached ID allocation in SvgFilter::set_id (2026-07-14)
 
 ## 0.1.52 — 2026-07-14
 
