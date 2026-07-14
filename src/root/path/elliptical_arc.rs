@@ -1,4 +1,4 @@
-use crate::root::utils::{MAX_DPS, Point};
+use crate::root::utils::Point;
 use std::fmt::Write;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -68,8 +68,9 @@ pub struct EllipticalArc {
 impl EllipticalArc {
     /// Outputs a path segment for this elliptical arc using the given command character.
     ///
-    /// `dps` (clamped to `MAX_DPS` = 20) fixes the decimal precision of the radii, rotation, and end point — `None`
-    /// uses the default shortest round-trip representation.
+    /// `dps` fixes the decimal precision of the radii, rotation, and end point — `None` uses the default shortest
+    /// round-trip representation. Callers pass an already-`MAX_DPS`-clamped value (clamping happens once, in
+    /// [`write_d_fixed`](crate::write_d_fixed), not per command), so this method does not clamp again.
     ///
     /// The two flags are deliberately never subject to `dps`: the SVG path grammar's `flag` production is exactly
     /// one `"0"` or `"1"` digit, not a decimal number, so they are always written via `ArcSize`/`ArcSweep`'s `u8`
@@ -83,7 +84,6 @@ impl EllipticalArc {
     pub(super) fn write(&self, out: &mut String, cmd: char, dps: Option<usize>) {
         match dps {
             Some(n) => {
-                let n = n.min(MAX_DPS);
                 let _ = write!(
                     out,
                     "{cmd}{:.n$} {:.n$} {:.n$} {} {} {:.n$} {:.n$}",

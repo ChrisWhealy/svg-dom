@@ -278,6 +278,23 @@ Computing a precise per-variant estimate would mean a second pass over `defs`, m
 The two functions serve different callers: `write_points` has no one-shot sibling to shoulder the sizing concern, so it has to do double duty.
 `write_d` does have one (`build_d`), so the buffer-reusing function stays lean — clear, then append — and relies on the caller-owned buffer's capacity already being retained from a previous call (or, for a caller who cares about even the first call, constructing the buffer via `SvgAttrs::with_capacity` upfront rather than `SvgAttrs::new()`).
 
+### `dps` is clamped once per `write_d_fixed` call, not once per command — but splitting the serializer into `write_default`/`write_fixed` was measured and rejected
+
+Every per-command `write` originally took `dps: Option<usize>` and re-derived `n.min(MAX_DPS)` inside its own `Some(n)` arm — for `SmoothQuadraticBezierTo`/`EllipticalArcTo` specifically, more than once per arm, since each numeric argument's `{:.*}` format spec repeated the `.min(MAX_DPS)` call.
+
+Since `dps` does not vary across a single `write_d_fixed` call, clamping is now done exactly once, before the loop and the already-clamped value is threaded down unchanged.
+This part is a pure win with no downside: it is strictly less source, strictly fewer redundant comparisons, and provably produces byte-identical output (every existing fixed-precision test, including the one asserting `usize::MAX` and `MAX_DPS` clamp to the same result, passed unchanged).
+
+A further step — splitting each `write` into separate `write_default(&self, out)` / `write_fixed(&self, out, dps: usize)` methods, so the per-command code no longer branches on `Option<usize>` at all.
+This idea was also tried, but discarded after measurement rather than adopted on the strength of the argument alone.
+
+The two versions were built and compared: full `cargo build --release --target wasm32-unknown-unknown`, then `wasm-opt -O3`, for the crate with only the clamp-hoist applied versus the crate with the full `write_default`/`write_fixed` split on top.
+The resulting `.wasm` files were **byte-for-byte identical** (same MD5, both before and after `wasm-opt`) in both cases.
+Rustc/LLVM already specializes `write_d`'s and `write_d_fixed`'s respective inlined call sites against the constant `None`/`Some(..)` they each always pass, so hand-writing that specialization as two separate methods produced no binary difference of any kind — no size change, and (since the generated code is identical) no possible runtime difference either.
+
+Given that outcome, the split was reverted: it would have doubled the match-arm source for every current and future `PathDef` variant (a real, ongoing risk of the two copies drifting apart) in exchange for a measured benefit of exactly zero.
+This is the concrete version of the reasoning that already kept this crate from making a dependency to `ryu`/`itoa` for numeric formatting — an optimization is only worth its complexity cost if it can provide a measurable benefit, not merely because it looks like it should.
+
 ### What "prevents malformed path data" actually covers
 
 Early documentation for `PathDef` claimed the resulting `d` string "can never contain a mistyped command letter, a missing argument, or *any other* malformed path data."

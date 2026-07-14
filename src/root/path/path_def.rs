@@ -54,33 +54,30 @@ impl PathDefAbsolute {
     fn write(&self, out: &mut String, dps: Option<usize>) {
         match (self, dps) {
             (Self::MoveTo(p), Some(n)) => {
-                let n = n.min(MAX_DPS);
                 let _ = write!(out, "M{:.n$} {:.n$}", p.x, p.y);
             },
             (Self::MoveTo(p), None) => {
                 let _ = write!(out, "M{} {}", p.x, p.y);
             },
             (Self::LineTo(p), Some(n)) => {
-                let n = n.min(MAX_DPS);
                 let _ = write!(out, "L{:.n$} {:.n$}", p.x, p.y);
             },
             (Self::LineTo(p), None) => {
                 let _ = write!(out, "L{} {}", p.x, p.y);
             },
             (Self::HorizontalLineTo(x), Some(n)) => {
-                let _ = write!(out, "H{:.*}", n.min(MAX_DPS), x);
+                let _ = write!(out, "H{x:.n$}");
             },
             (Self::HorizontalLineTo(x), None) => {
                 let _ = write!(out, "H{x}");
             },
             (Self::VerticalLineTo(y), Some(n)) => {
-                let _ = write!(out, "V{:.*}", n.min(MAX_DPS), y);
+                let _ = write!(out, "V{y:.n$}");
             },
             (Self::VerticalLineTo(y), None) => {
                 let _ = write!(out, "V{y}");
             },
             (Self::CubicBezierTo(c1, c2, to), Some(n)) => {
-                let n = n.min(MAX_DPS);
                 let _ = write!(
                     out,
                     "C{:.n$} {:.n$} {:.n$} {:.n$} {:.n$} {:.n$}",
@@ -91,21 +88,19 @@ impl PathDefAbsolute {
                 let _ = write!(out, "C{} {} {} {} {} {}", c1.x, c1.y, c2.x, c2.y, to.x, to.y);
             },
             (Self::SmoothCubicBezierTo(c2, to), Some(n)) => {
-                let n = n.min(MAX_DPS);
                 let _ = write!(out, "S{:.n$} {:.n$} {:.n$} {:.n$}", c2.x, c2.y, to.x, to.y);
             },
             (Self::SmoothCubicBezierTo(c2, to), None) => {
                 let _ = write!(out, "S{} {} {} {}", c2.x, c2.y, to.x, to.y);
             },
             (Self::QuadraticBezierTo(c, to), Some(n)) => {
-                let n = n.min(MAX_DPS);
                 let _ = write!(out, "Q{:.n$} {:.n$} {:.n$} {:.n$}", c.x, c.y, to.x, to.y);
             },
             (Self::QuadraticBezierTo(c, to), None) => {
                 let _ = write!(out, "Q{} {} {} {}", c.x, c.y, to.x, to.y);
             },
             (Self::SmoothQuadraticBezierTo(to), Some(n)) => {
-                let _ = write!(out, "T{:.*} {:.*}", n.min(MAX_DPS), to.x, n.min(MAX_DPS), to.y);
+                let _ = write!(out, "T{:.n$} {:.n$}", to.x, to.y);
             },
             (Self::SmoothQuadraticBezierTo(to), None) => {
                 let _ = write!(out, "T{} {}", to.x, to.y);
@@ -150,33 +145,30 @@ impl PathDefRelative {
     fn write(&self, out: &mut String, dps: Option<usize>) {
         match (self, dps) {
             (Self::MoveTo(p), Some(n)) => {
-                let n = n.min(MAX_DPS);
                 let _ = write!(out, "m{:.n$} {:.n$}", p.x, p.y);
             },
             (Self::MoveTo(p), None) => {
                 let _ = write!(out, "m{} {}", p.x, p.y);
             },
             (Self::LineTo(p), Some(n)) => {
-                let n = n.min(MAX_DPS);
                 let _ = write!(out, "l{:.n$} {:.n$}", p.x, p.y);
             },
             (Self::LineTo(p), None) => {
                 let _ = write!(out, "l{} {}", p.x, p.y);
             },
             (Self::HorizontalLineTo(x), Some(n)) => {
-                let _ = write!(out, "h{:.*}", n.min(MAX_DPS), x);
+                let _ = write!(out, "h{x:.n$}");
             },
             (Self::HorizontalLineTo(x), None) => {
                 let _ = write!(out, "h{x}");
             },
             (Self::VerticalLineTo(y), Some(n)) => {
-                let _ = write!(out, "v{:.*}", n.min(MAX_DPS), y);
+                let _ = write!(out, "v{y:.n$}");
             },
             (Self::VerticalLineTo(y), None) => {
                 let _ = write!(out, "v{y}");
             },
             (Self::CubicBezierTo(c1, c2, to), Some(n)) => {
-                let n = n.min(MAX_DPS);
                 let _ = write!(
                     out,
                     "c{:.n$} {:.n$} {:.n$} {:.n$} {:.n$} {:.n$}",
@@ -187,21 +179,19 @@ impl PathDefRelative {
                 let _ = write!(out, "c{} {} {} {} {} {}", c1.x, c1.y, c2.x, c2.y, to.x, to.y);
             },
             (Self::SmoothCubicBezierTo(c2, to), Some(n)) => {
-                let n = n.min(MAX_DPS);
                 let _ = write!(out, "s{:.n$} {:.n$} {:.n$} {:.n$}", c2.x, c2.y, to.x, to.y);
             },
             (Self::SmoothCubicBezierTo(c2, to), None) => {
                 let _ = write!(out, "s{} {} {} {}", c2.x, c2.y, to.x, to.y);
             },
             (Self::QuadraticBezierTo(c, to), Some(n)) => {
-                let n = n.min(MAX_DPS);
                 let _ = write!(out, "q{:.n$} {:.n$} {:.n$} {:.n$}", c.x, c.y, to.x, to.y);
             },
             (Self::QuadraticBezierTo(c, to), None) => {
                 let _ = write!(out, "q{} {} {} {}", c.x, c.y, to.x, to.y);
             },
             (Self::SmoothQuadraticBezierTo(to), Some(n)) => {
-                let _ = write!(out, "t{:.*} {:.*}", n.min(MAX_DPS), to.x, n.min(MAX_DPS), to.y);
+                let _ = write!(out, "t{:.n$} {:.n$}", to.x, to.y);
             },
             (Self::SmoothQuadraticBezierTo(to), None) => {
                 let _ = write!(out, "t{} {}", to.x, to.y);
@@ -326,8 +316,11 @@ pub fn write_d(out: &mut String, defs: &[PathDef]) {
 /// as plain integers regardless of the requested precision.
 pub fn write_d_fixed(out: &mut String, defs: &[PathDef], dps: usize) {
     out.clear();
+    // Clamped once here rather than inside every command's `write` — `dps` is invariant for the whole path, so
+    // there is nothing for a per-command re-clamp to catch that this call can't catch up front.
+    let dps = Some(dps.min(MAX_DPS));
     for def in defs {
-        def.write(out, Some(dps));
+        def.write(out, dps);
     }
 }
 
