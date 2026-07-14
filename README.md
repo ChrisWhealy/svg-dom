@@ -19,6 +19,7 @@ That said, all reasonable, conventional steps have been taken to provide a secur
 - [Design Notes](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/design_notes.md)
 - [Supported SVG Elements](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/elements.md)
 - [Gap Analysis](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/gaps.md)
+- [Change Log](https://github.com/ChrisWhealy/svg-dom/blob/main/changelog.md)
 
 ## ToDo List
 
