@@ -259,6 +259,22 @@ The fix follows the crate's existing two-tier split for `points`, verbatim:
 `SvgNode` has no buffer of its own to reuse (it is a lightweight `Rc` handle, not a factory), which is exactly why the crate's hot-path attribute setters — `set_attr_display`, the transform setters, `AnimationFrame` — all take the scratch buffer as a parameter rather than owning one.
 `d_from_defs` follows that same shape rather than inventing a new one.
 
+### `build_d` / `build_d_fixed` pre-size their `String`; `write_d` / `write_d_fixed` deliberately do not
+
+`build_d` and `build_d_fixed` are the one guaranteed-fresh-allocation case in the whole path API: every other entry point writes into a buffer the caller already owns and is expected to reuse.
+Starting that fresh `String` from `String::new()` means hitting the usual doubling-reallocation pattern, as a path will grow from nothing.
+This then incurs the cost `write_points` already avoids for a point lists by reserving a rough capacity upfront.
+
+Both functions now reserve `defs.len() * APPROX_BYTES_PER_COMMAND` before writing.
+`APPROX_BYTES_PER_COMMAND` is set to 24, the same per-entry "best guess" used by `write_points` for its default-precision path.
+
+24 bytes is a rough, deliberately non-variant-aware estimate: `ClosePath` needs one byte, but a six-argument `CubicBezierTo` with large float coordinates needs several times that, so no single flat constant is exactly right for every path shape.
+Computing a precise per-variant estimate would mean a second pass over `defs`, matching every command to sum its exact argument count and typical width — more work than the reallocations it would save, for a number that is already only ever a lower-bound guess (a `String` that undershoots just grows normally; it never produces wrong output).
+
+`write_d` / `write_d_fixed` do not reserve anything themselves, unlike `write_points`, which calls `out.reserve(..)` on every invocation regardless of whether the caller is reusing the buffer.
+The two functions serve different callers: `write_points` has no one-shot sibling to shoulder the sizing concern, so it has to do double duty.
+`write_d` does have one (`build_d`), so the buffer-reusing function stays lean — clear, then append — and relies on the caller-owned buffer's capacity already being retained from a previous call (or, for a caller who cares about even the first call, constructing the buffer via `SvgAttrs::with_capacity` upfront rather than `SvgAttrs::new()`).
+
 # Performance Patterns
 
 ## High-frequency event coalescing

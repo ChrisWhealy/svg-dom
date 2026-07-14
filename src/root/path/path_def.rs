@@ -2,6 +2,21 @@ use super::elliptical_arc::EllipticalArc;
 use crate::root::utils::{MAX_DPS, Point};
 use std::fmt::Write;
 
+/// Rough per-command byte estimate used only by [`build_d`] / [`build_d_fixed`] to pre-size their fresh `String`,
+/// matching the flat default-precision guess `write_points` already uses per point.
+///
+/// Command sizes vary hugely — `ClosePath` is one byte, a `CubicBezierTo` with six large float arguments can be
+/// several times this — so the estimate is deliberately not variant-aware: getting it exactly right would mean a
+/// second pass over `defs` matching every variant, which costs more than the reallocations it would save.  Being
+/// roughly right still avoids most of the doubling reallocations a bare `String::new()` would otherwise incur as a
+/// long path is built up from nothing.
+///
+/// [`write_d`] / [`write_d_fixed`] deliberately do *not* reserve anything themselves: they write into a
+/// caller-owned buffer that is typically reused across many calls (an animation frame, a `pointermove` handler), so
+/// its capacity is already retained from earlier calls after the first one. A caller who wants to avoid even that
+/// first-call growth can pre-size the buffer directly via `SvgAttrs::with_capacity`.
+const APPROX_BYTES_PER_COMMAND: usize = 24;
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// One SVG path-data command using coordinates absolute in the current user-coordinate system (the uppercase SVG
 /// path commands).
@@ -286,7 +301,7 @@ pub fn write_d_fixed(out: &mut String, defs: &[PathDef], dps: usize) {
 /// assert_eq!(d, "M10 10L100 50L10 90Z");
 /// ```
 pub fn build_d(defs: &[PathDef]) -> String {
-    let mut out = String::new();
+    let mut out = String::with_capacity(defs.len().saturating_mul(APPROX_BYTES_PER_COMMAND));
     write_d(&mut out, defs);
     out
 }
@@ -307,7 +322,7 @@ pub fn build_d(defs: &[PathDef]) -> String {
 /// assert_eq!(d, "M0.33 0.67L10.00 20.00");
 /// ```
 pub fn build_d_fixed(defs: &[PathDef], dps: usize) -> String {
-    let mut out = String::new();
+    let mut out = String::with_capacity(defs.len().saturating_mul(APPROX_BYTES_PER_COMMAND));
     write_d_fixed(&mut out, defs, dps);
     out
 }

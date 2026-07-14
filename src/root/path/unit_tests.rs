@@ -211,3 +211,53 @@ fn write_d_fixed_matches_build_d_fixed_for_the_same_input() {
     write_d_fixed(&mut buf, &defs, 3);
     assert_eq!(buf, build_d_fixed(&defs, 3));
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Capacity pre-reservation — build_d / build_d_fixed only
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+#[test]
+fn build_d_reserves_capacity_proportional_to_command_count() {
+    let defs = [
+        PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(1.0, 2.0))),
+        PathDef::Abs(PathDefAbsolute::LineTo(Point::new(3.0, 4.0))),
+        PathDef::Abs(PathDefAbsolute::ClosePath),
+    ];
+    let expected_min = defs.len() * 24;
+    let d = build_d(&defs);
+    assert!(
+        d.capacity() >= expected_min,
+        "expected capacity >= {expected_min}, got {}",
+        d.capacity()
+    );
+}
+
+#[test]
+fn build_d_fixed_reserves_capacity_proportional_to_command_count() {
+    let defs = [
+        PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(1.0, 2.0))),
+        PathDef::Abs(PathDefAbsolute::LineTo(Point::new(3.0, 4.0))),
+        PathDef::Abs(PathDefAbsolute::ClosePath),
+    ];
+    let expected_min = defs.len() * 24;
+    let d = build_d_fixed(&defs, 2);
+    assert!(
+        d.capacity() >= expected_min,
+        "expected capacity >= {expected_min}, got {}",
+        d.capacity()
+    );
+}
+
+/// `write_d` must not reserve on the caller's behalf: it writes into a buffer the caller is expected to reuse
+/// (and therefore already size correctly, via `SvgAttrs::with_capacity` if desired), so a fresh, empty buffer keeps
+/// whatever capacity `String`'s own incremental growth produces rather than a `build_d`-style upfront reservation.
+#[test]
+fn write_d_does_not_preemptively_reserve_like_build_d_does() {
+    let defs = [PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(1.0, 2.0)))];
+    let mut buf = String::new();
+    write_d(&mut buf, &defs);
+    assert!(
+        buf.capacity() < defs.len() * 24,
+        "write_d should not pre-reserve a build_d-sized allocation for a single short command"
+    );
+}
