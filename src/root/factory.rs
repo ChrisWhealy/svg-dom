@@ -97,9 +97,11 @@ pub(crate) trait SvgFactory {
     // Writes `d` through the factory's own retained scratch buffer (see `create_rect` etc. above) instead of `build_d`,
     // which allocates a fresh `String` on every call.
     fn create_path_from_defs(&self, defs: &[PathDef]) -> Result<SvgNode, Error> {
+        // Validated once, here, before any DOM node exists — d_from_validated_defs (rather than d_from_defs) skips
+        // the redundant second check that would otherwise re-inspect the same already-validated slice.
         validate_starts_with_moveto(defs)?;
         let node = self.make_node("path")?;
-        self.attrs().borrow_mut().d_from_defs(&node, defs)?;
+        self.attrs().borrow_mut().d_from_validated_defs(&node, defs)?;
         self.append_node(&node)?;
         Ok(node)
     }

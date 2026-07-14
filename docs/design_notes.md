@@ -306,6 +306,17 @@ That cost would land squarely on `write_d`/`write_d_fixed`, the functions this w
 
 A caller whose coordinates come from a calculation that could produce a non-finite value (division, trigonometry) is expected to validate with `f64::is_finite()` before constructing the `PathDef` — the same "caller's responsibility at the boundary" shape as the `set_attr` security caveat elsewhere in this crate.
 
+### `create_path_from_defs` validates once, not twice
+
+Wiring `validate_starts_with_moveto` into both `create_path_from_defs` (the shared `SvgFactory` default method behind every `path_from_defs` factory) and `SvgAttrs::d_from_defs` (the natural place to put each check in isolation) meant `path_from_defs` ran the same check twice: once before `make_node("path")`, and again inside `d_from_defs` when the factory wrote the freshly-created node's `d` attribute.
+
+The factory's own check has to stay: it is the one that matters, since it rejects a bad `defs` slice *before* a detached `<path>` element is ever created, rather than after.
+Removing it and relying solely on `SvgAttrs::d_from_defs`'s check would mean a bad path first allocates a DOM node, then discards it — wasted work on the failure path and a small window where a detached, doomed element exists for no reason.
+
+`SvgAttrs::d_from_defs` is therefore split into two: the public method still validates (a caller reaching it directly — via `AttrWriter` or by hand — has had no earlier chance to check), then delegates to `pub(crate) fn d_from_validated_defs`, the unchecked core that just writes.
+`create_path_from_defs` calls `d_from_validated_defs` directly, skipping the redundant second pass over the same three-or-so-byte slice prefix it already inspected moments earlier.
+The saving is not the point since an O(1) check is not worth optimising away for its own sake, but leaving it in obscured which validation call in the sequence was the one actually performing the protection, which on clarity grounds alone, is worth fixing.
+
 # Performance Patterns
 
 ## High-frequency event coalescing

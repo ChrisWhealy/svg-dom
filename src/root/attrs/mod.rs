@@ -168,6 +168,16 @@ impl SvgAttrs {
     /// ```
     pub fn d_from_defs(&mut self, node: &SvgNode, defs: &[PathDef]) -> Result<(), Error> {
         validate_starts_with_moveto(defs)?;
+        self.d_from_validated_defs(node, defs)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// The unchecked core of [`d_from_defs`](Self::d_from_defs), for crate-internal callers that have already run
+    /// [`validate_starts_with_moveto`] themselves — `create_path_from_defs` (the shared [`SvgFactory`] default
+    /// method behind every `path_from_defs` factory) validates before it creates a detached DOM node at all, so
+    /// calling the public, re-validating [`d_from_defs`](Self::d_from_defs) afterwards would check the same slice
+    /// twice for no reason.
+    pub(crate) fn d_from_validated_defs(&mut self, node: &SvgNode, defs: &[PathDef]) -> Result<(), Error> {
         write_d(&mut self.scratch, defs);
         node.set_attr("d", &self.scratch)
     }
