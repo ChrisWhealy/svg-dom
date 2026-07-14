@@ -71,9 +71,14 @@ Two rare failure paths are worth noting:
 
 1. If `requestAnimationFrame` fails during re-scheduling (after the callback returns), the loop cannot continue; the failure path immediately sets the state to `Stopped` and clears the slot and frees any captured values at that moment rather than waiting for the `AnimationLoop` to be dropped.
 
-   If `setTimeout` scheduling itself fails (a near-impossible browser-level error), the deferred cleanup cannot be registered; however, the post-callback code still transitions the state from `StopPending` to `Stopped`, so any later `Drop` call will see `Stopped`, clear the slot synchronously and release captured values at that point.
+   If `setTimeout` scheduling itself fails (a near-impossible browser-level error), the deferred cleanup cannot be registered.
+   The post-callback code still transitions the state from `StopPending` to `Stopped`, so *if another `AnimationLoop` handle survives*, a later `stop()` or `Drop` sees `Stopped` and clears the slot synchronously, releasing the RAF closure and its captures.
+   But if the handle that called `stop()` was the last `AnimationLoop` handle — i.e. it was dropped from inside the running callback — no later `stop()`/`Drop` call exists to perform that cleanup, and the RAF closure, the shared slot, and everything the user callback captured remain permanently leaked.
 
-1. The `once_into_js` closure object may linger as a small orphaned JS allocation until the garbage collector reclaims it, but by that point the slot's `Option` is already `None` so no user captures remain reachable through it.
+1. The callback created by `Closure::once_into_js` for the deferred `setTimeout` is a Rust `FnOnce` handed to JavaScript as a one-shot function; wasm-bindgen only deallocates it when it is *invoked* — an uninvoked `once_into_js` closure is not reclaimed merely by JavaScript garbage collection.
+
+   If `setTimeout` registration fails, that callback is never invoked, so it — and its cloned `Rc` reference to the closure slot — leaks for the life of the page.
+   In the recoverable case where another `AnimationLoop` handle survives (see above), that leaked callback's `Rc` ends up pointing at an already-cleared (`None`) slot, so the RAF closure and the user's captured state are not doubled up in the leak; only the one-shot closure and the empty slot allocation remain leaked.
 
 ## Per-frame formatting uses a reusable scratch buffer
 
