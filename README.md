@@ -54,7 +54,24 @@ That said, all reasonable, conventional steps have been taken to provide a secur
   - [x] `<symbol>`
   - [x] `<tspan>`
   - [x] `<textPath>`
-  - [ ] `<filter>` and `<fe>` elements
+  - [x] `<filter>` and filter effects
+    - [ ] `feBlend`
+    - [ ] `feColorMatrix`
+    - [ ] `feComponentTransfer`
+    - [x] `feComposite`
+    - [ ] `feConvolveMatrix`
+    - [ ] `feDiffuseLighting`
+    - [ ] `feDisplacementMap`
+    - [x] `feDropShadow`
+    - [x] `feFlood`
+    - [x] `feGaussianBlur`
+    - [ ] `feImage`
+    - [x] `feMerge`
+    - [ ] `feMorphology`
+    - [x] `feOffset`
+    - [ ] `feSpecularLighting`
+    - [ ] `feTile`
+    - [ ] `feTurbulence`
 - [x] Type-safe `<path>` `d`-attribute builder (`PathDef` / `path_from_defs`) as a typesafe alternative to hand-written `d` strings
 
 ## What This Crate Is
