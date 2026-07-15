@@ -4,6 +4,7 @@
 
 - `061beb8` Cache complete URL reference, not just bare id (2026-07-15)
 - `8c1ed4d` Reject idea to implement primitive builder closures (2026-07-15)
+- `50ba29c` Implement filter effects flood and composite (2026-07-15)
 
 ## 0.1.53 — 2026-07-14
 
