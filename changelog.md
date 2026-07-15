@@ -1,8 +1,12 @@
 # Change Log
 
-## 0.1.55 — 2026-07-15
+## 0.1.55 — 2026-07-16
 - `db135c4` Implement filter effect colorMatrix (2026-07-15)
 - `0a9e1d5` Remove the temporary owned filter ID (2026-07-15)
+- `ce339e8` Add typed setters for filter region and coordinat-space attributes (2026-07-15)
+- `1f0e84a` Doc Only: Add a performance warning about excessively large filter regions (2026-07-16)
+- `9f4411f` Correct stale set_attr documentation and test descriptions (2026-07-16)
+- `81a131c` Doc Only: Replace "pixel coordinates" with "user-space coordinates" (2026-07-16)
 
 ## 0.1.54 — 2026-07-15
 
