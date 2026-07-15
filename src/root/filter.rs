@@ -45,6 +45,42 @@ impl CompositeOperator {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// The colour transform applied by [`SvgFilter::color_matrix`], selecting both the SVG `type` attribute and the
+/// shape of the `values` attribute that goes with it.
+///
+/// This enum deliberately does not implement `Copy` (unlike [`CompositeOperator`], which is small enough that copying
+/// is free): the [`Matrix`](Self::Matrix) variant carries 160 bytes of `f64`s, and making that implicitly copyable
+/// would encourage silent full-array copies at call sites when only a move or borrow was needed.
+#[derive(Debug, Clone, PartialEq)]
+pub enum ColorMatrixType {
+    /// A full 4x5 colour transform matrix, applied to each pixel's `[R, G, B, A]` as `M · [R, G, B, A, 1]ᵀ`.
+    ///
+    /// Deliberately a fixed-size `[f64; 20]` rather than a `Vec<f64>` or `&[f64]`: the SVG `values` attribute for
+    /// this type is defined as exactly 20 numbers, no more and no fewer, so a matrix with the wrong element count
+    /// cannot be constructed at all, rather than failing at the DOM boundary or silently truncating/padding.
+    Matrix([f64; 20]),
+    /// Adjusts colour saturation. `1.0` is the identity (no change); `0.0` produces greyscale.
+    Saturate(f64),
+    /// Rotates hue by the given angle in degrees around the colour circle.
+    HueRotate(f64),
+    /// Converts to greyscale using each pixel's luminance as its resulting alpha (zeroing RGB) — derives a mask
+    /// from perceived brightness rather than the alpha channel [`gaussian_blur`](SvgFilter::gaussian_blur) and
+    /// friends use for a shadow silhouette.
+    LuminanceToAlpha,
+}
+
+impl ColorMatrixType {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Self::Matrix(_) => "matrix",
+            Self::Saturate(_) => "saturate",
+            Self::HueRotate(_) => "hueRotate",
+            Self::LuminanceToAlpha => "luminanceToAlpha",
+        }
+    }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// A `<filter>` element that applies raster effects (blur, colour manipulation, compositing, ...) to any element that
 /// references it.
 ///
@@ -57,18 +93,30 @@ impl CompositeOperator {
 ///
 /// # Primitive coverage
 ///
-/// [`gaussian_blur`](Self::gaussian_blur) / [`gaussian_blur_xy`](Self::gaussian_blur_xy) (`<feGaussianBlur>`),
-/// [`offset`](Self::offset) (`<feOffset>`), [`merge`](Self::merge) (`<feMerge>`/`<feMergeNode>`),
-/// [`flood`](Self::flood) (`<feFlood>`), [`composite`](Self::composite) (`<feComposite>`), and
-/// [`drop_shadow`](Self::drop_shadow) (`<feDropShadow>`) are implemented — the first five, taken together, build a
-/// *true* tinted, opacity-controlled drop shadow (blur the source alpha, composite a flood colour into the
-/// blurred mask, offset it, then merge it underneath the original graphic; see [`composite`](Self::composite)'s
-/// example) rather than just a blurred copy of the source graphic's own colour; [`drop_shadow`](Self::drop_shadow)
-/// is the same effect as one primitive, since the SVG specification defines it as a browser-native shorthand for
-/// exactly that chain.
+/// Implemented filter effects:
 ///
-/// The SVG filter specification defines around fifteen primitives in total (`feColorMatrix`, `feBlend`, and
-/// others), each with its own attribute grammar. See `docs/gaps.md` for the primitives still to be added.
+/// - [`gaussian_blur`](Self::gaussian_blur)
+/// - [`gaussian_blur_xy`](Self::gaussian_blur_xy) (`<feGaussianBlur>`),
+/// - [`offset`](Self::offset) (`<feOffset>`),
+/// - [`merge`](Self::merge) (`<feMerge>`/`<feMergeNode>`),
+/// - [`flood`](Self::flood) (`<feFlood>`),
+/// - [`composite`](Self::composite) (`<feComposite>`),
+/// - [`drop_shadow`](Self::drop_shadow) (`<feDropShadow>`),
+/// - [`color_matrix`](Self::color_matrix) (`<feColorMatrix>`)
+///
+/// The first five, taken together, can be used to build a *true* tinted, opacity-controlled drop shadow (blur the
+/// source alpha, composite a flood colour into the blurred mask, offset it, then merge it underneath the original
+/// graphic; see [`composite`](Self::composite)'s example) rather than just a blurred copy of the source graphic's
+/// own colour.
+///
+/// [`drop_shadow`](Self::drop_shadow) achieves the same effect using a single primitive, since the SVG specification
+/// defines it as a browser-native shorthand for exactly that chain.
+///
+/// [`color_matrix`](Self::color_matrix) is independent of the shadow primitives — greyscale, saturation, hue
+/// rotation, or an arbitrary linear colour transform via [`ColorMatrixType`].
+///
+/// The SVG filter specification defines around fifteen effect primitives in total (`feBlend`, `feTile`, and others),
+/// each with its own attribute grammar. See `docs/gaps.md` for the primitives still to be added.
 ///
 /// In the meantime, [`set_attr`](Self::set_attr) / [`set_attr_display`](Self::set_attr_display) on the `SvgFilter`
 /// itself cover region attributes (`x`, `y`, `width`, `height`, `filterUnits`, `primitiveUnits`) not yet wrapped by a
@@ -538,6 +586,76 @@ impl SvgFilter {
             attrs.display_element(&el, "flood-opacity", opacity)?;
         }
         el.set_attribute("flood-color", color).map_err(dom_err)?;
+        self.element.append_child(&el).map_err(dom_err)?;
+        Ok(SvgNode::new(el))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Appends a `<feColorMatrix>` primitive to this filter, transforming colours via [`matrix_type`](ColorMatrixType).
+    ///
+    /// Writes the SVG `type` attribute from `matrix_type`'s variant, and — for every variant except
+    /// [`LuminanceToAlpha`](ColorMatrixType::LuminanceToAlpha), which needs none — the matching `values` attribute:
+    /// twenty space-separated numbers for [`Matrix`](ColorMatrixType::Matrix), or a single number for
+    /// [`Saturate`](ColorMatrixType::Saturate)/[`HueRotate`](ColorMatrixType::HueRotate).
+    ///
+    /// If this is the filter's first primitive, its implicit input is `SourceGraphic`. Use the returned [`SvgNode`]'s
+    /// [`set_attr`](crate::SvgNode::set_attr) to set `in` or `result`, neither of which has a dedicated setter yet.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Dom`] if the browser refuses to create or append the `<feColorMatrix>` element.
+    ///
+    /// # Example
+    ///
+    /// A fully desaturated (greyscale) copy of the source graphic:
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::filter::ColorMatrixType};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    /// let grey = defs.filter("greyscale")?;
+    /// grey.color_matrix(ColorMatrixType::Saturate(0.0))?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn color_matrix(&self, matrix_type: ColorMatrixType) -> Result<SvgNode, Error> {
+        let el = create_svg_element::<SvgElement>(&self.document, "feColorMatrix", "SvgElement")?;
+        el.set_attribute("type", matrix_type.as_str()).map_err(dom_err)?;
+        match matrix_type {
+            ColorMatrixType::Matrix(m) => {
+                self.attrs.borrow_mut().display_element(
+                    &el,
+                    "values",
+                    format_args!(
+                        "{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}",
+                        m[0],
+                        m[1],
+                        m[2],
+                        m[3],
+                        m[4],
+                        m[5],
+                        m[6],
+                        m[7],
+                        m[8],
+                        m[9],
+                        m[10],
+                        m[11],
+                        m[12],
+                        m[13],
+                        m[14],
+                        m[15],
+                        m[16],
+                        m[17],
+                        m[18],
+                        m[19],
+                    ),
+                )?;
+            },
+            ColorMatrixType::Saturate(v) | ColorMatrixType::HueRotate(v) => {
+                self.attrs.borrow_mut().display_element(&el, "values", v)?;
+            },
+            ColorMatrixType::LuminanceToAlpha => {},
+        }
         self.element.append_child(&el).map_err(dom_err)?;
         Ok(SvgNode::new(el))
     }

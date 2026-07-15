@@ -33,6 +33,7 @@
             <button type="button" class="menu-item" data-target="panel-clip-path">clipPath</button>
             <button type="button" class="menu-item" data-target="panel-pattern">pattern</button>
             <button type="button" class="menu-item" data-target="panel-filter">filter</button>
+            <button type="button" class="menu-item" data-target="panel-color-matrix">feColorMatrix</button>
             <button type="button" class="menu-item" data-target="panel-tspan">tspan</button>
             <button type="button" class="menu-item" data-target="panel-text-path">textPath</button>
 
@@ -308,6 +309,24 @@
                         colour independent of the text's own fill — applied to real <code>&lt;text&gt;</code>
                         content, the effect's most common real-world use.
                         Each filter widens its region beyond the SVG default so nothing is clipped at the edge.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- feColorMatrix -->
+            <section class="section" id="panel-color-matrix">
+                <h2><code>&lt;feColorMatrix&gt;</code> — colour transforms, independent of the shadow primitives</h2>
+                <figure>
+                    <div class="canvas" id="demo-color-matrix"></div>
+                    <figcaption>
+                        Four copies of the same multi-hue gradient rectangle (a flat colour would not show
+                        saturation or hue changing anything), each referencing a separate
+                        <code>&lt;filter&gt;</code> built with <strong>color_matrix</strong>:
+                        <strong>original</strong> (no filter) · <strong>Saturate(0.0)</strong> (greyscale) ·
+                        <strong>HueRotate(180)</strong> (hue shifted around the colour circle) ·
+                        <strong>Matrix(sepia)</strong> (a full custom 4×5 transform — the classic sepia-tone
+                        coefficients). <code>LuminanceToAlpha</code>, the fourth <code>ColorMatrixType</code>
+                        variant, produces an alpha mask rather than a directly visible result, so is not shown here.
                     </figcaption>
                 </figure>
             </section>

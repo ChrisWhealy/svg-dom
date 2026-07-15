@@ -503,6 +503,30 @@ Therefore, a `<filter>` containing only `drop_shadow(...)` is already a complete
 
 Calling `merge` again after `drop_shadow` is unnecessary as it would paint a second copy of the original graphic on top.
 
+### `color_matrix` uses a data-carrying enum
+
+This is the first filter primitive whose "type" changes the shape of another attribute.
+
+`<feColorMatrix>` is unlike every primitive before it: its `type` attribute (`matrix` / `saturate` / `hueRotate` / `luminanceToAlpha`) does not just select a keyword, it determines what the SVG `values` attribute is allowed to contain — twenty numbers for `matrix`, one number for `saturate`/`hueRotate`, and nothing at all for `luminanceToAlpha`.
+
+A fieldless enum like `CompositeOperator`, matched only to pick an `as_str()`, cannot express that: it would leave `values` as a separate loose parameter a caller could mismatch against `type` (a `values: [f64; 20]` supplied alongside `type: "saturate"`, or a lone `f64` alongside `type: "matrix"`), the exact class of error this crate's typed setters exist to rule out at compile time.
+
+`ColorMatrixType` instead carries each type's own payload directly in the matching variant: `Matrix([f64; 20])`, `Saturate(f64)`, `HueRotate(f64)`, `LuminanceToAlpha` (no payload).
+
+`color_matrix(matrix_type: ColorMatrixType)` matches on the variant to write both `type` (via `as_str()`) and `values` (or no `values` attribute at all for `LuminanceToAlpha`) together, so there is exactly one way to call it for each type and no way to supply a `values` shape that does not match the `type` you asked for.
+
+`Matrix` is a fixed-size `[f64; 20]` rather than `Vec<f64>` or `&[f64]`, for the same reason `PathDef` prefers typed variants over a free-form string: the SVG grammar for this `values` form is exactly 20 numbers, so a matrix with the wrong element count cannot be constructed in the first place.
+This avoids the possibility of a failure at the DOM boundary or worse, being silently truncated or padded by whatever formatting code assembled the string.
+
+`ColorMatrixType` deliberately does not derive `Copy`, unlike every other filter-related enum in this crate (`CompositeOperator`, `ClipPathUnits`, `ArcSize`, ...).
+Technically, however, it could since `[f64; 20]` is `Copy` — but doing so would make an easy-to-miss 160-byte copy happen implicitly at every call site that only meant to move or borrow the value, silently working against the same allocation-and-copy-consciousness the rest of this crate explicitly tries to avoid.
+
+`Clone` is still derived for the rare case a caller genuinely wants to reuse one matrix definition (e.g. applying the same custom transform to several filters), but reuse now has to be spelled `matrix_type.clone()`, an explicit, visible cost rather than a free implicit one.
+
+Writing the 20-number `values` string still avoids a heap allocation: `format_args!` with a literal 20-placeholder format string (verbose in the source, but optimised by the compiler) flows through `SvgAttrs::display_element`'s existing scratch buffer exactly as `gaussian_blur_xy`'s two-placeholder case already does (see "`gaussian_blur_xy` shares a private `fmt::Arguments` core" above).
+
+A shared "write N space-separated numbers" helper (mirroring `write_points`'s technique for a runtime-length list) was not worth building for this: `feColorMatrix` is the only primitive in the entire SVG filter specification with a fixed 20-number attribute, so there is no second call site to justify factoring the loop out.
+
 See [`docs/gaps.md`](gaps.md) for the primitives and region-attribute setters (`filterUnits`, `primitiveUnits`, typed `x`/`y`/`width`/`height`) still to be added.
 
 # Performance Patterns

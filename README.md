@@ -56,7 +56,7 @@ That said, all reasonable, conventional steps have been taken to provide a secur
   - [x] `<textPath>`
   - [x] `<filter>` and filter effects
     - [ ] `feBlend`
-    - [ ] `feColorMatrix`
+    - [x] `feColorMatrix`
     - [ ] `feComponentTransfer`
     - [x] `feComposite`
     - [ ] `feConvolveMatrix`
