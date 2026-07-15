@@ -6,6 +6,7 @@
 - `8c1ed4d` Reject idea to implement primitive builder closures (2026-07-15)
 - `50ba29c` Implement filter effects flood and composite (2026-07-15)
 - `b07bc5e` Implement dropShadow filter effect (2026-07-15)
+- `2431df7` Update README (2026-07-15)
 
 ## 0.1.53 — 2026-07-14
 
