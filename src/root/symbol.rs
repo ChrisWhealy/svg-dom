@@ -74,7 +74,7 @@ impl SvgSymbol {
     ///
     /// Pass this (prefixed with `#`) to [`SvgRoot::use_node`](crate::SvgRoot::use_node) to stamp a copy.
     ///
-    /// # Caveat
+    /// # ⚠️ Caveat ⚠️
     ///
     /// The returned value is cached in the `SvgSymbol` struct at construction time and kept in sync by
     /// [`set_id`](Self::set_id).

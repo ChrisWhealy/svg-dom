@@ -346,6 +346,21 @@ fn should_set_filter_id_via_set_id() -> Result<(), String> {
     check_eq(filter.as_element().get_attribute("id"), Some("new-id".into()))
 }
 
+/// Renaming to a longer id still round-trips correctly (exercises the cached `url(#id)` reference `String`
+/// growing past whatever capacity the previous id left it with).
+#[wasm_bindgen_test]
+fn should_set_filter_id_longer_than_previous() -> Result<(), String> {
+    let svg = make_svg("filter-set-id-longer");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let mut filter = defs.filter("a").map_err(|e| e.to_string())?;
+    filter.set_id("a-much-longer-replacement-id").map_err(|e| e.to_string())?;
+    check_eq(filter.id(), "a-much-longer-replacement-id")?;
+    check_eq(
+        filter.as_element().get_attribute("id"),
+        Some("a-much-longer-replacement-id".into()),
+    )
+}
+
 /// `set_attr("id", ...)` is rejected to protect the cached id.
 #[wasm_bindgen_test]
 fn should_reject_set_attr_id() -> Result<(), String> {

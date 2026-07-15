@@ -5,7 +5,8 @@ use crate::{
         attrs::{AttrWriter, SvgAttrs},
         clip_path::SvgClipPath,
         defs::{
-            validate_clip_path_id, validate_filter_id, validate_gradient_id, validate_marker_id, validate_pattern_id,
+            URL_PREFIX, validate_clip_path_id, validate_filter_id, validate_gradient_id, validate_marker_id,
+            validate_pattern_id,
         },
         filter::SvgFilter,
         gradient::{linear::SvgLinearGradient, radial::SvgRadialGradient},
@@ -279,21 +280,19 @@ impl SvgNode {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Writes `attr="url(#id)"`, the shared shape behind every paint-server / marker / clip-path / filter reference
-    /// attribute.
+    /// Formats and writes `attr="url(#id)"` from a bare `&str` id, the shared shape behind every validated
+    /// paint-server / marker / clip-path / filter reference setter (`set_marker_start`, `set_fill_gradient`, ...).
     ///
-    /// Does not validate `id`. Every validated public setter below (`set_marker_start`, `set_fill_gradient`, ...)
-    /// calls [`validate_marker_id`] or its siblings first, then delegates here.
+    /// Does not validate `id` — every caller below (`set_marker_start`, `set_fill_gradient`, ...) calls
+    /// [`validate_marker_id`] or its siblings first, then delegates here.
     ///
-    /// Every `_ref` variant instead calls this directly with the id already cached on the referenced handle
-    /// (`SvgMarker::id`, `SvgLinearGradient::id`, ...), which is guaranteed to be valid — checked once at the handle's
-    /// construction time and, if renamed, again by its own `set_id` — so re-scanning it here would only repeat work
-    /// already done.
-    ///
-    /// This mirrors `SvgAttrs::d_from_validated_defs`: validate once at the untrusted boundary, then let the already-
-    /// validated path skip straight to the write.
+    /// Every `_ref` variant instead writes its handle's own cached `url(#id)` reference directly via
+    /// [`set_attr`](Self::set_attr) (`SvgMarker::url_ref`, `SvgLinearGradient::url_ref`, ...), bypassing this
+    /// method entirely: that string is built once at the handle's construction time (and rebuilt in place by its
+    /// `set_id`), so there is no bare id left to format here and no per-call allocation, however many elements the
+    /// same handle is applied to.
     fn set_url_ref(&self, attr: &str, id: &str) -> Result<(), Error> {
-        self.set_attr(attr, &format!("url(#{id})"))
+        self.set_attr(attr, &format!("{URL_PREFIX}{id})"))
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -350,7 +349,7 @@ impl SvgNode {
     /// If the marker is later renamed with [`SvgMarker::set_id`](crate::SvgMarker::set_id), this element's attribute is
     /// not updated automatically — reapply the reference after renaming if needed.
     pub fn set_marker_start_ref(&self, marker: &SvgMarker) -> Result<(), Error> {
-        self.set_url_ref("marker-start", marker.id())
+        self.set_attr("marker-start", marker.url_ref())
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -363,7 +362,7 @@ impl SvgNode {
     /// If the marker is later renamed with [`SvgMarker::set_id`](crate::SvgMarker::set_id), this element's attribute is
     /// not updated automatically — reapply the reference after renaming if needed.
     pub fn set_marker_mid_ref(&self, marker: &SvgMarker) -> Result<(), Error> {
-        self.set_url_ref("marker-mid", marker.id())
+        self.set_attr("marker-mid", marker.url_ref())
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -391,7 +390,7 @@ impl SvgNode {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn set_marker_end_ref(&self, marker: &SvgMarker) -> Result<(), Error> {
-        self.set_url_ref("marker-end", marker.id())
+        self.set_attr("marker-end", marker.url_ref())
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -528,7 +527,7 @@ impl SvgNode {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn set_fill_linear_gradient(&self, gradient: &SvgLinearGradient) -> Result<(), Error> {
-        self.set_url_ref("fill", gradient.id())
+        self.set_attr("fill", gradient.url_ref())
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -537,7 +536,7 @@ impl SvgNode {
     /// This is the preferred alternative to [`set_stroke_gradient`](Self::set_stroke_gradient) when you have
     /// the gradient handle.
     pub fn set_stroke_linear_gradient(&self, gradient: &SvgLinearGradient) -> Result<(), Error> {
-        self.set_url_ref("stroke", gradient.id())
+        self.set_attr("stroke", gradient.url_ref())
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -546,7 +545,7 @@ impl SvgNode {
     /// This is the preferred alternative to [`set_fill_gradient`](Self::set_fill_gradient) when you have
     /// the gradient handle.
     pub fn set_fill_radial_gradient(&self, gradient: &SvgRadialGradient) -> Result<(), Error> {
-        self.set_url_ref("fill", gradient.id())
+        self.set_attr("fill", gradient.url_ref())
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -555,7 +554,7 @@ impl SvgNode {
     /// This is the preferred alternative to [`set_stroke_gradient`](Self::set_stroke_gradient) when you have
     /// the gradient handle.
     pub fn set_stroke_radial_gradient(&self, gradient: &SvgRadialGradient) -> Result<(), Error> {
-        self.set_url_ref("stroke", gradient.id())
+        self.set_attr("stroke", gradient.url_ref())
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -593,7 +592,7 @@ impl SvgNode {
     /// This is the preferred alternative to [`set_fill_pattern`](Self::set_fill_pattern): the id is taken directly from
     /// the pattern handle, so there is no risk of typos or `url(#...)` double-wrapping.
     pub fn set_fill_pattern_ref(&self, pattern: &SvgPattern) -> Result<(), Error> {
-        self.set_url_ref("fill", pattern.id())
+        self.set_attr("fill", pattern.url_ref())
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -602,7 +601,7 @@ impl SvgNode {
     /// This is the preferred alternative to [`set_stroke_pattern`](Self::set_stroke_pattern): the id is taken directly
     /// from the pattern handle, so there is no risk of typos or `url(#...)` double-wrapping.
     pub fn set_stroke_pattern_ref(&self, pattern: &SvgPattern) -> Result<(), Error> {
-        self.set_url_ref("stroke", pattern.id())
+        self.set_attr("stroke", pattern.url_ref())
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -654,7 +653,7 @@ impl SvgNode {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn set_clip_path_ref(&self, clip: &SvgClipPath) -> Result<(), Error> {
-        self.set_url_ref("clip-path", clip.id())
+        self.set_attr("clip-path", clip.url_ref())
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -714,7 +713,7 @@ impl SvgNode {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn set_filter_ref(&self, filter: &SvgFilter) -> Result<(), Error> {
-        self.set_url_ref("filter", filter.id())
+        self.set_attr("filter", filter.url_ref())
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

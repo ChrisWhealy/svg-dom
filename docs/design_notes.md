@@ -12,6 +12,7 @@
 - [Multi-attribute updates](#multi-attribute-updates)
 - [Reusable attribute formatting](#reusable-attribute-formatting)
 - [`_ref` setters skip revalidating an already-validated id](#_ref-setters-skip-revalidating-an-already-validated-id)
+- [Reference handles cache the complete `url(#id)` string, not just the bare id](#reference-handles-cache-the-complete-urlid-string-not-just-the-bare-id)
 - [Shared element factory implementation](#shared-element-factory-implementation)
 - [Typesafe Path Data Builder](#typesafe-path-data-builder)
 - [`<filter>` primitives return a plain `SvgNode`](#filter-primitives-return-a-plain-svgnode)
@@ -187,12 +188,30 @@ So by the time a `_ref` method reads `handle.id()`, re-scanning it is a repeated
 
 This generalises the same principle that `create_path_from_defs` and `d_from_validated_defs` already apply to path data (see above): validate once at the untrusted boundary (a bare `&str` from arbitrary caller code), and let a path that started from an already-validated source skip straight to the write.
 
-Concretely, every bare-id setter now delegates to a private `SvgNode::set_url_ref(attr, id)` that only formats `url(#id)` and writes the attribute, while every `_ref` setter calls `set_url_ref` directly with the handle's cached id, bypassing the bare-id setter (and its validation) entirely.
+Concretely, every bare-id setter delegates to a private `SvgNode::set_url_ref(attr, id)` that formats `url(#id)` and writes the attribute, while every `_ref` setter writes its handle's own cached reference directly (see the next section for what that cached reference is and why `_ref` setters no longer go through `set_url_ref` at all).
 
 One private helper shared across all nine reference-attribute pairs, rather than one per attribute kind, since the `url(#...)` wrapping and write are identical regardless of which attribute or id kind is involved — only the attribute name and id string differ, and both are already parameters.
 
 The saving is one string scan per call — the same order of magnitude as the path-validation case above, and for the same reason, it is not worth optimising away on its own merits for a single call.
 It compounds when one handle (a shared marker, a reusable gradient) is applied to many elements, which is a common pattern this crate's own demos use (e.g. arrowhead markers applied to several lines).
+
+## Reference handles cache the complete `url(#id)` string, not just the bare id
+
+The previous section removed the redundant *validation* a `_ref` setter performed on an already-valid id, but left a second, separate cost in place: `set_url_ref` still built a fresh `url(#id)` `String` via `format!` on every single call, so `node.set_filter_ref(&filter)` allocated once per call regardless of how many times the same filter was applied.
+
+`SvgMarker`, `SvgPattern`, `SvgClipPath`, `SvgFilter`, and the shared `GradientInner` behind `SvgLinearGradient`/`SvgRadialGradient` now cache the *complete* `url(#id)` reference in a field named `url_ref`, built once in `new` and rebuilt in place by `set_id`, rather than caching the bare id and reformatting it on every reference.
+
+`id()` (the existing public getter) is unaffected from the caller's side: it now slices the bare id back out of `url_ref` (`&url_ref[URL_PREFIX.len()..url_ref.len() - 1]`) instead of returning a separately stored field.
+That slice is exact, not just probably-correct: `URL_PREFIX` (`"url(#"`, defined once in `root/defs.rs` and shared by all five types) and the trailing `)` are both pure ASCII, and every id these types accept is validated at construction and by `set_id` to match the pattern `[A-Za-z_][A-Za-z0-9_-]*`, which itself is also pure ASCII.
+Therefore, byte offsets always land exactly on the id's boundaries, never mid-character.
+
+A new `pub(crate) fn url_ref(&self) -> &str` exposes the cached string to the `_ref` setters in `node/attrs.rs`, which now write it straight to the attribute via `set_attr`, bypassing `set_url_ref` (and its `format!`) entirely; however, the bare-id setters (`set_fill_gradient`, `set_marker_start`, ...) still need `set_url_ref`, since they only ever receive a bare `&str` from arbitrary caller code and have no cached reference to reuse.
+
+`SvgSymbol` deliberately keeps its plain bare-id cache: a `<symbol>` is referenced via a bare `#id` fragment on `<use>`, not a `url(#...)` wrapper, and has no `_ref`-style setter in `node/attrs.rs` to benefit from a pre-built reference.
+The `url(#...)` shape genuinely does not apply there, so extending this change to it would just be a different cached string with no call site to use it.
+
+The cost is six bytes of payload per cached handle (`url(#` and `)`) beyond the bare id; the field count, and the number of allocations at construction/rename time, are unchanged from the bare-id-caching version.
+In return, `_ref` setters go from "validate nothing, but still allocate a fresh `String` every call" (the state after the previous section's change) to allocating nothing at all, which is the same shape as `create_path_from_defs`/`d_from_validated_defs` and the id-revalidation fix above, extended one step further: not just skip the redundant check, skip the redundant formatting work behind it too.
 
 ## Shared element factory implementation
 
@@ -387,7 +406,7 @@ Nothing with the definition of a `Point` field stops it from holding values such
 The SVG number grammar has no token for either, so Rust's `Display` output for them (`"NaN"`, `"inf"`, `"-inf"`) is not valid path syntax, and unlike the moveto check, catching this is *not* cheap: it means visiting every numeric argument of every command, an O(total arguments) traversal rather than an O(1) look at one element.
 That cost would land squarely on `write_d`/`write_d_fixed`, the functions this whole feature exists to keep cheap for a per-frame caller, so this crate does not check for it anywhere in the path API.
 
-⚠️ Caution ⚠️
+⚠️ Caveat ⚠️
 
 A caller whose coordinates come from a calculation that could produce a non-finite value (division, trigonometry) is expected to validate with `f64::is_finite()` before constructing the `PathDef` — the same "caller's responsibility at the boundary" shape as the `set_attr` security caveat elsewhere in this crate.
 

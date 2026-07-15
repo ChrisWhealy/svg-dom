@@ -735,6 +735,22 @@ fn should_update_cache_and_dom_on_set_id() -> Result<(), String> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Renaming to a longer id still round-trips correctly (exercises the cached `url(#id)` reference `String`
+/// growing past whatever capacity the previous id left it with).
+#[wasm_bindgen_test]
+fn should_set_marker_id_longer_than_previous() -> Result<(), String> {
+    let svg = make_svg("set-id-longer");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let mut marker = defs.marker("a").map_err(|e| e.to_string())?;
+    marker.set_id("a-much-longer-replacement-id").map_err(|e| e.to_string())?;
+    common::check_eq(marker.id(), "a-much-longer-replacement-id")?;
+    common::check_eq(
+        marker.as_element().get_attribute("id"),
+        Some("a-much-longer-replacement-id".into()),
+    )
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// `set_id` with an invalid id returns `InvalidMarkerId` and leaves the marker unchanged.
 #[wasm_bindgen_test]
 fn should_reject_invalid_id_on_set_id() -> Result<(), String> {

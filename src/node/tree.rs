@@ -166,7 +166,7 @@ impl SvgNode {
     /// - the parent exists but is not an SVG element - for example the root `<svg>`, whose parent is the surrounding
     ///   HTML container, not another SVG element.
     ///
-    /// # ⚠️ Caution ⚠️
+    /// # ⚠️ Caveat ⚠️
     ///
     /// The returned handle is **not** a factory handle!
     ///

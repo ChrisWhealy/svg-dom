@@ -205,7 +205,7 @@ impl SvgNode {
     /// any registered through an independent handle to the same element. Calling it is idempotent: a node with no
     /// managed listeners is a harmless no-op.
     ///
-    /// # ⚠️ Caution ⚠️
+    /// # ⚠️ Caveat ⚠️
     ///
     /// Do not remove any listener that is currently running!
     ///
@@ -243,7 +243,7 @@ impl SvgNode {
     /// Event type removal is idempotent.  That is, removing an event type that either does not exist or has no
     /// registered listeners is a harmless no-op.
     ///
-    /// # ⚠️ Caution ⚠️
+    /// # ⚠️ Caveat ⚠️
     ///
     /// As with [`clear_listeners`](Self::clear_listeners), this affects only listeners registered through this handle
     /// lineage, and the same caveat applies: do not call it for any event whose handler is currently running, as

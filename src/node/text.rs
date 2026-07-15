@@ -87,7 +87,8 @@ pub enum TextPathMethod {
     Align,
     /// Each glyph outline is stretched so consecutive glyphs follow the path's curvature without gaps.
     ///
-    /// ⚠️ Caution ⚠️
+    /// ⚠️ Caveat ⚠️
+    ///
     /// Support for `Stretch` is inconsistent across browser engines and can result in visual distortion; therefore,
     /// unless you have verified that `Stretch` renders acceptably on every target browser, you should prefer the use
     /// of `Align`.
@@ -132,7 +133,9 @@ impl TextPathSpacing {
 /// Maps to the SVG2 `side` attribute of `<textPath>`.
 /// The default is [`Left`](TextPathSide::Left).
 ///
-/// **Browser support caveat:** `side` is an SVG2 addition; verify it renders as expected on every browser you target
+/// **⚠️ Browser Support Caveat ⚠️**
+///
+/// `side` is an SVG2 addition; verify it renders as expected on every browser you target
 /// before relying on [`Right`](TextPathSide::Right) in production.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TextPathSide {

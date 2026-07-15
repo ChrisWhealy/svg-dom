@@ -1,6 +1,6 @@
 use crate::{
     Error, SvgNode, dom_err,
-    root::{attrs::SvgAttrs, create_svg_element},
+    root::{attrs::SvgAttrs, create_svg_element, defs::URL_PREFIX},
 };
 use std::{cell::RefCell, fmt};
 use web_sys::{Document, SvgElement};
@@ -48,8 +48,13 @@ use web_sys::{Document, SvgElement};
 /// Ok::<(), svg_dom::Error>(())
 /// ```
 pub struct SvgFilter {
-    /// The `id` set at construction time; cached to avoid a round-trip to the DOM for [`id`](Self::id).
-    id: String,
+    /// The complete `url(#id)` reference, built once at construction and kept in sync by [`set_id`](Self::set_id).
+    /// Caching the full reference (rather than the bare id) means that
+    /// [`SvgNode::set_filter_ref`](crate::SvgNode::set_filter_ref) can write it straight to the `filter` attribute with
+    /// no per-call formatting allocation, however many elements the same filter is applied to.
+    ///
+    /// [`id`](Self::id) slices the bare id back out of this string rather than storing it separately.
+    url_ref: String,
     element: SvgElement,
     document: Document,
     attrs: RefCell<SvgAttrs>,
@@ -58,8 +63,12 @@ pub struct SvgFilter {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 impl SvgFilter {
     pub(crate) fn new(id: String, element: SvgElement, document: Document) -> Self {
+        let mut url_ref = String::with_capacity(URL_PREFIX.len() + id.len() + 1);
+        url_ref.push_str(URL_PREFIX);
+        url_ref.push_str(&id);
+        url_ref.push(')');
         Self {
-            id,
+            url_ref,
             element,
             document,
             attrs: RefCell::new(SvgAttrs::new()),
@@ -72,31 +81,47 @@ impl SvgFilter {
     /// Pass this to [`SvgNode::set_filter`](crate::SvgNode::set_filter), or use
     /// [`SvgNode::set_filter_ref`](crate::SvgNode::set_filter_ref) with the handle to avoid touching the id.
     ///
-    /// # Caveat
+    /// # ⚠️ Caveat ⚠️
     ///
-    /// The returned value is cached in the `SvgFilter` struct at construction time and kept in sync by
-    /// [`set_id`](Self::set_id).
+    /// The returned value is sliced out of the cached `url(#id)` reference (see `url_ref`) built at construction time
+    /// and kept in sync by [`set_id`](Self::set_id). The slice is exact because filter ids are restricted at validation
+    /// time to match the pattern `[A-Za-z_][A-Za-z0-9_-]*`, which is pure ASCII, so byte offsets from `URL_PREFIX`'s
+    /// length and the string's end always land on the bare id exactly.
+    ///
     /// [`set_attr`](Self::set_attr) and [`set_attr_display`](Self::set_attr_display) reject `"id"` so they cannot
     /// desynchronise the cache through the normal API.
+    ///
     /// The only remaining escape hatch is writing through [`as_element`](Self::as_element) directly, which bypasses
     /// all crate-level checks.
     ///
     /// Always use `set_id` to rename a filter after construction.
     pub fn id(&self) -> &str {
-        &self.id
+        &self.url_ref[URL_PREFIX.len()..self.url_ref.len() - 1]
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Returns the cached `url(#id)` reference, ready to write directly to a `filter` attribute.
+    ///
+    /// Visbility need only be `pub(crate)` since [`SvgNode::set_filter_ref`](crate::SvgNode::set_filter_ref) is the
+    /// only caller that needs it; external callers use [`id`](Self::id) instead.
+    pub(crate) fn url_ref(&self) -> &str {
+        &self.url_ref
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Renames the filter by updating both the DOM `id` attribute and the cached value returned by [`id`](Self::id).
     ///
-    /// This method takes `&mut self` because it mutates Rust-owned state (the cached id string), unlike the other
-    /// attribute setters that only write to the DOM.
+    /// This method takes `&mut self` because it mutates Rust-owned state (the cached reference string), unlike the
+    /// other attribute setters that only write to the DOM.
     ///
     /// The new `id` is subject to the same validation rules as the id supplied at construction time: it must match the
     /// pattern `[A-Za-z_][A-Za-z0-9_-]*` — a letter or underscore followed by letters, digits, underscores, or hyphens.
     ///
-    /// **Note:** renaming a filter does not update any `filter` attributes already written to referencing elements —
-    /// those store a snapshot of the id at the time the reference was applied.
+    /// ⚠️ Caveat ⚠️
+    ///
+    /// Renaming a filter does not update any `filter` attributes already written to referencing elements — those store
+    /// a snapshot of the reference at the time it was applied.
+    ///
     /// Either rename before applying references, or reapply the reference after renaming it.
     ///
     /// # Errors
@@ -106,8 +131,10 @@ impl SvgFilter {
     pub fn set_id(&mut self, id: &str) -> Result<(), Error> {
         super::defs::validate_filter_id(id)?;
         self.element.set_attribute("id", id).map_err(dom_err)?;
-        self.id.clear();
-        self.id.push_str(id);
+        self.url_ref.clear();
+        self.url_ref.push_str(URL_PREFIX);
+        self.url_ref.push_str(id);
+        self.url_ref.push(')');
         Ok(())
     }
 
@@ -128,7 +155,7 @@ impl SvgFilter {
     /// This is the generic escape hatch for attributes not covered by a named setter — for example the filter region
     /// (`x`, `y`, `width`, `height`) or coordinate-space attributes (`filterUnits`, `primitiveUnits`).
     ///
-    /// ⚠️ Caution ⚠️
+    /// ⚠️ Caveat ⚠️
     ///
     /// Name and value are written verbatim; so be careful not pass any untrusted input!
     ///

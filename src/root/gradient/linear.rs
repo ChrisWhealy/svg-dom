@@ -58,6 +58,15 @@ impl SvgLinearGradient {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Returns the cached `url(#id)` reference, ready to write directly to a `fill`/`stroke` attribute.
+    ///
+    /// Visibility need only be `pub(crate)` since [`set_fill_linear_gradient`](crate::SvgNode::set_fill_linear_gradient)
+    /// and its stroke sibling are the only functions that need it; external callers use [`id`](Self::id) instead.
+    pub(crate) fn url_ref(&self) -> &str {
+        self.0.url_ref()
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Renames the gradient, updating both the DOM `id` attribute and the cached value returned by [`id`](Self::id).
     ///
     /// The new `id` is subject to the same validation rules as the id supplied at construction time.

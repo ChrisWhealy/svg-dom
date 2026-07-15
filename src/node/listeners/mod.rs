@@ -29,7 +29,7 @@ impl SvgNode {
     /// event on the same node from within the handler — which would panic, just as a re-entrant `RefCell` borrow
     /// would.)
     ///
-    /// **Cycle caveat:**
+    /// **⚠️ Cycle Caveat ⚠️**
     ///
     /// If the handler needs to mutate the *same* node it is attached to, capture a [`downgrade`](Self::downgrade)d
     /// [`WeakSvgNode`](crate::WeakSvgNode) and [`upgrade`](crate::WeakSvgNode::upgrade) it inside the closure, rather

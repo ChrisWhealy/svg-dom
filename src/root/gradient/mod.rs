@@ -3,7 +3,10 @@ pub(crate) mod radial;
 
 use crate::{
     Error, dom_err,
-    root::{attrs::SvgAttrs, defs::validate_gradient_id},
+    root::{
+        attrs::SvgAttrs,
+        defs::{URL_PREFIX, validate_gradient_id},
+    },
 };
 use std::cell::RefCell;
 use web_sys::{Document, SvgElement};
@@ -61,11 +64,17 @@ impl SpreadMethod {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// Private shared state for both gradient types.
-// Using a shared inner struct avoids duplicating the id/element/document/attrs fields and the many methods that operate
-// identically on both types.
+/// Private shared state for both gradient types.
+///
+/// Using a shared inner struct avoids duplicating the id/element/document/attrs fields and the many methods that operate
+/// identically on both types.
+///
+/// `url_ref` caches the complete `url(#id)` reference (built once here, rebuilt in place by `set_id`) rather than just
+/// the bare id, so `set_fill_linear_gradient`/`set_fill_radial_gradient` and their stroke siblings can write it straight
+/// to the `fill`/`stroke` attribute with no per-call formatting allocation, however many elements the same gradient is
+/// applied to. `id()` slices the bare id back out of this string rather than storing it separately.
 struct GradientInner {
-    id: String,
+    url_ref: String,
     element: SvgElement,
     document: Document,
     attrs: RefCell<SvgAttrs>,
@@ -74,30 +83,49 @@ struct GradientInner {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 impl GradientInner {
     fn new(id: &str, element: SvgElement, document: Document) -> Self {
+        let mut url_ref = String::with_capacity(URL_PREFIX.len() + id.len() + 1);
+        url_ref.push_str(URL_PREFIX);
+        url_ref.push_str(id);
+        url_ref.push(')');
         Self {
-            id: id.to_owned(),
+            url_ref,
             element,
             document,
             attrs: RefCell::new(SvgAttrs::new()),
         }
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// The slice is exact because gradient ids are restricted at validation time to such that they always match the
+    /// pattern `[A-Za-z_][A-Za-z0-9_-]*`, which is pure ASCII, so byte offsets from `URL_PREFIX`'s length and the
+    /// string's end always land on the bare id exactly.
     fn id(&self) -> &str {
-        &self.id
+        &self.url_ref[URL_PREFIX.len()..self.url_ref.len() - 1]
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Returns the cached `url(#id)` reference, ready to write directly to a `fill`/`stroke` attribute.
+    fn url_ref(&self) -> &str {
+        &self.url_ref
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fn as_element(&self) -> &SvgElement {
         &self.element
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fn set_id(&mut self, id: &str) -> Result<(), Error> {
         validate_gradient_id(id)?;
         self.element.set_attribute("id", id).map_err(dom_err)?;
-        self.id.clear();
-        self.id.push_str(id);
+        self.url_ref.clear();
+        self.url_ref.push_str(URL_PREFIX);
+        self.url_ref.push_str(id);
+        self.url_ref.push(')');
         Ok(())
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fn add_stop(&self, offset: f64, color: &str) -> Result<(), Error> {
         let stop = super::create_svg_element::<SvgElement>(&self.document, "stop", "SvgElement")?;
         self.attrs.borrow_mut().display_element(&stop, "offset", offset)?;
@@ -106,6 +134,7 @@ impl GradientInner {
         Ok(())
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fn add_stop_opacity(&self, offset: f64, color: &str, opacity: f64) -> Result<(), Error> {
         let stop = super::create_svg_element::<SvgElement>(&self.document, "stop", "SvgElement")?;
         let mut attrs = self.attrs.borrow_mut();
@@ -116,18 +145,22 @@ impl GradientInner {
         Ok(())
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fn set_gradient_units(&self, units: GradientUnits) -> Result<(), Error> {
         self.element.set_attribute("gradientUnits", units.as_str()).map_err(dom_err)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fn set_spread_method(&self, method: SpreadMethod) -> Result<(), Error> {
         self.element.set_attribute("spreadMethod", method.as_str()).map_err(dom_err)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fn set_gradient_transform(&self, transform: &str) -> Result<(), Error> {
         self.element.set_attribute("gradientTransform", transform).map_err(dom_err)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fn set_attr(&self, name: &str, value: &str) -> Result<(), Error> {
         if name.eq_ignore_ascii_case("id") {
             return Err(Error::ReservedAttribute("id"));
@@ -135,6 +168,7 @@ impl GradientInner {
         self.element.set_attribute(name, value).map_err(dom_err)
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fn set_attrs<I, K, V>(&self, attrs: I) -> Result<(), Error>
     where
         I: IntoIterator<Item = (K, V)>,
@@ -147,6 +181,7 @@ impl GradientInner {
         Ok(())
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fn set_attr_display<T: std::fmt::Display>(&self, name: &str, value: T) -> Result<(), Error> {
         if name.eq_ignore_ascii_case("id") {
             return Err(Error::ReservedAttribute("id"));

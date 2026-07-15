@@ -2,6 +2,7 @@ use crate::{
     Error, SvgNode, dom_err,
     root::{
         attrs::SvgAttrs,
+        defs::URL_PREFIX,
         factory::SvgFactory,
         path::path_def::PathDef,
         utils::{Point, Size},
@@ -86,8 +87,15 @@ impl PatternUnits {
 /// Ok::<(), svg_dom::Error>(())
 /// ```
 pub struct SvgPattern {
-    /// The `id` set at construction time; cached to avoid a round-trip to the DOM for [`id`](Self::id).
-    id: String,
+    /// The complete `url(#id)` reference, built once at construction and kept in sync by [`set_id`](Self::set_id).
+    ///
+    /// Caching the full reference (rather than the bare id) means
+    /// [`SvgNode::set_fill_pattern_ref`](crate::SvgNode::set_fill_pattern_ref) and its stroke sibling can write it
+    /// straight to the attribute with no per-call formatting allocation, however many elements the pattern is applied
+    /// to.
+    ///
+    /// [`id`](Self::id) slices the bare id back out of this string rather than storing it separately.
+    url_ref: String,
     element: SvgElement,
     document: Document,
     attrs: RefCell<SvgAttrs>,
@@ -96,8 +104,12 @@ pub struct SvgPattern {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 impl SvgPattern {
     pub(crate) fn new(id: String, element: SvgElement, document: Document) -> Self {
+        let mut url_ref = String::with_capacity(URL_PREFIX.len() + id.len() + 1);
+        url_ref.push_str(URL_PREFIX);
+        url_ref.push_str(&id);
+        url_ref.push(')');
         Self {
-            id,
+            url_ref,
             element,
             document,
             attrs: RefCell::new(SvgAttrs::new()),
@@ -111,22 +123,35 @@ impl SvgPattern {
     /// [`SvgNode::set_fill_pattern_ref`](crate::SvgNode::set_fill_pattern_ref) with the handle to avoid
     /// touching the id.
     ///
-    /// # Caveat
+    /// # ⚠️ Caveat ⚠️
     ///
-    /// The returned value is cached in the `SvgPattern` struct at construction time and kept in sync by
-    /// [`set_id`](Self::set_id).
-    /// [`set_attr`](Self::set_attr) and [`set_attr_display`](Self::set_attr_display) reject `"id"` so they
-    /// cannot desynchronise the cache through the normal API.
+    /// The returned value is sliced out of the cached `url(#id)` reference (see `url_ref`) built at construction time
+    /// and kept in sync by [`set_id`](Self::set_id). The slice is exact because pattern ids are restricted at
+    /// validation time to always match the pattern `[A-Za-z_][A-Za-z0-9_-]*`, which is pure ASCII, so byte offsets from
+    /// `URL_PREFIX`'s length and the string's end always land on the bare id exactly.
+    ///
+    /// [`set_attr`](Self::set_attr) and [`set_attr_display`](Self::set_attr_display) reject `"id"` so they cannot
+    /// desynchronise the cache through the normal API.
+    ///
     /// Always use `set_id` to rename a pattern after construction.
     pub fn id(&self) -> &str {
-        &self.id
+        &self.url_ref[URL_PREFIX.len()..self.url_ref.len() - 1]
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Returns the cached `url(#id)` reference, ready to write directly to a `fill`/`stroke` attribute.
+    ///
+    /// Visibility need only be `pub(crate)` since `set_fill_pattern_ref` and `set_stroke_pattern_ref` are the only
+    /// functions that need it; external callers use [`id`](Self::id) instead.
+    pub(crate) fn url_ref(&self) -> &str {
+        &self.url_ref
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Renames the pattern by updating both the DOM `id` attribute and the cached value returned by [`id`](Self::id).
     ///
-    /// This method takes `&mut self` because it mutates Rust-owned state (the cached id string), unlike the other
-    /// attribute setters that write only to the DOM.
+    /// This method takes `&mut self` because it mutates Rust-owned state (the cached reference string), unlike the
+    /// other attribute setters that write only to the DOM.
     ///
     /// The new `id` is subject to the same validation rules as the id supplied at construction time: it must match
     /// `[A-Za-z_][A-Za-z0-9_-]*`.
@@ -141,8 +166,10 @@ impl SvgPattern {
     pub fn set_id(&mut self, id: &str) -> Result<(), Error> {
         super::defs::validate_pattern_id(id)?;
         self.element.set_attribute("id", id).map_err(dom_err)?;
-        self.id.clear();
-        self.id.push_str(id);
+        self.url_ref.clear();
+        self.url_ref.push_str(URL_PREFIX);
+        self.url_ref.push_str(id);
+        self.url_ref.push(')');
         Ok(())
     }
 
