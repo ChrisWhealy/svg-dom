@@ -144,7 +144,7 @@ impl SvgClipPath {
     /// pattern `[A-Za-z_][A-Za-z0-9_-]*` — a letter or underscore followed by letters, digits, underscores, or hyphens.
     ///
     /// ⚠️ Caveat ⚠️
-    /// 
+    ///
     /// Renaming a clip path does not update any `clip-path` attributes already written to referencing elements — those
     /// store a snapshot of the reference at the time it was applied.
     ///

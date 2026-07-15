@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.1.54 — 2026-07-15
+
+- `061beb8` Cache complete URL reference, not just bare id (2026-07-15)
+
 ## 0.1.53 — 2026-07-14
 
 - `4bc16bb` Start implementation of \<filter\> with Gaussian blur (2026-07-14)
