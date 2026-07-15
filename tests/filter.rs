@@ -581,20 +581,18 @@ fn should_set_result_on_color_matrix_via_generic_escape_hatch() -> Result<(), St
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// Region attributes via the generic escape hatch
+// Region attributes with explicit SVG units via the generic escape hatch
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-/// `set_attr` on `SvgFilter` covers region attributes not yet wrapped by a named setter (`x`, `y`, `width`,
-/// `height`, `filterUnits`, `primitiveUnits`).
+/// `set_attr` remains available when percentage or other explicit length syntax cannot be represented by the numeric
+/// named setters.
 #[wasm_bindgen_test]
-fn should_set_filter_region_via_generic_escape_hatch() -> Result<(), String> {
+fn should_set_filter_region_with_explicit_units_via_generic_escape_hatch() -> Result<(), String> {
     let svg = make_svg("filter-region");
     let defs = svg.defs().map_err(|e| e.to_string())?;
     let filter = defs.filter("region").map_err(|e| e.to_string())?;
     filter.set_attr("x", "-20%").map_err(|e| e.to_string())?;
-    filter.set_attr("filterUnits", "userSpaceOnUse").map_err(|e| e.to_string())?;
-    check_eq(filter.as_element().get_attribute("x"), Some("-20%".into()))?;
-    check_eq(filter.as_element().get_attribute("filterUnits"), Some("userSpaceOnUse".into()))
+    check_eq(filter.as_element().get_attribute("x"), Some("-20%".into()))
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

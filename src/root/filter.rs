@@ -271,8 +271,10 @@ impl SvgFilter {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets any attribute on the `<filter>` element by name and string value.
     ///
-    /// This is the generic escape hatch for attributes not covered by a named setter — for example the filter region
-    /// (`x`, `y`, `width`, `height`) or coordinate-space attributes (`filterUnits`, `primitiveUnits`).
+    /// This is the generic escape hatch for attributes not having a named setter: e.g. [`set_x`](Self::set_x),
+    /// [`set_y`](Self::set_y), [`set_width`](Self::set_width) and [`set_height`](Self::set_height) only accept a bare
+    /// `f64`, so pass an explicit SVG length or percentage (e.g. `"-20%"`) here when the filter region needs that
+    /// syntax instead of a plain number.
     ///
     /// ⚠️ Caveat ⚠️
     ///
