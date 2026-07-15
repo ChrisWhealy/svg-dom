@@ -137,6 +137,11 @@ The SVG default filter region (`-10% -10% 120% 120%` of the referencing element'
 
 ***IMPORTANT***
 
+Expand the region only enough to contain the intended effect.
+The filter region is a hard clip on every intermediate offscreen buffer the browser rasterises while evaluating the filter's primitives, not just the final painted area, so an unnecessarily large region can increase both rasterisation work and temporary memory use.
+
+***IMPORTANT***
+
 * All filter ids must match the pattern `[A-Za-z_][A-Za-z0-9_-]*`.
 * Ids are document-scoped, so they must be globally unique across all `<svg>` elements on the page.
 

@@ -344,6 +344,13 @@ impl SvgFilter {
     /// a wide blur; widen `width`/`height` explicitly for large [`gaussian_blur`](Self::gaussian_blur) `std_deviation`
     /// values.
     ///
+    /// ⚠️ Performance ⚠️
+    ///
+    /// Expand the region only enough to contain the intended effect. Per the SVG filter specification, the filter
+    /// region is a hard clip: every intermediate offscreen buffer the browser rasterises while evaluating this filter's
+    /// primitives is bounded by it, so an unnecessarily large region can inflate both rasterisation work and temporary
+    /// memory use, not just the final painted area.
+    ///
     /// See [`set_x`](Self::set_x) for the coordinate space this value is interpreted in.
     pub fn set_width(&self, v: f64) -> Result<(), Error> {
         self.attrs.borrow_mut().display_element(&self.element, "width", v)
@@ -352,8 +359,8 @@ impl SvgFilter {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the height of the filter region.
     ///
-    /// See [`set_width`](Self::set_width) for why this often needs widening beyond the SVG default, and
-    /// [`set_x`](Self::set_x) for the coordinate space this value is interpreted in.
+    /// See [`set_width`](Self::set_width) for why this often needs widening beyond the SVG default, why it should
+    /// not be widened further than the effect needs, and for the coordinate space this value is interpreted in.
     pub fn set_height(&self, v: f64) -> Result<(), Error> {
         self.attrs.borrow_mut().display_element(&self.element, "height", v)
     }
