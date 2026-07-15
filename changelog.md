@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.1.55 — 2026-07-15
+- `db135c4` Implement filter effect colorMatrix (2026-07-15)
+- `0a9e1d5` Remove the temporary owned filter ID (2026-07-15)
+
 ## 0.1.54 — 2026-07-15
 
 - `061beb8` Cache complete URL reference, not just bare id (2026-07-15)
@@ -7,7 +11,6 @@
 - `50ba29c` Implement filter effects flood and composite (2026-07-15)
 - `b07bc5e` Implement dropShadow filter effect (2026-07-15)
 - `2431df7` Update README (2026-07-15)
-- `db135c4` Implement filter effect colorMatrix (2026-07-15)
 
 ## 0.1.53 — 2026-07-14
 
