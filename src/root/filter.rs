@@ -81,6 +81,32 @@ impl ColorMatrixType {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Controls which coordinate space the filter region (`x`, `y`, `width`, `height`) or a primitive's own coordinate
+/// attributes are expressed in.
+///
+/// Used for both the `filterUnits` and `primitiveUnits` attributes.
+/// Passed to [`SvgFilter::set_filter_units`] and [`SvgFilter::set_primitive_units`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FilterUnits {
+    /// Values are expressed in the same coordinate space as the element that references the filter.
+    /// SVG default for `primitiveUnits`.
+    UserSpaceOnUse,
+    /// Values are expressed as fractions of the referencing element's bounding box — `(0, 0)` maps to the top-left
+    /// corner and `(1, 1)` maps to the bottom-right corner.
+    /// SVG default for `filterUnits`.
+    ObjectBoundingBox,
+}
+
+impl FilterUnits {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::UserSpaceOnUse => "userSpaceOnUse",
+            Self::ObjectBoundingBox => "objectBoundingBox",
+        }
+    }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// A `<filter>` element that applies raster effects (blur, colour manipulation, compositing, ...) to any element that
 /// references it.
 ///
@@ -118,10 +144,11 @@ impl ColorMatrixType {
 /// The SVG filter specification defines around fifteen effect primitives in total (`feBlend`, `feTile`, and others),
 /// each with its own attribute grammar. See `docs/gaps.md` for the primitives still to be added.
 ///
-/// In the meantime, [`set_attr`](Self::set_attr) / [`set_attr_display`](Self::set_attr_display) on the `SvgFilter`
-/// itself cover region attributes (`x`, `y`, `width`, `height`, `filterUnits`, `primitiveUnits`) not yet wrapped by a
-/// named setter, and [`SvgNode::set_attr`](crate::SvgNode::set_attr) on any node returned by a primitive method covers
-/// that primitive's own attributes not yet wrapped by a named parameter (`in`, `result`, and so on).
+/// The filter region ([`set_x`](Self::set_x), [`set_y`](Self::set_y), [`set_width`](Self::set_width),
+/// [`set_height`](Self::set_height)) and coordinate-space ([`set_filter_units`](Self::set_filter_units),
+/// [`set_primitive_units`](Self::set_primitive_units)) attributes each have a named setter.
+/// [`SvgNode::set_attr`](crate::SvgNode::set_attr) on any node returned by a primitive method covers that primitive's
+/// own attributes not yet wrapped by a named parameter (`in`, `result`, and so on).
 ///
 /// # Example
 ///
@@ -290,6 +317,71 @@ impl SvgFilter {
             return Err(Error::ReservedAttribute("id"));
         }
         self.attrs.borrow_mut().display_element(&self.element, name, value)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the horizontal offset of the filter region.
+    ///
+    /// Interpreted according to [`filterUnits`](Self::set_filter_units) — a fraction of the referencing element's
+    /// bounding box under the SVG default ([`FilterUnits::ObjectBoundingBox`]), or a user-space coordinate under
+    /// [`FilterUnits::UserSpaceOnUse`].
+    pub fn set_x(&self, v: f64) -> Result<(), Error> {
+        self.attrs.borrow_mut().display_element(&self.element, "x", v)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the vertical offset of the filter region.
+    ///
+    /// See [`set_x`](Self::set_x) for the coordinate space this value is interpreted in.
+    pub fn set_y(&self, v: f64) -> Result<(), Error> {
+        self.attrs.borrow_mut().display_element(&self.element, "y", v)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the width of the filter region.
+    ///
+    /// The SVG default filter region is `-10% -10% 120% 120%` of the referencing element's bounding box, which can clip
+    /// a wide blur; widen `width`/`height` explicitly for large [`gaussian_blur`](Self::gaussian_blur) `std_deviation`
+    /// values.
+    ///
+    /// See [`set_x`](Self::set_x) for the coordinate space this value is interpreted in.
+    pub fn set_width(&self, v: f64) -> Result<(), Error> {
+        self.attrs.borrow_mut().display_element(&self.element, "width", v)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the height of the filter region.
+    ///
+    /// See [`set_width`](Self::set_width) for why this often needs widening beyond the SVG default, and
+    /// [`set_x`](Self::set_x) for the coordinate space this value is interpreted in.
+    pub fn set_height(&self, v: f64) -> Result<(), Error> {
+        self.attrs.borrow_mut().display_element(&self.element, "height", v)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the `filterUnits` attribute, controlling the coordinate space for the filter region's position and size.
+    ///
+    /// The default is [`FilterUnits::ObjectBoundingBox`], meaning [`set_x`](Self::set_x), [`set_y`](Self::set_y),
+    /// [`set_width`](Self::set_width), and [`set_height`](Self::set_height) are fractions of the referencing element's
+    /// bounding box.
+    ///
+    /// Use [`FilterUnits::UserSpaceOnUse`] to express the filter region in pixel coordinates instead.
+    pub fn set_filter_units(&self, u: FilterUnits) -> Result<(), Error> {
+        self.element.set_attribute("filterUnits", u.as_str()).map_err(dom_err)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the `primitiveUnits` attribute, controlling the coordinate space used by length-valued attributes on the
+    /// filter's own primitives (for example [`gaussian_blur`](Self::gaussian_blur)'s `std_deviation` or
+    /// [`offset`](Self::offset)'s `dx`/`dy`).
+    ///
+    /// The default is [`FilterUnits::UserSpaceOnUse`], meaning primitive attributes use the same coordinate system as
+    /// the element that references the filter.
+    ///
+    /// Use [`FilterUnits::ObjectBoundingBox`] to express them as fractions of the referencing element's bounding box
+    /// instead.
+    pub fn set_primitive_units(&self, u: FilterUnits) -> Result<(), Error> {
+        self.element.set_attribute("primitiveUnits", u.as_str()).map_err(dom_err)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

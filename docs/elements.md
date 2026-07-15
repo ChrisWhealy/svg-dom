@@ -132,8 +132,8 @@ For the common case (shadow of the same graphic it decorates), `drop_shadow` pro
 
 See `docs/gaps.md` for the primitives (`feBlend`, `feTile`, and others) still to be added.
 
-**Region and coordinate-space attributes** (`x`, `y`, `width`, `height`, `filterUnits`, `primitiveUnits`) are not yet wrapped by named setters; use `SvgFilter::set_attr`/`set_attrs`.
-The SVG default filter region (`-10% -10% 120% 120%` of the referencing element's bounding box) can clip a wide blur; widen it explicitly for large `stdDeviation` values, e.g. `filter.set_attrs([("x", "-50%"), ("y", "-50%"), ("width", "200%"), ("height", "200%")])`.
+**Region and coordinate-space attributes**: `set_x`/`set_y`/`set_width`/`set_height` set the filter region, and `set_filter_units`/`set_primitive_units` (both taking a `FilterUnits`, `UserSpaceOnUse`/`ObjectBoundingBox`) set its coordinate space and the space used by primitive attributes respectively.
+The SVG default filter region (`-10% -10% 120% 120%` of the referencing element's bounding box, i.e. `filterUnits: ObjectBoundingBox`) can clip a wide blur; widen it explicitly for large `stdDeviation` values, e.g. `filter.set_x(-0.5)?; filter.set_y(-0.5)?; filter.set_width(2.0)?; filter.set_height(2.0)?;`.
 
 ***IMPORTANT***
 

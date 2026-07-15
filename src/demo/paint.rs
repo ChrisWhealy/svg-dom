@@ -1,7 +1,7 @@
 use super::colours::*;
 use super::{BAND, H, PAD_Y, W, caption};
 use crate::{
-    Error, PathDef, PathDefAbsolute, SvgRoot, TextAnchor,
+    Error, PathDef, PathDefAbsolute, SvgFilter, SvgRoot, TextAnchor,
     root::{
         filter::ColorMatrixType,
         gradient::SpreadMethod,
@@ -354,6 +354,18 @@ pub(super) fn demo_pattern() -> Result<(), Error> {
 // filter — feGaussianBlur at increasing stdDeviation, plus a tinted drop shadow via
 // feGaussianBlur -> feFlood -> feComposite -> feOffset -> feMerge, applied via set_filter
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Widens a filter's region from the SVG default (-10%/-10%/120%/120% of the referencing element's bounding box)
+// to -50%/-50%/200%/200%, via the typed set_x/set_y/set_width/set_height setters rather than the generic
+// set_attrs escape hatch. Shared by every build_filter closure below, all of which need the same wider region to
+// avoid visibly clipping their blur or offset shadow.
+fn widen_filter_region(f: &SvgFilter) -> Result<(), Error> {
+    f.set_x(-0.5)?;
+    f.set_y(-0.5)?;
+    f.set_width(2.0)?;
+    f.set_height(2.0)?;
+    Ok(())
+}
+
 pub(super) fn demo_filter() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-filter", Size::new(W, H))?;
 
@@ -362,25 +374,25 @@ pub(super) fn demo_filter() -> Result<(), Error> {
     // feOffset -> feMerge; see SvgFilter::drop_shadow's doc comment and design_notes.md for the full chain this
     // collapses). The SVG default filter region (-10%/-10%/120%/120% of the referencing element's bounding box)
     // is too tight for the widest blur and the offset shadow, so every filter here widens its region via the
-    // generic set_attrs escape hatch to avoid visibly clipping the edge.
+    // typed set_x/set_y/set_width/set_height setters to avoid visibly clipping the edge.
     svg.build_defs(|d| {
         d.build_filter("demo-filter-0", |f| {
-            f.set_attrs([("x", "-50%"), ("y", "-50%"), ("width", "200%"), ("height", "200%")])?;
+            widen_filter_region(f)?;
             f.gaussian_blur(0.0)?;
             Ok(())
         })?;
         d.build_filter("demo-filter-3", |f| {
-            f.set_attrs([("x", "-50%"), ("y", "-50%"), ("width", "200%"), ("height", "200%")])?;
+            widen_filter_region(f)?;
             f.gaussian_blur(3.0)?;
             Ok(())
         })?;
         d.build_filter("demo-filter-6", |f| {
-            f.set_attrs([("x", "-50%"), ("y", "-50%"), ("width", "200%"), ("height", "200%")])?;
+            widen_filter_region(f)?;
             f.gaussian_blur(6.0)?;
             Ok(())
         })?;
         d.build_filter("demo-filter-12", |f| {
-            f.set_attrs([("x", "-50%"), ("y", "-50%"), ("width", "200%"), ("height", "200%")])?;
+            widen_filter_region(f)?;
             f.gaussian_blur(12.0)?;
             Ok(())
         })?;
@@ -392,7 +404,7 @@ pub(super) fn demo_filter() -> Result<(), Error> {
         // is a saturated one instead, which also demonstrates that the shadow's colour is independently
         // controllable, not just a blurred copy of the source graphic's own fill.
         d.build_filter("demo-filter-shadow", |f| {
-            f.set_attrs([("x", "-50%"), ("y", "-50%"), ("width", "200%"), ("height", "200%")])?;
+            widen_filter_region(f)?;
             f.drop_shadow(4.0, 6.0, 6.0, CRIMSON, 0.85)?;
             Ok(())
         })?;

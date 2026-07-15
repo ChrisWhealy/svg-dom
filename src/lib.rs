@@ -17,7 +17,7 @@
 //! | [`root::defs`] | [`SvgDefs`] | `<defs>` container; factory for markers, gradients, clip-paths, patterns, filters, and symbols |
 //! | [`root::gradient`] | [`SvgLinearGradient`] / [`SvgRadialGradient`] | Gradient paint servers defined in `<defs>` |
 //! | [`root::clip_path`] | [`SvgClipPath`] / [`ClipPathUnits`] | Clipping region defined in `<defs>`, applied with `set_clip_path_ref` |
-//! | [`root::filter`] | [`SvgFilter`] | Raster-effect filter (`<feGaussianBlur>`, ...) defined in `<defs>`, applied with `set_filter_ref` |
+//! | [`root::filter`] | [`SvgFilter`] / [`FilterUnits`] | Raster-effect filter (`<feGaussianBlur>`, ...) defined in `<defs>`, applied with `set_filter_ref` |
 //! | [`root::marker`] | [`SvgMarker`] / [`MarkerUnits`] | Path-decoration markers (`<marker>`) with shape factories |
 //! | [`root::path`] | [`PathDef`] | Type-safe `<path>` `d`-attribute builder from a sequence of typed segments |
 //! | [`root::pattern`] | [`SvgPattern`] / [`PatternUnits`] | Tiled pattern paint server defined in `<defs>`, applied with `set_fill_pattern_ref` |
@@ -84,7 +84,7 @@ pub use root::{
     batch::SvgBatch,
     clip_path::{ClipPathUnits, SvgClipPath},
     defs::SvgDefs,
-    filter::{ColorMatrixType, CompositeOperator, SvgFilter},
+    filter::{ColorMatrixType, CompositeOperator, FilterUnits, SvgFilter},
     gradient::{GradientUnits, SpreadMethod, linear::SvgLinearGradient, radial::SvgRadialGradient},
     marker::{MarkerUnits, SvgMarker},
     path::{

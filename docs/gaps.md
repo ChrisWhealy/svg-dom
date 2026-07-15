@@ -20,7 +20,9 @@ The following filter effect primitives still need to be implemented:
 |---|---|
 | `<feBlend>`, `<feTile>`, `<feMorphology>`, `<feConvolveMatrix>`, `<feDisplacementMap>`, `<feTurbulence>`, `<feComponentTransfer>`, `<feDiffuseLighting>` / `<feSpecularLighting>`, `<feImage>` | Less commonly needed effects; lower priority |
 
-Also missing on `SvgFilter` itself: typed setters for the filter region and coordinate-space attributes (`x`, `y`, `width`, `height`, `filterUnits`, `primitiveUnits`) — reachable today only via the generic `set_attr`/`set_attrs` escape hatch.
+`SvgFilter` has typed setters for the filter region (`set_x`/`set_y`/`set_width`/`set_height`) and coordinate-space attributes (`set_filter_units`/`set_primitive_units`, both taking `FilterUnits`) — see [Supported SVG Elements](elements.md#filter).
+
+Each individual primitive's own `in`/`result` attributes, and any primitive-specific attribute not yet wrapped by a named parameter, remain reachable only via `SvgNode::set_attr` on the node the primitive method returns.
 See `docs/design_notes.md`, "`<filter>` primitives return a plain `SvgNode`", for why a typed per-primitive wrapper was deferred rather than built now.
 
 # Missing Tree operations

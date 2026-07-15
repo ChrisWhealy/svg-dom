@@ -533,7 +533,20 @@ Writing the 20-number `values` string still avoids a heap allocation: `format_ar
 
 A shared "write N space-separated numbers" helper (mirroring `write_points`'s technique for a runtime-length list) was not worth building for this: `feColorMatrix` is the only primitive in the entire SVG filter specification with a fixed 20-number attribute, so there is no second call site to justify factoring the loop out.
 
-See [`docs/gaps.md`](gaps.md) for the primitives and region-attribute setters (`filterUnits`, `primitiveUnits`, typed `x`/`y`/`width`/`height`) still to be added.
+See [`docs/gaps.md`](gaps.md) for the primitives still to be added.
+
+### Filter region and coordinate-space attributes get named setters, `FilterUnits` reuses the `PatternUnits` shape
+
+Previously, `SvgFilter`'s own `x`, `y`, `width`, `height`, `filterUnits`, and `primitiveUnits` attributes could only be modified using the generic `set_attr`/`set_attr_display` escape hatch — none of them block constructing a *primitive*, only tuning the filter region a primitive renders into, so there was no forcing function to add them sooner.
+
+They are common enough to need their own typed setters now: `set_width`/`set_height`, in particular, are the fix for the SVG default filter region (`-10% -10% 120% 120%` of the referencing element's bounding box) clipping a wide `gaussian_blur`, a problem real enough to already be called out as an aside in this crate's own doc comments before a typed setter existed to fix it.
+
+`set_x`/`set_y`/`set_width`/`set_height` follow `SvgPattern`'s identical four setters exactly — plain `f64` via `SvgAttrs::display_element`, no unit suffix, since under the SVG default `filterUnits="objectBoundingBox"` a plain number is already interpreted as a bounding-box fraction (`1.4` means `140%`), and under `userSpaceOnUse` it is a user-space coordinate.
+
+`filterUnits` and `primitiveUnits` share one `FilterUnits` enum (`UserSpaceOnUse`/`ObjectBoundingBox`) rather than two separate enums with identical variants.
+This is the same choice `PatternUnits` already made for `patternUnits`/`patternContentUnits`: both attributes draw from the same two-value SVG vocabulary, so a second enum only duplicates `as_str()` with no type-safety benefit.
+
+Note the two attributes default to *different* variants (`filterUnits` defaults to `ObjectBoundingBox`, `primitiveUnits` to `UserSpaceOnUse`) — `FilterUnits` only fixes which values are legal, not which one a bare `<filter>` starts with; each setter's own doc comment states its attribute's default explicitly so callers do not have to guess or check the SVG specification.
 
 # Performance Patterns
 

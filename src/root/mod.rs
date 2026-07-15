@@ -7,7 +7,8 @@ pub mod clip_path;
 /// The [`SvgDefs`](crate::SvgDefs) container for reusable SVG assets.
 pub mod defs;
 /// The [`SvgFilter`](crate::SvgFilter) element, its filter-primitive builder methods, and the
-/// [`CompositeOperator`](crate::CompositeOperator) / [`ColorMatrixType`](crate::ColorMatrixType) enums.
+/// [`CompositeOperator`](crate::CompositeOperator) / [`ColorMatrixType`](crate::ColorMatrixType) /
+/// [`FilterUnits`](crate::FilterUnits) enums.
 pub mod filter;
 /// The [`SvgLinearGradient`](crate::SvgLinearGradient), [`SvgRadialGradient`](crate::SvgRadialGradient),
 /// [`GradientUnits`](crate::GradientUnits), and [`SpreadMethod`](crate::SpreadMethod) types.
