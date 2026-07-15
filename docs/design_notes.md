@@ -210,8 +210,14 @@ A new `pub(crate) fn url_ref(&self) -> &str` exposes the cached string to the `_
 `SvgSymbol` deliberately keeps its plain bare-id cache: a `<symbol>` is referenced via a bare `#id` fragment on `<use>`, not a `url(#...)` wrapper, and has no `_ref`-style setter in `node/attrs.rs` to benefit from a pre-built reference.
 The `url(#...)` shape genuinely does not apply there, so extending this change to it would just be a different cached string with no call site to use it.
 
-The cost is six bytes of payload per cached handle (`url(#` and `)`) beyond the bare id; the field count, and the number of allocations at construction/rename time, are unchanged from the bare-id-caching version.
+The cost is six bytes of payload per cached handle (`url(#` and `)`) beyond the bare id; the field count is unchanged from the bare-id-caching version.
 In return, `_ref` setters go from "validate nothing, but still allocate a fresh `String` every call" (the state after the previous section's change) to allocating nothing at all, which is the same shape as `create_path_from_defs`/`d_from_validated_defs` and the id-revalidation fix above, extended one step further: not just skip the redundant check, skip the redundant formatting work behind it too.
+
+Construction itself briefly regressed, though: `new` on `SvgMarker`, `SvgPattern`, `SvgClipPath`, and `SvgFilter` kept the pre-`url_ref` signature `new(id: String, ...)`, a holdover from when `id` was stored directly rather than used to build a derived `url_ref` string.
+Every call site therefore did `id.to_owned()` (allocation 1) to satisfy that signature, and `new` then built `url_ref` by copying out of that temporary, immediately-discarded `String` (allocation 2) — one avoidable allocation and copy per filter/marker/pattern/clip-path construction.
+`GradientInner::new` was never affected, since it already took `id: &str` and built `url_ref` directly from the borrow, having no legacy stored-`id`-field signature to inherit.
+
+`new` on all four now takes `id: &str` to match, and every `SvgDefs::*`/`build_*` call site drops its now-pointless `.to_owned()`.
 
 ## Shared element factory implementation
 

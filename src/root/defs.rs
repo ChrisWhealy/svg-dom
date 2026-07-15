@@ -206,7 +206,7 @@ impl SvgDefs {
         let el = super::create_svg_element::<SvgElement>(&self.document, "marker", "SvgElement")?;
         el.set_attribute("id", id).map_err(dom_err)?;
         self.element.append_child(&el).map_err(dom_err)?;
-        Ok(SvgMarker::new(id.to_owned(), el, self.document.clone()))
+        Ok(SvgMarker::new(id, el, self.document.clone()))
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -252,7 +252,7 @@ impl SvgDefs {
         validate_marker_id(id)?;
         let el = super::create_svg_element::<SvgElement>(&self.document, "marker", "SvgElement")?;
         el.set_attribute("id", id).map_err(dom_err)?;
-        let marker = SvgMarker::new(id.to_owned(), el, self.document.clone());
+        let marker = SvgMarker::new(id, el, self.document.clone());
         build(&marker)?;
         self.element.append_child(marker.as_element()).map_err(dom_err)?;
         Ok(marker)
@@ -300,7 +300,7 @@ impl SvgDefs {
         let el = super::create_svg_element::<SvgElement>(&self.document, "clipPath", "SvgElement")?;
         el.set_attribute("id", id).map_err(dom_err)?;
         self.element.append_child(&el).map_err(dom_err)?;
-        Ok(SvgClipPath::new(id.to_owned(), el, self.document.clone()))
+        Ok(SvgClipPath::new(id, el, self.document.clone()))
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -351,7 +351,7 @@ impl SvgDefs {
         validate_clip_path_id(id)?;
         let el = super::create_svg_element::<SvgElement>(&self.document, "clipPath", "SvgElement")?;
         el.set_attribute("id", id).map_err(dom_err)?;
-        let clip = SvgClipPath::new(id.to_owned(), el, self.document.clone());
+        let clip = SvgClipPath::new(id, el, self.document.clone());
         build(&clip)?;
         self.element.append_child(clip.as_element()).map_err(dom_err)?;
         Ok(clip)
@@ -398,7 +398,7 @@ impl SvgDefs {
         let el = super::create_svg_element::<SvgElement>(&self.document, "filter", "SvgElement")?;
         el.set_attribute("id", id).map_err(dom_err)?;
         self.element.append_child(&el).map_err(dom_err)?;
-        Ok(SvgFilter::new(id.to_owned(), el, self.document.clone()))
+        Ok(SvgFilter::new(id, el, self.document.clone()))
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -444,7 +444,7 @@ impl SvgDefs {
         validate_filter_id(id)?;
         let el = super::create_svg_element::<SvgElement>(&self.document, "filter", "SvgElement")?;
         el.set_attribute("id", id).map_err(dom_err)?;
-        let filter = SvgFilter::new(id.to_owned(), el, self.document.clone());
+        let filter = SvgFilter::new(id, el, self.document.clone());
         build(&filter)?;
         self.element.append_child(filter.as_element()).map_err(dom_err)?;
         Ok(filter)
@@ -581,7 +581,7 @@ impl SvgDefs {
         let el = super::create_svg_element::<SvgElement>(&self.document, "pattern", "SvgElement")?;
         el.set_attribute("id", id).map_err(dom_err)?;
         self.element.append_child(&el).map_err(dom_err)?;
-        Ok(SvgPattern::new(id.to_owned(), el, self.document.clone()))
+        Ok(SvgPattern::new(id, el, self.document.clone()))
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -632,7 +632,7 @@ impl SvgDefs {
         validate_pattern_id(id)?;
         let el = super::create_svg_element::<SvgElement>(&self.document, "pattern", "SvgElement")?;
         el.set_attribute("id", id).map_err(dom_err)?;
-        let pat = SvgPattern::new(id.to_owned(), el, self.document.clone());
+        let pat = SvgPattern::new(id, el, self.document.clone());
         build(&pat)?;
         self.element.append_child(pat.as_element()).map_err(dom_err)?;
         Ok(pat)

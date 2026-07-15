@@ -78,10 +78,10 @@ pub struct SvgMarker {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 impl SvgMarker {
-    pub(crate) fn new(id: String, element: SvgElement, document: Document) -> Self {
+    pub(crate) fn new(id: &str, element: SvgElement, document: Document) -> Self {
         let mut url_ref = String::with_capacity(URL_PREFIX.len() + id.len() + 1);
         url_ref.push_str(URL_PREFIX);
-        url_ref.push_str(&id);
+        url_ref.push_str(id);
         url_ref.push(')');
         Self {
             url_ref,
