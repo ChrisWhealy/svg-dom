@@ -483,6 +483,26 @@ A typo in a bare string silently produces an unrecognised operator the browser i
 
 `Arithmetic`'s `k1`–`k4` coefficients are deliberately left to the generic escape hatch rather than added as further parameters: they only apply to one of the seven operators, and every other operator this crate exposes needs no extra configuration beyond `in2` and the operator keyword itself — the same "cover what's common, defer what's rare" judgement already applied to `gaussian_blur_xy` and `merge`.
 
+### `drop_shadow` takes five positional parameters, because these value must be supplied to the underlying SVG primitive
+
+`<feDropShadow>` is not a new effect; the SVG specification defines it as a browser-native shorthand for exactly this effect sequence:
+
+   `gaussian_blur` → `flood` → `composite` → `offset` → `merge`
+
+This is the chain the previous section describes, collapsed into one element that the browser expands internally.
+
+`drop_shadow(std_deviation, dx, dy, color, opacity)` mirrors that definition directly: `std_deviation` is the same value `gaussian_blur` takes, `dx`/`dy` the same as `offset`, `color`/`opacity` the same as `flood`.
+
+Five positional parameters is more than any other primitive method in this crate, but it is not a departure from the "cover what's common, defer what's rare" rule the other primitives already follow; instead,it is that rule applied to a primitive whose entire point is to bundle five otherwise-separate attributes into a single call.
+
+Every one of these five values is something the caller of `drop_shadow`  specifically needs to control; there is no smaller "common case" subset to expose while deferring the rest, the way `composite` defers `Arithmetic`'s rarely-used `k1`–`k4`.
+`in`/`result` remain on the generic escape hatch, as for every other primitive, since they are optional cross-primitive linking attributes rather than part of what a drop shadow actually *is*.
+
+The one behaviour that you should be aware of (noted in `drop_shadow`'s own doc comment, not just here) is that `<feDropShadow>`'s result already includes its `in` input composited on top, exactly as the manual chain's final `merge` step does.
+Therefore, a `<filter>` containing only `drop_shadow(...)` is already a complete, ready-to-use effect.
+
+Calling `merge` again after `drop_shadow` is unnecessary as it would paint a second copy of the original graphic on top.
+
 See [`docs/gaps.md`](gaps.md) for the primitives and region-attribute setters (`filterUnits`, `primitiveUnits`, typed `x`/`y`/`width`/`height`) still to be added.
 
 # Performance Patterns

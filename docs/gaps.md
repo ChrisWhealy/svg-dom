@@ -7,15 +7,14 @@ These gaps will be filled in time, but for now, this crate must be treated as a 
 
 ## Missing SVG elements
 
-`<filter>` itself and five effect primitives (`<feGaussianBlur>`, `<feOffset>`, `<feMerge>`/`<feMergeNode>`, `<feFlood>`, `<feComposite>`) are implemented — see [Supported SVG Elements](elements.md#filter).
-Those five together are enough for a *true* tinted, opacity-controlled drop shadow, not just a blurred copy of the graphic's own fill, which is all that can be acheived using just `feGaussianBlur` + `feOffset` + `feMerge`.
+`<filter>` itself and six effect primitives (`<feGaussianBlur>`, `<feOffset>`, `<feMerge>`/`<feMergeNode>`, `<feFlood>`, `<feComposite>`, `<feDropShadow>`) are implemented — see [Supported SVG Elements](elements.md#filter).
+Those six together are enough for a *true* tinted, opacity-controlled drop shadow — either the manual `feGaussianBlur` → `feFlood` → `feComposite` → `feOffset` → `feMerge` chain, or `feDropShadow` as the same effect in one primitive — not just a blurred copy of the graphic's own fill, which is all that can be achieved using `feGaussianBlur` + `feOffset` + `feMerge` alone.
 
 The following filter effect primitives still need to be implemented:
 
 | Missing Primitive | Why it matters
 |---|---|
 | `<feColorMatrix>` | Colour transforms — greyscale, saturation, hue rotation |
-| `<feDropShadow>` | Shorthand combining offset + blur + flood + composite in one primitive; straightforward now that all four underlying primitives exist |
 | `<feBlend>`, `<feTile>`, `<feMorphology>`, `<feConvolveMatrix>`, `<feDisplacementMap>`, `<feTurbulence>`, `<feComponentTransfer>`, `<feDiffuseLighting>` / `<feSpecularLighting>`, `<feImage>` | Less commonly needed effects; lower priority |
 
 Also missing on `SvgFilter` itself: typed setters for the filter region and coordinate-space attributes (`x`, `y`, `width`, `height`, `filterUnits`, `primitiveUnits`) — reachable today only via the generic `set_attr`/`set_attrs` escape hatch.

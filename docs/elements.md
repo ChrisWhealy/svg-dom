@@ -6,7 +6,7 @@ The following SVG elements are supported:
 * `clipPath`
 * `defs`
 * `ellipse`
-* `filter` (with `feGaussianBlur`, `feOffset`, `feMerge`/`feMergeNode`, `feFlood`, `feComposite`)
+* `filter` (with `feGaussianBlur`, `feOffset`, `feMerge`/`feMergeNode`, `feFlood`, `feComposite`, `feDropShadow`)
 * `g`
 * `image`
 * `line`
@@ -122,8 +122,10 @@ Remove the filter with `SvgNode::remove_filter()`.
 | `merge(inputs)` | `<feMerge>` (with `<feMergeNode>` children) | Stacks each `&str` in `inputs` as one `<feMergeNode in="...">` child, in order (later entries painted on top). The standard way to layer a shadow underneath the original graphic. |
 | `flood(color, opacity)` | `<feFlood>` | Fills the filter region with a solid `flood-color`/`flood-opacity`. Combined with `composite`, gives a shadow an independent colour rather than a blurred copy of the source graphic's own fill. |
 | `composite(in2, operator)` | `<feComposite>` | Combines this primitive's `in` input with `in2` using a Porter-Duff `CompositeOperator` (`Over`/`In`/`Out`/`Atop`/`Xor`/`Lighter`/`Arithmetic`). `operator: In` against a blurred alpha mask is the standard way to tint a shadow. |
+| `drop_shadow(std_deviation, dx, dy, color, opacity)` | `<feDropShadow>` | Implements the browser-native shorthand for the entire `gaussian_blur` → `flood` → `composite` → `offset` → `merge` chain described below. Its result already has the original graphic merged on top: a `<filter>` containing only `drop_shadow` is a complete effect, so there is no need to call `merge` after it. |
 
 `gaussian_blur` + `flood` + `composite` + `offset` + `merge` together build a *true* tinted, opacity-controlled drop shadow: blur the source alpha, composite a flood colour into the blurred mask, offset it, then merge it underneath the original — see the `<filter>` demo panel or `SvgFilter::composite`'s doc example.
+For the common case (shadow of the same graphic it decorates), `drop_shadow` produces the identical effect in one call; reach for the manual chain instead when you need to name intermediate results (`result="blur"`) for another primitive to reuse, or shadow one graphic while merging a different one on top.
 
 `gaussian_blur` + `offset` + `merge` alone still work for the simpler case of a blurred *copy* of the graphic to produce an "almost drop shadow", but using these effects alone, you cannot have an independent shadow colour.
 
