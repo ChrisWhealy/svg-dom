@@ -278,8 +278,8 @@ pub(super) fn demo_clip_path() -> Result<(), Error> {
 pub(super) fn demo_pattern() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-pattern", Size::new(W, H))?;
 
-    // Four named patterns, each defined with patternUnits="userSpaceOnUse" so tile
-    // dimensions are in pixel coordinates — easier to reason about than bounding-box fractions.
+    // Four named patterns, each defined with patternUnits="userSpaceOnUse" so tile dimensions are in the canvas's user
+    // coordinate system which is easier to reason about than bounding-box fractions.
     svg.build_defs(|d| {
         // 1. Dot grid: white circles on a steelblue field.
         d.build_pattern("demo-pat-dots", |p| {

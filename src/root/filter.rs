@@ -374,7 +374,8 @@ impl SvgFilter {
     /// [`set_width`](Self::set_width), and [`set_height`](Self::set_height) are fractions of the referencing element's
     /// bounding box.
     ///
-    /// Use [`FilterUnits::UserSpaceOnUse`] to express the filter region in pixel coordinates instead.
+    /// Use [`FilterUnits::UserSpaceOnUse`] to express the filter region in the referencing element's user coordinate
+    /// system instead.
     pub fn set_filter_units(&self, u: FilterUnits) -> Result<(), Error> {
         self.element.set_attribute("filterUnits", u.as_str()).map_err(dom_err)
     }

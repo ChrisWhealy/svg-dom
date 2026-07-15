@@ -55,7 +55,8 @@ impl PatternUnits {
 ///   and how large it is.
 ///   The default is `objectBoundingBox`, meaning `x`, `y`, `width`, and `height` are fractions of the referencing
 ///   element's bounding box.
-///   Switch to [`PatternUnits::UserSpaceOnUse`] to express tile dimensions in pixel coordinates.
+///   Switch to [`PatternUnits::UserSpaceOnUse`] to express tile dimensions in the referencing element's user coordinate
+///   system.
 ///
 /// - `patternContentUnits` (set via [`set_pattern_content_units`](Self::set_pattern_content_units)) — controls the
 ///   coordinate space used by the shapes *inside* the tile.
@@ -210,7 +211,8 @@ impl SvgPattern {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the `patternUnits` attribute, controlling the coordinate space for the tile's position and size.
     ///
-    /// Use [`PatternUnits::UserSpaceOnUse`] to express `x`, `y`, `width`, and `height` in pixel coordinates.
+    /// Use [`PatternUnits::UserSpaceOnUse`] to express `x`, `y`, `width`, and `height` in the referencing element's
+    /// user coordinate system.
     /// Use [`PatternUnits::ObjectBoundingBox`] (the SVG default) to express them as fractions of the referencing
     /// element's bounding box.
     pub fn set_pattern_units(&self, u: PatternUnits) -> Result<(), Error> {
