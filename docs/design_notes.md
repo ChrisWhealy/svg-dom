@@ -467,6 +467,22 @@ Passing `fmt::Arguments` rather than a `&str` means neither caller needs to pre-
 
 This is a second data point (after `merge`'s slice-of-`&str` parameter) that a filter primitive needing a slightly richer call shape than "one flat attribute, one method" does not need a bigger abstraction — a second thin public method sharing a private core is enough as long as the underlying element is still just attributes, no child structure.
 
+### `flood` and `composite` complete a *true* tinted drop shadow, and `CompositeOperator` follows the existing typed-enum precedent
+
+`gaussian_blur` + `offset` + `merge` alone can only produce a shadow that is a blurred *copy* of the source graphic's own fill.
+However, using these tools alone cannot give a shadow an independent colour or opacity without hand-writing the `feFlood` and `feComposite` effects through the generic escape hatch on some other primitive's returned `SvgNode` (which does not exist, since `<feFlood>` and `<feComposite>` are not children of another primitive).
+
+This gap is now closed with the implementation of `flood` and `composite`, and together with the above three effects are enough for the textbook drop-shadow recipe: blur `SourceAlpha`, flood a colour, composite it `In` the blurred mask, offset, then merge underneath the original.
+
+`flood(color, opacity)` takes both parameters positionally, unlike `gaussian_blur`'s single `std_deviation`, both `flood-color` and `flood-opacity` are core to what a flood *is* for the shadow-tinting use case (an untinted, fully-opaque flood is rarely useful on its own), so neither belongs behind the generic `set_attr` escape hatch the way `in` and `result` do for every primitive.
+
+`composite(in2, operator)` takes `in2` positionally for the same reason `offset` takes `dx`/`dy` positionally: every meaningful use of `feComposite` supplies this value, not an optional cross-primitive linking attribute like `in`/`result`.
+
+`operator` is a `CompositeOperator` enum (`Over`/`In`/`Out`/`Atop`/`Xor`/`Lighter`/`Arithmetic`) rather than a bare `&str`, matching the crate's existing convention for closed sets of SVG keyword attributes (`ClipPathUnits`, `PatternUnits`, `ArcSize`/`ArcSweep`, ...).
+A typo in a bare string silently produces an unrecognised operator the browser ignores, while a typo in an enum variant is a compile error.
+
+`Arithmetic`'s `k1`–`k4` coefficients are deliberately left to the generic escape hatch rather than added as further parameters: they only apply to one of the seven operators, and every other operator this crate exposes needs no extra configuration beyond `in2` and the operator keyword itself — the same "cover what's common, defer what's rare" judgement already applied to `gaussian_blur_xy` and `merge`.
+
 See [`docs/gaps.md`](gaps.md) for the primitives and region-attribute setters (`filterUnits`, `primitiveUnits`, typed `x`/`y`/`width`/`height`) still to be added.
 
 # Performance Patterns

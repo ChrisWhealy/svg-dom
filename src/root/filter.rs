@@ -6,6 +6,45 @@ use std::{cell::RefCell, fmt};
 use web_sys::{Document, SvgElement};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// The Porter-Duff (or Photoshop-style) compositing operator for [`SvgFilter::composite`], controlling how the
+/// `in` and `in2` inputs combine.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CompositeOperator {
+    /// `in` painted over `in2` (SVG default). Neither input is clipped to the other's shape.
+    Over,
+    /// Only the part of `in` that overlaps `in2` is kept — the standard way to tint a mask, e.g. compositing a
+    /// flood colour "in" a blurred alpha silhouette to colour a drop shadow.
+    In,
+    /// Only the part of `in` that does *not* overlap `in2` is kept.
+    Out,
+    /// The part of `in` that overlaps `in2`, painted on top of `in2`.
+    Atop,
+    /// The non-overlapping parts of both inputs; the overlap is removed from both.
+    Xor,
+    /// The arithmetic sum of both inputs, clamped to fully opaque — brightens rather than blends.
+    Lighter,
+    /// A per-pixel weighted sum `k1*i1*i2 + k2*i1 + k3*i2 + k4`, controlled by the `k1`–`k4` attributes (not
+    /// wrapped by a named parameter here; set them via the returned [`SvgNode`]'s
+    /// [`set_attr`](crate::SvgNode::set_attr) — this is the one operator [`composite`](SvgFilter::composite)
+    /// does not fully configure on its own).
+    Arithmetic,
+}
+
+impl CompositeOperator {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Over => "over",
+            Self::In => "in",
+            Self::Out => "out",
+            Self::Atop => "atop",
+            Self::Xor => "xor",
+            Self::Lighter => "lighter",
+            Self::Arithmetic => "arithmetic",
+        }
+    }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// A `<filter>` element that applies raster effects (blur, colour manipulation, compositing, ...) to any element that
 /// references it.
 ///
@@ -19,17 +58,21 @@ use web_sys::{Document, SvgElement};
 /// # Primitive coverage
 ///
 /// [`gaussian_blur`](Self::gaussian_blur) / [`gaussian_blur_xy`](Self::gaussian_blur_xy) (`<feGaussianBlur>`),
-/// [`offset`](Self::offset) (`<feOffset>`), and [`merge`](Self::merge) (`<feMerge>`/`<feMergeNode>`) are
-/// implemented — together enough to build a drop shadow (blur the source alpha, offset it, then merge it
-/// underneath the original graphic; see [`merge`](Self::merge)'s example). The SVG filter specification defines
-/// around fifteen primitives in total (`feColorMatrix`,
-/// `feComposite`, `feFlood`, `feBlend`, and others), each with its own attribute grammar. See `docs/gaps.md` for
-/// the primitives still to be added.
+/// [`offset`](Self::offset) (`<feOffset>`), [`merge`](Self::merge) (`<feMerge>`/`<feMergeNode>`),
+/// [`flood`](Self::flood) (`<feFlood>`), and [`composite`](Self::composite) (`<feComposite>`) are implemented , which,
+/// taken together, are enough to build a *true* tinted, opacity-controlled drop shadow.
+///
+/// This is achieved by blurring the source alpha, compositing a flood colour into the blurred mask, offsetting it, then
+/// merging it underneath the original graphic; see [`composite`](Self::composite)'s example) rather than just a blurred
+/// copy of the source graphic's own colour.
+///
+/// The SVG filter specification defines around fifteen primitives in total (`feColorMatrix`, `feBlend`, and
+/// others), each with its own attribute grammar. See `docs/gaps.md` for the primitives still to be added.
 ///
 /// In the meantime, [`set_attr`](Self::set_attr) / [`set_attr_display`](Self::set_attr_display) on the `SvgFilter`
 /// itself cover region attributes (`x`, `y`, `width`, `height`, `filterUnits`, `primitiveUnits`) not yet wrapped by a
-/// named setter, and [`SvgNode::set_attr`](crate::SvgNode::set_attr) on any node returned by a primitive method
-/// covers that primitive's own attributes not yet wrapped by a named parameter (`in`, `result`, and so on).
+/// named setter, and [`SvgNode::set_attr`](crate::SvgNode::set_attr) on any node returned by a primitive method covers
+/// that primitive's own attributes not yet wrapped by a named parameter (`in`, `result`, and so on).
 ///
 /// # Example
 ///
@@ -357,6 +400,79 @@ impl SvgFilter {
             node.set_attribute("in", input).map_err(dom_err)?;
             el.append_child(&node).map_err(dom_err)?;
         }
+        self.element.append_child(&el).map_err(dom_err)?;
+        Ok(SvgNode::new(el))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Appends a `<feFlood>` primitive to this filter, producing a solid-colour rectangle covering the filter region.
+    ///
+    /// `color` is any valid SVG/CSS colour value (`"red"`, `"#ff0000"`, `"rgb(255,0,0)"`, ...), written as `flood-color`.
+    /// `opacity` (written as `flood-opacity`) is a value in the range `0.0` to `1.0`.
+    ///
+    /// **IMPORTANT** values outside that range will not cause a runtime error, but may well produce an unspecified
+    /// rendering results.  This is the same convention as used by
+    /// [`SvgLinearGradient::add_stop_opacity`](crate::SvgLinearGradient::add_stop_opacity)
+    ///
+    /// On its own, a flood fills the entire filter region with one flat colour, which by itself is rarely useful, but
+    /// when combined with [`composite`](Self::composite) (`operator: `[`In`](CompositeOperator::In)) against a blurred
+    /// alpha mask, it is the standard way to give a drop shadow an actual colour and opacity rather than leaving it
+    /// simply as a blurred copy of the source graphic's own fill; see [`composite`](Self::composite)'s example.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Dom`] if the browser refuses to create or append the `<feFlood>` element.
+    pub fn flood(&self, color: &str, opacity: f64) -> Result<SvgNode, Error> {
+        let el = create_svg_element::<SvgElement>(&self.document, "feFlood", "SvgElement")?;
+        {
+            let mut attrs = self.attrs.borrow_mut();
+            attrs.display_element(&el, "flood-opacity", opacity)?;
+            el.set_attribute("flood-color", color).map_err(dom_err)?;
+        }
+        self.element.append_child(&el).map_err(dom_err)?;
+        Ok(SvgNode::new(el))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Appends a `<feComposite>` primitive to this filter, combining this primitive's `in` input with `in2` using
+    /// the given Porter-Duff [`operator`](CompositeOperator).
+    ///
+    /// `in2` is written directly.
+    ///
+    /// ***IMPORTANT*** The value of `in2` is not validated.  It is typically another primitive's `result` name, or one
+    /// of the SVG keyword inputs `"SourceGraphic"`/`"SourceAlpha"`).
+    ///
+    /// `in` is not set by this method: if this is the filter's first primitive, its implicit input is `SourceGraphic`,
+    /// otherwise use the returned [`SvgNode`]'s [`set_attr`](crate::SvgNode::set_attr) to set `in` explicitly, the same
+    /// as every other primitive here.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Dom`] if the browser refuses to create or append the `<feComposite>` element.
+    ///
+    /// # Example
+    ///
+    /// A true tinted, semi-transparent drop shadow (as opposed to the blurred-copy approximation produced by
+    /// [`merge`](Self::merge)) by flooding a colour and compositing it into the blurred alpha mask before offsetting
+    /// and merging it underneath the original graphic:
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::filter::CompositeOperator};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    /// let shadow = defs.filter("shadow")?;
+    /// shadow.gaussian_blur(4.0)?.set_attrs([("in", "SourceAlpha"), ("result", "blur")])?;
+    /// shadow.flood("black", 0.5)?.set_attr("result", "colour")?;
+    /// shadow.composite("blur", CompositeOperator::In)?.set_attrs([("in", "colour"), ("result", "tinted")])?;
+    /// shadow.offset(4.0, 4.0)?.set_attrs([("in", "tinted"), ("result", "offset-shadow")])?;
+    /// shadow.merge(&["offset-shadow", "SourceGraphic"])?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn composite(&self, in2: &str, operator: CompositeOperator) -> Result<SvgNode, Error> {
+        let el = create_svg_element::<SvgElement>(&self.document, "feComposite", "SvgElement")?;
+        el.set_attribute("in2", in2).map_err(dom_err)?;
+        el.set_attribute("operator", operator.as_str()).map_err(dom_err)?;
         self.element.append_child(&el).map_err(dom_err)?;
         Ok(SvgNode::new(el))
     }

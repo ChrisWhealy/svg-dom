@@ -294,16 +294,18 @@
 
             <!-- filter -->
             <section class="section" id="panel-filter">
-                <h2><code>&lt;filter&gt;</code> — raster effects via <code>&lt;feGaussianBlur&gt;</code>, <code>&lt;feOffset&gt;</code>, <code>&lt;feMerge&gt;</code></h2>
+                <h2><code>&lt;filter&gt;</code> — raster effects via <code>&lt;feGaussianBlur&gt;</code>, <code>&lt;feOffset&gt;</code>, <code>&lt;feMerge&gt;</code>, <code>&lt;feFlood&gt;</code>, <code>&lt;feComposite&gt;</code></h2>
                 <figure>
                     <div class="canvas" id="demo-filter"></div>
                     <figcaption>
                         Four identical circles, each referencing a separate <code>&lt;filter&gt;</code> defined in
                         <code>&lt;defs&gt;</code> and applied via <strong>set_filter</strong>:
                         <strong>stdDeviation: 0</strong> (no blur) · <strong>3</strong> · <strong>6</strong> ·
-                        <strong>12</strong> · plus a <strong>drop-shadow banner</strong> applying the same
-                        <code>feGaussianBlur</code> → <code>feOffset</code> → <code>feMerge</code> chain
-                        (a blurred, offset copy merged underneath the original) to real <code>&lt;text&gt;</code>
+                        <strong>12</strong> · plus a <strong>tinted drop-shadow banner</strong> chaining
+                        <code>feGaussianBlur</code> (on <code>SourceAlpha</code>) →
+                        <code>feFlood</code> → <code>feComposite</code> (<code>operator="in"</code>, tinting the
+                        blurred mask with a solid colour independent of the text's own fill) →
+                        <code>feOffset</code> → <code>feMerge</code>, applied to real <code>&lt;text&gt;</code>
                         content, the effect's most common real-world use.
                         Each filter widens its region beyond the SVG default so nothing is clipped at the edge.
                     </figcaption>

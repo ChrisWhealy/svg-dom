@@ -6,7 +6,7 @@ The following SVG elements are supported:
 * `clipPath`
 * `defs`
 * `ellipse`
-* `filter` (with `feGaussianBlur`, `feOffset`, `feMerge`/`feMergeNode`)
+* `filter` (with `feGaussianBlur`, `feOffset`, `feMerge`/`feMergeNode`, `feFlood`, `feComposite`)
 * `g`
 * `image`
 * `line`
@@ -120,9 +120,14 @@ Remove the filter with `SvgNode::remove_filter()`.
 | `gaussian_blur_xy(std_deviation_x, std_deviation_y)` | `<feGaussianBlur>` | Independent horizontal/vertical deviation, writing the SVG two-number `stdDeviation="x y"` form in a single attribute write. Pass `0.0` for one axis to blur only along the other. |
 | `offset(dx, dy)` | `<feOffset>` | Shifts the input by `(dx, dy)` user units. Returns an `SvgNode` for `in`/`result`, as above. |
 | `merge(inputs)` | `<feMerge>` (with `<feMergeNode>` children) | Stacks each `&str` in `inputs` as one `<feMergeNode in="...">` child, in order (later entries painted on top). The standard way to layer a shadow underneath the original graphic. |
+| `flood(color, opacity)` | `<feFlood>` | Fills the filter region with a solid `flood-color`/`flood-opacity`. Combined with `composite`, gives a shadow an independent colour rather than a blurred copy of the source graphic's own fill. |
+| `composite(in2, operator)` | `<feComposite>` | Combines this primitive's `in` input with `in2` using a Porter-Duff `CompositeOperator` (`Over`/`In`/`Out`/`Atop`/`Xor`/`Lighter`/`Arithmetic`). `operator: In` against a blurred alpha mask is the standard way to tint a shadow. |
 
-`gaussian_blur` + `offset` + `merge` together are enough to build a drop shadow: blur a copy of the graphic, offset it, then merge it underneath the original — see the `<filter>` demo panel or `SvgFilter::merge`'s doc example.
-See `docs/gaps.md` for the primitives (`feColorMatrix`, `feComposite`, `feFlood`, `feBlend`, and others) still to be added.
+`gaussian_blur` + `flood` + `composite` + `offset` + `merge` together build a *true* tinted, opacity-controlled drop shadow: blur the source alpha, composite a flood colour into the blurred mask, offset it, then merge it underneath the original — see the `<filter>` demo panel or `SvgFilter::composite`'s doc example.
+
+`gaussian_blur` + `offset` + `merge` alone still work for the simpler case of a blurred *copy* of the graphic to produce an "almost drop shadow", but using these effects alone, you cannot have an independent shadow colour.
+
+See `docs/gaps.md` for the primitives (`feColorMatrix`, `feBlend`, and others) still to be added.
 
 **Region and coordinate-space attributes** (`x`, `y`, `width`, `height`, `filterUnits`, `primitiveUnits`) are not yet wrapped by named setters; use `SvgFilter::set_attr`/`set_attrs`.
 The SVG default filter region (`-10% -10% 120% 120%` of the referencing element's bounding box) can clip a wide blur; widen it explicitly for large `stdDeviation` values, e.g. `filter.set_attrs([("x", "-50%"), ("y", "-50%"), ("width", "200%"), ("height", "200%")])`.

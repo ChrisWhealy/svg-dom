@@ -2,7 +2,7 @@ mod common;
 
 use common::*;
 use svg_dom::{
-    Error,
+    CompositeOperator, Error,
     root::utils::{Point, Size},
 };
 use wasm_bindgen_test::*;
@@ -282,6 +282,98 @@ fn should_add_empty_merge_for_no_inputs() -> Result<(), String> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// flood primitive
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `flood` appends a `<feFlood>` child to the `<filter>` element.
+#[wasm_bindgen_test]
+fn should_add_flood_to_filter() -> Result<(), String> {
+    let svg = make_svg("filter-flood-child");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("ffl").map_err(|e| e.to_string())?;
+    filter.flood("black", 0.5).map_err(|e| e.to_string())?;
+    check_eq(filter.as_element().child_element_count(), 1)
+}
+
+/// The appended child has tag name `"feFlood"`.
+#[wasm_bindgen_test]
+fn should_create_fe_flood_element() -> Result<(), String> {
+    let svg = make_svg("filter-flood-tag");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("fflt").map_err(|e| e.to_string())?;
+    let flood = filter.flood("black", 0.5).map_err(|e| e.to_string())?;
+    check_eq(flood.as_element().tag_name(), "feFlood".to_owned())
+}
+
+/// `flood` writes the `flood-color` and `flood-opacity` attributes.
+#[wasm_bindgen_test]
+fn should_set_flood_color_and_opacity() -> Result<(), String> {
+    let svg = make_svg("filter-flood-attrs");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("ffa").map_err(|e| e.to_string())?;
+    let flood = filter.flood("crimson", 0.65).map_err(|e| e.to_string())?;
+    check_eq(flood.as_element().get_attribute("flood-color"), Some("crimson".into()))?;
+    check_eq(flood.as_element().get_attribute("flood-opacity"), Some("0.65".into()))
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// composite primitive
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `composite` appends a `<feComposite>` child to the `<filter>` element.
+#[wasm_bindgen_test]
+fn should_add_composite_to_filter() -> Result<(), String> {
+    let svg = make_svg("filter-composite-child");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("fcp").map_err(|e| e.to_string())?;
+    filter.composite("blur", CompositeOperator::In).map_err(|e| e.to_string())?;
+    check_eq(filter.as_element().child_element_count(), 1)
+}
+
+/// The appended child has tag name `"feComposite"`.
+#[wasm_bindgen_test]
+fn should_create_fe_composite_element() -> Result<(), String> {
+    let svg = make_svg("filter-composite-tag");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("fcpt").map_err(|e| e.to_string())?;
+    let composite = filter.composite("blur", CompositeOperator::In).map_err(|e| e.to_string())?;
+    check_eq(composite.as_element().tag_name(), "feComposite".to_owned())
+}
+
+/// `composite` writes the `in2` and `operator` attributes.
+#[wasm_bindgen_test]
+fn should_set_in2_and_operator() -> Result<(), String> {
+    let svg = make_svg("filter-composite-attrs");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("fca").map_err(|e| e.to_string())?;
+    let composite = filter.composite("blur", CompositeOperator::In).map_err(|e| e.to_string())?;
+    check_eq(composite.as_element().get_attribute("in2"), Some("blur".into()))?;
+    check_eq(composite.as_element().get_attribute("operator"), Some("in".into()))
+}
+
+/// Every `CompositeOperator` variant writes its exact SVG keyword.
+#[wasm_bindgen_test]
+fn should_write_every_composite_operator_keyword() -> Result<(), String> {
+    let svg = make_svg("filter-composite-operators");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("fco").map_err(|e| e.to_string())?;
+    let cases = [
+        (CompositeOperator::Over, "over"),
+        (CompositeOperator::In, "in"),
+        (CompositeOperator::Out, "out"),
+        (CompositeOperator::Atop, "atop"),
+        (CompositeOperator::Xor, "xor"),
+        (CompositeOperator::Lighter, "lighter"),
+        (CompositeOperator::Arithmetic, "arithmetic"),
+    ];
+    for (operator, expected) in cases {
+        let composite = filter.composite("blur", operator).map_err(|e| e.to_string())?;
+        check_eq(composite.as_element().get_attribute("operator"), Some(expected.into()))?;
+    }
+    Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // A full blur + offset + merge drop-shadow chain
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -300,6 +392,26 @@ fn should_build_drop_shadow_filter_chain() -> Result<(), String> {
         })
         .map_err(|e| e.to_string())?;
     check_eq(filter.as_element().child_element_count(), 3)
+}
+
+/// Adding `flood` + `composite` composes into a working *tinted* drop-shadow filter: blur the source alpha,
+/// composite a flood colour into the blurred mask, offset it, then merge it underneath the original graphic.
+#[wasm_bindgen_test]
+fn should_build_tinted_drop_shadow_filter_chain() -> Result<(), String> {
+    let svg = make_svg("filter-tinted-drop-shadow");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs
+        .build_filter("tinted-shadow", |f| {
+            f.gaussian_blur(4.0)?.set_attrs([("in", "SourceAlpha"), ("result", "blur")])?;
+            f.flood("black", 0.5)?.set_attr("result", "colour")?;
+            f.composite("blur", CompositeOperator::In)?
+                .set_attrs([("in", "colour"), ("result", "tinted")])?;
+            f.offset(4.0, 4.0)?.set_attrs([("in", "tinted"), ("result", "offset-shadow")])?;
+            f.merge(&["offset-shadow", "SourceGraphic"])?;
+            Ok(())
+        })
+        .map_err(|e| e.to_string())?;
+    check_eq(filter.as_element().child_element_count(), 5)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

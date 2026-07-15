@@ -3,6 +3,7 @@ use super::{BAND, H, PAD_Y, W, caption};
 use crate::{
     Error, PathDef, PathDefAbsolute, SvgRoot, TextAnchor,
     root::{
+        filter::CompositeOperator,
         gradient::SpreadMethod,
         pattern::PatternUnits,
         utils::{Point, Size},
@@ -350,14 +351,16 @@ pub(super) fn demo_pattern() -> Result<(), Error> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// filter — feGaussianBlur at increasing stdDeviation, applied via set_filter
+// filter — feGaussianBlur at increasing stdDeviation, plus a tinted drop shadow via
+// feGaussianBlur -> feFlood -> feComposite -> feOffset -> feMerge, applied via set_filter
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 pub(super) fn demo_filter() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-filter", Size::new(W, H))?;
 
-    // Four blur-only filters at increasing stdDeviation, plus one drop-shadow filter chaining
-    // feGaussianBlur -> feOffset -> feMerge. The SVG default filter region (-10%/-10%/120%/120% of the
-    // referencing element's bounding box) is too tight for the widest blur and the offset shadow, so every
+    // Four blur-only filters at increasing stdDeviation, plus one tinted-drop-shadow filter chaining
+    // feGaussianBlur -> feFlood -> feComposite -> feOffset -> feMerge. The SVG default filter region
+    // (-10%/-10%/120%/120% of the referencing element's bounding box) is too tight for the widest blur and the
+    // offset shadow, so every
     // filter here widens its region via the generic set_attrs escape hatch to avoid visibly clipping the edge.
     svg.build_defs(|d| {
         d.build_filter("demo-filter-0", |f| {
@@ -381,15 +384,20 @@ pub(super) fn demo_filter() -> Result<(), Error> {
             Ok(())
         })?;
 
-        // Drop shadow: blur a copy of the source graphic, offset it down and to the right, then merge it underneath the
-        // original (SourceGraphic painted last, on top). Blurring SourceGraphic rather than SourceAlpha keeps the
-        // shadow tinted the shape's own colour instead of solid black, which would be nearly invisible against this
-        // dark canvas background.
+        // True tinted drop shadow: blur the source alpha silhouette, composite a flood colour into that blurred
+        // mask (feComposite operator="in" keeps only the part of the flood that overlaps the mask), offset the
+        // result down and to the right, then merge it underneath the original (SourceGraphic painted last, on
+        // top). A plain black shadow would be nearly invisible against this dark canvas background, so the flood
+        // uses a saturated colour instead — which also demonstrates that the shadow's colour is now independently
+        // controllable, not just a blurred copy of the source graphic's own fill.
         d.build_filter("demo-filter-shadow", |f| {
             f.set_attrs([("x", "-50%"), ("y", "-50%"), ("width", "200%"), ("height", "200%")])?;
-            f.gaussian_blur(4.0)?.set_attr("result", "blur")?;
-            f.offset(6.0, 6.0)?.set_attrs([("in", "blur"), ("result", "offset-blur")])?;
-            f.merge(&["offset-blur", "SourceGraphic"])?;
+            f.gaussian_blur(4.0)?.set_attrs([("in", "SourceAlpha"), ("result", "blur")])?;
+            f.flood(CRIMSON, 0.85)?.set_attr("result", "colour")?;
+            f.composite("blur", CompositeOperator::In)?
+                .set_attrs([("in", "colour"), ("result", "tinted")])?;
+            f.offset(6.0, 6.0)?.set_attrs([("in", "tinted"), ("result", "offset-shadow")])?;
+            f.merge(&["offset-shadow", "SourceGraphic"])?;
             Ok(())
         })?;
         Ok(())
@@ -422,10 +430,11 @@ pub(super) fn demo_filter() -> Result<(), Error> {
     c4.set_filter("demo-filter-12")?;
     caption(&svg, xs[3], "12")?;
 
-    // Drop-shadow banner text: the same blur -> offset -> merge chain applied to real text content rather than
-    // a plain shape, the effect's most common real-world use. White fill with a narrow dark grey border keeps the
-    // glyphs legible against the dark canvas background; the shadow filter itself (colour and offset) is
-    // unchanged — it blurs whatever SourceGraphic renders to, so it naturally follows this fill/stroke change.
+    // Drop-shadow banner text: the same tinted-shadow filter chain applied to real text content rather than a
+    // plain shape, the effect's most common real-world use. White fill with a narrow dark grey border keeps the
+    // glyphs legible against the dark canvas background; independently of that, the shadow's own colour comes
+    // from the filter's feFlood, not from the text's fill, so it stays the same crimson regardless of what colour
+    // the banner itself is set to.
     let banner_x = 590.0;
     let banner = svg.text(Point::new(banner_x, mid_y + 12.0), "DROP SHADOW")?;
     banner.set_fill(WHITE)?;
@@ -435,7 +444,7 @@ pub(super) fn demo_filter() -> Result<(), Error> {
     banner.set_text_anchor(TextAnchor::Middle)?;
     banner.set_attr("font-weight", "bold")?;
     banner.set_filter("demo-filter-shadow")?;
-    caption(&svg, banner_x, "text banner: blur + offset + merge")?;
+    caption(&svg, banner_x, "tinted drop shadow")?;
 
     Ok(())
 }
