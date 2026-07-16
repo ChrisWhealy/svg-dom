@@ -535,13 +535,17 @@ fn should_preserve_tiny_rotation_only_via_matrix_precise() -> Result<(), String>
     let node = make_svg("node-set-matrix-tiny-rotation").group().map_err(|e| e.to_string())?;
     let mut buf = String::new();
 
-    // A 0.01-degree rotation: sin(0.01 degrees) is well under set_matrix's 0.0005 rounding threshold.
-    let angle: f64 = 0.01_f64.to_radians();
+    // The coefficients of a 0.01-degree rotation matrix (cos(0.01deg), sin(0.01deg)), given as literal constants
+    // rather than computed via f64::sin/f64::cos here. Rust documents those functions' precision as
+    // non-deterministic (it can vary by platform, libm, or Rust version), so calling them in the test itself would
+    // make a mathematically insignificant one-ULP difference capable of changing the shortest-round-trip string
+    // set_matrix_precise produces and failing the test despite set_matrix_precise remaining entirely correct. Fixed
+    // literals make this a test of serialisation only, not of the platform's trig implementation.
     let m = Matrix2D {
-        h_scale: angle.cos(),
-        v_skew: angle.sin(),
-        h_skew: -angle.sin(),
-        v_scale: angle.cos(),
+        h_scale: 0.999_999_984_769_129_1,
+        v_skew: 0.000_174_532_924_313_336_8,
+        h_skew: -0.000_174_532_924_313_336_8,
+        v_scale: 0.999_999_984_769_129_1,
         h_trans: 0.0,
         v_trans: 0.0,
     };
