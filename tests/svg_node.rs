@@ -471,6 +471,65 @@ fn should_write_matrix_transform() -> Result<(), String> {
     )
 }
 
+/// `set_matrix_precise` writes a `matrix(a, b, c, d, e, f)` transform using shortest round-trip `Display`
+/// formatting for every field, rather than `set_matrix`'s fixed three/one decimal places.
+#[wasm_bindgen_test]
+fn should_write_matrix_precise_transform() -> Result<(), String> {
+    let node = make_svg("node-set-matrix-precise").group().map_err(|e| e.to_string())?;
+    let mut buf = String::new();
+    node.set_matrix_precise(
+        &mut buf,
+        Matrix2D {
+            h_scale: 1.23456,
+            v_scale: 2.0,
+            h_skew: 0.1,
+            v_skew: 0.2,
+            h_trans: 12.345,
+            v_trans: 6.0,
+        },
+    )
+    .map_err(|e| e.to_string())?;
+    common::check_eq(node.attr("transform"), Some("matrix(1.23456, 0.2, 0.1, 2, 12.345, 6)".into()))
+}
+
+/// `set_matrix`'s fixed three-decimal-place precision rounds a small rotation's sine term to zero, losing the
+/// rotation entirely; `set_matrix_precise` preserves it. This is the specific failure mode both methods' doc
+/// comments warn about.
+#[wasm_bindgen_test]
+fn should_preserve_tiny_rotation_only_via_matrix_precise() -> Result<(), String> {
+    let node = make_svg("node-set-matrix-tiny-rotation").group().map_err(|e| e.to_string())?;
+    let mut buf = String::new();
+
+    // A 0.01-degree rotation: sin(0.01 degrees) is well under set_matrix's 0.0005 rounding threshold.
+    let angle: f64 = 0.01_f64.to_radians();
+    let m = Matrix2D {
+        h_scale: angle.cos(),
+        v_skew: angle.sin(),
+        h_skew: -angle.sin(),
+        v_scale: angle.cos(),
+        h_trans: 0.0,
+        v_trans: 0.0,
+    };
+
+    node.set_matrix(&mut buf, m).map_err(|e| e.to_string())?;
+    // The rotation has vanished: this is indistinguishable from the identity matrix.
+    common::check_eq(
+        node.attr("transform"),
+        Some("matrix(1.000, 0.000, -0.000, 1.000, 0.0, 0.0)".into()),
+    )?;
+
+    node.set_matrix_precise(&mut buf, m).map_err(|e| e.to_string())?;
+    // The same rotation, preserved: the sine terms are visibly non-zero.
+    common::check_eq(
+        node.attr("transform"),
+        Some(
+            "matrix(0.9999999847691291, 0.0001745329243133368, -0.0001745329243133368, \
+             0.9999999847691291, 0, 0)"
+                .into(),
+        ),
+    )
+}
+
 /// `set_transform_fmt` writes an arbitrary transform built from `format_args!`.
 #[wasm_bindgen_test]
 fn should_write_arbitrary_transform_via_fmt() -> Result<(), String> {

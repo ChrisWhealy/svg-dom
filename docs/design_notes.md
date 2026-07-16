@@ -109,7 +109,7 @@ These are
 * `set_scale`
 * `set_scale_xy`
 * `set_translate_scale`
-* `set_matrix`
+* `set_matrix` / `set_matrix_precise`
 * `set_transform_fmt`
 
 Reusing one buffer across calls means no new allocation happens unless the formatted text outgrows the buffer's capacity.
@@ -131,6 +131,21 @@ The six fields use two different formatting precisions:
 - `h_trans`, `v_trans` (the translation part) are written to one decimal place, matching `set_translate`, since they are typically pixel-scale coordinates.
 
 This mirrors each field's *role* rather than treating the six numbers as a single, undifferentiated list.
+
+### `set_matrix_precise` exists in addition to `set_matrix` due to the possibility of introducing visible quantisation artefacts
+
+`set_matrix`'s fixed three/one decimal places are harmless for every transform this crate's *other* named helpers can produce — their inputs are always small, hand-authored numbers (a rotation angle, a pixel offset, a scale factor), where a rounding of few thousandths make no visible difference.
+
+An arbitrary affine matrix is a different case however.
+`set_matrix` exists specifically to accept values this crate did not compute itself: say values read back from `getScreenCTM` or those produced by another library, or driving an animation.
+For such values as these, a fixed-precision rounding can introduce a genuine, measurable loss rather than a cosmetic one.
+For example:
+
+- A rotation's sine term rounds to `0.000` below about `0.0286°` (`sin(0.0286°) ≈ 0.0005`, the rounding threshold at three decimal places). A `0.01°` rotation, for example, serialises as the exact identity matrix — the rotation does not just lose precision, it disappears completely. A slow matrix-driven rotation animation can therefore visibly stick at each frame's rounded value and then jump, rather than moving smoothly.
+
+- Each linear coefficient's rounding error (up to `0.0005`) is applied to whatever coordinate the matrix acts on, so the resulting positional error scales with the coordinate rather than staying fixed: at `x = y = 10,000`, the error can exceed 10 user units, even though the same rounding is invisible at typical UI scales.
+
+`set_matrix_precise` is the same function with the fixed-precision `write!` calls replaced by plain `{}` (`Display`) formatting — Rust's shortest round-trip representation, the same default-precision choice `write_d`/`build_d` already make for path data (see "Typesafe Path Data Builder" above). It exists alongside `set_matrix` rather than replacing it, mirroring that same `_fixed`-suffix pairing in spirit (though named the other way around here, since `set_matrix` was the already-shipped name by the time this was raised, and renaming it would have been a needless breaking change for existing callers): pick `set_matrix` on a hot path where the matrix came from this crate's own composition and compactness matters, and `set_matrix_precise` whenever the matrix's exact values matter and it was not.
 
 The scratch buffer is deliberately **not** stored inside `SvgNode`.
 Most nodes are passive geometry that never animate, do folding formatting state into every node would cause them all to grow while benefiting only a few.
