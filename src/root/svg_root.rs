@@ -225,6 +225,13 @@ impl SvgRoot {
     /// directly, so nothing here needs to read `viewBox` back to stay consistent — it only affects how the browser maps
     /// those coordinates onto the page, not what value to pass them in the first place.
     ///
+    /// # Errors
+    ///
+    /// Returns [`Error::InvalidViewBox`] if any component is not finite (`NaN`/`±infinity`), or if either of `width` or
+    /// `height` are negative.
+    ///
+    /// A `width`/`height` of exactly `0.0` is accepted; as per the SVG spec, it is a trick to disable rendering.
+    ///
     /// # Example
     ///
     /// ```rust,no_run
@@ -235,6 +242,7 @@ impl SvgRoot {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn set_view_box(&self, x: f64, y: f64, width: f64, height: f64) -> Result<(), Error> {
+        super::utils::validate_view_box(x, y, width, height)?;
         self.attrs
             .borrow_mut()
             .display_element(&self.root, "viewBox", format_args!("{x} {y} {width} {height}"))

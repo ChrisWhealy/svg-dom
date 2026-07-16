@@ -619,13 +619,31 @@ Two further decisions followed directly from matching `parent`'s existing preced
 `SvgSymbol` and `SvgPattern` already had a `set_view_box(x, y, width, height)` method, each writing the same `"x y width height"` string via `display_element`'s reused scratch buffer.
 `SvgRoot` was the one place `docs/gaps.md` flagged as missing it — `set_viewport` covers `width`/`height`, but nothing covered `viewBox` beyond the generic `root.set_attribute(...)` escape hatch documented on the `root` field itself.
 
-The new method is a direct copy of that existing shape, not a new design: same four positional `f64` parameters in the same order, same one-line `display_element` implementation, same lack of a getter (nothing in this crate reads `viewBox` back to stay internally consistent, unlike `width`/`height`, which `set_viewport` must cache to support its skip-unchanged-writes optimisation described above).
+The new method is a direct copy of that existing shape, not a new design: same four positional `f64` parameters in the same order, same lack of a getter (nothing in this crate reads `viewBox` back to stay internally consistent, unlike `width`/`height`, which `set_viewport` must cache to support its skip-unchanged-writes optimisation described above).
 
 `viewBox` and `set_viewport`'s cached `width`/`height` are independent and do not need to agree on scale: `width`/`height` size the `<svg>` element in the surrounding page, while `viewBox` maps that rendered area onto an internal coordinate system within which child elements are positioned.
 Setting one does not read, invalidate, or need to touch the other, so `set_view_box` needed no interaction with the `viewport: Cell<Size>` field at all — it is a plain, uncached attribute write, exactly like `SvgSymbol`'s and `SvgPattern`'s.
 
 `SvgMarker` is the one remaining SVG element in this crate's coverage with a `viewBox` attribute and no dedicated setter (`<marker>`'s own doc comment already lists it under its generic `set_attr` escape hatch).
 It was left alone here rather than opportunistically added, since it was not the gap this round of work was scoped to close, and `SvgMarker`'s own attribute grammar (`markerWidth`/`markerHeight`/`refX`/`refY`) already covers the common case of scaling and positioning a marker without needing an internal coordinate system.
+
+### `set_view_box` validates its four components before writing, and the validator is shared across all three setters
+
+Copying `SvgSymbol`/`SvgPattern`'s existing shape also copied their gap: none of the three original `set_view_box` methods checked their `x`/`y`/`width`/`height` arguments before formatting and writing them.
+
+An `f64` can hold values that SVG's own `viewBox` grammar does not accept, for example `NaN`, `+infinity`, `-infinity` make no sense in the context of SVG, and supplying a negative `width` or `height` is equally nonsensical, even though the syntax parses.
+
+Before this, `set_view_box(0.0, 0.0, -100.0, 100.0)` or `set_view_box(f64::NAN, 0.0, 100.0, 100.0)` both silently wrote a `viewBox` string the browser would then reject or misbehave on, with no signal back to the caller that anything was wrong — exactly the class of problem `Error::InvalidMarkerId` and its five siblings already exist to catch for id strings, just not yet extended to this attribute.
+
+The fix is a single `pub(crate) fn validate_view_box` in `src/root/utils/mod.rs`, called as the first line of all three `set_view_box` methods, returning the new `Error::InvalidViewBox(&'static str)` variant before anything is written.
+
+A shared function, rather than three copies, matters here for the same reason `is_valid_svg_id` (see `_ref` setters below) is one function instead of six: multiple instances of the same functionality opens the door to future implementation inconsistecy or drift.
+
+`x`/`y` are checked for numeracy and finiteness, not sign — an SVG viewBox origin is routinely negative (panning into negative coordinate space is normal usage, and one of `SvgRoot::set_view_box`'s own tests exercises exactly that).
+Only `width`/`height` are additionally checked for sign.
+A `width`/`height` of exactly `0.0` is deliberately still accepted: it is valid `viewBox` syntax, and per the SVG spec, disables rendering of the element it's set on rather than being an error.
+This amounts to a real, if unusual, way to hide content without removing it.
+That distinction (finite-and-non-negative is required, zero is allowed) is documented on `Error::InvalidViewBox` itself and each setter's own doc comment, so a caller does not have to guess which zero-adjacent values are and are not accepted.
 
 # Performance Patterns
 

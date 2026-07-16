@@ -140,6 +140,29 @@ pub struct Matrix2D {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Validates the four components of a `viewBox` before it reaches the DOM.
+///
+/// SVG defines `viewBox` as four SVG numbers; `NaN`/`±infinity` are not valid SVG numbers even though `f64` can
+/// represent them and `write!`/`Display` can format them without error, so every component must be finite and numeric.
+///
+/// As per the SVG spec, setting `width` or `height` to negative values causes the whole attribute to be in error, so
+/// both must be non-negative. Setting either `width` or `height` to be `0.0` is valid and is used to disable rendering.
+///
+/// Shared by [`SvgRoot::set_view_box`](crate::SvgRoot::set_view_box),
+/// [`SvgSymbol::set_view_box`](crate::SvgSymbol::set_view_box), and
+/// [`SvgPattern::set_view_box`](crate::SvgPattern::set_view_box), so the three setters that accept a `viewBox`
+/// agree on what counts as valid rather than each silently formatting whatever `f64`s they were given.
+pub(crate) fn validate_view_box(x: f64, y: f64, width: f64, height: f64) -> Result<(), crate::Error> {
+    if !x.is_finite() || !y.is_finite() || !width.is_finite() || !height.is_finite() {
+        return Err(crate::Error::InvalidViewBox("all viewBox components must be finite"));
+    }
+    if width < 0.0 || height < 0.0 {
+        return Err(crate::Error::InvalidViewBox("viewBox width and height must not be negative"));
+    }
+    Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Maximum `dps` accepted by [`write_points`] in fixed-precision mode.
 ///
 /// `f64` carries ~17 significant decimal digits; values above this limit produce only meaningless trailing zeros

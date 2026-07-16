@@ -241,7 +241,14 @@ impl SvgPattern {
     ///
     /// The four values are formatted as `"x y width height"`.
     /// When `viewBox` is present, the pattern's content is scaled to fit the tile dimensions.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::InvalidViewBox`] if any component is not finite (`NaN`/`±infinity`), or if `w`/`h` is
+    /// negative. A `w`/`h` of exactly `0.0` is accepted; per the SVG spec it disables rendering rather than being an
+    /// error.
     pub fn set_view_box(&self, x: f64, y: f64, w: f64, h: f64) -> Result<(), Error> {
+        super::utils::validate_view_box(x, y, w, h)?;
         self.attrs
             .borrow_mut()
             .display_element(&self.element, "viewBox", format_args!("{x} {y} {w} {h}"))

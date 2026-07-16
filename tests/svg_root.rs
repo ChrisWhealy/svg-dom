@@ -225,6 +225,77 @@ fn should_leave_viewport_cache_unchanged_by_view_box() -> Result<(), String> {
     common::check_eq(svg.height(), 600.0)
 }
 
+/// `set_view_box` accepts a `width`/`height` of exactly `0.0` — valid syntax, even though it disables rendering.
+#[wasm_bindgen_test]
+fn should_accept_zero_width_and_height_view_box() -> Result<(), String> {
+    common::div("set-view-box-zero");
+    let svg = SvgRoot::create_in("set-view-box-zero", Size::new(800.0, 600.0)).map_err(|e| e.to_string())?;
+    svg.set_view_box(0.0, 0.0, 0.0, 0.0).map_err(|e| e.to_string())?;
+    let el = svg_element("set-view-box-zero");
+    common::check_eq(el.get_attribute("viewBox"), Some("0 0 0 0".into()))
+}
+
+/// `set_view_box` rejects a negative `width` with `Error::InvalidViewBox`, and writes nothing to the DOM.
+#[wasm_bindgen_test]
+fn should_reject_negative_view_box_width() -> Result<(), String> {
+    common::div("set-view-box-neg-width");
+    let svg = SvgRoot::create_in("set-view-box-neg-width", Size::new(800.0, 600.0)).map_err(|e| e.to_string())?;
+    let result = svg.set_view_box(0.0, 0.0, -100.0, 100.0);
+    common::check(
+        matches!(result, Err(Error::InvalidViewBox(_))),
+        "expected InvalidViewBox for negative width",
+    )?;
+    let el = svg_element("set-view-box-neg-width");
+    common::check_eq(el.get_attribute("viewBox"), None)
+}
+
+/// `set_view_box` rejects a negative `height` with `Error::InvalidViewBox`.
+#[wasm_bindgen_test]
+fn should_reject_negative_view_box_height() -> Result<(), String> {
+    common::div("set-view-box-neg-height");
+    let svg = SvgRoot::create_in("set-view-box-neg-height", Size::new(800.0, 600.0)).map_err(|e| e.to_string())?;
+    let result = svg.set_view_box(0.0, 0.0, 100.0, -100.0);
+    common::check(
+        matches!(result, Err(Error::InvalidViewBox(_))),
+        "expected InvalidViewBox for negative height",
+    )
+}
+
+/// `set_view_box` rejects `NaN` in any component with `Error::InvalidViewBox`.
+#[wasm_bindgen_test]
+fn should_reject_nan_view_box_component() -> Result<(), String> {
+    common::div("set-view-box-nan");
+    let svg = SvgRoot::create_in("set-view-box-nan", Size::new(800.0, 600.0)).map_err(|e| e.to_string())?;
+    let result = svg.set_view_box(f64::NAN, 0.0, 100.0, 100.0);
+    common::check(
+        matches!(result, Err(Error::InvalidViewBox(_))),
+        "expected InvalidViewBox for a NaN component",
+    )
+}
+
+/// `set_view_box` rejects `+infinity`/`-infinity` in any component with `Error::InvalidViewBox`.
+#[wasm_bindgen_test]
+fn should_reject_infinite_view_box_component() -> Result<(), String> {
+    common::div("set-view-box-inf");
+    let svg = SvgRoot::create_in("set-view-box-inf", Size::new(800.0, 600.0)).map_err(|e| e.to_string())?;
+    let result = svg.set_view_box(0.0, 0.0, f64::INFINITY, 100.0);
+    common::check(
+        matches!(result, Err(Error::InvalidViewBox(_))),
+        "expected InvalidViewBox for an infinite component",
+    )
+}
+
+/// `set_view_box` accepts a negative `x`/`y` origin — only `width`/`height` must be non-negative.
+#[wasm_bindgen_test]
+fn should_accept_negative_view_box_origin() -> Result<(), String> {
+    common::div("set-view-box-neg-origin");
+    let svg = SvgRoot::create_in("set-view-box-neg-origin", Size::new(800.0, 600.0)).map_err(|e| e.to_string())?;
+    common::check(
+        svg.set_view_box(-50.0, -50.0, 100.0, 100.0).is_ok(),
+        "expected a negative x/y origin to be accepted",
+    )
+}
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Element factories
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

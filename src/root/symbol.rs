@@ -122,6 +122,12 @@ impl SvgSymbol {
     /// `(x, y, width, height)` region onto that viewport, scaling the content according to `preserveAspectRatio`
     /// (see [`set_preserve_aspect_ratio`](Self::set_preserve_aspect_ratio)).
     ///
+    /// # Errors
+    ///
+    /// Returns [`Error::InvalidViewBox`] if any component is not finite (`NaN`/`±infinity`), or if either of `width` or
+    /// `height` is negative. A `width`/`height` of exactly `0.0` is accepted; as per the SVG spec, it is a trick to
+    /// disable rendering.
+    ///
     /// # Example
     ///
     /// ```rust,no_run
@@ -135,6 +141,7 @@ impl SvgSymbol {
     /// # Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn set_view_box(&self, x: f64, y: f64, width: f64, height: f64) -> Result<(), Error> {
+        super::utils::validate_view_box(x, y, width, height)?;
         self.attrs
             .borrow_mut()
             .display_element(&self.element, "viewBox", format_args!("{x} {y} {width} {height}"))

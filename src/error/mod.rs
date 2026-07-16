@@ -17,6 +17,7 @@
 ///   - a bad filter id ([`Error::InvalidFilterId`])
 /// - a generic setter was called with an attribute name that has a dedicated typed setter ([`Error::ReservedAttribute`])
 /// - a non-empty [`PathDef`](crate::PathDef) sequence was supplied that did not begin with a `MoveTo` command ([`Error::InvalidPathData`])
+/// - a `viewBox` was supplied with a non-finite component, or a negative width/height ([`Error::InvalidViewBox`])
 #[derive(Debug)]
 pub enum Error {
     /// No element with the given id exists in the current document.
@@ -146,6 +147,23 @@ pub enum Error {
     ///
     /// The inner `String` describes the problem.
     InvalidPathData(String),
+
+    /// A `viewBox` was rejected before reaching the DOM.
+    ///
+    /// SVG defines `viewBox` as 4 SVG numbers (`x`, `y`, `width`, `height`); this crate additionally requires `width`
+    /// and `height` to be non-negative (the SVG spec treats a negative value as an error for the whole attribute) and
+    /// every component to be finite (`NaN`/`±infinity` are not valid SVG numbers, even though `f64` can represent them
+    /// and `Display` can format them).
+    ///
+    /// A `width`/`height` of exactly `0.0` is valid syntax and is therefore accepted.  As per the SVG spec, this is a
+    /// trick by which rendering of an element can be disabled if `width` or `height` is `0.0`.
+    ///
+    /// Returned by [`SvgRoot::set_view_box`](crate::SvgRoot::set_view_box),
+    /// [`SvgSymbol::set_view_box`](crate::SvgSymbol::set_view_box), and
+    /// [`SvgPattern::set_view_box`](crate::SvgPattern::set_view_box).
+    ///
+    /// The inner `&'static str` describes which check failed.
+    InvalidViewBox(&'static str),
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -186,6 +204,7 @@ impl std::fmt::Display for Error {
                 write!(f, "attribute {name:?} is reserved; use the dedicated setter")
             },
             Error::InvalidPathData(msg) => write!(f, "invalid path data: {msg}"),
+            Error::InvalidViewBox(msg) => write!(f, "invalid viewBox: {msg}"),
         }
     }
 }

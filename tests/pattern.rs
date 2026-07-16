@@ -190,6 +190,44 @@ fn should_set_view_box() -> Result<(), String> {
     check_eq(pat.as_element().get_attribute("viewBox"), Some("0 0 100 50".into()))
 }
 
+/// `set_view_box` accepts a `width`/`height` of exactly `0.0` — valid syntax, even though it disables rendering.
+#[wasm_bindgen_test]
+fn should_accept_zero_width_and_height_view_box() -> Result<(), String> {
+    let svg = make_svg("pat-viewbox-zero");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let pat = defs.pattern("pvb-zero").map_err(|e| e.to_string())?;
+    pat.set_view_box(0.0, 0.0, 0.0, 0.0).map_err(|e| e.to_string())?;
+    check_eq(pat.as_element().get_attribute("viewBox"), Some("0 0 0 0".into()))
+}
+
+/// `set_view_box` rejects a negative `width`/`height`, and a non-finite (`NaN`/`±infinity`) component, with
+/// `Error::InvalidViewBox` — the same validation `SvgRoot::set_view_box` and `SvgSymbol::set_view_box` share.
+#[wasm_bindgen_test]
+fn should_reject_invalid_view_box() -> Result<(), String> {
+    let svg = make_svg("pat-viewbox-invalid");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let pat = defs.pattern("pvb-invalid").map_err(|e| e.to_string())?;
+    check(
+        matches!(pat.set_view_box(0.0, 0.0, -100.0, 100.0), Err(Error::InvalidViewBox(_))),
+        "expected InvalidViewBox for negative width",
+    )?;
+    check(
+        matches!(pat.set_view_box(0.0, 0.0, 100.0, -100.0), Err(Error::InvalidViewBox(_))),
+        "expected InvalidViewBox for negative height",
+    )?;
+    check(
+        matches!(pat.set_view_box(f64::NAN, 0.0, 100.0, 100.0), Err(Error::InvalidViewBox(_))),
+        "expected InvalidViewBox for a NaN component",
+    )?;
+    check(
+        matches!(
+            pat.set_view_box(0.0, 0.0, f64::INFINITY, 100.0),
+            Err(Error::InvalidViewBox(_))
+        ),
+        "expected InvalidViewBox for an infinite component",
+    )
+}
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Shape factories
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
