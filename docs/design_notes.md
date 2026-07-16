@@ -137,7 +137,8 @@ This mirrors each field's *role* rather than treating the six numbers as a singl
 `set_matrix`'s fixed three/one decimal places are harmless for every transform this crate's *other* named helpers can produce — their inputs are always small, hand-authored numbers (a rotation angle, a pixel offset, a scale factor), where a rounding of few thousandths make no visible difference.
 
 An arbitrary affine matrix is a different case however.
-`set_matrix` exists specifically to accept values this crate did not compute itself: say values read back from `getScreenCTM` or those produced by another library, or driving an animation.
+`set_matrix` exists specifically to accept values this crate did not compute itself: coefficients from a `DOMMatrix`, another library, or a coordinate-space conversion, where the resulting matrix is intended to become the element's local transform — or values driving an animation.
+
 For such values as these, a fixed-precision rounding can introduce a genuine, measurable loss rather than a cosmetic one.
 For example:
 

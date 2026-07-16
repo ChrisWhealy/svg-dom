@@ -139,9 +139,10 @@ impl SvgNode {
     ///   upon, so at large coordinates the resulting positional error grows with them.  For example at `x = y =
     ///   10_000`, the error can exceed 10 user units.
     ///
-    /// Use [`set_matrix_precise`](Self::set_matrix_precise) instead whenever the matrix was **not** produced by this
-    /// crate's own transform composition — round-tripped from `getScreenCTM`, computed by another library, or
-    /// driving a slow/precise rotation — and its exact values matter.
+    /// Prefer [`set_matrix_precise`](Self::set_matrix_precise) instead for coefficients obtained from a `DOMMatrix`,
+    /// another library, or a coordinate-space conversion where the resulting matrix is intended to become this
+    /// element's local transform — or for a slow/precise rotation, where `set_matrix`'s quantisation can round a small
+    /// sine term in a way that introduces visual artefacts or makes the rotation disappear entirely.
     ///
     /// # Example
     ///
@@ -181,10 +182,10 @@ impl SvgNode {
     /// all six [`Matrix2D`] fields with Rust's shortest round-trip `Display` representation instead of `set_matrix`'s
     /// fixed three/one decimal places.
     ///
-    /// Prefer this over `set_matrix` when exact values matter and the transform values were not produced by this
-    /// crate's own transform helpers (for example a matrix read back from `getScreenCTM`, computed by another library,
-    /// or driving a slow/precise rotation, where `set_matrix`'s quantisation can round a small sine term to zero and
-    /// make the rotation disappear entirely).
+    /// Prefer this over `set_matrix` for coefficients obtained from a `DOMMatrix`, another library, or a
+    /// coordinate-space conversion where the resulting matrix is intended to become this element's local transform
+    /// — or for a slow/precise rotation where `set_matrix`'s quantisation can round a small sine term to zero thus
+    /// introducing visual artefacts or making the rotation disappear entirely.
     ///
     /// See `set_matrix`'s own doc comment for the specific failure modes this avoids.
     ///
