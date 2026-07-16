@@ -656,3 +656,43 @@ Key points:
 - The RAF closure uses a `WeakSvgNode` to avoid a reference cycle.
   A strong `SvgNode` clone inside both the event handler and the RAF closure would keep the node (and its listeners) alive indefinitely.
 - If you also need the `AnimationFrame` scratch buffer for formatted attribute writes, allocate one `AnimationFrame` outside both closures and put it behind an `Rc<RefCell<AnimationFrame>>`, then borrow it inside the RAF closure.
+
+## `children`/`query_selector_all` pre-reserve `Vec` capacity, rather than collecting through `filter_map`
+
+Both methods (`src/node/tree.rs`) know the DOM collection's length before iterating it, so the original implementation looked like it should collect in one allocation:
+
+```rust
+(0..collection.length())
+    .filter_map(|i| collection.item(i))
+    .filter_map(|el| el.dyn_into::<SvgElement>().ok())
+    .map(SvgNode::new)
+    .collect()
+```
+
+It does not.
+`Iterator::size_hint` for `FilterMap` reports a **lower** bound of `0`, because it cannot know in advance how many elements its predicate will discard — confirmed directly (`(0..10).filter_map(...).size_hint()` prints `(0, Some(10))`, and the bound is unchanged after chaining `.map(SvgNode::new)`, since `Map` just forwards its inner iterator's hint).
+
+`Vec`'s `Extend`/`FromIterator` implementation reserves against that lower bound, not the upper one, so a lower bound of `0` means `collect()` cannot make a single exact allocation here — it falls back to the same amortised doubling every `Vec::push` loop uses, reallocating and moving already-collected `SvgNode`s (each an `Rc` pointer, so the copy itself is cheap, but the repeated reallocation is not) as the vector grows past each capacity step.
+
+The fix replaces the iterator chain with `Vec::with_capacity(len)` followed by a manual `for` loop that pushes into it, using the DOM count as an **upper bound**, since filtering can only ever shrink the result, never grow it:
+
+```rust
+let len = collection.length();
+let mut nodes = Vec::with_capacity(len as usize);
+for i in 0..len {
+    if let Some(el) = collection.item(i) {
+        if let Ok(svg_el) = el.dyn_into::<SvgElement>() {
+            nodes.push(SvgNode::new(svg_el));
+        }
+    }
+}
+nodes
+```
+
+For the ordinary case (an SVG subtree with no `<foreignObject>` content), every DOM entry survives both casts, so this is now exactly one allocation with zero wasted growth-copies — deterministically, not just usually, since the improvement follows directly from `Vec::with_capacity`'s documented behaviour rather than from anything an optimiser might or might not do.
+This is a different kind of change from the `write_default`/`write_fixed` and `fmt_element` experiments earlier in this document: those needed an empirical `wasm-opt`/MD5 comparison because the question was whether LLVM had already erased a source-level difference; this one needs no such benchmark, because `Vec`'s allocation strategy is a documented, guaranteed contract, not an optimisation the compiler is free to skip.
+
+The trade-off is bounded, not open-ended: a selector matching mostly non-SVG elements (the flagged case being a `<foreignObject>` full of HTML) leaves the `Vec` holding unused capacity — at most `(dom_count - svg_count) * size_of::<SvgNode>()` bytes, i.e. one pointer per discarded element, which is freed as soon as the caller drops the `Vec`.
+This is a transient memory cost, not a correctness issue or an unbounded one, and for `query_selector_all` in particular it is dwarfed by the browser's own `querySelectorAll` DOM walk that produces the `NodeList` in the first place.
+
+`shrink_to_fit()` was deliberately not added after the loop: trimming the reserved-but-unused capacity would itself cost a second allocation and copy, which would negate the improvement on the common, all-SVG path in exchange for shaving a transient memory cost that already frees itself when the `Vec` is dropped.

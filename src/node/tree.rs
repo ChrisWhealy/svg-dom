@@ -321,7 +321,8 @@ impl SvgNode {
     ///
     /// Only SVG element children are included; text nodes, comments, and any non-SVG element child (for example, HTML
     /// content inside a `<foreignObject>`) are all silently skipped, so the returned `Vec` can be shorter than the
-    /// node's actual DOM child count.
+    /// node's actual DOM child count — the DOM count is used only as an upfront capacity reservation, treating it as
+    /// an upper bound on the result rather than the exact length.
     ///
     /// Use [`SvgNode::as_element`] and the raw `web_sys` API if you need to see those too.
     ///
@@ -348,11 +349,16 @@ impl SvgNode {
     /// ```
     pub fn children(&self) -> Vec<SvgNode> {
         let collection = self.inner.element.children();
-        (0..collection.length())
-            .filter_map(|i| collection.item(i))
-            .filter_map(|el| el.dyn_into::<SvgElement>().ok())
-            .map(SvgNode::new)
-            .collect()
+        let len = collection.length();
+        let mut nodes = Vec::with_capacity(len as usize);
+        for i in 0..len {
+            if let Some(el) = collection.item(i) {
+                if let Ok(svg_el) = el.dyn_into::<SvgElement>() {
+                    nodes.push(SvgNode::new(svg_el));
+                }
+            }
+        }
+        nodes
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -402,7 +408,8 @@ impl SvgNode {
     ///
     /// See [`query_selector`](Self::query_selector) for the selector syntax and error behaviour.
     /// As with [`children`](Self::children), any match that is not an SVG element is silently skipped rather than
-    /// included, so the returned `Vec` can be shorter than the DOM match count.
+    /// included, so the returned `Vec` can be shorter than the DOM match count — the DOM match count is used only as
+    /// an upfront capacity reservation, treating it as an upper bound on the result rather than the exact length.
     ///
     /// # ⚠️ Caveat ⚠️
     ///
@@ -415,11 +422,15 @@ impl SvgNode {
     /// Returns [`Error::Dom`] if `selectors` is not valid CSS selector syntax.
     pub fn query_selector_all(&self, selectors: &str) -> Result<Vec<SvgNode>, Error> {
         let matches = self.inner.element.query_selector_all(selectors).map_err(dom_err)?;
-        let nodes = (0..matches.length())
-            .filter_map(|i| matches.item(i))
-            .filter_map(|n| n.dyn_into::<SvgElement>().ok())
-            .map(SvgNode::new)
-            .collect();
+        let len = matches.length();
+        let mut nodes = Vec::with_capacity(len as usize);
+        for i in 0..len {
+            if let Some(el) = matches.item(i) {
+                if let Ok(svg_el) = el.dyn_into::<SvgElement>() {
+                    nodes.push(SvgNode::new(svg_el));
+                }
+            }
+        }
         Ok(nodes)
     }
 }

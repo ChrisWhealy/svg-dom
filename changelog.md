@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.1.56 — 2026-07-16
+- `4a4c889` Implement missing tree navigation functions (2026-07-16)
+
 ## 0.1.55 — 2026-07-16
 - `db135c4` Implement filter effect colorMatrix (2026-07-15)
 - `0a9e1d5` Remove the temporary owned filter ID (2026-07-15)
