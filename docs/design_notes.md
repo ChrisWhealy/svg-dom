@@ -18,6 +18,7 @@
 - [`<filter>` primitives return a plain `SvgNode`](#filter-primitives-return-a-plain-svgnode)
 - [Downward tree navigation and query-by-selector reuse `parent`'s independent-handle pattern, not a new type](#downward-tree-navigation-and-query-by-selector-reuse-parents-independent-handle-pattern-not-a-new-type)
 - [`SvgRoot::set_view_box` reuses `SvgSymbol`/`SvgPattern`'s existing shape](#svgrootset_view_box-reuses-svgsymbolsvgpatterns-existing-shape)
+- [`classList` helpers are scoped to `SvgNode`, not duplicated per element type](#classlist-helpers-are-scoped-to-svgnode-not-duplicated-per-element-type)
 - [Ideas Considered and Rejected](rejected_ideas.md)
 - [Performance Patterns](#performance-patterns)
 
@@ -644,6 +645,29 @@ Only `width`/`height` are additionally checked for sign.
 A `width`/`height` of exactly `0.0` is deliberately still accepted: it is valid `viewBox` syntax, and per the SVG spec, disables rendering of the element it's set on rather than being an error.
 This amounts to a real, if unusual, way to hide content without removing it.
 That distinction (finite-and-non-negative is required, zero is allowed) is documented on `Error::InvalidViewBox` itself and each setter's own doc comment, so a caller does not have to guess which zero-adjacent values are and are not accepted.
+
+## `classList` helpers are scoped to `SvgNode`, not duplicated per element type
+
+Since each of the types `SvgRoot`, `SvgSymbol`, `SvgPattern`, and `SvgMarker` owns its own `viewBox` attribute, each type therefore needed its own `set_view_box`.
+However, CSS `class` is not type-specific: every element this crate wraps derefs down to a plain DOM `Element`.
+`SvgNode` is already the shared handle every other typed wrapper (`SvgRoot`, `SvgMarker`, `SvgPattern`, ...) hands back to callers for general-purpose attribute work (see `set_attr`/`attr`/`remove_attr` on `SvgNode` itself).
+Therefore, we can simply add four class methods to `SvgNode` once and cover every element type this crate produces, with no per-type duplication and no gap for a type added later.
+
+Rather than hand-rolling `class` string parsing, four methods wrap `web_sys::Element::class_list()`'s `DomTokenList` (`add_1`, `remove_1`, `toggle`, `contains`):
+
+- `add_class`
+- `remove_class`
+- `toggle_class`
+- `has_class`
+
+Reimplementing `DomTokenList`'s whitespace-splitting and duplicate-avoidance rules on top of the raw `class` attribute string is entirely redundant because the DOM functionality of a browser already handles these details for `classList` operations.
+
+`has_class`/`contains` is infallible and returns a plain `bool`; the other three return `Result`/`Result<bool, Error>` through the same `dom_err` mapping every other DOM-touching method in `src/node/attrs.rs` uses, since `add_1`/`remove_1`/`toggle` are themselves fallible at the `web_sys` boundary.
+
+The demo (`demo_events_classlist` in `src/demo/events.rs`) deliberately keeps all styling in `style.css`.
+Each tile's `on_click` handler calls only `toggle_class("selected")`, never `set_fill`/`set_attr` on `stroke` directly, and the gold highlight comes purely from a `.tile.selected` CSS rule.
+This is the whole point of the demo: it shows that a `class` attribute change alone is enough to restyle an element, which is the actual reason `classList` helpers are useful over `set_attr("class", ...)` string-splicing.
+The "selected: n / 3" readout is recomputed from `has_class` on every tile after each click, rather than tracked in a separate Rust state, so it cannot drift from what the DOM actually contains.
 
 # Performance Patterns
 

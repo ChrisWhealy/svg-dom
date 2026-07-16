@@ -120,6 +120,7 @@ pub fn run_demo() -> Result<(), JsValue> {
     events::demo_events_keyboard_wheel().map_err(e)?;
     events::demo_events_drag_drop_touch().map_err(e)?;
     events::demo_events_passive().map_err(e)?;
+    events::demo_events_classlist().map_err(e)?;
 
     // Below each demo, show the Rust source of the function that produced it.
     inject_source_frames().map_err(e)?;
@@ -182,6 +183,7 @@ const DEMO_SOURCES: &[(&str, &str)] = &[
     ("panel-events-keyboard-wheel", "demo_events_keyboard_wheel"),
     ("panel-events-drag-drop-touch", "demo_events_drag_drop_touch"),
     ("panel-events-passive", "demo_events_passive"),
+    ("panel-events-classlist", "demo_events_classlist"),
 ];
 
 /// Appends a source frame to every panel listed in [`DEMO_SOURCES`].

@@ -52,6 +52,7 @@
             <button type="button" class="menu-item" data-target="panel-events-drag-drop-touch">Native
                 drag/touch</button>
             <button type="button" class="menu-item" data-target="panel-events-passive">Passive Event Listeners</button>
+            <button type="button" class="menu-item" data-target="panel-events-classlist">CSS class toggle</button>
         </nav>
 
         <!-- Title panel  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -573,6 +574,19 @@
                         the browser never waits for the handler before scrolling or panning.
                         <code>preventDefault()</code> inside a passive handler is silently ignored; use the
                         non-passive sibling when you need to suppress default scroll behaviour.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- classList -->
+            <section class="section" id="panel-events-classlist">
+                <h2>CSS <code>class</code> toggle</h2>
+                <figure>
+                    <div class="canvas" id="demo-events-classlist"></div>
+                    <figcaption>
+                        Click a tile — <strong>on_click</strong> calls <strong>toggle_class("selected")</strong>.
+                        The gold highlight comes entirely from a <code>.tile.selected</code> CSS rule; the readout
+                        is recomputed from <strong>has_class</strong> on every tile after each click.
                     </figcaption>
                 </figure>
             </section>

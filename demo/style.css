@@ -165,6 +165,19 @@ figcaption strong {
     color: #8b949e;
 }
 
+/* classList demo (Event handling → CSS class toggle, src/demo/events.rs). Rust only ever calls toggle_class on the
+   tile's `class` attribute; this rule is what makes that visible — the gold stroke appears purely because the
+   browser matches `.tile.selected`, not because any Rust code touched fill/stroke directly. */
+#demo-events-classlist .tile {
+    stroke: transparent;
+    stroke-width: 4px;
+    transition: stroke 120ms ease;
+}
+
+#demo-events-classlist .tile.selected {
+    stroke: gold;
+}
+
 #error-banner {
     display: none;
     background: #3d1e1e;

@@ -215,6 +215,91 @@ impl SvgNode {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// # Add a CSS class
+    ///
+    /// Adds `class` to this element's `class` attribute via the DOM `classList` API.
+    /// This has no effect if the class is already present.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let rect = svg.rect(Point::origin(), Size::new(100.0, 50.0))?;
+    ///
+    /// rect.add_class("highlighted")?;
+    /// assert!(rect.has_class("highlighted"));
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn add_class(&self, class: &str) -> Result<(), Error> {
+        self.inner.element.class_list().add_1(class).map_err(dom_err)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// # Remove a CSS class
+    ///
+    /// Removes `class` from this element's `class` attribute via the DOM `classList` API.
+    /// This has no effect if the class is not present.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let rect = svg.rect(Point::origin(), Size::new(100.0, 50.0))?;
+    ///
+    /// rect.add_class("highlighted")?;
+    /// rect.remove_class("highlighted")?;
+    /// assert!(!rect.has_class("highlighted"));
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn remove_class(&self, class: &str) -> Result<(), Error> {
+        self.inner.element.class_list().remove_1(class).map_err(dom_err)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// # Toggle a CSS class
+    ///
+    /// Adds `class` if it is absent, removes it if it is present, and returns the class's new membership state:
+    /// `true` if it is now present, `false` if it is now absent.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let rect = svg.rect(Point::origin(), Size::new(100.0, 50.0))?;
+    ///
+    /// assert_eq!(rect.toggle_class("selected")?, true);  // absent -> added
+    /// assert_eq!(rect.toggle_class("selected")?, false); // present -> removed
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn toggle_class(&self, class: &str) -> Result<bool, Error> {
+        self.inner.element.class_list().toggle(class).map_err(dom_err)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// # Test for a CSS class
+    ///
+    /// Returns `true` if `class` is present in this element's `class` attribute.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let rect = svg.rect(Point::origin(), Size::new(100.0, 50.0))?;
+    ///
+    /// assert!(!rect.has_class("highlighted"));
+    /// rect.add_class("highlighted")?;
+    /// assert!(rect.has_class("highlighted"));
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn has_class(&self, class: &str) -> bool {
+        self.inner.element.class_list().contains(class)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the `fill` attribute to a CSS colour value.
     ///
     /// Accepts any valid SVG paint value:

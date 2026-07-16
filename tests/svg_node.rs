@@ -616,6 +616,96 @@ fn should_successfully_remove_nonexistent_attribute() -> Result<(), String> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// add_class / remove_class / toggle_class / has_class
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `has_class` returns `false` for a class that has never been added.
+#[wasm_bindgen_test]
+fn should_return_false_for_absent_class() -> Result<(), String> {
+    let rect = make_svg("node-class-absent")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    common::check_eq(rect.has_class("highlighted"), false)
+}
+
+/// `add_class` makes a class visible to `has_class` and to the underlying `class` attribute.
+#[wasm_bindgen_test]
+fn should_add_class() -> Result<(), String> {
+    let rect = make_svg("node-add-class")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    rect.add_class("highlighted").map_err(|e| e.to_string())?;
+    common::check_eq(rect.has_class("highlighted"), true)?;
+    common::check_eq(rect.attr("class"), Some("highlighted".into()))
+}
+
+/// Adding the same class twice is idempotent: the class appears only once in the `class` attribute.
+#[wasm_bindgen_test]
+fn should_add_class_idempotently() -> Result<(), String> {
+    let rect = make_svg("node-add-class-twice")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    rect.add_class("highlighted").map_err(|e| e.to_string())?;
+    rect.add_class("highlighted").map_err(|e| e.to_string())?;
+    common::check_eq(rect.attr("class"), Some("highlighted".into()))
+}
+
+/// `add_class` can be called more than once with different classes; both remain present.
+#[wasm_bindgen_test]
+fn should_add_multiple_distinct_classes() -> Result<(), String> {
+    let rect = make_svg("node-add-multiple-classes")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    rect.add_class("highlighted").map_err(|e| e.to_string())?;
+    rect.add_class("selected").map_err(|e| e.to_string())?;
+    common::check_eq(rect.has_class("highlighted"), true)?;
+    common::check_eq(rect.has_class("selected"), true)
+}
+
+/// `remove_class` clears a previously added class.
+#[wasm_bindgen_test]
+fn should_remove_class() -> Result<(), String> {
+    let rect = make_svg("node-remove-class")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    rect.add_class("highlighted").map_err(|e| e.to_string())?;
+    rect.remove_class("highlighted").map_err(|e| e.to_string())?;
+    common::check_eq(rect.has_class("highlighted"), false)
+}
+
+/// Calling `remove_class` on a class that was never added succeeds without error.
+#[wasm_bindgen_test]
+fn should_successfully_remove_nonexistent_class() -> Result<(), String> {
+    let rect = make_svg("node-remove-absent-class")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    rect.remove_class("nonexistent").map_err(|e| e.to_string())
+}
+
+/// `toggle_class` adds an absent class and reports it is now present.
+#[wasm_bindgen_test]
+fn should_toggle_class_on_when_absent() -> Result<(), String> {
+    let rect = make_svg("node-toggle-class-on")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    let now_present = rect.toggle_class("selected").map_err(|e| e.to_string())?;
+    common::check_eq(now_present, true)?;
+    common::check_eq(rect.has_class("selected"), true)
+}
+
+/// `toggle_class` removes a present class and reports it is now absent.
+#[wasm_bindgen_test]
+fn should_toggle_class_off_when_present() -> Result<(), String> {
+    let rect = make_svg("node-toggle-class-off")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    rect.add_class("selected").map_err(|e| e.to_string())?;
+    let now_present = rect.toggle_class("selected").map_err(|e| e.to_string())?;
+    common::check_eq(now_present, false)?;
+    common::check_eq(rect.has_class("selected"), false)
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Clone semantics
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
