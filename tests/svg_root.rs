@@ -191,6 +191,41 @@ fn should_write_only_changed_viewport_axis() -> Result<(), String> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// SvgRoot::set_view_box
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `set_view_box` writes the `viewBox` attribute as `"x y width height"`.
+#[wasm_bindgen_test]
+fn should_write_view_box_attribute() -> Result<(), String> {
+    common::div("set-view-box");
+    let svg = SvgRoot::create_in("set-view-box", Size::new(800.0, 600.0)).map_err(|e| e.to_string())?;
+    svg.set_view_box(0.0, 0.0, 1000.0, 1000.0).map_err(|e| e.to_string())?;
+    let el = svg_element("set-view-box");
+    common::check_eq(el.get_attribute("viewBox"), Some("0 0 1000 1000".into()))
+}
+
+/// `set_view_box` with a non-zero origin writes both the offset and the size.
+#[wasm_bindgen_test]
+fn should_write_view_box_with_offset_origin() -> Result<(), String> {
+    common::div("set-view-box-offset");
+    let svg = SvgRoot::create_in("set-view-box-offset", Size::new(800.0, 600.0)).map_err(|e| e.to_string())?;
+    svg.set_view_box(-50.0, -25.0, 400.0, 300.0).map_err(|e| e.to_string())?;
+    let el = svg_element("set-view-box-offset");
+    common::check_eq(el.get_attribute("viewBox"), Some("-50 -25 400 300".into()))
+}
+
+/// `set_view_box` does not alter the cached `width`/`height` that `set_viewport` tracks — the two attributes are
+/// independent.
+#[wasm_bindgen_test]
+fn should_leave_viewport_cache_unchanged_by_view_box() -> Result<(), String> {
+    common::div("set-view-box-viewport");
+    let svg = SvgRoot::create_in("set-view-box-viewport", Size::new(800.0, 600.0)).map_err(|e| e.to_string())?;
+    svg.set_view_box(0.0, 0.0, 1000.0, 1000.0).map_err(|e| e.to_string())?;
+    common::check_eq(svg.width(), 800.0)?;
+    common::check_eq(svg.height(), 600.0)
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Element factories
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

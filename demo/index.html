@@ -28,6 +28,7 @@
             <button type="button" class="menu-item" data-target="panel-use">use</button>
             <button type="button" class="menu-item" data-target="panel-image">image</button>
             <button type="button" class="menu-item" data-target="panel-symbol">symbol</button>
+            <button type="button" class="menu-item" data-target="panel-view-box">set_view_box</button>
             <button type="button" class="menu-item" data-target="panel-tree-nav">tree navigation</button>
             <button type="button" class="menu-item" data-target="panel-linear-gradient">linearGradient</button>
             <button type="button" class="menu-item" data-target="panel-radial-gradient">radialGradient</button>
@@ -45,8 +46,10 @@
             <button type="button" class="menu-item" data-target="panel-events-press">Press state</button>
             <button type="button" class="menu-item" data-target="panel-events-group">Bubbling</button>
             <button type="button" class="menu-item" data-target="panel-events-pointer">Pointer lifecycle</button>
-            <button type="button" class="menu-item" data-target="panel-events-keyboard-wheel">Keyboard &amp; wheel</button>
-            <button type="button" class="menu-item" data-target="panel-events-drag-drop-touch">Native drag/touch</button>
+            <button type="button" class="menu-item" data-target="panel-events-keyboard-wheel">Keyboard &amp;
+                wheel</button>
+            <button type="button" class="menu-item" data-target="panel-events-drag-drop-touch">Native
+                drag/touch</button>
             <button type="button" class="menu-item" data-target="panel-events-passive">Passive Event Listeners</button>
         </nav>
 
@@ -149,7 +152,8 @@
                     <figcaption>
                         <strong>text-anchor</strong> (dashed guide marks the <em>x</em> anchor point) ·
                         <strong>font-size</strong> ·
-                        <strong>dominant-baseline</strong> (dashed guide marks the <em>y</em> coordinate; each label sits differently relative to it) ·
+                        <strong>dominant-baseline</strong> (dashed guide marks the <em>y</em> coordinate; each label
+                        sits differently relative to it) ·
                         <strong>font-family</strong>
                     </figcaption>
                 </figure>
@@ -237,9 +241,37 @@
                 </figure>
             </section>
 
+            <!-- SvgRoot::set_view_box -->
+            <section class="section" id="panel-view-box">
+                <h2><code>SvgRoot::set_view_box</code> — the root's internal coordinate system</h2>
+                <figure>
+                    <div class="canvas-row">
+                        <div class="canvas" id="demo-view-box-1"></div>
+                        <div class="canvas" id="demo-view-box-2"></div>
+                        <div class="canvas" id="demo-view-box-3"></div>
+                    </div>
+                    <figcaption>
+                        The identical scene shows four coloured quadrants and a white landmark dot fixed inside the
+                        bottom-right one, all drawn with exactly the same coordinates: 200px &times; 200px canvases;
+                        only the <strong>set_view_box</strong> call differs.<br><br>
+                        <strong>Left:</strong> no <code>viewBox</code>, so 1 drawing unit = 1 pixel making everything
+                        visible.<br>
+                        <strong>Middle:</strong> <code>viewBox(0, 0, 100, 100)</code> magnifies the top-left
+                        quadrant by
+                        a factor of 2. This pushes the landmark dot outside thie visible region and is therefore
+                        clipped.<br>
+                        <strong>Right:</strong> <code>viewBox(50, 50, 150, 150)</code> is both panned and slightly
+                        magnified, cropping the outer ring of the other three quadrants while bringing the
+                        bottom-right
+                        one — and the landmark dot — fully back into view.
+                    </figcaption>
+                </figure>
+            </section>
+
             <!-- tree navigation -->
             <section class="section" id="panel-tree-nav">
-                <h2>Tree navigation — <code>first_child</code> / <code>next_sibling</code> / <code>query_selector</code></h2>
+                <h2>Tree navigation — <code>first_child</code> / <code>next_sibling</code> / <code>query_selector</code>
+                </h2>
                 <figure>
                     <div class="canvas" id="demo-tree-nav"></div>
                     <figcaption>
@@ -317,7 +349,9 @@
 
             <!-- filter -->
             <section class="section" id="panel-filter">
-                <h2><code>&lt;filter&gt;</code> — raster effects via <code>&lt;feGaussianBlur&gt;</code>, <code>&lt;feDropShadow&gt;</code></h2>
+                <h2><code>&lt;filter&gt;</code> — raster effects via <code>&lt;feGaussianBlur&gt;</code>,
+                    <code>&lt;feDropShadow&gt;</code>
+                </h2>
                 <figure>
                     <div class="canvas" id="demo-filter"></div>
                     <figcaption>
@@ -359,7 +393,8 @@
                 <figure>
                     <div class="canvas" id="demo-tspan"></div>
                     <figcaption>
-                        <strong>multi-line</strong> — three <code>&lt;tspan&gt;</code> children each advance 22&thinsp;px
+                        <strong>multi-line</strong> — three <code>&lt;tspan&gt;</code> children each advance
+                        22&thinsp;px
                         via <strong>tspan_dy</strong>, producing line breaks without absolute <code>y</code>
                         coordinates ·
                         <strong>inline mixed styles</strong> — three spans inside one <code>&lt;text&gt;</code>,
@@ -471,9 +506,9 @@
                 <figure>
                     <div class="canvas" id="demo-events-pointer"></div>
                     <figcaption>
-                        Move, press, release, leave and double-click the target.  This demo exercises the managed
+                        Move, press, release, leave and double-click the target. This demo exercises the managed
                         <strong>pointerover / pointerenter / pointerdown / pointermove / pointerup / pointercancel /
-                        pointerout / pointerleave</strong> handlers, plus <strong>mouseenter</strong>,
+                            pointerout / pointerleave</strong> handlers, plus <strong>mouseenter</strong>,
                         <strong>mouseleave</strong> and <strong>dblclick</strong>.
                     </figcaption>
                 </figure>
@@ -485,7 +520,7 @@
                 <figure>
                     <div class="canvas" id="demo-events-keyboard-wheel"></div>
                     <figcaption>
-                        Click the focusable SVG rectangle, type a key, then use the mouse wheel over it.  The demo uses
+                        Click the focusable SVG rectangle, type a key, then use the mouse wheel over it. The demo uses
                         managed <strong>focus</strong>, <strong>blur</strong>, <strong>keydown</strong>,
                         <strong>keyup</strong> and <strong>wheel</strong> handlers.
                     </figcaption>
@@ -500,7 +535,8 @@
                     <figcaption>
                         Drag the blue card: pointer capture keeps the box moving instead of selecting page text.
                         The card and zone also exercise managed <strong>dragstart / drag / dragend / dragenter /
-                        dragleave / dragover / drop</strong>, <strong>touchstart / touchmove / touchend / touchcancel</strong>,
+                            dragleave / dragover / drop</strong>, <strong>touchstart / touchmove / touchend /
+                            touchcancel</strong>,
                         and a generic <strong>on_event("auxclick")</strong> handler.
                     </figcaption>
                 </figure>

@@ -17,6 +17,7 @@
 - [Typesafe Path Data Builder](#typesafe-path-data-builder)
 - [`<filter>` primitives return a plain `SvgNode`](#filter-primitives-return-a-plain-svgnode)
 - [Downward tree navigation and query-by-selector reuse `parent`'s independent-handle pattern, not a new type](#downward-tree-navigation-and-query-by-selector-reuse-parents-independent-handle-pattern-not-a-new-type)
+- [`SvgRoot::set_view_box` reuses `SvgSymbol`/`SvgPattern`'s existing shape](#svgrootset_view_box-reuses-svgsymbolsvgpatterns-existing-shape)
 - [Ideas Considered and Rejected](rejected_ideas.md)
 - [Performance Patterns](#performance-patterns)
 
@@ -612,6 +613,19 @@ Two further decisions followed directly from matching `parent`'s existing preced
   `children` and `query_selector_all` skip non-SVG matches rather than failing the whole call over one stray non-SVG descendant, or returning a `Vec` mixing `SvgNode`s with some other representation.
 
   This is a different call from the single-result case above precisely because a collection degrading by omission (documented explicitly in each method's doc comment) is a much smaller surprise than a single lookup silently guessing at a different answer than the one the caller's selector or position asked for.
+
+## `SvgRoot::set_view_box` reuses `SvgSymbol`/`SvgPattern`'s existing shape
+
+`SvgSymbol` and `SvgPattern` already had a `set_view_box(x, y, width, height)` method, each writing the same `"x y width height"` string via `display_element`'s reused scratch buffer.
+`SvgRoot` was the one place `docs/gaps.md` flagged as missing it — `set_viewport` covers `width`/`height`, but nothing covered `viewBox` beyond the generic `root.set_attribute(...)` escape hatch documented on the `root` field itself.
+
+The new method is a direct copy of that existing shape, not a new design: same four positional `f64` parameters in the same order, same one-line `display_element` implementation, same lack of a getter (nothing in this crate reads `viewBox` back to stay internally consistent, unlike `width`/`height`, which `set_viewport` must cache to support its skip-unchanged-writes optimisation described above).
+
+`viewBox` and `set_viewport`'s cached `width`/`height` are independent and do not need to agree on scale: `width`/`height` size the `<svg>` element in the surrounding page, while `viewBox` maps that rendered area onto an internal coordinate system within which child elements are positioned.
+Setting one does not read, invalidate, or need to touch the other, so `set_view_box` needed no interaction with the `viewport: Cell<Size>` field at all — it is a plain, uncached attribute write, exactly like `SvgSymbol`'s and `SvgPattern`'s.
+
+`SvgMarker` is the one remaining SVG element in this crate's coverage with a `viewBox` attribute and no dedicated setter (`<marker>`'s own doc comment already lists it under its generic `set_attr` escape hatch).
+It was left alone here rather than opportunistically added, since it was not the gap this round of work was scoped to close, and `SvgMarker`'s own attribute grammar (`markerWidth`/`markerHeight`/`refX`/`refY`) already covers the common case of scaling and positioning a marker without needing an internal coordinate system.
 
 # Performance Patterns
 

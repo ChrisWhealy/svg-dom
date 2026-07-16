@@ -17,9 +17,12 @@ Each individual primitive's own `in`/`result` attributes, and any primitive-spec
 
 See [`design_notes.md`](design_notes.md#filter-primitives-return-a-plain-svgnode), "`<filter>` primitives return a plain `SvgNode`", for why a typed per-primitive wrapper was deferred rather than built now.
 
+# viewBox
+
+`SvgMarker` still has no dedicated `viewBox` setter; use its generic `set_attr` escape hatch.
+
 # Missing Attribute helpers
 
-- No `viewBox` helper (only `set_viewport`, which sets `width`/`height`)
 - No `classList` / CSS class manipulation
 
 # Missing geometry access

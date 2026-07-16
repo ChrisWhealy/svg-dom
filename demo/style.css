@@ -145,6 +145,15 @@ figure {
     background: #161b22;
 }
 
+/* A handful of panels (e.g. set_view_box) compare several mini canvases side by side rather than showing one big
+   one; each still gets its own .canvas border via the markup, this just lays them out in a row and lets them wrap
+   on a narrow window instead of overflowing. */
+.canvas-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
 figcaption {
     font-size: 0.82rem;
     color: #6e7681;

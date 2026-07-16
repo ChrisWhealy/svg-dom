@@ -210,6 +210,35 @@ impl SvgRoot {
         }
         Ok(())
     }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the `viewBox` attribute, establishing the root's internal coordinate system.
+    ///
+    /// `width`/`height` ([`set_viewport`](Self::set_viewport), or the `size` passed to [`create_in`](Self::create_in))
+    /// size the `<svg>` element itself within the surrounding page. `viewBox` is independent of that: it maps the
+    /// rendered area onto an internal `(x, y, width, height)` coordinate region, so everything drawn inside the `<svg>`
+    /// is scaled (and, via `x`/`y`, offset) to fit — the standard way to give a diagram a fixed, resolution-independent
+    /// drawing surface that still renders at whatever pixel size is used in the viewport.
+    ///
+    /// Unlike `width`/`height`, `viewBox` is not cached by this crate; there is no `view_box()` getter to pair with it.
+    /// The child factory methods on `SvgRoot` (`rect`, `circle`, ...) place elements using the coordinates you pass them
+    /// directly, so nothing here needs to read `viewBox` back to stay consistent — it only affects how the browser maps
+    /// those coordinates onto the page, not what value to pass them in the first place.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::Size};
+    /// let svg = SvgRoot::attach("diagram")?;
+    /// // Draw in a fixed 1000x1000 coordinate system, whatever pixel size the <svg> itself renders at.
+    /// svg.set_view_box(0.0, 0.0, 1000.0, 1000.0)?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn set_view_box(&self, x: f64, y: f64, width: f64, height: f64) -> Result<(), Error> {
+        self.attrs
+            .borrow_mut()
+            .display_element(&self.root, "viewBox", format_args!("{x} {y} {width} {height}"))
+    }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
