@@ -783,6 +783,77 @@ fn should_reject_whitespace_token_via_toggle_class() -> Result<(), String> {
     common::check_eq(rect.attr("class"), Some("kept".into()))
 }
 
+/// `set_class_enabled(class, true)` adds an absent class.
+#[wasm_bindgen_test]
+fn should_add_class_via_set_class_enabled_true() -> Result<(), String> {
+    let rect = make_svg("node-set-class-enabled-add")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    rect.set_class_enabled("selected", true).map_err(|e| e.to_string())?;
+    common::check_eq(rect.has_class("selected"), true)
+}
+
+/// `set_class_enabled(class, true)` on an already-present class is idempotent.
+#[wasm_bindgen_test]
+fn should_leave_class_present_via_set_class_enabled_true_when_already_present() -> Result<(), String> {
+    let rect = make_svg("node-set-class-enabled-add-idempotent")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    rect.add_class("selected").map_err(|e| e.to_string())?;
+    rect.set_class_enabled("selected", true).map_err(|e| e.to_string())?;
+    common::check_eq(rect.attr("class"), Some("selected".into()))
+}
+
+/// `set_class_enabled(class, false)` removes a present class.
+#[wasm_bindgen_test]
+fn should_remove_class_via_set_class_enabled_false() -> Result<(), String> {
+    let rect = make_svg("node-set-class-enabled-remove")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    rect.add_class("selected").map_err(|e| e.to_string())?;
+    rect.set_class_enabled("selected", false).map_err(|e| e.to_string())?;
+    common::check_eq(rect.has_class("selected"), false)
+}
+
+/// `set_class_enabled(class, false)` on an already-absent class is idempotent.
+#[wasm_bindgen_test]
+fn should_leave_class_absent_via_set_class_enabled_false_when_already_absent() -> Result<(), String> {
+    let rect = make_svg("node-set-class-enabled-remove-idempotent")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    rect.set_class_enabled("selected", false).map_err(|e| e.to_string())?;
+    common::check_eq(rect.has_class("selected"), false)
+}
+
+/// `set_class_enabled` rejects an empty token (DOM `SyntaxError`), leaving the `class` attribute unchanged.
+#[wasm_bindgen_test]
+fn should_reject_empty_token_via_set_class_enabled() -> Result<(), String> {
+    let rect = make_svg("node-set-class-enabled-empty")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    rect.add_class("kept").map_err(|e| e.to_string())?;
+    common::check(
+        rect.set_class_enabled("", true).is_err(),
+        "expected an empty class token to fail",
+    )?;
+    common::check_eq(rect.attr("class"), Some("kept".into()))
+}
+
+/// `set_class_enabled` rejects a token containing ASCII whitespace (DOM `InvalidCharacterError`), leaving the
+/// `class` attribute unchanged.
+#[wasm_bindgen_test]
+fn should_reject_whitespace_token_via_set_class_enabled() -> Result<(), String> {
+    let rect = make_svg("node-set-class-enabled-whitespace")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    rect.add_class("kept").map_err(|e| e.to_string())?;
+    common::check(
+        rect.set_class_enabled("two classes", true).is_err(),
+        "expected a whitespace-containing class token to fail",
+    )?;
+    common::check_eq(rect.attr("class"), Some("kept".into()))
+}
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Clone semantics
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

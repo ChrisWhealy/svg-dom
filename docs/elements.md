@@ -71,7 +71,7 @@ The legacy `mouseover` / `mouseout` wrappers remain available for compatibility 
 - Updating `<text>` content after creation — `set_text`, plus the buffer-reusing `set_text_fmt` / `set_text_display`
 - Allocation-light numeric attribute writes — `set_attr_display`, and the redundant-write helpers `set_attr_if_changed` / `CachedAttr`
 - `SvgRoot::set_view_box(x, y, width, height)` — the root `<svg>`'s internal coordinate system, independent of `set_viewport`'s `width`/`height`. `SvgSymbol`, `SvgPattern`, and `SvgMarker` have the same method for their own `viewBox`; see [`<symbol>`](#symbol), [`<pattern>`](#pattern), and [`<marker>`](#marker) below.
-- CSS class manipulation on `SvgNode` — `add_class`, `remove_class`, `toggle_class`, `has_class`, backed by the DOM `classList` API.
+- CSS class manipulation on `SvgNode` — `add_class`, `remove_class`, `toggle_class`, `set_class_enabled` (deterministic set/clear via `classList.toggle(token, force)`), `has_class`, backed by the DOM `classList` API.
 
 ---
 

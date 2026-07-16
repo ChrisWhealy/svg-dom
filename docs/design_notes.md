@@ -649,20 +649,29 @@ That distinction (finite-and-non-negative is required, zero is allowed) is docum
 ## `classList` helpers are scoped to `SvgNode`, not duplicated per element type
 
 Since each of the types `SvgRoot`, `SvgSymbol`, `SvgPattern`, and `SvgMarker` owns its own `viewBox` attribute, each type therefore needed its own `set_view_box`.
-However, CSS `class` is not type-specific: every element this crate wraps derefs down to a plain DOM `Element`.
-`SvgNode` is already the shared handle every other typed wrapper (`SvgRoot`, `SvgMarker`, `SvgPattern`, ...) hands back to callers for general-purpose attribute work (see `set_attr`/`attr`/`remove_attr` on `SvgNode` itself).
-Therefore, we can simply add four class methods to `SvgNode` once and cover every element type this crate produces, with no per-type duplication and no gap for a type added later.
+However, CSS `class` is not type-specific: every element this crate derefs down to a plain DOM `Element`.
 
-Rather than hand-rolling `class` string parsing, four methods wrap `web_sys::Element::class_list()`'s `DomTokenList` (`add_1`, `remove_1`, `toggle`, `contains`):
+`SvgNode` is already the shared handle every other typed wrapper (`SvgRoot`, `SvgMarker`, `SvgPattern`, ...) hands back to callers for general-purpose attribute work (see `set_attr`/`attr`/`remove_attr` on `SvgNode` itself).
+Therefore, we can simply add class methods to `SvgNode` once and cover every element type this crate produces, with no per-type duplication and no gap for a type added later.
+
+Rather than hand-rolling `class` string parsing, five methods wrap `web_sys::Element::class_list()`'s `DomTokenList` (`add_1`, `remove_1`, `toggle`, `toggle_with_force`, `contains`):
 
 - `add_class`
 - `remove_class`
 - `toggle_class`
+- `set_class_enabled`
 - `has_class`
 
 Reimplementing `DomTokenList`'s whitespace-splitting and duplicate-avoidance rules on top of the raw `class` attribute string is entirely redundant because the DOM functionality of a browser already handles these details for `classList` operations.
 
-`has_class`/`contains` is infallible and returns a plain `bool`; the other three return `Result`/`Result<bool, Error>` through the same `dom_err` mapping every other DOM-touching method in `src/node/attrs.rs` uses, since `add_1`/`remove_1`/`toggle` are themselves fallible at the `web_sys` boundary.
+`has_class`/`contains` is infallible and returns a plain `bool`; the other four return `Result`/`Result<bool, Error>` through the same `dom_err` mapping every other DOM-touching method in `src/node/attrs.rs` uses, since `add_1`/`remove_1`/`toggle`/`toggle_with_force` are themselves fallible at the `web_sys` boundary.
+
+`set_class_enabled(class, enabled)` was added after the first four, once it was clear that `toggle_class`'s invert-whatever-is-there semantics is the wrong tool whenever the caller already knows the desired end state (for example, syncing a `"selected"` class to a boolean `is_selected` flag on every render).
+Attempting to compute that with the first four methods required a `has_class` read followed by a conditional `add_class`/`remove_class` call: that is, two avoidable DOM round trips, one of which will be wasted whenever the state already matches.
+
+`DomTokenList::toggle_with_force(token, force)` is the DOM's own two-argument `classList.toggle` overload built for exactly this: it sets membership to unconditionally `force` a new class value.
+The wrapper (`set_class_enabled`) is both simpler at the call site and cheaper than using the `has_class`-then-branch construct.
+It returns `Result<(), Error>` rather than echoing the resulting `bool` back — unlike `toggle_class`, where the caller does not know the outcome in advance, here the caller already supplied `enabled` and asking for it back would be redundant.
 
 The demo (`demo_events_classlist` in `src/demo/events.rs`) deliberately keeps all styling in `style.css`.
 Each tile's `on_click` handler calls only `toggle_class("selected")`, never `set_fill`/`set_attr` on `stroke` directly, and the gold highlight comes purely from a `.tile.selected` CSS rule.

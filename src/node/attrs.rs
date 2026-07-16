@@ -309,6 +309,47 @@ impl SvgNode {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// # Set a CSS class to a known state
+    ///
+    /// Adds `class` if `enabled` is `true`, removes it if `enabled` is `false`, via the DOM `classList.toggle(token,
+    /// force)` overload. Unlike [`toggle_class`](Self::toggle_class), the caller supplies the desired end state
+    /// directly, so the result never depends on whatever state happened to be present beforehand.
+    ///
+    /// Prefer this over a `has_class` check followed by `add_class`/`remove_class` — it is both simpler at the call
+    /// site and uses a single DOM call instead of two.
+    ///
+    /// # Errors
+    ///
+    /// As per the DOM Standard, the underlying `classList.toggle` call throws, and this returns [`Error::Dom`], if
+    /// `class` is:
+    ///
+    /// * empty (`""`)
+    /// * contains ASCII whitespace (for example `"two classes"`)
+    ///
+    /// The `class` attribute is left unchanged when either error occurs.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let rect = svg.rect(Point::origin(), Size::new(100.0, 50.0))?;
+    /// let is_selected = true;
+    ///
+    /// rect.set_class_enabled("selected", is_selected)?;
+    /// assert_eq!(rect.has_class("selected"), is_selected);
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn set_class_enabled(&self, class: &str, enabled: bool) -> Result<(), Error> {
+        self.inner
+            .element
+            .class_list()
+            .toggle_with_force(class, enabled)
+            .map_err(dom_err)?;
+        Ok(())
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// # Test for a CSS class
     ///
     /// Returns `true` if `class` is present in this element's `class` attribute.
