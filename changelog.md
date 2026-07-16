@@ -1,5 +1,12 @@
 # Change Log
 
+## 0.1.58 — 2026-07-16
+- `726bb4a` Implement SvgRoot::set_view_box (2026-07-16)
+- `7c2fecb` Extend tests to cover input domain (2026-07-16)
+- `d94ab77` Minor doc updates (2026-07-16)
+- `bbdc233` Implement SvgMarker::set_view_box() (2026-07-16)
+- `10f08db` Minor doc fix (2026-07-16)
+
 ## 0.1.57 — 2026-07-16
 - `18e7100` Implement 2D affine matrix transform helper (2026-07-16)
 - `d2f64a0` Implement set_matrix_precise to avoid possible artefacts created by fixed-precision rounding (2026-07-16)
