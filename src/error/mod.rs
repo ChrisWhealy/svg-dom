@@ -3,21 +3,21 @@
 ///
 /// Every fallible function in this crate returns `Result<_, Error>`.
 ///
-/// The variants cover ten categories:
+/// The variants cover seven categories, one of which contains six subtypes:
 ///
 /// - you asked for a non-existent element by id ([`Error::ElementNotFound`])
 /// - a `web-sys` call returned a JavaScript error ([`Error::Dom`])
 /// - a JavaScript value couldn't be cast to the expected Rust type ([`Error::CastFailed`])
-/// - Six types of crate-level validation error exist for id strings
+/// - a generic setter was called with an attribute name that has a dedicated typed setter ([`Error::ReservedAttribute`])
+/// - a non-empty [`PathDef`](crate::PathDef) sequence was supplied that did not begin with a `MoveTo` command ([`Error::InvalidPathData`])
+/// - a `viewBox` was supplied with a non-finite component, or a negative width/height ([`Error::InvalidViewBox`])
+/// - Crate-level validation errors for various id strings
 ///   - a bad marker id ([`Error::InvalidMarkerId`])
 ///   - a bad gradient id ([`Error::InvalidGradientId`])
 ///   - a bad clip-path id ([`Error::InvalidClipPathId`])
 ///   - a bad symbol id ([`Error::InvalidSymbolId`])
 ///   - a bad pattern id ([`Error::InvalidPatternId`])
 ///   - a bad filter id ([`Error::InvalidFilterId`])
-/// - a generic setter was called with an attribute name that has a dedicated typed setter ([`Error::ReservedAttribute`])
-/// - a non-empty [`PathDef`](crate::PathDef) sequence was supplied that did not begin with a `MoveTo` command ([`Error::InvalidPathData`])
-/// - a `viewBox` was supplied with a non-finite component, or a negative width/height ([`Error::InvalidViewBox`])
 #[derive(Debug)]
 pub enum Error {
     /// No element with the given id exists in the current document.

@@ -705,6 +705,84 @@ fn should_toggle_class_off_when_present() -> Result<(), String> {
     common::check_eq(rect.has_class("selected"), false)
 }
 
+/// `add_class` rejects an empty token (DOM `SyntaxError`), leaving the `class` attribute unchanged.
+#[wasm_bindgen_test]
+fn should_reject_empty_token_via_add_class() -> Result<(), String> {
+    let rect = make_svg("node-add-class-empty")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    rect.add_class("kept").map_err(|e| e.to_string())?;
+    common::check(rect.add_class("").is_err(), "expected an empty class token to fail")?;
+    common::check_eq(rect.attr("class"), Some("kept".into()))
+}
+
+/// `add_class` rejects a token containing ASCII whitespace (DOM `InvalidCharacterError`), leaving the `class`
+/// attribute unchanged.
+#[wasm_bindgen_test]
+fn should_reject_whitespace_token_via_add_class() -> Result<(), String> {
+    let rect = make_svg("node-add-class-whitespace")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    rect.add_class("kept").map_err(|e| e.to_string())?;
+    common::check(
+        rect.add_class("two classes").is_err(),
+        "expected a whitespace-containing class token to fail",
+    )?;
+    common::check_eq(rect.attr("class"), Some("kept".into()))
+}
+
+/// `remove_class` rejects an empty token (DOM `SyntaxError`), leaving the `class` attribute unchanged.
+#[wasm_bindgen_test]
+fn should_reject_empty_token_via_remove_class() -> Result<(), String> {
+    let rect = make_svg("node-remove-class-empty")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    rect.add_class("kept").map_err(|e| e.to_string())?;
+    common::check(rect.remove_class("").is_err(), "expected an empty class token to fail")?;
+    common::check_eq(rect.attr("class"), Some("kept".into()))
+}
+
+/// `remove_class` rejects a token containing ASCII whitespace (DOM `InvalidCharacterError`), leaving the `class`
+/// attribute unchanged.
+#[wasm_bindgen_test]
+fn should_reject_whitespace_token_via_remove_class() -> Result<(), String> {
+    let rect = make_svg("node-remove-class-whitespace")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    rect.add_class("kept").map_err(|e| e.to_string())?;
+    common::check(
+        rect.remove_class("two classes").is_err(),
+        "expected a whitespace-containing class token to fail",
+    )?;
+    common::check_eq(rect.attr("class"), Some("kept".into()))
+}
+
+/// `toggle_class` rejects an empty token (DOM `SyntaxError`), leaving the `class` attribute unchanged.
+#[wasm_bindgen_test]
+fn should_reject_empty_token_via_toggle_class() -> Result<(), String> {
+    let rect = make_svg("node-toggle-class-empty")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    rect.add_class("kept").map_err(|e| e.to_string())?;
+    common::check(rect.toggle_class("").is_err(), "expected an empty class token to fail")?;
+    common::check_eq(rect.attr("class"), Some("kept".into()))
+}
+
+/// `toggle_class` rejects a token containing ASCII whitespace (DOM `InvalidCharacterError`), leaving the `class`
+/// attribute unchanged.
+#[wasm_bindgen_test]
+fn should_reject_whitespace_token_via_toggle_class() -> Result<(), String> {
+    let rect = make_svg("node-toggle-class-whitespace")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    rect.add_class("kept").map_err(|e| e.to_string())?;
+    common::check(
+        rect.toggle_class("two classes").is_err(),
+        "expected a whitespace-containing class token to fail",
+    )?;
+    common::check_eq(rect.attr("class"), Some("kept".into()))
+}
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Clone semantics
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

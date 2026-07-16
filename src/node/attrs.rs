@@ -220,6 +220,16 @@ impl SvgNode {
     /// Adds `class` to this element's `class` attribute via the DOM `classList` API.
     /// This has no effect if the class is already present.
     ///
+    /// # Errors
+    ///
+    /// Per the DOM Standard, the underlying `classList.add` call throws, and this returns [`Error::Dom`], if `class`
+    /// is:
+    ///
+    /// * empty (`""`)
+    /// * contains ASCII whitespace (for example `"two classes"`)
+    ///
+    /// The `class` attribute is left unchanged when either error occurs.
+    ///
     /// # Example
     ///
     /// ```rust,no_run
@@ -240,6 +250,16 @@ impl SvgNode {
     ///
     /// Removes `class` from this element's `class` attribute via the DOM `classList` API.
     /// This has no effect if the class is not present.
+    ///
+    /// # Errors
+    ///
+    /// Per the DOM Standard, the underlying `classList.remove` call throws, and this returns [`Error::Dom`], if
+    /// `class` is:
+    ///
+    /// * empty (`""`)
+    /// * contains ASCII whitespace (for example `"two classes"`)
+    ///
+    /// The `class` attribute is left unchanged when either error occurs.
     ///
     /// # Example
     ///
@@ -262,6 +282,16 @@ impl SvgNode {
     ///
     /// Adds `class` if it is absent, removes it if it is present, and returns the class's new membership state:
     /// `true` if it is now present, `false` if it is now absent.
+    ///
+    /// # Errors
+    ///
+    /// Per the DOM Standard, the underlying `classList.toggle` call throws, and this returns [`Error::Dom`], if
+    /// `class` is:
+    ///
+    /// * empty (`""`)
+    /// * contains ASCII whitespace (for example `"two classes"`)
+    ///
+    /// The `class` attribute is left unchanged when either error occurs.
     ///
     /// # Example
     ///
