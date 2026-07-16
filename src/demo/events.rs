@@ -923,6 +923,10 @@ pub(super) fn demo_events_classlist() -> Result<(), Error> {
         let peers = tiles.clone();
         let readout = readout.clone();
         tile.on_click(move |_| {
+            // `"selected"` is a fixed, non-empty, whitespace-free literal, so `toggle_class` will never raise either of
+            // its error cases (empty token / token containing ASCII whitespace).  Consequently, ignoring the `Result`
+            // is not by oversight; it is done in the knowledge that under these particular conditions, calling this
+            // otherwise fallible function (`toggle_class`) will never raise an `Err`.
             let _ = click_target.toggle_class("selected");
             let n = peers.iter().filter(|t| t.has_class("selected")).count();
             readout.set_text(&format!("selected: {n} / {}", peers.len()));
