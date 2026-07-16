@@ -44,6 +44,43 @@ pub fn svg(id: &str) -> web_sys::Element {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Non-SVG content fixtures
+//
+// `SvgNode`'s tree-navigation methods (`first_child`, `next_sibling`, `children`, `query_selector`, ...) all document
+// what happens when browser traversal or CSS-selector matching lands on a non-SVG element — the canonical way that
+// happens in a real document is HTML content inside a `<foreignObject>`. These helpers build that fixture with plain
+// `web_sys` calls, since a `<div>` cannot be represented as an `SvgNode` at all.
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// Appends an SVG-namespaced `<foreignObject>` to `target` and returns it.
+///
+/// `<foreignObject>` is itself a genuine SVG element — it casts to `SvgElement` like any other — but it is the only
+/// DOM-valid place for arbitrary HTML content to appear inside an SVG document, so fixtures that need a non-SVG
+/// element build it as (a descendant of) one.
+pub fn foreign_object(target: &web_sys::Element) -> web_sys::Element {
+    let el = document().create_element_ns(Some(SVG_NS), "foreignObject").unwrap();
+    target.append_child(&el).unwrap();
+    el
+}
+
+/// Appends a plain HTML `<div>` (default, non-SVG namespace) to `target` and returns it.
+pub fn html_div(target: &web_sys::Element) -> web_sys::Element {
+    let el = document().create_element("div").unwrap();
+    target.append_child(&el).unwrap();
+    el
+}
+
+/// Appends a bare SVG-namespaced `<rect>` to `target` and returns it.
+///
+/// Used where a fixture needs a genuine `SvgElement`-castable sibling inside a `<foreignObject>` but does not need
+/// the full `svg-dom` rect factory (geometry, styling, ...) — just something that satisfies `dyn_into::<SvgElement>()`.
+pub fn svg_rect(target: &web_sys::Element) -> web_sys::Element {
+    let el = document().create_element_ns(Some(SVG_NS), "rect").unwrap();
+    target.append_child(&el).unwrap();
+    el
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Assertion helpers
 //
 // Both functions return Result<(), String> so callers can propagate with `?` rather than

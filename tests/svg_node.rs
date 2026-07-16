@@ -970,6 +970,126 @@ fn should_return_empty_query_selector_all_when_no_match() -> Result<(), String> 
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Non-SVG content (HTML inside a <foreignObject>)
+//
+// Every method below documents what happens when traversal or selector matching lands on a non-SVG element; these
+// tests build that situation for real with a `<foreignObject>` rather than only asserting it from the doc comments.
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `first_child` returns `None` when the first (and only) child is HTML, rather than reporting the `<foreignObject>`
+/// wrapper's HTML content as if it were an `SvgNode`.
+#[wasm_bindgen_test]
+fn should_return_none_first_child_when_first_child_is_html() -> Result<(), String> {
+    let svg = make_svg("node-first-child-html");
+    let group = svg.group().map_err(|e| e.to_string())?;
+    let fo = common::foreign_object(group.as_element());
+    common::html_div(&fo);
+
+    // The <foreignObject> itself is a genuine SvgElement, so it is reachable as the group's first child...
+    let fo_node = group.first_child().ok_or("expected the <foreignObject> as the group's first child")?;
+    common::check_eq(fo_node.as_element().tag_name(), "foreignObject".to_string())?;
+    // ...but its own first child is the HTML <div>, which is not.
+    common::check(fo_node.first_child().is_none(), "expected None: the foreignObject's first child is HTML")
+}
+
+/// `last_child` returns `None` when the last child is HTML.
+#[wasm_bindgen_test]
+fn should_return_none_last_child_when_last_child_is_html() -> Result<(), String> {
+    let svg = make_svg("node-last-child-html");
+    let group = svg.group().map_err(|e| e.to_string())?;
+    let fo = common::foreign_object(group.as_element());
+    common::svg_rect(&fo);
+    common::html_div(&fo);
+
+    let fo_node = group.first_child().ok_or("expected the <foreignObject> as the group's first child")?;
+    common::check(fo_node.last_child().is_none(), "expected None: the foreignObject's last child is HTML")
+}
+
+/// `next_sibling` returns `None` when the immediately following element is HTML, even though it is not itself the
+/// last child of its parent.
+#[wasm_bindgen_test]
+fn should_return_none_next_sibling_when_next_is_html() -> Result<(), String> {
+    let svg = make_svg("node-next-sibling-html");
+    let group = svg.group().map_err(|e| e.to_string())?;
+    let fo = common::foreign_object(group.as_element());
+    common::svg_rect(&fo); // first child: genuine SVG
+    common::html_div(&fo); // second child: HTML, immediately follows the rect
+
+    let fo_node = group.first_child().ok_or("expected the <foreignObject>")?;
+    let rect_node = fo_node.first_child().ok_or("expected the <rect> as the foreignObject's first child")?;
+    common::check_eq(rect_node.as_element().tag_name(), "rect".to_string())?;
+    common::check(rect_node.next_sibling().is_none(), "expected None: the rect's next sibling is HTML")
+}
+
+/// `previous_sibling` returns `None` when the immediately preceding element is HTML.
+#[wasm_bindgen_test]
+fn should_return_none_previous_sibling_when_previous_is_html() -> Result<(), String> {
+    let svg = make_svg("node-prev-sibling-html");
+    let group = svg.group().map_err(|e| e.to_string())?;
+    let fo = common::foreign_object(group.as_element());
+    common::html_div(&fo); // first child: HTML
+    common::svg_rect(&fo); // second (last) child: genuine SVG, immediately follows the div
+
+    let fo_node = group.first_child().ok_or("expected the <foreignObject>")?;
+    let rect_node = fo_node.last_child().ok_or("expected the <rect> as the foreignObject's last child")?;
+    common::check_eq(rect_node.as_element().tag_name(), "rect".to_string())?;
+    common::check(rect_node.previous_sibling().is_none(), "expected None: the rect's previous sibling is HTML")
+}
+
+/// `children` silently skips HTML children while retaining the document order of the SVG ones.
+#[wasm_bindgen_test]
+fn should_skip_html_children_while_retaining_svg_order() -> Result<(), String> {
+    let svg = make_svg("node-children-html");
+    let group = svg.group().map_err(|e| e.to_string())?;
+    let fo = common::foreign_object(group.as_element());
+
+    let r0 = common::svg_rect(&fo);
+    r0.set_attribute("data-index", "0").map_err(|e| format!("{e:?}"))?;
+    common::html_div(&fo);
+    let r1 = common::svg_rect(&fo);
+    r1.set_attribute("data-index", "1").map_err(|e| format!("{e:?}"))?;
+    common::html_div(&fo);
+
+    let fo_node = group.first_child().ok_or("expected the <foreignObject>")?;
+    let ids: Vec<String> = fo_node.children().iter().map(|c| c.attr("data-index").unwrap_or_default()).collect();
+    common::check_eq(ids, vec!["0".to_string(), "1".to_string()])
+}
+
+/// `query_selector` returns `Ok(None)` when the browser's first document-order match is HTML, even though a later
+/// SVG element also matches the same selector — it does not keep looking for a usable match.
+#[wasm_bindgen_test]
+fn should_return_none_query_selector_when_first_match_is_html() -> Result<(), String> {
+    let svg = make_svg("node-query-selector-html-first");
+    let group = svg.group().map_err(|e| e.to_string())?;
+    let fo = common::foreign_object(group.as_element());
+
+    let div = common::html_div(&fo); // matches, and comes first in document order
+    div.set_attribute("data-role", "target").map_err(|e| format!("{e:?}"))?;
+    let rect = common::svg_rect(&fo); // also matches, but comes second
+    rect.set_attribute("data-role", "target").map_err(|e| format!("{e:?}"))?;
+
+    let result = group.query_selector("[data-role='target']").map_err(|e| e.to_string())?;
+    common::check(result.is_none(), "expected None: the first document-order match is HTML")
+}
+
+/// `query_selector_all` omits HTML matches, returning only the SVG ones.
+#[wasm_bindgen_test]
+fn should_omit_html_matches_from_query_selector_all() -> Result<(), String> {
+    let svg = make_svg("node-query-selector-all-html");
+    let group = svg.group().map_err(|e| e.to_string())?;
+    let fo = common::foreign_object(group.as_element());
+
+    let div = common::html_div(&fo);
+    div.set_attribute("data-role", "target").map_err(|e| format!("{e:?}"))?;
+    let rect = common::svg_rect(&fo);
+    rect.set_attribute("data-role", "target").map_err(|e| format!("{e:?}"))?;
+
+    let matches = group.query_selector_all("[data-role='target']").map_err(|e| e.to_string())?;
+    common::check_eq(matches.len(), 1)?;
+    common::check_eq(matches[0].as_element().tag_name(), "rect".to_string())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Event handlers
 //
 // `EventTarget::dispatch_event` is synchronous: the browser fires the handler inline before `dispatch_event` returns.
