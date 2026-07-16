@@ -2,6 +2,8 @@
 
 ## 0.1.56 — 2026-07-16
 - `4a4c889` Implement missing tree navigation functions (2026-07-16)
+- `a2847ef` Preallocate the collection result vectors for tree navigation (2026-07-16)
+- `7813478` Add tests for the documented non-SVG behaviour (2026-07-16)
 
 ## 0.1.55 — 2026-07-16
 - `db135c4` Implement filter effect colorMatrix (2026-07-15)

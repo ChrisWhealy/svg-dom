@@ -986,10 +986,15 @@ fn should_return_none_first_child_when_first_child_is_html() -> Result<(), Strin
     common::html_div(&fo);
 
     // The <foreignObject> itself is a genuine SvgElement, so it is reachable as the group's first child...
-    let fo_node = group.first_child().ok_or("expected the <foreignObject> as the group's first child")?;
+    let fo_node = group
+        .first_child()
+        .ok_or("expected the <foreignObject> as the group's first child")?;
     common::check_eq(fo_node.as_element().tag_name(), "foreignObject".to_string())?;
     // ...but its own first child is the HTML <div>, which is not.
-    common::check(fo_node.first_child().is_none(), "expected None: the foreignObject's first child is HTML")
+    common::check(
+        fo_node.first_child().is_none(),
+        "expected None: the foreignObject's first child is HTML",
+    )
 }
 
 /// `last_child` returns `None` when the last child is HTML.
@@ -1001,8 +1006,13 @@ fn should_return_none_last_child_when_last_child_is_html() -> Result<(), String>
     common::svg_rect(&fo);
     common::html_div(&fo);
 
-    let fo_node = group.first_child().ok_or("expected the <foreignObject> as the group's first child")?;
-    common::check(fo_node.last_child().is_none(), "expected None: the foreignObject's last child is HTML")
+    let fo_node = group
+        .first_child()
+        .ok_or("expected the <foreignObject> as the group's first child")?;
+    common::check(
+        fo_node.last_child().is_none(),
+        "expected None: the foreignObject's last child is HTML",
+    )
 }
 
 /// `next_sibling` returns `None` when the immediately following element is HTML, even though it is not itself the
@@ -1016,9 +1026,14 @@ fn should_return_none_next_sibling_when_next_is_html() -> Result<(), String> {
     common::html_div(&fo); // second child: HTML, immediately follows the rect
 
     let fo_node = group.first_child().ok_or("expected the <foreignObject>")?;
-    let rect_node = fo_node.first_child().ok_or("expected the <rect> as the foreignObject's first child")?;
+    let rect_node = fo_node
+        .first_child()
+        .ok_or("expected the <rect> as the foreignObject's first child")?;
     common::check_eq(rect_node.as_element().tag_name(), "rect".to_string())?;
-    common::check(rect_node.next_sibling().is_none(), "expected None: the rect's next sibling is HTML")
+    common::check(
+        rect_node.next_sibling().is_none(),
+        "expected None: the rect's next sibling is HTML",
+    )
 }
 
 /// `previous_sibling` returns `None` when the immediately preceding element is HTML.
@@ -1031,9 +1046,14 @@ fn should_return_none_previous_sibling_when_previous_is_html() -> Result<(), Str
     common::svg_rect(&fo); // second (last) child: genuine SVG, immediately follows the div
 
     let fo_node = group.first_child().ok_or("expected the <foreignObject>")?;
-    let rect_node = fo_node.last_child().ok_or("expected the <rect> as the foreignObject's last child")?;
+    let rect_node = fo_node
+        .last_child()
+        .ok_or("expected the <rect> as the foreignObject's last child")?;
     common::check_eq(rect_node.as_element().tag_name(), "rect".to_string())?;
-    common::check(rect_node.previous_sibling().is_none(), "expected None: the rect's previous sibling is HTML")
+    common::check(
+        rect_node.previous_sibling().is_none(),
+        "expected None: the rect's previous sibling is HTML",
+    )
 }
 
 /// `children` silently skips HTML children while retaining the document order of the SVG ones.
@@ -1051,7 +1071,11 @@ fn should_skip_html_children_while_retaining_svg_order() -> Result<(), String> {
     common::html_div(&fo);
 
     let fo_node = group.first_child().ok_or("expected the <foreignObject>")?;
-    let ids: Vec<String> = fo_node.children().iter().map(|c| c.attr("data-index").unwrap_or_default()).collect();
+    let ids: Vec<String> = fo_node
+        .children()
+        .iter()
+        .map(|c| c.attr("data-index").unwrap_or_default())
+        .collect();
     common::check_eq(ids, vec!["0".to_string(), "1".to_string()])
 }
 
