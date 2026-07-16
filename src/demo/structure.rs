@@ -331,7 +331,10 @@ pub(super) fn demo_tree_nav() -> Result<(), Error> {
         Ok(())
     })?;
 
-    let readout = svg.text(Point::new(W / 2.0, 96.0), "click Walk to step through first_child, then next_sibling")?;
+    let readout = svg.text(
+        Point::new(W / 2.0, 96.0),
+        "click Walk to step through first_child, then next_sibling",
+    )?;
     readout.set_fill(TEXT)?;
     readout.set_attrs([("font-size", "13"), ("text-anchor", "middle")])?;
 

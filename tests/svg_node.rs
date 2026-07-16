@@ -885,7 +885,11 @@ fn should_return_all_children_in_order() -> Result<(), String> {
         group.append(&rect).map_err(|e| e.to_string())?;
     }
 
-    let ids: Vec<String> = group.children().iter().map(|c| c.attr("data-index").unwrap_or_default()).collect();
+    let ids: Vec<String> = group
+        .children()
+        .iter()
+        .map(|c| c.attr("data-index").unwrap_or_default())
+        .collect();
     common::check_eq(ids, vec!["0".to_string(), "1".to_string(), "2".to_string()])
 }
 
