@@ -107,7 +107,7 @@ impl std::fmt::Display for Size {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// A 2D affine transform matrix, passed to [`SvgNode::set_matrix`](crate::SvgNode::set_matrix).
+/// A 2D affine transform matrix, passed to [`SvgNode::set_matrix`] or [`SvgNode::set_matrix_precise`].
 ///
 /// Field names describe each component's geometric role rather than its position in the SVG `matrix(a, b, c, d, e,
 /// f)` transform function, applied to a point as:

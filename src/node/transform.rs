@@ -128,13 +128,21 @@ impl SvgNode {
     ///
     /// # ⚠️ Caveat ⚠️
     ///
-    /// This fixed precision is harmless for the transforms the *other* named helpers in this crate already produce
-    /// (whose values are always small, hand-authored numbers), but there is a real, lossy quantisation for an arbitrary
-    /// affine matrix, which can have very different numerical characteristics:
+    /// The other named transform helpers ([`set_translate`](Self::set_translate), [`set_rotate`](Self::set_rotate),
+    /// [`set_scale`](Self::set_scale), ...) each use a fixed precision appropriate for common interactive updates,
+    /// which must be understood to be a sensible default, not a guarantee.
+    ///
+    /// A caller who genuinely needs different precision should use [`set_transform_fmt`](Self::set_transform_fmt).
+    ///
+    /// A matrix's linear coefficients need extra care beyond that, because they have a failure mode the other helpers
+    /// structurally cannot avoid: their rounding error is multiplied by whatever coordinate the matrix uses for
+    /// transforms.  So the error scales with the geometry rather than staying fixed the way a rounded translation or
+    /// rotation angle does:
     ///
     /// - When the rounding threshold is set to 3dp, a rotation's sine term rounds to `0.000` below about `0.0286°`
     ///   (`sin(0.0286°) ≈ 0.0005`), so this rounding error can cause a very slow matrix-driven rotation to visibly
     ///   stick and then jump, rather than moving smoothly.
+    ///
     /// - Each linear coefficient's rounding error (up to `0.0005`) is applied to whatever coordinate the matrix acts
     ///   upon, so at large coordinates the resulting positional error grows with them.  For example at `x = y =
     ///   10_000`, the error can exceed 10 user units.

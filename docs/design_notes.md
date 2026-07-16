@@ -134,12 +134,11 @@ This mirrors each field's *role* rather than treating the six numbers as a singl
 
 ### `set_matrix_precise` exists in addition to `set_matrix` due to the possibility of introducing visible quantisation artefacts
 
-`set_matrix`'s fixed three/one decimal places are harmless for every transform this crate's *other* named helpers can produce — their inputs are always small, hand-authored numbers (a rotation angle, a pixel offset, a scale factor), where a rounding of few thousandths make no visible difference.
+The named transform helpers each deliberately use a fixed precision appropriate for common interactive SVG updates: `set_translate` to `0.1` user unit, `set_rotate`/`set_rotate_about` to `0.1` degree, `set_scale`/`set_scale_xy` to `0.001`.
+These are sensible defaults, not a guarantee that no caller can ever notice the rounding — a slowly animated rotation, for instance, can visibly stay put across several frames until it crosses the next tenth-of-a-degree boundary.
+A caller who genuinely needs different precision for a translation, rotation, or scale has [`set_transform_fmt`](crate::SvgNode::set_transform_fmt) as the escape hatch, the same way it covers any other shape these named helpers don't.
 
-An arbitrary affine matrix is a different case however.
-`set_matrix` exists specifically to accept values this crate did not compute itself: coefficients from a `DOMMatrix`, another library, or a coordinate-space conversion, where the resulting matrix is intended to become the element's local transform — or values driving an animation.
-
-For such values as these, a fixed-precision rounding can introduce a genuine, measurable loss rather than a cosmetic one.
+`set_matrix` needs its own, more detailed treatment here rather than folding into that same "it's a sensible default" note, because an arbitrary affine matrix has a failure mode the other helpers structurally cannot: rounding errors in the linear coefficients (`h_scale`, `v_scale`, `h_skew`, `v_skew` — the SVG matrix's `a`, `b`, `c`, `d`) are multiplied by whatever coordinate the matrix transforms, so their effect scales with the geometry rather than staying fixed the way a rounded translation or rotation angle does.
 For example:
 
 - A rotation's sine term rounds to `0.000` below about `0.0286°` (`sin(0.0286°) ≈ 0.0005`, the rounding threshold at three decimal places). A `0.01°` rotation, for example, serialises as the exact identity matrix — the rotation does not just lose precision, it disappears completely. A slow matrix-driven rotation animation can therefore visibly stick at each frame's rounded value and then jump, rather than moving smoothly.
