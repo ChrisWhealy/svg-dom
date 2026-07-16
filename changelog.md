@@ -6,6 +6,7 @@
 - `151d73d` Document CSS class errors and broaden tests (2026-07-16)
 - `951b82c` Implement set_class_enabled wrapper around websys::toggle_with_force (2026-07-16)
 - `4f97681` Explain why a test ignores the result of a fallible function (2026-07-16)
+- `066c640` Clean up stale doc comments (2026-07-16)
 
 ## 0.1.58 — 2026-07-16
 - `726bb4a` Implement SvgRoot::set_view_box (2026-07-16)
