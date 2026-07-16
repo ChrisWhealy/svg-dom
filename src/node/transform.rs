@@ -189,9 +189,18 @@ impl SvgNode {
     ///
     /// See `set_matrix`'s own doc comment for the specific failure modes this avoids.
     ///
-    /// On a hot path however, prefer `set_matrix` instead where the matrix came from this crate's own transform
-    /// composition: its fixed-width output is typically shorter, and a handful of thousandths of a user unit make no
-    /// visible difference for hand-authored values.
+    /// Prefer `set_matrix` when its quantisation is acceptable (typically hand-authored values, a rotation angle, a
+    /// pixel offset, or a scale factor where a difference of a few thousandths is insignificant) and limiting
+    /// coefficient precision is itself desirable; for example, to keep the attribute value short and easy to read in
+    /// devtools.
+    ///
+    /// This is not the same as a general size advantage: `set_matrix_precise` can produce the *shorter* string for
+    /// round-number coefficients, since `set_matrix` always writes three or one decimal places even for `0` — an
+    /// identity matrix is `matrix(1, 0, 0, 1, 0, 0)` via `set_matrix_precise` but
+    /// `matrix(1.000, 0.000, 0.000, 1.000, 0.0, 0.0)` via `set_matrix`.
+    ///
+    /// Choose based on whether the original `f64` values need to survive serialisation exactly, not on an assumption
+    /// about which output is shorter.
     ///
     /// # Example
     ///
