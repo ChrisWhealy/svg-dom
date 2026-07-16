@@ -95,6 +95,7 @@ pub fn run_demo() -> Result<(), JsValue> {
     structure::demo_group().map_err(e)?;
     structure::demo_anim().map_err(e)?;
     structure::demo_marker().map_err(e)?;
+    structure::demo_marker_view_box().map_err(e)?;
     structure::demo_use().map_err(e)?;
     structure::demo_image().map_err(e)?;
     structure::demo_symbol().map_err(e)?;
@@ -158,6 +159,7 @@ const DEMO_SOURCES: &[(&str, &str)] = &[
     ("panel-group", "demo_group"),
     ("panel-anim", "demo_anim"),
     ("panel-marker", "demo_marker"),
+    ("panel-marker-view-box", "demo_marker_view_box"),
     ("panel-use", "demo_use"),
     ("panel-image", "demo_image"),
     ("panel-symbol", "demo_symbol"),

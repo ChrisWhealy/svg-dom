@@ -624,8 +624,8 @@ The new method is a direct copy of that existing shape, not a new design: same f
 `viewBox` and `set_viewport`'s cached `width`/`height` are independent and do not need to agree on scale: `width`/`height` size the `<svg>` element in the surrounding page, while `viewBox` maps that rendered area onto an internal coordinate system within which child elements are positioned.
 Setting one does not read, invalidate, or need to touch the other, so `set_view_box` needed no interaction with the `viewport: Cell<Size>` field at all — it is a plain, uncached attribute write, exactly like `SvgSymbol`'s and `SvgPattern`'s.
 
-`SvgMarker` is the one remaining SVG element in this crate's coverage with a `viewBox` attribute and no dedicated setter (`<marker>`'s own doc comment already lists it under its generic `set_attr` escape hatch).
-It was left alone here rather than opportunistically added, since it was not the gap this round of work was scoped to close, and `SvgMarker`'s own attribute grammar (`markerWidth`/`markerHeight`/`refX`/`refY`) already covers the common case of scaling and positioning a marker without needing an internal coordinate system.
+`SvgMarker` was, at this point, the one remaining SVG element in this crate's coverage with a `viewBox` attribute and no dedicated setter, deliberately left alone in this round rather than opportunistically added, since it was not the gap this round of work was scoped to close.
+It got the same `set_view_box(x, y, width, height)` method in a later round, once asked for directly — the same shape again, the same shared `validate_view_box` call at the top (see below), and no new design decisions: `<marker>`'s own `refX`/`refY`/`markerWidth`/`markerHeight` already covers positioning and sizing the marker itself, so `viewBox` there plays the same "define an internal coordinate system, independent of the outer viewport's own units" role it plays for `<symbol>`/`<use>`, not a new relationship this crate had to design from scratch.
 
 ### `set_view_box` validates its four components before writing, and the validator is shared across all three setters
 
@@ -635,9 +635,9 @@ An `f64` can hold values that SVG's own `viewBox` grammar does not accept, for e
 
 Before this, `set_view_box(0.0, 0.0, -100.0, 100.0)` or `set_view_box(f64::NAN, 0.0, 100.0, 100.0)` both silently wrote a `viewBox` string the browser would then reject or misbehave on, with no signal back to the caller that anything was wrong — exactly the class of problem `Error::InvalidMarkerId` and its five siblings already exist to catch for id strings, just not yet extended to this attribute.
 
-The fix is a single `pub(crate) fn validate_view_box` in `src/root/utils/mod.rs`, called as the first line of all three `set_view_box` methods, returning the new `Error::InvalidViewBox(&'static str)` variant before anything is written.
+The fix is a single `pub(crate) fn validate_view_box` in `src/root/utils/mod.rs`, called as the first line of every `set_view_box` method (`SvgRoot`, `SvgSymbol`, `SvgPattern`, and — added in a later round — `SvgMarker`), returning the new `Error::InvalidViewBox(&'static str)` variant before anything is written.
 
-A shared function, rather than three copies, matters here for the same reason `is_valid_svg_id` (see `_ref` setters below) is one function instead of six: multiple instances of the same functionality opens the door to future implementation inconsistecy or drift.
+A shared function, rather than one copy per type, matters here for the same reason `is_valid_svg_id` (see `_ref` setters below) is one function instead of six: multiple instances of the same functionality opens the door to future implementation inconsistecy or drift — a concern the fourth call site (`SvgMarker`) already validates in practice, since it needed zero new validation logic of its own, only the same one-line call the other three already had.
 
 `x`/`y` are checked for numeracy and finiteness, not sign — an SVG viewBox origin is routinely negative (panning into negative coordinate space is normal usage, and one of `SvgRoot::set_view_box`'s own tests exercises exactly that).
 Only `width`/`height` are additionally checked for sign.

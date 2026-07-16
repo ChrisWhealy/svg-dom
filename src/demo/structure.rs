@@ -272,6 +272,75 @@ pub(super) fn demo_marker() -> Result<(), Error> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// SvgMarker::set_view_box — same authored triangle, two different viewBox windows onto it
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+pub(super) fn demo_marker_view_box() -> Result<(), Error> {
+    let svg = SvgRoot::create_in("demo-marker-view-box", Size::new(W, H))?;
+
+    let defs = svg.defs()?;
+
+    // Both markers render the *same* polygon — a triangle from (0,0) to (100,35) to (0,70) — through the same
+    // markerWidth/markerHeight (24x16.8, matching the triangle's own 10:7 aspect ratio so neither viewBox below
+    // needs any preserveAspectRatio letterboxing). Only the viewBox each one applies to that shared polygon
+    // differs, and that alone is enough to make them look quite different.
+    let triangle = [Point::new(0.0, 0.0), Point::new(100.0, 35.0), Point::new(0.0, 70.0)];
+
+    // Marker A: viewBox covers the polygon's full 100x70 extent, so the whole sharp-pointed triangle is visible.
+    let full = defs.build_marker("arrow-full", |m| {
+        m.set_ref_x(100.0)?;
+        m.set_ref_y(35.0)?;
+        m.set_marker_width(24.0)?;
+        m.set_marker_height(16.8)?;
+        m.set_view_box(0.0, 0.0, 100.0, 70.0)?;
+        m.set_orient("auto")?;
+        m.polygon(&triangle)?.set_fill(ACCENT_BLUE)?;
+        Ok(())
+    })?;
+
+    // Marker B: viewBox covers only the polygon's top-left 50x35 quarter — half the width and half the height, so
+    // the content is magnified 2x, and the triangle's pointed tip (which lives outside x:50-100) is clipped away
+    // entirely. What is left is a blunt, roughly trapezoidal wedge: a visibly different shape, at a visibly
+    // different scale, from the same polygon data.
+    let cropped = defs.build_marker("arrow-cropped", |m| {
+        m.set_ref_x(50.0)?;
+        m.set_ref_y(26.0)?;
+        m.set_marker_width(24.0)?;
+        m.set_marker_height(16.8)?;
+        m.set_view_box(0.0, 0.0, 50.0, 35.0)?;
+        m.set_orient("auto")?;
+        m.polygon(&triangle)?.set_fill(DARK_ORANGE)?;
+        Ok(())
+    })?;
+
+    let label = |cx: f64, y: f64, text: &str| -> Result<(), Error> {
+        let t = svg.text(Point::new(cx, y), text)?;
+        t.set_fill(TEXT)?;
+        t.set_attrs([("font-size", "13"), ("text-anchor", "end")])?;
+        Ok(())
+    };
+
+    let l1 = svg.line(Point::new(140.0, PAD_Y + 35.0), Point::new(650.0, PAD_Y + 35.0))?;
+    l1.set_stroke(ACCENT_BLUE)?;
+    l1.set_stroke_width(2.0)?;
+    l1.set_marker_end_ref(&full)?;
+    label(120.0, PAD_Y + 39.0, "full shape")?;
+
+    let l2 = svg.line(Point::new(140.0, PAD_Y + 95.0), Point::new(650.0, PAD_Y + 95.0))?;
+    l2.set_stroke(DARK_ORANGE)?;
+    l2.set_stroke_width(2.0)?;
+    l2.set_marker_end_ref(&cropped)?;
+    label(120.0, PAD_Y + 99.0, "zoomed 2×")?;
+
+    caption(
+        &svg,
+        W / 2.0,
+        "the same figure, two different set_view_box windows: a half-size viewBox both magnifies 2× and clips the tip off",
+    )?;
+
+    Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // use — stamp copies of a <defs> shape
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 pub(super) fn demo_use() -> Result<(), Error> {

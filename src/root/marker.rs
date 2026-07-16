@@ -202,9 +202,44 @@ impl SvgMarker {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the `viewBox` attribute, establishing an internal coordinate system for the marker's content.
+    ///
+    /// When present, the marker's `(x, y, width, height)` internal region is mapped onto the `markerWidth` /
+    /// `markerHeight` viewport (see [`set_marker_width`](Self::set_marker_width) /
+    /// [`set_marker_height`](Self::set_marker_height)), scaled according to `preserveAspectRatio` and set via
+    /// [`set_attr`](Self::set_attr), since `<marker>` has no dedicated `preserveAspectRatio` setter in this crate.
+    ///
+    /// If no `viewBox` is set, marker content is positioned directly in `markerWidth`/`markerHeight` units with no
+    /// scaling, the same relationship [`SvgSymbol`](crate::SvgSymbol)'s `viewBox` has to its `<use>` viewport.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::InvalidViewBox`] if any component is not finite (`NaN`/`±infinity`), or if either `width` or
+    /// `height` is negative. A `width`/`height` of exactly `0.0` is accepted; as per the SVG spec, this is not an
+    /// error, rather it is a trick to disable rendering.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::SvgRoot;
+    /// let svg = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    /// let marker = defs.marker("arrow")?;
+    /// // A 10x10 internal space, independent of markerWidth/markerHeight's own units.
+    /// marker.set_view_box(0.0, 0.0, 10.0, 10.0)?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn set_view_box(&self, x: f64, y: f64, width: f64, height: f64) -> Result<(), Error> {
+        super::utils::validate_view_box(x, y, width, height)?;
+        self.attrs
+            .borrow_mut()
+            .display_element(&self.element, "viewBox", format_args!("{x} {y} {width} {height}"))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets any attribute on the `<marker>` element by name and string value.
     ///
-    /// This is the generic escape hatch for attributes not covered by the named setters above (e.g. `viewBox`,
+    /// This is the generic escape hatch for attributes not covered by the named setters above (e.g.
     /// `preserveAspectRatio`, `overflow`, `class`, `style`).
     /// Name and value are written verbatim; do not pass untrusted input.
     ///

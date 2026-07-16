@@ -25,6 +25,7 @@
             <button type="button" class="menu-item" data-target="panel-group">group</button>
             <button type="button" class="menu-item" data-target="panel-anim">AnimationLoop</button>
             <button type="button" class="menu-item" data-target="panel-marker">defs / marker</button>
+            <button type="button" class="menu-item" data-target="panel-marker-view-box">marker set_view_box</button>
             <button type="button" class="menu-item" data-target="panel-use">use</button>
             <button type="button" class="menu-item" data-target="panel-image">image</button>
             <button type="button" class="menu-item" data-target="panel-symbol">symbol</button>
@@ -197,6 +198,25 @@
                         An arrowhead <code>&lt;marker&gt;</code> defined once inside <code>&lt;defs&gt;</code> and
                         referenced by three lines using <strong>set_marker_end_ref</strong>.
                         <code>orient="auto"</code> rotates the arrowhead to track each path's tangent.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- SvgMarker::set_view_box -->
+            <section class="section" id="panel-marker-view-box">
+                <h2><code>SvgMarker::set_view_box</code> — a viewBox window onto the same shape</h2>
+                <figure>
+                    <div class="canvas" id="demo-marker-view-box"></div>
+                    <figcaption>
+                        Two markers rendering the exact same triangle polygon (0,0)&ndash;(100,35)&ndash;(0,70),
+                        through the same 24&times;16.8 <strong>markerWidth</strong> / <strong>markerHeight</strong>.
+                        <br><br>
+                        <strong>Top:</strong> <strong>set_view_box(0, 0, 100, 70)</strong> covers the polygon's full
+                        extent — the whole sharp-pointed triangle is visible.<br>
+                        <strong>Bottom:</strong> <strong>set_view_box(0, 0, 50, 35)</strong> covers only its
+                        top-left quarter — half the width and height, so the content is magnified 2&times; and the
+                        pointed tip (outside that window) is clipped off entirely, leaving a visibly different,
+                        blunt wedge shape.
                     </figcaption>
                 </figure>
             </section>
