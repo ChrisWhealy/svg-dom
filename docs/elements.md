@@ -70,7 +70,7 @@ The legacy `mouseover` / `mouseout` wrappers remain available for compatibility 
 - Transform helpers — `set_translate`, `set_rotate`, `set_rotate_about`, `set_scale`, `set_scale_xy`, `set_translate_scale`, `set_matrix`/`set_matrix_precise` (2D affine matrix via a role-named `Matrix2D { h_scale, v_scale, h_skew, v_skew, h_trans, v_trans }`, for skew/shear or any transform not expressible via the named helpers above — `set_matrix` is quantised to 3/1 decimal places for compact hot-path output, `set_matrix_precise` uses exact shortest-round-trip formatting for matrices computed elsewhere), and `set_transform_fmt` for anything else (all reuse a caller-owned scratch buffer)
 - Updating `<text>` content after creation — `set_text`, plus the buffer-reusing `set_text_fmt` / `set_text_display`
 - Allocation-light numeric attribute writes — `set_attr_display`, and the redundant-write helpers `set_attr_if_changed` / `CachedAttr`
-- `SvgRoot::set_view_box(x, y, width, height)` — the root `<svg>`'s internal coordinate system, independent of `set_viewport`'s `width`/`height`. `SvgSymbol`/`SvgPattern` have the same method for their own `viewBox`; see [`<symbol>`](#symbol) and [`<pattern>`](#pattern) below.
+- `SvgRoot::set_view_box(x, y, width, height)` — the root `<svg>`'s internal coordinate system, independent of `set_viewport`'s `width`/`height`. `SvgSymbol`, `SvgPattern`, and `SvgMarker` have the same method for their own `viewBox`; see [`<symbol>`](#symbol), [`<pattern>`](#pattern), and [`<marker>`](#marker) below.
 
 ---
 
