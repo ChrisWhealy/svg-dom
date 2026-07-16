@@ -126,12 +126,56 @@ fn should_reject_invalid_view_box() -> Result<(), String> {
         "expected InvalidViewBox for a NaN component",
     )?;
     check(
+        matches!(sym.set_view_box(0.0, 0.0, f64::INFINITY, 100.0), Err(Error::InvalidViewBox(_))),
+        "expected InvalidViewBox for a +infinity component",
+    )?;
+    check(
         matches!(
-            sym.set_view_box(0.0, 0.0, f64::INFINITY, 100.0),
+            sym.set_view_box(0.0, 0.0, f64::NEG_INFINITY, 100.0),
             Err(Error::InvalidViewBox(_))
         ),
-        "expected InvalidViewBox for an infinite component",
+        "expected InvalidViewBox for a -infinity component",
     )
+}
+
+/// `set_view_box` writes fractional components verbatim, not just whole numbers.
+#[wasm_bindgen_test]
+fn should_write_fractional_view_box_values() -> Result<(), String> {
+    let svg = make_svg("sym-viewbox-fractional");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let sym = defs.symbol("vb-fractional").map_err(|e| e.to_string())?;
+    sym.set_view_box(-3.25, 12.5, 100.75, 50.125).map_err(|e| e.to_string())?;
+    check_eq(
+        sym.as_element().get_attribute("viewBox"),
+        Some("-3.25 12.5 100.75 50.125".into()),
+    )
+}
+
+/// `set_view_box` accepts `width` or `height` of exactly `0.0` alone, with the other dimension non-zero.
+#[wasm_bindgen_test]
+fn should_accept_zero_width_or_height_alone() -> Result<(), String> {
+    let svg = make_svg("sym-viewbox-zero-alone");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let sym = defs.symbol("vb-zero-alone").map_err(|e| e.to_string())?;
+    sym.set_view_box(0.0, 0.0, 0.0, 100.0).map_err(|e| e.to_string())?;
+    check_eq(sym.as_element().get_attribute("viewBox"), Some("0 0 0 100".into()))?;
+    sym.set_view_box(0.0, 0.0, 100.0, 0.0).map_err(|e| e.to_string())?;
+    check_eq(sym.as_element().get_attribute("viewBox"), Some("0 0 100 0".into()))
+}
+
+/// Validation happens before anything is written: a `set_view_box` call that fails leaves a previously-set
+/// `viewBox` completely untouched.
+#[wasm_bindgen_test]
+fn should_preserve_previous_view_box_after_failed_validation() -> Result<(), String> {
+    let svg = make_svg("sym-viewbox-preserve");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let sym = defs.symbol("vb-preserve").map_err(|e| e.to_string())?;
+    sym.set_view_box(1.0, 2.0, 300.0, 400.0).map_err(|e| e.to_string())?;
+    check(
+        matches!(sym.set_view_box(0.0, 0.0, -100.0, 100.0), Err(Error::InvalidViewBox(_))),
+        "expected the second, invalid call to fail",
+    )?;
+    check_eq(sym.as_element().get_attribute("viewBox"), Some("1 2 300 400".into()))
 }
 
 /// `set_preserve_aspect_ratio` writes the attribute verbatim.

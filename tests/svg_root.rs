@@ -273,15 +273,22 @@ fn should_reject_nan_view_box_component() -> Result<(), String> {
     )
 }
 
-/// `set_view_box` rejects `+infinity`/`-infinity` in any component with `Error::InvalidViewBox`.
+/// `set_view_box` rejects `+infinity` and `-infinity` (checked independently) in any component with
+/// `Error::InvalidViewBox`.
 #[wasm_bindgen_test]
 fn should_reject_infinite_view_box_component() -> Result<(), String> {
     common::div("set-view-box-inf");
     let svg = SvgRoot::create_in("set-view-box-inf", Size::new(800.0, 600.0)).map_err(|e| e.to_string())?;
-    let result = svg.set_view_box(0.0, 0.0, f64::INFINITY, 100.0);
     common::check(
-        matches!(result, Err(Error::InvalidViewBox(_))),
-        "expected InvalidViewBox for an infinite component",
+        matches!(svg.set_view_box(0.0, 0.0, f64::INFINITY, 100.0), Err(Error::InvalidViewBox(_))),
+        "expected InvalidViewBox for a +infinity component",
+    )?;
+    common::check(
+        matches!(
+            svg.set_view_box(0.0, 0.0, f64::NEG_INFINITY, 100.0),
+            Err(Error::InvalidViewBox(_))
+        ),
+        "expected InvalidViewBox for a -infinity component",
     )
 }
 
@@ -294,6 +301,54 @@ fn should_accept_negative_view_box_origin() -> Result<(), String> {
         svg.set_view_box(-50.0, -50.0, 100.0, 100.0).is_ok(),
         "expected a negative x/y origin to be accepted",
     )
+}
+
+/// `set_view_box` writes fractional components verbatim, not just whole numbers.
+#[wasm_bindgen_test]
+fn should_write_fractional_view_box_values() -> Result<(), String> {
+    common::div("set-view-box-fractional");
+    let svg = SvgRoot::create_in("set-view-box-fractional", Size::new(800.0, 600.0)).map_err(|e| e.to_string())?;
+    svg.set_view_box(-3.25, 12.5, 100.75, 50.125).map_err(|e| e.to_string())?;
+    let el = svg_element("set-view-box-fractional");
+    common::check_eq(el.get_attribute("viewBox"), Some("-3.25 12.5 100.75 50.125".into()))
+}
+
+/// `set_view_box` accepts `width` of exactly `0.0` on its own, with a non-zero `height`.
+#[wasm_bindgen_test]
+fn should_accept_zero_width_alone() -> Result<(), String> {
+    common::div("set-view-box-zero-width");
+    let svg = SvgRoot::create_in("set-view-box-zero-width", Size::new(800.0, 600.0)).map_err(|e| e.to_string())?;
+    svg.set_view_box(0.0, 0.0, 0.0, 100.0).map_err(|e| e.to_string())?;
+    let el = svg_element("set-view-box-zero-width");
+    common::check_eq(el.get_attribute("viewBox"), Some("0 0 0 100".into()))
+}
+
+/// `set_view_box` accepts `height` of exactly `0.0` on its own, with a non-zero `width`.
+#[wasm_bindgen_test]
+fn should_accept_zero_height_alone() -> Result<(), String> {
+    common::div("set-view-box-zero-height");
+    let svg = SvgRoot::create_in("set-view-box-zero-height", Size::new(800.0, 600.0)).map_err(|e| e.to_string())?;
+    svg.set_view_box(0.0, 0.0, 100.0, 0.0).map_err(|e| e.to_string())?;
+    let el = svg_element("set-view-box-zero-height");
+    common::check_eq(el.get_attribute("viewBox"), Some("0 0 100 0".into()))
+}
+
+/// Validation happens before anything is written: a `set_view_box` call that fails leaves a previously-set
+/// `viewBox` completely untouched, rather than partially overwriting or clearing it.
+#[wasm_bindgen_test]
+fn should_preserve_previous_view_box_after_failed_validation() -> Result<(), String> {
+    common::div("set-view-box-preserve");
+    let svg = SvgRoot::create_in("set-view-box-preserve", Size::new(800.0, 600.0)).map_err(|e| e.to_string())?;
+    svg.set_view_box(1.0, 2.0, 300.0, 400.0).map_err(|e| e.to_string())?;
+
+    let result = svg.set_view_box(0.0, 0.0, -100.0, 100.0);
+    common::check(
+        matches!(result, Err(Error::InvalidViewBox(_))),
+        "expected the second, invalid call to fail",
+    )?;
+
+    let el = svg_element("set-view-box-preserve");
+    common::check_eq(el.get_attribute("viewBox"), Some("1 2 300 400".into()))
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
