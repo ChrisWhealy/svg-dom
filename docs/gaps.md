@@ -7,13 +7,6 @@ These gaps will be filled in time, but for now, this crate must be treated as a 
 
 ## Missing SVG elements
 
-`<filter>` itself and seven effect primitives (`<feGaussianBlur>`, `<feOffset>`, `<feMerge>`/`<feMergeNode>`, `<feFlood>`, `<feComposite>`, `<feDropShadow>`, `<feColorMatrix>`) are implemented — see [Supported SVG Elements](elements.md#filter).
-
-The first six together are enough for a *true* tinted, opacity-controlled drop shadow.
-Here, you could manually construct the chain `feGaussianBlur` → `feFlood` → `feComposite` → `feOffset` → `feMerge`, or simply pass all the relevent parameters to `feDropShadow`.
-
-`feColorMatrix` is independent of the shadow primitives: it offersgreyscale, saturation, hue rotation, or an arbitrary linear colour transform.
-
 The following filter effect primitives still need to be implemented:
 
 | Missing Primitive | Why it matters
@@ -22,7 +15,7 @@ The following filter effect primitives still need to be implemented:
 
 Each individual primitive's own `in`/`result` attributes, and any primitive-specific attribute not yet wrapped by a named parameter, remain reachable only via `SvgNode::set_attr` on the node the primitive method returns.
 
-See `docs/design_notes.md`, "`<filter>` primitives return a plain `SvgNode`", for why a typed per-primitive wrapper was deferred rather than built now.
+See [`design_notes.md`](design_notes.md#filter-primitives-return-a-plain-svgnode), "`<filter>` primitives return a plain `SvgNode`", for why a typed per-primitive wrapper was deferred rather than built now.
 
 # Missing Attribute helpers
 
