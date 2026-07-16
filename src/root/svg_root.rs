@@ -235,7 +235,7 @@ impl SvgRoot {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use svg_dom::{SvgRoot, root::utils::Size};
+    /// use svg_dom::SvgRoot;
     /// let svg = SvgRoot::attach("diagram")?;
     /// // Draw in a fixed 1000x1000 coordinate system, whatever pixel size the <svg> itself renders at.
     /// svg.set_view_box(0.0, 0.0, 1000.0, 1000.0)?;
