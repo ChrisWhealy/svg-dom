@@ -234,9 +234,9 @@ impl SvgNode {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// # Arbitrary transform via `format_args!`
     ///
-    /// Lower-level escape hatch for transform shapes the typed helpers above do not cover (skews, matrices, or several
-    /// chained operations). It still formats, but writes into the reused `scratch` buffer rather than allocating a fresh
-    /// `String` the way `format!` would.
+    /// Lower-level escape hatch for transform shapes that the typed helpers above cannot cover (e.g. skews, or matrices
+    /// requiring custom precision, or several chained operations). It still formats, but writes into the reused
+    /// `scratch` buffer rather than allocating a fresh `String` the way `format!` would.
     ///
     /// # Example
     ///
