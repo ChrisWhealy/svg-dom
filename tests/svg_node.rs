@@ -446,9 +446,16 @@ fn should_write_translate_scale_transform() -> Result<(), String> {
     common::check_eq(node.attr("transform"), Some("translate(12.0, 34.0) scale(2.000)".into()))
 }
 
-/// `set_matrix` writes a `matrix(a, b, c, d, e, f)` transform from `Matrix2D`'s named fields (mapped to the SVG
-/// function's own `a, b, c, d, e, f` order), with the linear part at three decimal places and the translation part
-/// at one, matching `set_scale`'s and `set_translate`'s precision respectively.
+/// `set_matrix` writes a `matrix(a, b, c, d, e, f)` transform from `Matrix2D`'s named fields, mapped to the SVG
+/// function's own `a, b, c, d, e, f` order (`h_scale`→`a`, `v_skew`→`b`, `h_skew`→`c`, `v_scale`→`d`, `h_trans`→`e`,
+/// `v_trans`→`f`), with the linear part at three decimal places and the translation part at one, matching
+/// `set_scale`'s and `set_translate`'s precision respectively.
+///
+/// All six fields are given distinct values (including a negative one) specifically so that any two fields being
+/// swapped — `h_scale`/`v_scale`, or `h_skew`/`v_skew`, the two pairs most likely to be transposed by mistake since
+/// each pair shares a magnitude in the common case of a plain rotation — would produce a different, wrong output
+/// rather than silently passing. A fixture using `1.0`/`0.0`-heavy values (as an earlier version of this test did)
+/// cannot tell such a swap apart from a correct mapping.
 #[wasm_bindgen_test]
 fn should_write_matrix_transform() -> Result<(), String> {
     let node = make_svg("node-set-matrix").group().map_err(|e| e.to_string())?;
@@ -456,18 +463,46 @@ fn should_write_matrix_transform() -> Result<(), String> {
     node.set_matrix(
         &mut buf,
         Matrix2D {
-            h_scale: 1.0,
-            v_scale: 1.0,
-            h_skew: 0.3,
-            v_skew: 0.0,
-            h_trans: 12.0,
-            v_trans: 34.0,
+            h_scale: 1.1,
+            v_scale: 2.2,
+            h_skew: 3.3,
+            v_skew: 4.4,
+            h_trans: 5.5,
+            v_trans: -6.6,
         },
     )
     .map_err(|e| e.to_string())?;
     common::check_eq(
         node.attr("transform"),
-        Some("matrix(1.000, 0.000, 0.300, 1.000, 12.0, 34.0)".into()),
+        Some("matrix(1.100, 4.400, 3.300, 2.200, 5.5, -6.6)".into()),
+    )
+}
+
+/// `set_matrix` on a genuine rotation matrix — `h_scale`/`v_scale` both `cos(θ)`, `v_skew` = `+sin(θ)`, `h_skew` =
+/// `-sin(θ)` — checks the mapping [`should_write_matrix_transform`] cannot: swapping `v_skew` and `h_skew` (or
+/// dropping either sign) is invisible to a fixture built from six arbitrary distinct numbers, since nothing there
+/// constrains two fields to be exact negatives of one another. A real rotation does, and is also the shape every
+/// realistic caller of `set_matrix` actually produces.
+#[wasm_bindgen_test]
+fn should_write_matrix_transform_for_a_rotation() -> Result<(), String> {
+    let node = make_svg("node-set-matrix-rotation").group().map_err(|e| e.to_string())?;
+    let mut buf = String::new();
+    let angle: f64 = 30.0_f64.to_radians();
+    node.set_matrix(
+        &mut buf,
+        Matrix2D {
+            h_scale: angle.cos(),
+            v_skew: angle.sin(),
+            h_skew: -angle.sin(),
+            v_scale: angle.cos(),
+            h_trans: 10.0,
+            v_trans: 20.0,
+        },
+    )
+    .map_err(|e| e.to_string())?;
+    common::check_eq(
+        node.attr("transform"),
+        Some("matrix(0.866, 0.500, -0.500, 0.866, 10.0, 20.0)".into()),
     )
 }
 
