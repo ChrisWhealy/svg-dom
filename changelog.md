@@ -1,5 +1,12 @@
 # Change Log
 
+## 0.1.59 — 2026-07-16
+- `fddc1cd` Implement 4 CSS class helpers on SvgNode (2026-07-16)
+- `e626f1e` Add dependency and bump version number (2026-07-16)
+- `151d73d` Document CSS class errors and broaden tests (2026-07-16)
+- `951b82c` Implement set_class_enabled wrapper around websys::toggle_with_force (2026-07-16)
+- `4f97681` Explain why a test ignores the result of a fallible function (2026-07-16)
+
 ## 0.1.58 — 2026-07-16
 - `726bb4a` Implement SvgRoot::set_view_box (2026-07-16)
 - `7c2fecb` Extend tests to cover input domain (2026-07-16)
