@@ -28,6 +28,7 @@
             <button type="button" class="menu-item" data-target="panel-use">use</button>
             <button type="button" class="menu-item" data-target="panel-image">image</button>
             <button type="button" class="menu-item" data-target="panel-symbol">symbol</button>
+            <button type="button" class="menu-item" data-target="panel-tree-nav">tree navigation</button>
             <button type="button" class="menu-item" data-target="panel-linear-gradient">linearGradient</button>
             <button type="button" class="menu-item" data-target="panel-radial-gradient">radialGradient</button>
             <button type="button" class="menu-item" data-target="panel-clip-path">clipPath</button>
@@ -230,6 +231,25 @@
                         and stamped five times at increasing sizes via <strong>use_node</strong>.
                         The <code>viewBox</code> scales the content automatically to fit each <code>&lt;use&gt;</code>
                         element's <code>width</code> and <code>height</code> — no manual rescaling needed.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- tree navigation -->
+            <section class="section" id="panel-tree-nav">
+                <h2>Tree navigation — <code>first_child</code> / <code>next_sibling</code> / <code>query_selector</code></h2>
+                <figure>
+                    <div class="canvas" id="demo-tree-nav"></div>
+                    <figcaption>
+                        Seven bars built inside one <code>&lt;g&gt;</code> via a single batch, keeping only the group's
+                        own handle — no handle to any individual bar is kept.
+                        Click <strong>Walk →</strong> repeatedly: each click is one <strong>first_child</strong> /
+                        <strong>next_sibling</strong> call, colouring the newly visited bar and reporting which method
+                        it used.
+                        Click <strong>Find target</strong> to run
+                        <strong>query_selector("[data-role='target']")</strong> and outline the one bar tagged with
+                        that attribute in gold.
+                        <strong>Reset</strong> walks the bars again to restore them, and rewinds the walk to the start.
                     </figcaption>
                 </figure>
             </section>

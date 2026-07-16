@@ -743,6 +743,229 @@ fn should_return_parent_handle_to_same_element() -> Result<(), String> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// first_child / last_child
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `first_child` returns a handle to the first appended child.
+#[wasm_bindgen_test]
+fn should_return_first_child_after_appends() -> Result<(), String> {
+    let svg = make_svg("node-first-child");
+    let group = svg.group().map_err(|e| e.to_string())?;
+    let first = svg.rect(Point::origin(), Size::new(10.0, 10.0)).map_err(|e| e.to_string())?;
+    first.set_attr("id", "first").map_err(|e| e.to_string())?;
+    let second = svg.rect(Point::origin(), Size::new(10.0, 10.0)).map_err(|e| e.to_string())?;
+    second.set_attr("id", "second").map_err(|e| e.to_string())?;
+    group.append(&first).map_err(|e| e.to_string())?;
+    group.append(&second).map_err(|e| e.to_string())?;
+
+    let found = group.first_child().ok_or("expected a first child")?;
+    common::check_eq(found.attr("id"), Some("first".into()))
+}
+
+/// `first_child` returns `None` for a childless node.
+#[wasm_bindgen_test]
+fn should_return_none_first_child_for_empty_node() -> Result<(), String> {
+    let group = make_svg("node-first-child-empty").group().map_err(|e| e.to_string())?;
+    common::check(group.first_child().is_none(), "a childless node should have no first child")
+}
+
+/// `last_child` returns a handle to the most recently appended child.
+#[wasm_bindgen_test]
+fn should_return_last_child_after_appends() -> Result<(), String> {
+    let svg = make_svg("node-last-child");
+    let group = svg.group().map_err(|e| e.to_string())?;
+    let first = svg.rect(Point::origin(), Size::new(10.0, 10.0)).map_err(|e| e.to_string())?;
+    first.set_attr("id", "first").map_err(|e| e.to_string())?;
+    let second = svg.rect(Point::origin(), Size::new(10.0, 10.0)).map_err(|e| e.to_string())?;
+    second.set_attr("id", "second").map_err(|e| e.to_string())?;
+    group.append(&first).map_err(|e| e.to_string())?;
+    group.append(&second).map_err(|e| e.to_string())?;
+
+    let found = group.last_child().ok_or("expected a last child")?;
+    common::check_eq(found.attr("id"), Some("second".into()))
+}
+
+/// `last_child` returns `None` for a childless node.
+#[wasm_bindgen_test]
+fn should_return_none_last_child_for_empty_node() -> Result<(), String> {
+    let group = make_svg("node-last-child-empty").group().map_err(|e| e.to_string())?;
+    common::check(group.last_child().is_none(), "a childless node should have no last child")
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// next_sibling / previous_sibling
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `next_sibling` returns the element that immediately follows this one in document order.
+#[wasm_bindgen_test]
+fn should_return_next_sibling() -> Result<(), String> {
+    let svg = make_svg("node-next-sibling");
+    let group = svg.group().map_err(|e| e.to_string())?;
+    let first = svg.rect(Point::origin(), Size::new(10.0, 10.0)).map_err(|e| e.to_string())?;
+    let second = svg.rect(Point::origin(), Size::new(10.0, 10.0)).map_err(|e| e.to_string())?;
+    second.set_attr("id", "second").map_err(|e| e.to_string())?;
+    group.append(&first).map_err(|e| e.to_string())?;
+    group.append(&second).map_err(|e| e.to_string())?;
+
+    let next = first.next_sibling().ok_or("expected a next sibling")?;
+    common::check_eq(next.attr("id"), Some("second".into()))
+}
+
+/// `next_sibling` returns `None` for the last child.
+#[wasm_bindgen_test]
+fn should_return_none_next_sibling_for_last_child() -> Result<(), String> {
+    let svg = make_svg("node-next-sibling-last");
+    let group = svg.group().map_err(|e| e.to_string())?;
+    let only = svg.rect(Point::origin(), Size::new(10.0, 10.0)).map_err(|e| e.to_string())?;
+    group.append(&only).map_err(|e| e.to_string())?;
+    common::check(only.next_sibling().is_none(), "the last child should have no next sibling")
+}
+
+/// `previous_sibling` returns the element that immediately precedes this one in document order.
+#[wasm_bindgen_test]
+fn should_return_previous_sibling() -> Result<(), String> {
+    let svg = make_svg("node-prev-sibling");
+    let group = svg.group().map_err(|e| e.to_string())?;
+    let first = svg.rect(Point::origin(), Size::new(10.0, 10.0)).map_err(|e| e.to_string())?;
+    first.set_attr("id", "first").map_err(|e| e.to_string())?;
+    let second = svg.rect(Point::origin(), Size::new(10.0, 10.0)).map_err(|e| e.to_string())?;
+    group.append(&first).map_err(|e| e.to_string())?;
+    group.append(&second).map_err(|e| e.to_string())?;
+
+    let prev = second.previous_sibling().ok_or("expected a previous sibling")?;
+    common::check_eq(prev.attr("id"), Some("first".into()))
+}
+
+/// `previous_sibling` returns `None` for the first child.
+#[wasm_bindgen_test]
+fn should_return_none_previous_sibling_for_first_child() -> Result<(), String> {
+    let svg = make_svg("node-prev-sibling-first");
+    let group = svg.group().map_err(|e| e.to_string())?;
+    let only = svg.rect(Point::origin(), Size::new(10.0, 10.0)).map_err(|e| e.to_string())?;
+    group.append(&only).map_err(|e| e.to_string())?;
+    common::check(
+        only.previous_sibling().is_none(),
+        "the first child should have no previous sibling",
+    )
+}
+
+/// Walking a chain of children via `first_child` + repeated `next_sibling` visits every child in document order,
+/// without the caller having kept a handle to any of them.
+#[wasm_bindgen_test]
+fn should_walk_all_children_via_first_child_and_next_sibling() -> Result<(), String> {
+    let svg = make_svg("node-walk-siblings");
+    let group = svg.group().map_err(|e| e.to_string())?;
+    for i in 0..4 {
+        let rect = svg.rect(Point::origin(), Size::new(10.0, 10.0)).map_err(|e| e.to_string())?;
+        rect.set_attr("data-index", &i.to_string()).map_err(|e| e.to_string())?;
+        group.append(&rect).map_err(|e| e.to_string())?;
+    }
+
+    let mut seen = Vec::new();
+    let mut current = group.first_child();
+    while let Some(node) = current {
+        seen.push(node.attr("data-index").unwrap_or_default());
+        current = node.next_sibling();
+    }
+    common::check_eq(seen, vec!["0".to_string(), "1".to_string(), "2".to_string(), "3".to_string()])
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// children
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `children` returns a handle to every child element, in document order.
+#[wasm_bindgen_test]
+fn should_return_all_children_in_order() -> Result<(), String> {
+    let svg = make_svg("node-children");
+    let group = svg.group().map_err(|e| e.to_string())?;
+    for i in 0..3 {
+        let rect = svg.rect(Point::origin(), Size::new(10.0, 10.0)).map_err(|e| e.to_string())?;
+        rect.set_attr("data-index", &i.to_string()).map_err(|e| e.to_string())?;
+        group.append(&rect).map_err(|e| e.to_string())?;
+    }
+
+    let ids: Vec<String> = group.children().iter().map(|c| c.attr("data-index").unwrap_or_default()).collect();
+    common::check_eq(ids, vec!["0".to_string(), "1".to_string(), "2".to_string()])
+}
+
+/// `children` returns an empty `Vec` for a childless node.
+#[wasm_bindgen_test]
+fn should_return_empty_children_for_empty_node() -> Result<(), String> {
+    let group = make_svg("node-children-empty").group().map_err(|e| e.to_string())?;
+    common::check_eq(group.children().len(), 0)
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// query_selector / query_selector_all
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `query_selector` finds a descendant anywhere in the subtree, not just a direct child, using an attribute
+/// selector.
+#[wasm_bindgen_test]
+fn should_find_nested_descendant_via_attribute_selector() -> Result<(), String> {
+    let svg = make_svg("node-query-selector");
+    let outer = svg.group().map_err(|e| e.to_string())?;
+    let inner = svg.group().map_err(|e| e.to_string())?;
+    outer.append(&inner).map_err(|e| e.to_string())?;
+    let target = svg.rect(Point::origin(), Size::new(10.0, 10.0)).map_err(|e| e.to_string())?;
+    target.set_attr("data-role", "target").map_err(|e| e.to_string())?;
+    inner.append(&target).map_err(|e| e.to_string())?;
+
+    let found = outer
+        .query_selector("[data-role='target']")
+        .map_err(|e| e.to_string())?
+        .ok_or("expected a match")?;
+    common::check_eq(found.as_element().tag_name(), "rect".to_string())
+}
+
+/// `query_selector` returns `Ok(None)` when nothing matches.
+#[wasm_bindgen_test]
+fn should_return_none_query_selector_when_no_match() -> Result<(), String> {
+    let group = make_svg("node-query-selector-none").group().map_err(|e| e.to_string())?;
+    let result = group.query_selector("[data-role='missing']").map_err(|e| e.to_string())?;
+    common::check(result.is_none(), "expected no match")
+}
+
+/// `query_selector` returns `Err(Error::Dom)` for invalid CSS selector syntax.
+#[wasm_bindgen_test]
+fn should_error_on_invalid_selector_syntax() -> Result<(), String> {
+    let group = make_svg("node-query-selector-invalid").group().map_err(|e| e.to_string())?;
+    common::check(
+        group.query_selector(":::not-valid").is_err(),
+        "expected an error for invalid selector syntax",
+    )
+}
+
+/// `query_selector_all` finds every matching descendant, in document order.
+#[wasm_bindgen_test]
+fn should_find_all_matching_descendants() -> Result<(), String> {
+    let svg = make_svg("node-query-selector-all");
+    let group = svg.group().map_err(|e| e.to_string())?;
+    for i in 0..3 {
+        let rect = svg.rect(Point::origin(), Size::new(10.0, 10.0)).map_err(|e| e.to_string())?;
+        rect.set_attr("data-tag", "bar").map_err(|e| e.to_string())?;
+        rect.set_attr("data-index", &i.to_string()).map_err(|e| e.to_string())?;
+        group.append(&rect).map_err(|e| e.to_string())?;
+    }
+    // A non-matching sibling should not appear in the result.
+    let other = svg.circle(Point::new(5.0, 5.0), 5.0).map_err(|e| e.to_string())?;
+    group.append(&other).map_err(|e| e.to_string())?;
+
+    let matches = group.query_selector_all("[data-tag='bar']").map_err(|e| e.to_string())?;
+    let ids: Vec<String> = matches.iter().map(|n| n.attr("data-index").unwrap_or_default()).collect();
+    common::check_eq(ids, vec!["0".to_string(), "1".to_string(), "2".to_string()])
+}
+
+/// `query_selector_all` returns an empty `Vec` when nothing matches.
+#[wasm_bindgen_test]
+fn should_return_empty_query_selector_all_when_no_match() -> Result<(), String> {
+    let group = make_svg("node-query-selector-all-none").group().map_err(|e| e.to_string())?;
+    let matches = group.query_selector_all("[data-tag='missing']").map_err(|e| e.to_string())?;
+    common::check_eq(matches.len(), 0)
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Event handlers
 //
 // `EventTarget::dispatch_event` is synchronous: the browser fires the handler inline before `dispatch_event` returns.

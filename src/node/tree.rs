@@ -222,4 +222,204 @@ impl SvgNode {
             .and_then(|n| n.dyn_into::<SvgElement>().ok())
             .map(SvgNode::new)
     }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Returns a handle to this node's first child element, or `None` if it has none.
+    ///
+    /// `None` is also returned when the first child exists but is not an SVG element — for example HTML content inside
+    /// a `<foreignObject>`. This mirrors [`parent`](Self::parent)'s treatment of a non-SVG parent: the method does not
+    /// search further for a usable sibling, it simply reports that no suitable element exists at that position.
+    ///
+    /// # ⚠️ Caveat ⚠️
+    ///
+    /// Like [`parent`](Self::parent), the returned handle is a **fresh, independent** owner of the child element — see
+    /// [`parent`](Self::parent)'s doc comment for the full consequences, in particular that you should **not** register
+    /// listeners through it.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
+    /// let svg = SvgRoot::attach("diagram")?;
+    /// let group = svg.group()?;
+    /// group.append(&svg.rect(Point::origin(), Size::new(10.0, 10.0))?)?;
+    ///
+    /// if let Some(first) = group.first_child() {
+    ///     first.set_fill("steelblue")?;
+    /// }
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn first_child(&self) -> Option<SvgNode> {
+        self.inner
+            .element
+            .first_element_child()
+            .and_then(|el| el.dyn_into::<SvgElement>().ok())
+            .map(SvgNode::new)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Returns a handle to this node's last child element, or `None` if it has none.
+    ///
+    /// See [`first_child`](Self::first_child) for the non-SVG-child and independent-handle caveats, which apply
+    /// identically here.
+    pub fn last_child(&self) -> Option<SvgNode> {
+        self.inner
+            .element
+            .last_element_child()
+            .and_then(|el| el.dyn_into::<SvgElement>().ok())
+            .map(SvgNode::new)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Returns a handle to this node's next sibling element, or `None` if it is the last child of its parent (or is
+    /// itself detached).
+    ///
+    /// See [`first_child`](Self::first_child) for the non-SVG-sibling and independent-handle caveats, which apply
+    /// identically here.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
+    /// let svg = SvgRoot::attach("diagram")?;
+    /// let group = svg.group()?;
+    /// group.append(&svg.rect(Point::origin(), Size::new(10.0, 10.0))?)?;
+    /// group.append(&svg.circle(Point::new(20.0, 20.0), 5.0)?)?;
+    ///
+    /// // Walk every child from the first, without having kept a handle to each one.
+    /// let mut current = group.first_child();
+    /// while let Some(node) = current {
+    ///     node.set_stroke("white")?;
+    ///     current = node.next_sibling();
+    /// }
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn next_sibling(&self) -> Option<SvgNode> {
+        self.inner
+            .element
+            .next_element_sibling()
+            .and_then(|el| el.dyn_into::<SvgElement>().ok())
+            .map(SvgNode::new)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Returns a handle to this node's previous sibling element, or `None` if it is the first child of its parent
+    /// (or is itself detached).
+    ///
+    /// See [`first_child`](Self::first_child) for the non-SVG-sibling and independent-handle caveats, which apply
+    /// identically here.
+    pub fn previous_sibling(&self) -> Option<SvgNode> {
+        self.inner
+            .element
+            .previous_element_sibling()
+            .and_then(|el| el.dyn_into::<SvgElement>().ok())
+            .map(SvgNode::new)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Returns a handle to every child element of this node, in document order.
+    ///
+    /// Only SVG element children are included; text nodes, comments, and any non-SVG element child (for example, HTML
+    /// content inside a `<foreignObject>`) are all silently skipped, so the returned `Vec` can be shorter than the
+    /// node's actual DOM child count.
+    ///
+    /// Use [`SvgNode::as_element`] and the raw `web_sys` API if you need to see those too.
+    ///
+    /// # ⚠️ Caveat ⚠️
+    ///
+    /// Like [`parent`](Self::parent), every returned handle is a **fresh, independent** owner of its element — see
+    /// `parent`'s doc comment for the full consequences, in particular that you should **not** register listeners
+    /// through any of them.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
+    /// let svg = SvgRoot::attach("diagram")?;
+    /// let group = svg.group()?;
+    /// group.append(&svg.rect(Point::origin(), Size::new(10.0, 10.0))?)?;
+    /// group.append(&svg.circle(Point::new(20.0, 20.0), 5.0)?)?;
+    ///
+    /// // Recolour every child without having kept a handle to any of them.
+    /// for child in group.children() {
+    ///     child.set_fill("coral")?;
+    /// }
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn children(&self) -> Vec<SvgNode> {
+        let collection = self.inner.element.children();
+        (0..collection.length())
+            .filter_map(|i| collection.item(i))
+            .filter_map(|el| el.dyn_into::<SvgElement>().ok())
+            .map(SvgNode::new)
+            .collect()
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Returns a handle to the first descendant of this node that matches the CSS `selectors` string, or `None` if
+    /// there is no match.
+    ///
+    /// This is a thin wrapper over the browser's own `Element.querySelector`, so the full CSS selector syntax is
+    /// available — including attribute selectors (`"[data-role='target']"`), which is the crate's answer to "find a
+    /// node by attribute" until (or instead of) a dedicated Rust-side query API is built.
+    ///
+    /// If the match exists but is not an SVG element (for example HTML content inside a `<foreignObject>`), this
+    /// returns `Ok(None)` rather than the match, the same non-search-further behaviour as
+    /// [`first_child`](Self::first_child).
+    ///
+    /// # ⚠️ Caveat ⚠️
+    ///
+    /// Like [`parent`](Self::parent), the returned handle is a **fresh, independent** owner of the matched element —
+    /// see `parent`'s doc comment for the full consequences, in particular that you should not register listeners
+    /// through it.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Dom`] if `selectors` is not valid CSS selector syntax.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{root::utils::{Point, Size}, SvgRoot};
+    /// let svg = SvgRoot::attach("diagram")?;
+    /// let group = svg.group()?;
+    /// let target = svg.rect(Point::origin(), Size::new(10.0, 10.0))?;
+    /// target.set_attr("data-role", "target")?;
+    /// group.append(&target)?;
+    ///
+    /// if let Some(found) = group.query_selector("[data-role='target']")? {
+    ///     found.set_stroke("gold")?;
+    /// }
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn query_selector(&self, selectors: &str) -> Result<Option<SvgNode>, Error> {
+        let matched = self.inner.element.query_selector(selectors).map_err(dom_err)?;
+        Ok(matched.and_then(|el| el.dyn_into::<SvgElement>().ok()).map(SvgNode::new))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Returns a handle to every descendant of this node that matches the CSS `selectors` string, in document order.
+    ///
+    /// See [`query_selector`](Self::query_selector) for the selector syntax and error behaviour.
+    /// As with [`children`](Self::children), any match that is not an SVG element is silently skipped rather than
+    /// included, so the returned `Vec` can be shorter than the DOM match count.
+    ///
+    /// # ⚠️ Caveat ⚠️
+    ///
+    /// Like [`parent`](Self::parent), every returned handle is a **fresh, independent** owner of its element — see
+    /// `parent`'s doc comment for the full consequences, in particular that you should not register listeners
+    /// through any of them.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Dom`] if `selectors` is not valid CSS selector syntax.
+    pub fn query_selector_all(&self, selectors: &str) -> Result<Vec<SvgNode>, Error> {
+        let matches = self.inner.element.query_selector_all(selectors).map_err(dom_err)?;
+        let nodes = (0..matches.length())
+            .filter_map(|i| matches.item(i))
+            .filter_map(|n| n.dyn_into::<SvgElement>().ok())
+            .map(SvgNode::new)
+            .collect();
+        Ok(nodes)
+    }
 }

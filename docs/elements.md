@@ -29,6 +29,18 @@ The following SVG elements are supported:
 - `clear()` — remove all children of a node (e.g. to redraw a `<g>` from scratch)
 - `replace_with()` — swap one node for another in place
 - `parent()` — navigate up to the containing SVG element (returns an independent, non-factory handle)
+- `first_child()` / `last_child()` / `next_sibling()` / `previous_sibling()` — navigate down/across without having kept a handle to the target (returns independent, non-factory handles, like `parent()`)
+- `children()` — every SVG child element, in document order (independent, non-factory handles)
+- `query_selector()` / `query_selector_all()` — find descendant(s) anywhere in the subtree by CSS selector, including by attribute (independent, non-factory handles)
+
+***IMPORTANT***
+
+Every handle returned by the tree navigation and query methods above is a **fresh, independent** owner of its element, not a reference to whatever handle originally created it.
+This is the same caveat that applies to the use of `parent()`.
+
+In particular, You should not register event listeners through one of these handles; see `SvgNode::parent`'s doc comment for the full explanation.
+
+All non-SVG matches (for example HTML content inside a `<foreignObject>`) are silently skipped rather than returned.
 
 # Event coverage
 

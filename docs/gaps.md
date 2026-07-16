@@ -24,11 +24,6 @@ Each individual primitive's own `in`/`result` attributes, and any primitive-spec
 
 See `docs/design_notes.md`, "`<filter>` primitives return a plain `SvgNode`", for why a typed per-primitive wrapper was deferred rather than built now.
 
-# Missing Tree operations
-
-- No downward/child navigation (`children()`, `first_child`, ...)
-- No way to query the tree or find a node by attribute (`query_selector` and friends)
-
 # Missing Attribute helpers
 
 - No `matrix(...)` transform helper specifically (use `set_transform_fmt` for now)

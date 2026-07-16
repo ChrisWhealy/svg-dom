@@ -16,6 +16,7 @@
 - [Shared element factory implementation](#shared-element-factory-implementation)
 - [Typesafe Path Data Builder](#typesafe-path-data-builder)
 - [`<filter>` primitives return a plain `SvgNode`](#filter-primitives-return-a-plain-svgnode)
+- [Downward tree navigation and query-by-selector reuse `parent`'s independent-handle pattern, not a new type](#downward-tree-navigation-and-query-by-selector-reuse-parents-independent-handle-pattern-not-a-new-type)
 - [Ideas Considered and Rejected](rejected_ideas.md)
 - [Performance Patterns](#performance-patterns)
 
@@ -547,6 +548,35 @@ They are common enough to need their own typed setters now: `set_width`/`set_hei
 This is the same choice `PatternUnits` already made for `patternUnits`/`patternContentUnits`: both attributes draw from the same two-value SVG vocabulary, so a second enum only duplicates `as_str()` with no type-safety benefit.
 
 Note the two attributes default to *different* variants (`filterUnits` defaults to `ObjectBoundingBox`, `primitiveUnits` to `UserSpaceOnUse`) — `FilterUnits` only fixes which values are legal, not which one a bare `<filter>` starts with; each setter's own doc comment states its attribute's default explicitly so callers do not have to guess or check the SVG specification.
+
+## Downward tree navigation and query-by-selector reuse `parent`'s independent-handle pattern, not a new type
+
+`SvgNode::parent` (`src/node/tree.rs`) already had to solve the problem this section is about: how to hand back a live `SvgNode` for a DOM element the crate did not create through one of its own factory methods.
+
+Its solution (cast the `web_sys::Node`/`Element` to `SvgElement`, then wrap it in a brand-new `SvgNode::new(...)`) has already been established and already carries the caveat that matters:
+
+| The returned handle is a **fresh, independent** `Rc<SvgNodeInner>` with empty listener storage, not a second reference to whatever handle originally owns the element (see `SvgNode::parent`'s doc comment for the full explanation).
+
+`first_child`, `last_child`, `next_sibling`, `previous_sibling`, `children`, `query_selector`, and `query_selector_all` are all built the same way: they are thin wrappers over the matching `web_sys` traversal or query method, followed by the same cast-and-wrap.
+
+No new "lightweight, non-owning" traversal type was introduced for this, even though such a function would sidestep the caveat entirely.
+However, inventing a second handle type just for tree-walking would double the API surface a caller has to learn (leading to questions such as "So, which method returns which kind of handle?") to avoid a caveat that already has to be understood for `parent`.
+
+Reusing the exact same trade-off, and pointing every new method's doc comment back at `parent`'s existing explanation rather than restating it, keeps the mental model to one rule instead of eight not-quite-identical ones.
+
+Two further decisions followed directly from matching `parent`'s existing precedent rather than inventing new behaviour:
+
+- **Single-result methods do not search past a non-SVG match.**
+
+  `parent` returns `None` when the parent exists but is not an SVG element (the classic case being the root `<svg>`, whose own parent is the surrounding HTML page) — it does not walk further up looking for a usable ancestor.
+
+  `first_child`/`last_child`/`next_sibling`/`previous_sibling`/`query_selector` copy that exactly: if the element at that specific DOM position or selector match is not an SVG element (for example HTML content inside a `<foreignObject>`), the method reports nothing found there rather than silently returning some other element the caller did not ask for.
+
+- **Collection-returning methods filter instead of erroring or including everything.**
+
+  `children` and `query_selector_all` skip non-SVG matches rather than failing the whole call over one stray non-SVG descendant, or returning a `Vec` mixing `SvgNode`s with some other representation.
+
+  This is a different call from the single-result case above precisely because a collection degrading by omission (documented explicitly in each method's doc comment) is a much smaller surprise than a single lookup silently guessing at a different answer than the one the caller's selector or position asked for.
 
 # Performance Patterns
 
