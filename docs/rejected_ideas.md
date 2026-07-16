@@ -217,7 +217,7 @@ We documented the caveat on the field (direct mutation desyncs `width()`/`height
   The change swaps a public field for a method of identical power over the invariant; it does not close the hole the recommendation set out to close.
 
 * **Exposing the element is a deliberate escape hatch.**<br>
-  This crate is a thin, minimal wrapper and does not wrap every SVG attribute or property (`viewBox`, `preserveAspectRatio`, CSS classes, focus, and so on — see `docs/gaps.md`).
+  This crate is a thin, minimal wrapper and does not wrap every SVG attribute or property (`preserveAspectRatio`, focus management, geometry read-back, and so on — see `docs/gaps.md`).
   Direct access to the root `<svg>` is the supported way to reach those, so the leak is inherent to *exposing the element at all* (which we want to do) not to the field-versus-method spelling.
 
   The only extra power a public field grants is reassigning `root` wholesale, which needs `&mut SvgRoot` and would obviously corrupt the handle; that is a self-evident misuse, not a footgun worth a breaking API change to forbid.
