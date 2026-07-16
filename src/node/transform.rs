@@ -35,7 +35,7 @@
 
 use std::fmt::Write;
 
-use crate::{Error, SvgNode};
+use crate::{Error, SvgNode, root::utils::Matrix2D};
 
 impl SvgNode {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -110,6 +110,51 @@ impl SvgNode {
     pub fn set_translate_scale(&self, scratch: &mut String, tx: f64, ty: f64, scale: f64) -> Result<(), Error> {
         scratch.clear();
         write!(scratch, "translate({tx:.1}, {ty:.1}) scale({scale:.3})")?;
+        self.set_attr("transform", scratch)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// # `transform="matrix(a, b, c, d, e, f)"`
+    ///
+    /// Sets the transform directly as a 2D affine matrix — see [`Matrix2D`] for what each field means and how they
+    /// map onto the SVG function's arguments `a, b, c, d, e, f`.
+    ///
+    /// `matrix`'s fields are formatted at two different precisions, matching each field's typical role rather than
+    /// treating all six as a single, undifferentiated list:
+    /// - `h_scale`, `v_scale`, `h_skew`, `v_skew` (the linear/rotation/scale part) at three decimal places, the same
+    ///   precision used by [`set_scale`](Self::set_scale), since they are typically small dimensionless ratios where
+    ///   that precision matters
+    /// - `h_trans`, `v_trans` (the translation part) at one decimal place, the same precision used by
+    ///   [`set_translate`](Self::set_translate), since they are typically pixel-scale coordinates.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{root::utils::{Matrix2D, Point, Size}, SvgRoot};
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let node = svg.rect(Point::origin(), Size::new(80.0, 40.0))?;
+    /// let mut buf = String::new();
+    /// // A horizontal shear: each point's x shifts by 0.3 times its y — not expressible via translate/rotate/scale.
+    /// node.set_matrix(
+    ///     &mut buf,
+    ///     Matrix2D { h_scale: 1.0, v_scale: 1.0, h_skew: 0.3, v_skew: 0.0, h_trans: 0.0, v_trans: 0.0 },
+    /// )?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn set_matrix(&self, scratch: &mut String, m: Matrix2D) -> Result<(), Error> {
+        scratch.clear();
+        let Matrix2D {
+            h_scale,
+            v_scale,
+            h_skew,
+            v_skew,
+            h_trans,
+            v_trans,
+        } = m;
+        write!(
+            scratch,
+            "matrix({h_scale:.3}, {v_skew:.3}, {h_skew:.3}, {v_scale:.3}, {h_trans:.1}, {v_trans:.1})"
+        )?;
         self.set_attr("transform", scratch)
     }
 

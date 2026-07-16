@@ -446,6 +446,31 @@ fn should_write_translate_scale_transform() -> Result<(), String> {
     common::check_eq(node.attr("transform"), Some("translate(12.0, 34.0) scale(2.000)".into()))
 }
 
+/// `set_matrix` writes a `matrix(a, b, c, d, e, f)` transform from `Matrix2D`'s named fields (mapped to the SVG
+/// function's own `a, b, c, d, e, f` order), with the linear part at three decimal places and the translation part
+/// at one, matching `set_scale`'s and `set_translate`'s precision respectively.
+#[wasm_bindgen_test]
+fn should_write_matrix_transform() -> Result<(), String> {
+    let node = make_svg("node-set-matrix").group().map_err(|e| e.to_string())?;
+    let mut buf = String::new();
+    node.set_matrix(
+        &mut buf,
+        Matrix2D {
+            h_scale: 1.0,
+            v_scale: 1.0,
+            h_skew: 0.3,
+            v_skew: 0.0,
+            h_trans: 12.0,
+            v_trans: 34.0,
+        },
+    )
+    .map_err(|e| e.to_string())?;
+    common::check_eq(
+        node.attr("transform"),
+        Some("matrix(1.000, 0.000, 0.300, 1.000, 12.0, 34.0)".into()),
+    )
+}
+
 /// `set_transform_fmt` writes an arbitrary transform built from `format_args!`.
 #[wasm_bindgen_test]
 fn should_write_arbitrary_transform_via_fmt() -> Result<(), String> {

@@ -109,10 +109,28 @@ These are
 * `set_scale`
 * `set_scale_xy`
 * `set_translate_scale`
+* `set_matrix`
 * `set_transform_fmt`
 
 Reusing one buffer across calls means no new allocation happens unless the formatted text outgrows the buffer's capacity.
 For shapes that the typed helpers do not cover, your escape hatch is `set_transform_fmt`: it accepts `std::fmt::Arguments` so `format_args!(...)` can build any transform string without the heap allocation that `format!` would otherwise incur.
+
+### `set_matrix` takes a `Matrix2D` struct with role-named fields, not `[f64; 6]`, positional parameters, or even `a`/`b`/`c`/`d`/`e`/`f`
+
+`Matrix2D`'s fields are named for what they *do* (`h_scale`, `v_scale`, `h_skew`, `v_skew`, `h_trans`, `v_trans`) rather than for their position in the SVG grammar.
+
+`set_matrix(&mut buf, Matrix2D { h_scale: 1.0, v_scale: 1.0, h_skew: 0.3, v_skew: 0.0, h_trans: 0.0, v_trans: 0.0 })` is now readable without needing to remember that `a` is horizontal scale and `f` is vertical translate as would be the case it were simply defined as `Matrix2D { a, b, c, d, e, f }`.
+
+`SvgNode::set_matrix` still has to reassemble the fields into the SVG function's own `a, b, c, d, e, f` order to build the transform string, so `Matrix2D`'s doc comment spells out the mapping (`h_scale`→`a`, `v_skew`→`b`, `h_skew`→`c`, `v_scale`→`d`, `h_trans`→`e`, `v_trans`→`f`) once, in the one place a reader would need to go from the crate's names back to the spec's.
+
+A `Matrix2D::new(...)` constructor has deliberately not been provided as adding one would just reopen the same positional-argument confusion the struct exists to close off, for a type with three times as many fields as `Point`.
+
+The six fields use two different formatting precisions:
+
+- `h_scale`, `v_scale`, `h_skew`, `v_skew` (the linear part — rotation and scale) are written to three decimal places, matching `set_scale`, since they are typically small dimensionless ratios where that precision is visible;
+- `h_trans`, `v_trans` (the translation part) are written to one decimal place, matching `set_translate`, since they are typically pixel-scale coordinates.
+
+This mirrors each field's *role* rather than treating the six numbers as a single, undifferentiated list.
 
 The scratch buffer is deliberately **not** stored inside `SvgNode`.
 Most nodes are passive geometry that never animate, do folding formatting state into every node would cause them all to grow while benefiting only a few.

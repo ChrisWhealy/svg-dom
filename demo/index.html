@@ -161,9 +161,11 @@
                 <figure>
                     <div class="canvas" id="demo-group"></div>
                     <figcaption>
-                        Two groups share the same local element coordinates; a
-                        <code>transform="translate(...)"</code> repositions each group as a unit.
-                        The dashed connector is drawn in SVG root space.
+                        Three groups share the same local element coordinates.
+                        Groups A and B are repositioned as a unit with <code>transform="translate(...)"</code>;
+                        Group C is both positioned and sheared with a single call to <strong>set_matrix</strong> since
+                        a shear is the one transform none of the named translate/rotate/scale helpers can provide.
+                        The dashed connectors are drawn in SVG root space.
                     </figcaption>
                 </figure>
             </section>

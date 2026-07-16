@@ -67,7 +67,7 @@ The legacy `mouseover` / `mouseout` wrappers remain available for compatibility 
 
 # Implemented Attribute helpers
 
-- Transform helpers — `set_translate`, `set_rotate`, `set_rotate_about`, `set_scale`, `set_scale_xy`, `set_translate_scale`, and `set_transform_fmt` for arbitrary transforms (all reuse a caller-owned scratch buffer)
+- Transform helpers — `set_translate`, `set_rotate`, `set_rotate_about`, `set_scale`, `set_scale_xy`, `set_translate_scale`, `set_matrix` (2D affine matrix via a role-named `Matrix2D { h_scale, v_scale, h_skew, v_skew, h_trans, v_trans }`, for skew/shear or any transform not expressible via the named helpers above), and `set_transform_fmt` for anything else (all reuse a caller-owned scratch buffer)
 - Updating `<text>` content after creation — `set_text`, plus the buffer-reusing `set_text_fmt` / `set_text_display`
 - Allocation-light numeric attribute writes — `set_attr_display`, and the redundant-write helpers `set_attr_if_changed` / `CachedAttr`
 

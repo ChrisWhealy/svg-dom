@@ -19,7 +19,6 @@ See [`design_notes.md`](design_notes.md#filter-primitives-return-a-plain-svgnode
 
 # Missing Attribute helpers
 
-- No `matrix(...)` transform helper specifically (use `set_transform_fmt` for now)
 - No `viewBox` helper (only `set_viewport`, which sets `width`/`height`)
 - No `classList` / CSS class manipulation
 
