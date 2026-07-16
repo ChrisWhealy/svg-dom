@@ -1,5 +1,14 @@
 # Change Log
 
+## 0.1.57 — 2026-07-16
+- `18e7100` Implement 2D affine matrix transform helper (2026-07-16)
+- `d2f64a0` Implement set_matrix_precise to avoid possible artefacts created by fixed-precision rounding (2026-07-16)
+- `e7b7301` Strengthen the argument-order tests (2026-07-16)
+- `9ae53c7` Correct stale documentation (2026-07-16)
+- `3020ea3` Use deterministic values in precise rotation test (2026-07-16)
+- `008ab81` Correct fixed-output performance guide (2026-07-16)
+- `98d3ec0` Improve docs concerning the rounding safety of other typed setters (2026-07-16)
+
 ## 0.1.56 — 2026-07-16
 - `4a4c889` Implement missing tree navigation functions (2026-07-16)
 - `a2847ef` Preallocate the collection result vectors for tree navigation (2026-07-16)
