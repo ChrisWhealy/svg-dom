@@ -2,8 +2,19 @@
 
 ## 0.1.61 — 2026-07-17
 - `7392be2` Refactor rejected ideas document (2026-07-17)
+- `4047145` Correct interface-failure reachability claim (2026-07-17)
 - `065c9b8` Update stale geometry documentation (2026-07-17)
 - `fa83536` Correct positive path-distance endpoint docs (2026-07-17)
+- `c2972f1` Update gap analysis document to cover previously untracked features (2026-07-17)
+- `06c71d9` Update gaps.md (2026-07-17)
+- `d210e0e` Implement the \<mask\> element (2026-07-17)
+- `46080e7` Correct polyline docs (2026-07-17)
+- `6222cea` Improve line() documentation (2026-07-17)
+- `9cea53b` Add alpha multiplier to luminence mask docs (2026-07-17)
+- `a1ea2f9` Correct gradient example (2026-07-17)
+- `bb9af7d` Add end-to-end cached-reference rename test (2026-07-17)
+- `60c4c58` Warn that excessively large mask regions have a rendering cost (2026-07-17)
+- `5e01a41` Update repository level summary docs (2026-07-17)
 
 ## 0.1.60 — 2026-07-17
 - `55b973f` Add 4 geometry read-back helpers (2026-07-17)
