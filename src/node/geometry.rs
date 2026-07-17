@@ -103,21 +103,28 @@ impl SvgNode {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// # Screen-space transformation matrix
+    /// # Document-viewport transformation matrix
     ///
-    /// Returns the accumulated transform from this element's own coordinate system all the way to the top-level
-    /// viewport (screen space), by wrapping [`SVGGraphicsElement.getScreenCTM()`]. Returns `None` if the element is not
-    /// currently part of a rendered tree, or does not implement `SVGGraphicsElement`.
+    /// Returns the accumulated transform from this element's own coordinate system all the way to the document's
+    /// viewport, by wrapping [`SVGGraphicsElement.getScreenCTM()`]. Despite the DOM method's name, this is **not**
+    /// physical monitor/screen coordinates — per the SVG specification it maps into the document viewport's
+    /// CSS-pixel coordinates, incorporating the relevant SVG, CSS-box, and page-position transforms. Returns `None`
+    /// if the element is not currently part of a rendered tree, or does not implement `SVGGraphicsElement`.
     ///
-    /// # Also not generally this element's own local transform
+    /// # Two different uses — do not conflate them
     ///
-    /// Like [`ctm`](Self::ctm), this is an accumulated coordinate-conversion matrix, not this element's own
-    /// `transform` attribute in isolation — it goes further than `ctm()`, additionally carrying the root `<svg>`'s
-    /// own position on the page. Do not write the result straight back as this element's own local `transform` via
-    /// [`set_matrix`](Self::set_matrix)/[`set_matrix_precise`](Self::set_matrix_precise) — that would double-apply
-    /// whatever transform the ancestors and the page already contribute. See `docs/design_notes.md`
-    /// ("`ctm`/`screen_ctm` are accumulated matrices...") for the general formula to recover just this element's own
-    /// local matrix.
+    /// - **Converting a point** between viewport CSS-pixel coordinates and this element's own local coordinates:
+    ///   invert *this element's own* `screen_ctm()` and apply it — a parent's `screen_ctm()` is not involved at all.
+    ///   `local_point = inverse(element.screen_ctm()) · viewport_point`, and conversely
+    ///   `viewport_point = element.screen_ctm() · local_point`.
+    /// - **Recovering this element's own local `transform`** (the matrix you would pass to
+    ///   [`set_matrix`](Self::set_matrix)/[`set_matrix_precise`](Self::set_matrix_precise) to reproduce it) is a
+    ///   *different* operation: it compares this element's [`ctm()`](Self::ctm) against its parent's `ctm()`, not
+    ///   `screen_ctm()` at all.
+    ///
+    /// See `docs/design_notes.md` ("`ctm`/`screen_ctm` are accumulated matrices...") for the derivation and a worked
+    /// example of each. Do not write a `screen_ctm()` reading straight back as this element's own local `transform`
+    /// — that would double-apply whatever the ancestors and the page already contribute.
     ///
     /// **Performance:** this call triggers a browser layout read. Do not call it inside a hot animation or pointer-move
     /// callback unless you have determined that this cost is acceptable.
@@ -131,7 +138,8 @@ impl SvgNode {
     /// let svg  = SvgRoot::attach("diagram")?;
     /// let rect = svg.rect(Point::origin(), Size::new(80.0, 40.0))?;
     ///
-    /// let screen = rect.screen_ctm(); // accumulated all the way to screen space, not a local transform
+    /// // Maps this element's local coordinates into document-viewport CSS pixels; not a local transform.
+    /// let viewport_ctm = rect.screen_ctm();
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn screen_ctm(&self) -> Option<Matrix2D> {

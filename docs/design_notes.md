@@ -718,14 +718,32 @@ That is wrong in general, and worth recording as a corrected claim rather than s
 
 Per the SVG specification, `getCTM()` returns the matrix mapping the element's own coordinate system into its **nearest SVG viewport's** coordinate system.
 That is the accumulation of the element's own `transform` **and** every intervening ancestor's `transform`, up to (but not through) the nearest viewport ancestor — for ordinary content with no nested `<svg>`/`<symbol>` boundary, that viewport is the root `<svg>` itself, so `ctm()` on a nested shape already reflects the *combined* chain of every intermediate `<g>`'s transform, not just the shape's own.
-`screen_ctm()` continues past that point, additionally carrying the root `<svg>`'s own position on the page (normal document flow, any CSS transform on an HTML ancestor, and so on).
+`screen_ctm()` continues past that point into the **document viewport's CSS-pixel coordinates** — despite the DOM method's name (`getScreenCTM`), this is not physical monitor/screen coordinates; it additionally carries the root `<svg>`'s own position on the page (normal document flow, any CSS transform on an HTML ancestor, and so on).
 
 The browser test `should_accumulate_ancestor_transforms_in_ctm_up_to_the_root_viewport` (`tests/svg_node.rs`) demonstrates exactly why the original claim was wrong: a `<g>` translated `(100, 0)` contains a `<rect>` translated `(0, 50)`.
 The rect's own local transform is `translate(0, 50)`, but `rect.ctm()` reports `(100, 50)` — the parent's translation is already folded in.
 Writing that `ctm()` reading straight back as the rect's own `transform` via `set_matrix` would leave the parent's translation in place *and* add the already-accumulated `(100, 50)` again, producing an effective translation of `(200, 50)`, not the intended `(0, 50)`.
 
 **Direct write-back of a `ctm()`/`screen_ctm()` reading is therefore only correct when the parent-to-viewport transform is the identity matrix** — informally, when the element being measured has no relevantly-transformed ancestor between it and its nearest viewport.
-`screen_ctm()` additionally requires the page position itself to contribute nothing (rarely true), so it is very rarely safe to write back directly at all; use it for coordinate conversion (see below), not for reproducing a local transform.
+`screen_ctm()` additionally requires the page position itself to contribute nothing (rarely true), so it is very rarely safe to write back directly at all.
+
+This leaves two genuinely different operations, easy to conflate because both start from a `ctm()`/`screen_ctm()` reading — each is covered in its own subsection below:
+
+- **Converting a point** between document-viewport coordinates and this element's own local coordinates.
+- **Recovering this element's own writable local `transform`** matrix.
+
+#### Converting a point between viewport and local coordinates
+
+This uses only **this element's own** `screen_ctm()` — a parent's matrix is not involved at all, because `screen_ctm()` already maps this element's local coordinate system straight to the document viewport in one step:
+
+```text
+viewport_point = element.screen_ctm() · local_point
+local_point     = inverse(element.screen_ctm()) · viewport_point
+```
+
+An earlier revision of this note conflated this with the *different* local-transform-recovery operation below, and incorrectly suggested inverting the *parent's* `screen_ctm()` to do it.
+Inverting the parent's matrix only gets a point as far as the parent's own coordinate system — it is the tool the next subsection uses to recover a local *transform*, not the tool for converting an arbitrary *point*.
+Converting a point needs only the element's own `screen_ctm()`, inverted, applied directly; nothing about the parent enters into it.
 
 #### Recovering the local matrix
 
