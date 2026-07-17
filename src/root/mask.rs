@@ -211,7 +211,7 @@ impl SvgMask {
     /// Interpreted according to [`maskUnits`](Self::set_mask_units) — a fraction of the referencing element's bounding
     /// box under the SVG default ([`MaskUnits::ObjectBoundingBox`]), or a user-space coordinate under
     /// [`MaskUnits::UserSpaceOnUse`].
-    /// 
+    ///
     /// See the [type-level docs](Self) for why this often needs widening beyond the SVG default.
     pub fn set_x(&self, v: f64) -> Result<(), Error> {
         self.attrs.borrow_mut().display_element(&self.element, "x", v)

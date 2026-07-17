@@ -290,7 +290,8 @@ pub(super) fn demo_mask() -> Result<(), Error> {
         })?;
         // Mask 1: the gradient painted across the same region as the rect it will mask.
         d.build_mask("mk-fade", |m| {
-            m.rect(Point::new(77.0, 37.0), Size::new(106.0, 106.0))?.set_fill_gradient("mk-fade-grad")?;
+            m.rect(Point::new(77.0, 37.0), Size::new(106.0, 106.0))?
+                .set_fill_gradient("mk-fade-grad")?;
             Ok(())
         })?;
         // Mask 2: a solid black backing (hides everything) with white text on top (reveals only the glyphs) —
