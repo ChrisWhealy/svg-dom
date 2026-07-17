@@ -47,7 +47,7 @@ SMIL animation and the `<script>` element are not, and will never be supported b
 
 They have been intentionally excluded:
 
-* Any use of Synchronised Multimedia Integration Language (SMIL) contradicts a design decision this crate has already argued against at length.
+* Any use of Synchronised Multimedia Integration Language (SMIL) contradicts a design decision this crate has already argued for at length.
 
   This would require the creation of four, completely new element types (`<animate>`, `<animateTransform>`, `<animateMotion>` and `<set>`) that then creates a large, distinct attribute surface (`dur`, `begin`, `repeatCount`, `keyTimes`, `values`, `calcMode`, additive/accumulate semantics, motion-path following).
 
