@@ -29,7 +29,7 @@ struct SvgNodeInner {
     //
     // `ListenerStore` then holds the first listener inline (`One`), so registering one listener is a single heap
     // allocation (the `Box`) rather than the two an empty `Vec` would need (its own box plus an element buffer on the
-    // first push). A second listener upgrades `One` into `Many(Vec)`. See docs/design_notes.md.
+    // first push). A second listener upgrades `One` into `Many(Vec)`. See docs/design_notes/node_and_tree.md.
     //
     // Each entry stores both the event type and the Closure so the listener can be removed from the DOM before the
     // Closure is dropped. This prevents a detached DOM callback from pointing at an invalid wasm-bindgen closure.

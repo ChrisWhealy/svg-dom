@@ -206,7 +206,7 @@ impl AnimationLoop {
     /// If that `setTimeout` registration itself fails, a later `stop()` or `Drop` still clears the slot — but only if
     /// another `AnimationLoop` handle survives to make that later call.
     /// If the handle dropped inside the callback was the last one, no such later call exists, and the closure and its
-    /// captures leak; see the "Two rare failure paths" section in `docs/design_notes.md`.
+    /// captures leak; see the "Two rare failure paths" section in `docs/design_notes/animation.md`.
     ///
     /// Calling `stop()` is idempotent.
     ///

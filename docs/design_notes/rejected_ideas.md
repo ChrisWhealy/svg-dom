@@ -1107,7 +1107,7 @@ This is a real, but considerably narrower case than a braod "dynamic filter modi
 ### Cost is not zero
 
 The review's own third point stands on its own regardless of the above: a `build_*` sibling for every primitive doubles the primitive API surface (`gaussian_blur` + `build_gaussian_blur`, `offset` + `build_offset`, `merge` + `build_merge`, and every primitive added after them) for a benefit that only applies to an already-narrow set of cases.
-This runs against the same restraint already exercised for [`gaussian_blur_xy`](../src/root/filter.rs) and `merge`'s slice parameter (see `docs/design_notes.md`, "`<filter>` primitives return a plain `SvgNode`" and its "confirms the plain-`SvgNode` decision" follow-up): add the minimum shape a primitive actually needs, not the maximum shape it could conceivably use.
+This runs against the same restraint already exercised for [`gaussian_blur_xy`](../src/root/filter.rs) and `merge`'s slice parameter (see `docs/design_notes/filters.md`, "`<filter>` primitives return a plain `SvgNode`" and its "confirms the plain-`SvgNode` decision" follow-up): add the minimum shape a primitive actually needs, not the maximum shape it could conceivably use.
 
 ### Verdict
 

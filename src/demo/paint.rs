@@ -371,7 +371,7 @@ pub(super) fn demo_filter() -> Result<(), Error> {
 
     // Four blur-only filters at increasing stdDeviation, plus one tinted-drop-shadow filter using the single
     // feDropShadow primitive (the browser-native shorthand for feGaussianBlur -> feFlood -> feComposite ->
-    // feOffset -> feMerge; see SvgFilter::drop_shadow's doc comment and design_notes.md for the full chain this
+    // feOffset -> feMerge; see SvgFilter::drop_shadow's doc comment and docs/design_notes/filters.md for the full chain this
     // collapses). The SVG default filter region (-10%/-10%/120%/120% of the referencing element's bounding box)
     // is too tight for the widest blur and the offset shadow, so every filter here widens its region via the
     // typed set_x/set_y/set_width/set_height setters to avoid visibly clipping the edge.

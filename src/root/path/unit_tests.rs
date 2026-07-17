@@ -392,7 +392,7 @@ fn should_accept_that_build_d_does_not_validate_leading_command() {
 }
 
 /// Diagnostic, not a portability assertion: layout is not guaranteed by Rust, so this deliberately does not
-/// `assert_eq!` against a fixed byte count (see `docs/design_notes.md`, "Measuring `PathDef`'s nested-enum
+/// `assert_eq!` against a fixed byte count (see `docs/design_notes/path_data.md`, "Measuring `PathDef`'s nested-enum
 /// layout cost" for the rationale and the numbers observed on the host and wasm32 targets at the time of writing).
 ///
 /// The one assertion here is a structural regression guard rather than a target-specific magic number: wrapping

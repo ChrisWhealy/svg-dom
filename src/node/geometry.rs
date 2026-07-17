@@ -55,7 +55,7 @@ impl SvgNode {
     /// `clip-path` applied to the element are **not** included, so the returned rect can be visibly smaller than
     /// everything actually painted on screen. This crate does not currently expose the options-taking overload
     /// (`getBBox(options)`) that would let a caller opt into the stroke/decorated/visible box instead — see
-    /// `docs/design_notes.md` ("`bounding_box` wraps only the no-argument `getBBox`...") for why.
+    /// `docs/design_notes/geometry.md` ("`bounding_box` wraps only the no-argument `getBBox`...") for why.
     ///
     /// **Performance:** this call crosses into the browser and may trigger synchronous style or layout calculation.
     /// Profile before calling it inside a hot animation or pointer-move callback — the actual cost depends on the
@@ -112,7 +112,7 @@ impl SvgNode {
     /// just this element's own `transform` attribute. Writing it straight back via
     /// [`set_matrix`](Self::set_matrix)/[`set_matrix_precise`](Self::set_matrix_precise) is only correct when there is
     /// no relevant transformed ancestor in that chain (equivalently: the parent-to-viewport transform is the
-    /// identity matrix) — otherwise the ancestor component gets double-applied. See `docs/design_notes.md`
+    /// identity matrix) — otherwise the ancestor component gets double-applied. See `docs/design_notes/geometry.md`
     /// ("`ctm`/`screen_ctm` are accumulated matrices...") for the general formula to recover just this element's own
     /// local matrix from `ctm()` readings.
     ///
@@ -162,7 +162,7 @@ impl SvgNode {
     ///   *different* operation: it compares this element's [`ctm()`](Self::ctm) against its parent's `ctm()`, not
     ///   `screen_ctm()` at all.
     ///
-    /// See `docs/design_notes.md` ("`ctm`/`screen_ctm` are accumulated matrices...") for the derivation and a worked
+    /// See `docs/design_notes/geometry.md` ("`ctm`/`screen_ctm` are accumulated matrices...") for the derivation and a worked
     /// example of each. Do not write a `screen_ctm()` reading straight back as this element's own local `transform`
     /// — that would double-apply whatever the ancestors and the page already contribute.
     ///

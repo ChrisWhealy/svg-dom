@@ -15,4 +15,4 @@ The following filter effect primitives still need to be implemented:
 
 Each individual primitive's own `in`/`result` attributes, and any primitive-specific attribute not yet wrapped by a named parameter, remain reachable only via `SvgNode::set_attr` on the node the primitive method returns.
 
-See [`design_notes.md`](design_notes.md#filter-primitives-return-a-plain-svgnode), "`<filter>` primitives return a plain `SvgNode`", for why a typed per-primitive wrapper was deferred rather than built now.
+See [`design_notes/filters.md`](design_notes/filters.md), "`<filter>` primitives return a plain `SvgNode`", for why a typed per-primitive wrapper was deferred rather than built now.
