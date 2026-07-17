@@ -4,6 +4,31 @@
 //! Every method here reads real, current geometry from the browser, which forces a layout/reflow: none of them
 //! belong on a hot per-frame or per-pointer-move path without dedup/throttling (the same caveat
 //! [`computed_text_length`](crate::SvgNode::computed_text_length) already carries for the same reason).
+//!
+//! # These `f64` values may carry only `f32` precision
+//!
+//! This crate's own numeric types are consistently `f64`, matching every other geometry type in the crate
+//! ([`Point`](crate::root::utils::Point), [`Size`](crate::root::utils::Size),
+//! [`Matrix2D`](crate::root::utils::Matrix2D)). That consistency is worth keeping even though the browser values
+//! behind five of these six methods do not actually carry `f64` precision:
+//!
+//! [`SvgNode::bounding_box`], [`SvgNode::ctm`], [`SvgNode::screen_ctm`], [`SvgNode::total_length`], and
+//! [`SvgNode::point_at_length`] all go through legacy SVG DOM types — `SVGRect`, `SVGMatrix`, `SVGGeometryElement`'s
+//! length/point methods — whose IDL has always used `float` (32-bit), never updated to `double`. `web-sys` mirrors
+//! this faithfully: `SvgRect`/`SvgMatrix`/`SvgPoint`'s field getters and `get_total_length` return `f32`, and
+//! `get_point_at_length` takes an `f32` distance. This module widens every such value to `f64` on the way out (and
+//! narrows [`point_at_length`](SvgNode::point_at_length)'s `distance` argument to `f32` on the way in) purely for
+//! API uniformity — it does not, and cannot, recover precision the browser never had.
+//!
+//! [`SvgNode::bounding_client_rect`] is the one exception: it wraps `Element.getBoundingClientRect()`, a modern Web
+//! API whose `DOMRect` has always used `double` (`f64`) fields — no widening happens there, and no precision is
+//! lost at that boundary.
+//!
+//! In practice this rarely matters: `f32` still carries roughly 7 significant decimal digits, comfortably more than
+//! any realistic SVG coordinate or pixel measurement needs. It matters if a caller feeds one of these `f64` results
+//! into a calculation expecting genuine double precision (for example, accumulating many small deltas over a long
+//! session) — the extra `f64` bits beyond `f32`'s precision are exactly zero, not "unknown," so such a calculation
+//! degrades to `f32` accuracy rather than gaining anything from the wider Rust type.
 
 use crate::{
     Error, SvgNode, dom_err,
