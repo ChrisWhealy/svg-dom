@@ -40,14 +40,25 @@ impl MaskUnits {
 /// Selects which channel of a [`SvgMask`]'s rendered content determines opacity, via the `mask-type` attribute.
 ///
 /// Passed to [`SvgMask::set_mask_type`].
+///
+/// # `mask-type` is a preference, not a guarantee
+///
+/// `mask-type` expresses this mask element's own preferred interpretation.
+/// The element that *references* the mask can override it with its own `mask-mode` attribute (not currently wrapped
+/// by a named setter — reach for `SvgNode::set_attr("mask-mode", ...)` if you need it).
+/// `mask-mode`'s default value, `match-source`, honours whatever `mask-type` says, so the behaviour documented here
+/// is what callers get unless a referencing element opts out explicitly.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MaskType {
-    /// The referencing element is revealed in proportion to the mask content's *luminance* (perceived brightness):
-    /// white reveals fully, black hides fully, and grey values reveal partially — the SVG default.
-    /// A colour flood or gradient makes this behave intuitively without any extra `opacity` bookkeeping.
+    /// The referencing element is revealed in proportion to the mask content's *luminance and alpha combined* — the
+    /// SVG default. Opaque white reveals fully and opaque black hides fully; intermediate brightness or alpha
+    /// produces partial visibility, and transparent content (whatever its colour) hides fully regardless of
+    /// brightness. A colour flood or gradient makes this behave intuitively without any extra `opacity` bookkeeping,
+    /// provided the content stays fully opaque.
     Luminance,
-    /// The referencing element is revealed in proportion to the mask content's *alpha* channel instead of its
-    /// luminance — a solid white shape with `fill-opacity="0.5"` reveals exactly 50%, regardless of colour.
+    /// The referencing element is revealed in proportion to the mask content's *alpha* channel alone, ignoring
+    /// colour/luminance entirely — a solid white shape with `fill-opacity="0.5"` reveals exactly 50%, and so does a
+    /// solid black shape with the same `fill-opacity`.
     Alpha,
 }
 
@@ -65,9 +76,11 @@ impl MaskType {
 /// the mask's own rendered content.
 ///
 /// Unlike [`SvgClipPath`](crate::SvgClipPath), which is a hard, binary (in/out) boundary defined purely by shape
-/// geometry, `<mask>` supports gradual transparency: each pixel of the referencing element is scaled by the
-/// corresponding pixel's luminance (or alpha, see [`MaskType`]) in the mask's rendered content. A white fill reveals
-/// fully, black hides fully and anything in between — including gradients — reveals partially.
+/// geometry, `<mask>` supports gradual transparency: each pixel of the referencing element is scaled by a value
+/// derived from the corresponding pixel of the mask's rendered content — luminance and alpha combined under the
+/// default [`MaskType::Luminance`], or alpha alone under [`MaskType::Alpha`] (see [`MaskType`] for the difference).
+/// Under the default, opaque white reveals fully, opaque black hides fully, and anything in between — including
+/// gradients, and including partial *opacity* on an otherwise-bright shape — reveals partially.
 ///
 /// Obtain one from [`SvgDefs::mask`](crate::SvgDefs::mask) or [`SvgDefs::build_mask`](crate::SvgDefs::build_mask),
 /// and apply it to any element with [`SvgNode::set_mask_ref`](crate::SvgNode::set_mask_ref) or

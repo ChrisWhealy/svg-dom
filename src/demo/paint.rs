@@ -281,8 +281,9 @@ pub(super) fn demo_mask() -> Result<(), Error> {
 
     // All mask and gradient ids must be globally unique in the document.
     svg.build_defs(|d| {
-        // White-to-black linear gradient: under the default MaskType::Luminance, white reveals fully and
-        // black hides fully, so this fades the referencing rect smoothly from opaque to invisible.
+        // Opaque white-to-black linear gradient: under the default MaskType::Luminance, opaque white reveals fully
+        // and opaque black hides fully, so this fades the referencing rect smoothly from opaque to invisible.
+        // (Luminance mode also factors in alpha, not just colour — this gradient just never varies it.)
         d.build_linear_gradient("mk-fade-grad", |g| {
             g.add_stop(0.0, WHITE)?;
             g.add_stop(1.0, "black")?;

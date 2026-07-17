@@ -244,8 +244,9 @@ The `MarkerUnits` enum controls whether `markerWidth`/`markerHeight` are relativ
 
 ## `<mask>`
 
-A `<mask>` reveals or hides parts of any element that references it, based on the luminance or alpha of the mask's own rendered content.
-Unlike `<clipPath>`, which is a hard, binary (in/out) boundary defined purely by shape geometry, `<mask>` supports gradual transparency: each pixel of the referencing element is scaled by the corresponding pixel's luminance (or alpha) in the mask's rendered content — a white fill reveals fully, black hides fully, and anything in between (including gradients) reveals partially.
+A `<mask>` reveals or hides parts of any element that references it, based on the luminance-and-alpha or alpha-only value of the mask's own rendered content.
+Unlike `<clipPath>`, which is a hard, binary (in/out) boundary defined purely by shape geometry, `<mask>` supports gradual transparency: each pixel of the referencing element is scaled by a value derived from the corresponding pixel of the mask's rendered content.
+Under the default luminance mode, opaque white reveals fully, opaque black hides fully, and anything in between — including gradients, and including partial *opacity* on an otherwise-bright shape — reveals partially; transparent content hides fully regardless of colour.
 
 Obtain one from `SvgDefs::mask(id)` (live-append) or `SvgDefs::build_mask(id, closure)` (detached until the closure succeeds).
 Apply it to any element with `SvgNode::set_mask_ref(&mask)` or `SvgNode::set_mask("id")`.
@@ -265,8 +266,10 @@ Remove the mask with `SvgNode::remove_mask()`.
 
 | Variant | Meaning |
 |---|---|
-| `Luminance` (default) | Reveal is proportional to the mask content's perceived brightness; colour matters. |
+| `Luminance` (default) | Reveal is proportional to the mask content's perceived brightness *and* opacity combined — transparent content hides fully no matter how bright its colour is. |
 | `Alpha` | Reveal is proportional to the mask content's alpha channel only; colour is ignored, only `fill-opacity`/`opacity` matters. |
+
+`mask-type` expresses the `<mask>` element's own preference; the element that *references* the mask can override it with its own `mask-mode` attribute (not currently wrapped by a named setter — use `SvgNode::set_attr("mask-mode", ...)`). `mask-mode`'s default, `match-source`, honours `mask-type`, so this override only matters if a caller sets `mask-mode` explicitly.
 
 **Applying and removing masks** on `SvgNode`:
 
