@@ -39,14 +39,29 @@ These elements have no wrapper anywhere in `src/` and, unlike the filter primiti
 | `<switch>` | Low structurally, but `systemLanguage`/`requiredFeatures` are already reachable as plain attributes on a `g()` via `set_attr`. | Low — a dedicated wrapper buys little over what is already reachable. |
 | `<view>` | Low — attribute-only container. | Low — fragment-identifier navigation is a niche use case for a WASM-driven crate that already controls the DOM directly. |
 | `<foreignObject>` | Low to build (`x`/`y`/`width`/`height` + the existing `set_inner_html`), but the crate's query methods (`first_child`, `query_selector`, etc.) already deliberately treat its contents as opaque — a constructor would be inconsistent with that stance unless the read side is revisited too. | Low-moderate, and narrow to HTML-interop scenarios. |
-| `<animate>` / `<animateTransform>` / `<animateMotion>` / `<set>` (SMIL) | High — four element types, each with a large, distinct attribute surface (`dur`, `begin`, `repeatCount`, `keyTimes`, `values`, `calcMode`, additive/accumulate semantics, motion-path following); no existing template to build from. | Contested — [`design_notes/rejected_ideas/animation.md`](design_notes/rejected_ideas/animation.md) already lays out why this crate deliberately chose a `requestAnimationFrame`-driven `AnimationLoop` over declarative timing; shipping SMIL elements alongside that would hand callers two competing animation models to reason about. |
 | `<style>` | Low to build. | Low — styling already goes through `set_attr`/CSS classes set from Rust; injecting a `<style>` text block doesn't fit how this crate expects callers to work. |
-| `<script>` | Low to build, but writing arbitrary script into a live DOM tree is a genuine XSS/injection surface, not just a missing wrapper. | **Not planned** — the security cost outweighs any benefit; this crate should not become the mechanism by which script is injected into the page. |
+
+## Non-goals
+
+SMIL animation and the `<script>` element are not, and will never be supported by this crate.
+
+They have been intentionally excluded:
+
+* Any use of Synchronised Multimedia Integration Language (SMIL) contradicts a design decision this crate has already argued against at length.
+
+  This would require the creation of four, completely new element types (`<animate>`, `<animateTransform>`, `<animateMotion>` and `<set>`) that then creates a large, distinct attribute surface (`dur`, `begin`, `repeatCount`, `keyTimes`, `values`, `calcMode`, additive/accumulate semantics, motion-path following).
+
+  [`design_notes/rejected_ideas/animation.md`](design_notes/rejected_ideas/animation.md) already lays out why this crate deliberately chose a `requestAnimationFrame`-driven `AnimationLoop` over declarative timing.
+
+  Shipping SMIL elements alongside RAF-based animation would hand callers two competing animation models to reason about.
+
+* The `<script>` element is a security-sensitive injection surface with no real workflow fit here.
+
+  Whilst this features comes at a low implementation cost, it creates the possibility to write an arbitrary script into a live DOM tree.
+  This is a genuinely ***bad*** idea since the security cost significantly outweighs any benefit it might bring.
 
 ### Priority
 
 Cost/benefit favours **`<mask>`** as the most productive gap to close next: its implementation cost is comparable to one of the pricier filter primitives above, since it follows the same proven structural pattern as `clipPath`, but its benefit is broader, since it is a foundational compositing primitive rather than a specialty visual effect.
 
 Within the filter primitives, the best value-per-effort ordering is `feBlend` → `feComponentTransfer` → `feTurbulence`/`feDisplacementMap`; `feConvolveMatrix` and `feDiffuseLighting`/`feSpecularLighting` are the most expensive items on either list for the narrowest payoff, and are deprioritised accordingly.
-
-SMIL animation and `<script>` are intentionally excluded from the priority ordering above rather than merely deprioritised: SMIL contradicts a design decision this crate has already argued for at length, and `<script>` is a security-sensitive injection surface with no real workflow fit here.
