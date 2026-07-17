@@ -376,8 +376,12 @@ impl SvgMask {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates a `<polyline>` mask shape inside this `<mask>`.
     ///
-    /// An open polyline has no area by default; it only contributes to the mask if its `fill-rule` produces a filled
-    /// region. Prefer `<polygon>` when you want a closed, filled mask shape.
+    /// A polyline remains open for stroking, but SVG implicitly closes it for filling — a straight edge is treated
+    /// as though it ran from the last point back to the first, purely for the purpose of computing the filled
+    /// region. Consequently, a non-degenerate (three-or-more-point) polyline already contributes a filled region
+    /// without needing to be turned into a polygon; `fill-rule` only selects how that implicitly closed area is
+    /// classified (nonzero vs even-odd), not whether it exists. Use [`polygon`](Self::polygon) when an explicitly
+    /// closed shape better expresses the intent.
     pub fn polyline(&self, points: &[Point]) -> Result<SvgNode, Error> {
         self.create_polyline(points)
     }
