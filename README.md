@@ -144,14 +144,15 @@ The coding used in the actual demo implementation is shown beneath each example.
 |---|---|
 | `SvgRoot` | Wraps the root `<svg>` element; entry point for all element creation
 | `SvgNode` | Cheap-to-clone handle to a live DOM element; attribute + event API
-| `SvgDefs` | `<defs>` container for reusable assets; factory for `SvgMarker`, `SvgClipPath`, `SvgPattern`, `SvgSymbol`, gradients, and shape elements
+| `SvgDefs` | `<defs>` container for reusable assets; factory for `SvgMarker`, `SvgClipPath`, `SvgMask`, `SvgPattern`, `SvgSymbol`, gradients, and shape elements
 | `SvgMarker` | `<marker>` element for arrowheads and other path decorations; owned id cache + shape factories
 | `SvgClipPath` | `<clipPath>` element that restricts rendered region to an arbitrary shape; owned id cache + shape factories
+| `SvgMask` | `<mask>` element that reveals/hides rendered region by luminance or alpha; owned id cache + shape factories
 | `SvgPattern` | `<pattern>` element that tiles its content as a fill or stroke paint server; owned id cache + shape factories
 | `PathDef` | Typesafe `<path>` `d`-attribute segment; builds a path from `&[PathDef]` via `path_from_defs` that avoids the possibility of creating a malformed `d` string
 | `AnimationLoop` | Drives a `requestAnimationFrame` loop; stops on `Drop`
 | `SvgAttrs` / `AttrWriter` | Reusable scratch buffer for allocation-light attribute writing
-| `Error` | All failure modes: element not found, DOM error, cast failure, invalid id (marker / gradient / clip-path / symbol / pattern), or reserved attribute
+| `Error` | All failure modes: element not found, DOM error, cast failure, invalid id (marker / gradient / clip-path / mask / symbol / pattern), or reserved attribute
 
 ## Minimal Demo
 

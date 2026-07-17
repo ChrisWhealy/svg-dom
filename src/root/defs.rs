@@ -25,8 +25,9 @@ use super::{
 /// The fixed prefix of a `url(#...)` reference.
 ///
 /// This value is used by every type below that caches a complete reference string (`SvgMarker`, `SvgClipPath`,
-/// `SvgPattern`, `SvgFilter`, `GradientInner`) rather than just its bare id, so the `url(#id)` value can be written to
-/// a `fill`/`stroke`/`clip-path`/`marker-*`/`filter` attribute without allocating a fresh `String` on every reference.
+/// `SvgMask`, `SvgPattern`, `SvgFilter`, `GradientInner`) rather than just its bare id, so the `url(#id)` value can be
+/// written to a `fill`/`stroke`/`clip-path`/`mask`/`marker-*`/`filter` attribute without allocating a fresh `String`
+/// on every reference.
 pub(crate) const URL_PREFIX: &str = "url(#";
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
