@@ -1,5 +1,13 @@
 # Change Log
 
+## 0.1.60 — 2026-07-17
+- `55b973f` Add 4 geometry read-back helpers (2026-07-17)
+- `ff1736b` Correct ctm() write-back round trip docs (2026-07-17)
+- `8a2a91f` Correct screen_ctm() coordinate-conversion docs (2026-07-17)
+- `745ed91` Document bounding_box() inclusion semantics (2026-07-17)
+- `db78c2b` Public f64s may carry only f32 precision (2026-07-17)
+- `124fa5f` Correct layout/reflow statements (2026-07-17)
+
 ## 0.1.59 — 2026-07-16
 - `fddc1cd` Implement 4 CSS class helpers on SvgNode (2026-07-16)
 - `e626f1e` Add dependency and bump version number (2026-07-16)
