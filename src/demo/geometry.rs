@@ -11,9 +11,10 @@ use crate::{
 //
 // `total_length()` is measured once at setup — the track's geometry never changes, so there is no reason to
 // re-measure it every frame. `point_at_length()`, by contrast, genuinely belongs on the animation's hot path: the
-// runner's position is recomputed every frame from the current lap fraction, which is exactly the "layout read every
-// frame" cost the method's own doc comment warns about — acceptable here because it is a single measurement against
-// one simple ellipse, not a whole scene's worth.
+// runner's position is recomputed every frame from the current lap fraction. That is exactly the per-frame browser
+// measurement the method's own doc comment cautions about — a legitimate demonstration here (one simple ellipse, not
+// a whole scene's worth), but the acceptable cost was not independently profiled; a caller doing this for real should
+// profile it against their own path complexity and target browser before assuming it scales.
 pub(super) fn demo_geometry_path_follow() -> Result<(), Error> {
     const CX: f64 = W / 2.0;
     const CY: f64 = PAD_Y + BAND_HALF;
@@ -57,7 +58,7 @@ pub(super) fn demo_geometry_path_follow() -> Result<(), Error> {
     caption(
         &svg,
         400.0,
-        "total_length() measured once at setup · point_at_length() drives the runner every frame",
+        "total_length() measured once at setup · point_at_length() drives the runner every frame — profile per-frame browser measurement like this for your own path complexity and target browser",
     )?;
     keep_demo_anim(anim);
     Ok(())

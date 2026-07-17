@@ -1,8 +1,10 @@
 //! Geometry read-back for [`SvgNode`](crate::SvgNode) — bounding boxes, path measurement, and coordinate-system
 //! transforms.
 //!
-//! Every method here reads real, current geometry from the browser, which forces a layout/reflow: none of them
-//! belong on a hot per-frame or per-pointer-move path without dedup/throttling (the same caveat
+//! Every method here crosses into the browser and may trigger synchronous style or layout calculation — if the
+//! relevant geometry is already up to date the browser need not redo that work, but a caller has no way to know
+//! which case applies from here. None of these methods belong on a hot per-frame or per-pointer-move path without
+//! profiling for the actual scene/browser combination in use (the same caveat
 //! [`computed_text_length`](crate::SvgNode::computed_text_length) already carries for the same reason).
 //!
 //! # These `f64` values may carry only `f32` precision
@@ -55,8 +57,9 @@ impl SvgNode {
     /// (`getBBox(options)`) that would let a caller opt into the stroke/decorated/visible box instead — see
     /// `docs/design_notes.md` ("`bounding_box` wraps only the no-argument `getBBox`...") for why.
     ///
-    /// **Performance:** this call triggers a browser layout read. Do not call it inside a hot animation or pointer-move
-    /// callback unless you have determined that this cost is acceptable.
+    /// **Performance:** this call crosses into the browser and may trigger synchronous style or layout calculation.
+    /// Profile before calling it inside a hot animation or pointer-move callback — the actual cost depends on the
+    /// scene's complexity and whether the browser's geometry is already current.
     ///
     /// # Errors
     ///
@@ -113,8 +116,9 @@ impl SvgNode {
     /// ("`ctm`/`screen_ctm` are accumulated matrices...") for the general formula to recover just this element's own
     /// local matrix from `ctm()` readings.
     ///
-    /// **Performance:** this call triggers a browser layout read. Do not call it inside a hot animation or
-    /// pointer-move callback unless you have determined that this cost is acceptable.
+    /// **Performance:** this call crosses into the browser and may trigger synchronous style or layout calculation.
+    /// Profile before calling it inside a hot animation or pointer-move callback — the actual cost depends on the
+    /// scene's complexity and whether the browser's geometry is already current.
     ///
     /// [`SVGGraphicsElement.getCTM()`]: https://developer.mozilla.org/docs/Web/API/SVGGraphicsElement/getCTM
     ///
@@ -162,8 +166,9 @@ impl SvgNode {
     /// example of each. Do not write a `screen_ctm()` reading straight back as this element's own local `transform`
     /// — that would double-apply whatever the ancestors and the page already contribute.
     ///
-    /// **Performance:** this call triggers a browser layout read. Do not call it inside a hot animation or pointer-move
-    /// callback unless you have determined that this cost is acceptable.
+    /// **Performance:** this call crosses into the browser and may trigger synchronous style or layout calculation.
+    /// Profile before calling it inside a hot animation or pointer-move callback — the actual cost depends on the
+    /// scene's complexity and whether the browser's geometry is already current.
     ///
     /// [`SVGGraphicsElement.getScreenCTM()`]: https://developer.mozilla.org/docs/Web/API/SVGGraphicsElement/getScreenCTM
     ///
@@ -194,8 +199,9 @@ impl SvgNode {
     /// this includes `<text>`, `<tspan>`, `<textPath>`, `<use>`, `<image>`, `<g>`, and the root `<svg>`; only `<rect>`,
     /// `<circle>`, `<ellipse>`, `<line>`, `<polyline>`, `<polygon>`, and `<path>` support it.
     ///
-    /// **Performance:** this call triggers a browser layout read. Do not call it inside a hot animation or
-    /// pointer-move callback unless you have determined that this cost is acceptable.
+    /// **Performance:** this call crosses into the browser and may trigger synchronous style or layout calculation.
+    /// Profile before calling it inside a hot animation or pointer-move callback — the actual cost depends on the
+    /// scene's complexity and whether the browser's geometry is already current.
     ///
     /// [`SVGGeometryElement.getTotalLength()`]: https://developer.mozilla.org/docs/Web/API/SVGGeometryElement/getTotalLength
     ///
@@ -223,8 +229,9 @@ impl SvgNode {
     /// [`SVGGeometryElement.getPointAtLength()`]. `distance` is clamped to `[0, `[`total_length`](Self::total_length)`]`
     /// by the browser, so an out-of-range value does not error — it returns the start or end point.
     ///
-    /// **Performance:** this call triggers a browser layout read. Do not call it inside a hot animation or
-    /// pointer-move callback unless you have determined that this cost is acceptable.
+    /// **Performance:** this call crosses into the browser and may trigger synchronous style or layout calculation.
+    /// Profile before calling it inside a hot animation or pointer-move callback — the actual cost depends on the
+    /// scene's complexity and whether the browser's geometry is already current.
     ///
     /// # Errors
     ///
@@ -264,8 +271,9 @@ impl SvgNode {
     ///
     /// This is infallible and available on every element.
     ///
-    /// **Performance:** this call triggers a browser layout read. Do not call it inside a hot animation or
-    /// pointer-move callback unless you have determined that this cost is acceptable.
+    /// **Performance:** this call crosses into the browser and may trigger synchronous style or layout calculation.
+    /// Profile before calling it inside a hot animation or pointer-move callback — the actual cost depends on the
+    /// scene's complexity and whether the browser's geometry is already current.
     ///
     /// [`Element.getBoundingClientRect()`]: https://developer.mozilla.org/docs/Web/API/Element/getBoundingClientRect
     ///

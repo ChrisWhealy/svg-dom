@@ -602,7 +602,9 @@
                     <div class="canvas" id="demo-geometry-path-follow"></div>
                     <figcaption>
                         <strong>total_length()</strong> is measured once at setup; <strong>point_at_length()</strong>
-                        recomputes the runner's position every animation frame from the current lap fraction.
+                        recomputes the runner's position every animation frame from the current lap fraction. This is
+                        a legitimate use of a per-frame browser measurement for one simple ellipse — profile it
+                        against your own path complexity and target browser before assuming it scales.
                     </figcaption>
                 </figure>
             </section>

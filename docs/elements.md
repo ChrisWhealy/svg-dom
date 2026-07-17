@@ -75,7 +75,7 @@ The legacy `mouseover` / `mouseout` wrappers remain available for compatibility 
 
 # Implemented geometry helpers
 
-Read-only geometry queries on `SvgNode`, each wrapping a browser measurement that forces a layout/reflow read:
+Read-only geometry queries on `SvgNode`, each crossing into the browser and potentially triggering synchronous style or layout calculation if the relevant geometry is not already current:
 
 - `bounding_box()` — local, user-space bounding box, via the no-argument form of `getBBox()`, i.e. the **object/fill** bounding box only (`fill=true`, `stroke=false`, `markers=false`, `clipped=false`) — stroke width, markers, and clipping are not included, so this can be visibly smaller than everything actually painted. `Err` if the browser rejects the call or the element does not implement `SVGGraphicsElement` (every element type this crate's factories return as a plain `SvgNode` does, so this is a defensive case).
 - `bounding_client_rect()` — rendered bounding rect in viewport CSS pixels (`getBoundingClientRect()`), reflecting every transform, `viewBox` scale, and CSS zoom currently in effect. Infallible, available on every element. **Not the same coordinate space as `bounding_box()`** — see `Rect`'s own doc comment.
