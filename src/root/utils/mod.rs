@@ -127,8 +127,8 @@ impl std::fmt::Display for Size {
 ///   has been applied.
 ///
 /// The two will differ whenever any transform, `viewBox`, or CSS scaling is in play. Do not feed one method's `Rect`
-/// into code that assumes the other's coordinate space — see `docs/rejected_ideas.md` ("Provide a rendered-size
-/// fallback...") for a worked example of exactly this mistake.
+/// into code that assumes the other's coordinate space — see `docs/design_notes/rejected_ideas/geometry.md`
+/// ("Provide a rendered-size fallback...") for a worked example of exactly this mistake.
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Rect {

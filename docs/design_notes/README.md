@@ -35,4 +35,4 @@ Where a corrected claim needed recording, it is kept as a correction rather than
 
 ## Ideas considered and rejected
 
-- [Ideas Considered and Rejected](rejected_ideas.md) — recommendations that were evaluated and *not* adopted, with the reasoning for each.
+- [Ideas Considered and Rejected](rejected_ideas/README.md) — recommendations that were evaluated and *not* adopted, with the reasoning for each, grouped by topic the same way as this document.

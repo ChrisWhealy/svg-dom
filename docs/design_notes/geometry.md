@@ -55,7 +55,7 @@ Reusing the existing struct rather than introducing a second matrix type avoids 
 `Rect { origin: Point, size: Size }` reuses the crate's existing coordinate types rather than duplicating four `f64` fields — the same reasoning that keeps `Matrix2D` a single shared type instead of one-off structs per caller.
 
 `bounding_box()` (local, user-space, `getBBox()`) and `bounding_client_rect()` (rendered CSS pixels relative to the viewport, `getBoundingClientRect()`) both return a `Rect`, but the two coordinate spaces are not interchangeable — they differ whenever any transform, `viewBox`, or CSS scaling is in play.
-This is the same mistake `docs/rejected_ideas.md` ("Provide a rendered-size fallback...") already documents from the other direction: an earlier proposal to seed the cached viewport from `getBoundingClientRect()` was rejected specifically because doing so would silently compare CSS pixels against attribute user-units.
+This is the same mistake [`rejected_ideas/geometry.md`](rejected_ideas/geometry.md) ("Provide a rendered-size fallback...") already documents from the other direction: an earlier proposal to seed the cached viewport from `getBoundingClientRect()` was rejected specifically because doing so would silently compare CSS pixels against attribute user-units.
 `Rect`'s own doc comment states the distinction explicitly, rather than leaving it to be discovered the same way twice.
 
 ## `ctm`/`screen_ctm` are accumulated matrices, not generally the element's own local transform
