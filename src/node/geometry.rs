@@ -260,9 +260,9 @@ impl SvgNode {
     /// finite `f64` (for example `f64::MAX`) to `f32::INFINITY`, and unlike an ordinary out-of-range *finite*
     /// distance, the browser's binding rejects an actually-infinite argument outright instead of clamping it —
     /// confirmed empirically (Chromium): passing `Infinity` throws `TypeError: ... non-finite`, while a large but
-    /// still-finite `f32`-representable distance (e.g. `1e30`) clamps to the path start exactly as documented.
+    /// still-finite `f32`-representable distance (e.g. `1e30`) clamps to the path end exactly as documented.
     /// To keep the clamping behaviour intuitive across the full `f64` domain, an out-of-`f32`-range *finite*
-    /// `distance` is saturated to `f32::MIN`/`f32::MAX` (which then clamps to the path's end/start the same as any
+    /// `distance` is saturated to `f32::MIN`/`f32::MAX` (which then clamps to the path's start/end the same as any
     /// other out-of-range finite value) rather than being allowed to become an actual infinity.
     ///
     /// **Performance:** this call crosses into the browser and may trigger synchronous style or layout calculation.
