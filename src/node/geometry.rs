@@ -5,7 +5,10 @@
 //! belong on a hot per-frame or per-pointer-move path without dedup/throttling (the same caveat
 //! [`computed_text_length`](crate::SvgNode::computed_text_length) already carries for the same reason).
 
-use crate::{Error, SvgNode, dom_err, root::utils::{Matrix2D, Point, Rect, Size}};
+use crate::{
+    Error, SvgNode, dom_err,
+    root::utils::{Matrix2D, Point, Rect, Size},
+};
 use wasm_bindgen::JsCast;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -223,7 +226,10 @@ impl SvgNode {
     /// ```
     pub fn bounding_client_rect(&self) -> Rect {
         let r = self.inner.element.get_bounding_client_rect();
-        Rect { origin: Point::new(r.x(), r.y()), size: Size::new(r.width(), r.height()) }
+        Rect {
+            origin: Point::new(r.x(), r.y()),
+            size: Size::new(r.width(), r.height()),
+        }
     }
 }
 

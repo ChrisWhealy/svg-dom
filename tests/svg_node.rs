@@ -2470,7 +2470,9 @@ fn should_reflect_page_position_in_screen_ctm_but_not_ctm() -> Result<(), String
     // screen_ctm additionally carries the root <svg>'s own position on the page, at least the spacer's height.
     common::check(
         screen_ctm.v_trans - ctm.v_trans > 500.0,
-        &format!("expected screen_ctm to include a large page offset beyond ctm, got ctm={ctm:?} screen_ctm={screen_ctm:?}"),
+        &format!(
+            "expected screen_ctm to include a large page offset beyond ctm, got ctm={ctm:?} screen_ctm={screen_ctm:?}"
+        ),
     )
 }
 
