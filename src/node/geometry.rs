@@ -67,6 +67,16 @@ impl SvgNode {
     /// Unlike [`screen_ctm`](Self::screen_ctm), this does **not** include any ancestor's transform beyond the nearest
     /// viewport — see [`screen_ctm`](Self::screen_ctm) for the full-chain equivalent.
     ///
+    /// # Not generally this element's own local transform
+    ///
+    /// `ctm()` accumulates **every** ancestor transform between this element and its nearest viewport ancestor, not
+    /// just this element's own `transform` attribute. Writing it straight back via
+    /// [`set_matrix`](Self::set_matrix)/[`set_matrix_precise`](Self::set_matrix_precise) is only correct when there is
+    /// no relevant transformed ancestor in that chain (equivalently: the parent-to-viewport transform is the
+    /// identity matrix) — otherwise the ancestor component gets double-applied. See `docs/design_notes.md`
+    /// ("`ctm`/`screen_ctm` are accumulated matrices...") for the general formula to recover just this element's own
+    /// local matrix from `ctm()` readings.
+    ///
     /// **Performance:** this call triggers a browser layout read. Do not call it inside a hot animation or
     /// pointer-move callback unless you have determined that this cost is acceptable.
     ///
@@ -80,7 +90,7 @@ impl SvgNode {
     /// let rect = svg.rect(Point::origin(), Size::new(80.0, 40.0))?;
     ///
     /// if let Some(ctm) = rect.ctm() {
-    ///     println!("translation: ({}, {})", ctm.h_trans, ctm.v_trans);
+    ///     println!("accumulated translation: ({}, {})", ctm.h_trans, ctm.v_trans);
     /// }
     /// Ok::<(), svg_dom::Error>(())
     /// ```
@@ -99,13 +109,15 @@ impl SvgNode {
     /// viewport (screen space), by wrapping [`SVGGraphicsElement.getScreenCTM()`]. Returns `None` if the element is not
     /// currently part of a rendered tree, or does not implement `SVGGraphicsElement`.
     ///
-    /// # Includes every ancestor's transform
+    /// # Also not generally this element's own local transform
     ///
-    /// Unlike [`ctm`](Self::ctm), this includes **every ancestor's** transform, not just this element's own. Do not
-    /// write the result straight back as this element's own local `transform` via [`set_matrix`](Self::set_matrix) /
-    /// [`set_matrix_precise`](Self::set_matrix_precise) — that would double-apply whatever transform the ancestors
-    /// already contribute. To convert a coordinate from screen space into this element's local space (or vice versa),
-    /// invert (or compose with the inverse of) the parent's own `screen_ctm` first.
+    /// Like [`ctm`](Self::ctm), this is an accumulated coordinate-conversion matrix, not this element's own
+    /// `transform` attribute in isolation — it goes further than `ctm()`, additionally carrying the root `<svg>`'s
+    /// own position on the page. Do not write the result straight back as this element's own local `transform` via
+    /// [`set_matrix`](Self::set_matrix)/[`set_matrix_precise`](Self::set_matrix_precise) — that would double-apply
+    /// whatever transform the ancestors and the page already contribute. See `docs/design_notes.md`
+    /// ("`ctm`/`screen_ctm` are accumulated matrices...") for the general formula to recover just this element's own
+    /// local matrix.
     ///
     /// **Performance:** this call triggers a browser layout read. Do not call it inside a hot animation or pointer-move
     /// callback unless you have determined that this cost is acceptable.
@@ -119,8 +131,7 @@ impl SvgNode {
     /// let svg  = SvgRoot::attach("diagram")?;
     /// let rect = svg.rect(Point::origin(), Size::new(80.0, 40.0))?;
     ///
-    /// let screen = rect.screen_ctm();
-    /// let local  = rect.ctm();
+    /// let screen = rect.screen_ctm(); // accumulated all the way to screen space, not a local transform
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn screen_ctm(&self) -> Option<Matrix2D> {

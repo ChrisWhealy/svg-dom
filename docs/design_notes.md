@@ -701,7 +701,7 @@ The gating itself follows the existing precedent set by `computed_text_length` (
 ### `ctm`/`screen_ctm` reuse `Matrix2D`, not a new type
 
 `SVGMatrix`'s `a()`/`b()`/`c()`/`d()`/`e()`/`f()` getters map onto exactly the role layout `Matrix2D` already uses for `set_matrix`/`set_matrix_precise` (`a`→`h_scale`, `b`→`v_skew`, `c`→`h_skew`, `d`→`v_scale`, `e`→`h_trans`, `f`→`v_trans`).
-Reusing the existing struct rather than introducing a second matrix type gives a natural round-trip: read a `Matrix2D` via `ctm()`, mutate it, write it straight back with `set_matrix`.
+Reusing the existing struct rather than introducing a second matrix type avoids a second, parallel matrix representation for what is structurally the same 2D affine transform — see below for what this does, and does not, buy a caller wanting to write a matrix back with `set_matrix`.
 
 ### `Rect` composes `Point` and `Size`, and its two producers are not interchangeable
 
@@ -711,13 +711,64 @@ Reusing the existing struct rather than introducing a second matrix type gives a
 This is the same mistake `docs/rejected_ideas.md` ("Provide a rendered-size fallback...") already documents from the other direction: an earlier proposal to seed the cached viewport from `getBoundingClientRect()` was rejected specifically because doing so would silently compare CSS pixels against attribute user-units.
 `Rect`'s own doc comment states the distinction explicitly, rather than leaving it to be discovered the same way twice.
 
-### `screen_ctm` includes every ancestor's transform, including the root `<svg>`'s own page position
+### `ctm`/`screen_ctm` are accumulated matrices, not generally the element's own local transform
 
-`ctm()` accumulates every ancestor transform up to the nearest **viewport** ancestor — for ordinary content with no nested `<svg>`/`<symbol>` boundary, that is the root `<svg>` itself, so `ctm()` on a deeply nested shape already reflects the *combined* chain of every intermediate `<g>`'s transform, not just the shape's own.
+An earlier draft of this note (and of `docs/elements.md`) claimed a matrix read via `ctm()` could be "mutated and written straight back" with `set_matrix`.
+That is wrong in general, and worth recording as a corrected claim rather than silently rewriting it (per this document's own convention — see the `getScreenCTM()`/`set_matrix` correction earlier in this file for the same pattern).
+
+Per the SVG specification, `getCTM()` returns the matrix mapping the element's own coordinate system into its **nearest SVG viewport's** coordinate system.
+That is the accumulation of the element's own `transform` **and** every intervening ancestor's `transform`, up to (but not through) the nearest viewport ancestor — for ordinary content with no nested `<svg>`/`<symbol>` boundary, that viewport is the root `<svg>` itself, so `ctm()` on a nested shape already reflects the *combined* chain of every intermediate `<g>`'s transform, not just the shape's own.
 `screen_ctm()` continues past that point, additionally carrying the root `<svg>`'s own position on the page (normal document flow, any CSS transform on an HTML ancestor, and so on).
 
-A caller who reads `screen_ctm()` intending to feed it back into `set_matrix`/`set_matrix_precise` on the same element must not do so unmodified — the ancestor and page-position components are already applied by the browser through the normal ancestor chain, so writing the full `screen_ctm()` back as the element's own local `transform` would double-apply them.
-To convert a coordinate between screen space and this element's local space, compose with the inverse of the parent's own `screen_ctm` first.
+The browser test `should_accumulate_ancestor_transforms_in_ctm_up_to_the_root_viewport` (`tests/svg_node.rs`) demonstrates exactly why the original claim was wrong: a `<g>` translated `(100, 0)` contains a `<rect>` translated `(0, 50)`.
+The rect's own local transform is `translate(0, 50)`, but `rect.ctm()` reports `(100, 50)` — the parent's translation is already folded in.
+Writing that `ctm()` reading straight back as the rect's own `transform` via `set_matrix` would leave the parent's translation in place *and* add the already-accumulated `(100, 50)` again, producing an effective translation of `(200, 50)`, not the intended `(0, 50)`.
+
+**Direct write-back of a `ctm()`/`screen_ctm()` reading is therefore only correct when the parent-to-viewport transform is the identity matrix** — informally, when the element being measured has no relevantly-transformed ancestor between it and its nearest viewport.
+`screen_ctm()` additionally requires the page position itself to contribute nothing (rarely true), so it is very rarely safe to write back directly at all; use it for coordinate conversion (see below), not for reproducing a local transform.
+
+#### Recovering the local matrix
+
+Using this crate's own `matrix(a, b, c, d, e, f)` convention (documented on `Matrix2D` itself) — a point is transformed as `p' = M · p` in homogeneous column-vector form:
+
+```text
+| h_scale  h_skew   h_trans |
+| v_skew   v_scale  v_trans |
+| 0        0        1       |
+```
+
+For an element and its immediate parent that share the same nearest viewport ancestor (i.e. no `<svg>`/`<symbol>` boundary between them), composition gives `child.ctm() = parent.ctm() · child.local()`.
+Solving for the child's own local matrix:
+
+```text
+child.local() = inverse(parent.ctm()) · child.ctm()
+```
+
+For a general 2D affine `Matrix2D { h_scale: a, v_skew: b, h_skew: c, v_scale: d, h_trans: e, v_trans: f }`, with `det = a·d - b·c`:
+
+```text
+inverse.h_scale = d / det          inverse.h_skew  = -c / det
+inverse.v_skew  = -b / det         inverse.v_scale =  a / det
+inverse.h_trans = (c·f - d·e) / det
+inverse.v_trans = (b·e - a·f) / det
+```
+
+and composing two matrices `P · C` (`P` applied after `C`):
+
+```text
+result.h_scale = P.h_scale·C.h_scale + P.h_skew·C.v_skew
+result.v_skew  = P.v_skew·C.h_scale  + P.v_scale·C.v_skew
+result.h_skew  = P.h_scale·C.h_skew  + P.h_skew·C.v_scale
+result.v_scale = P.v_skew·C.h_skew   + P.v_scale·C.v_scale
+result.h_trans = P.h_scale·C.h_trans + P.h_skew·C.v_trans + P.h_trans
+result.v_trans = P.v_skew·C.h_trans  + P.v_scale·C.v_trans + P.v_trans
+```
+
+Checked against the test above: `parent.ctm()` is a pure `translate(100, 0)`, whose inverse is `translate(-100, 0)`.
+Composing that inverse with `child.ctm() = translate(100, 50)` gives `translate(0, 50)` — exactly the rect's actual local `set_translate(0, 50)`, confirming the formula.
+
+This crate deliberately does not ship an `inverse`/`compose` method on `Matrix2D` — `Matrix2D` remains a plain data struct with no matrix-composition API of its own (the same scope boundary already noted above), so a caller who needs this implements it from the formula above rather than this crate silently growing a small linear-algebra library.
+
 Both `set_matrix` and `set_matrix_precise`'s doc comments carry a short pointer to this note.
 
 # Performance Patterns
