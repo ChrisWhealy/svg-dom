@@ -20,7 +20,16 @@ Six new `SvgNode` methods in `src/node/geometry.rs` have been implemented: `boun
 
 `SvgGraphicsElement` (`getBBox`/`getCTM`/`getScreenCTM`) and `SvgGeometryElement` (`getTotalLength`/`getPointAtLength`) are runtime DOM interfaces, not something this crate tracks statically.
 `SvgNode` is one type shared by every element this crate's factories produce, the same way `set_attr`/`attr` work on any element regardless of tag.
-Confirmed by checking `web-sys`'s own `extends` declarations: every element type this crate hands back as a plain `SvgNode` (`rect`, `circle`, `ellipse`, `line`, `polyline`, `polygon`, `path`, `text`, `tspan`, `textPath`, `use`, `image`, `g`, and the root `svg`) implements `SVGGraphicsElement`, so the interface check on `bounding_box`/`ctm`/`screen_ctm` is a defensive safety net rather than something reachable through this crate's own API today.
+
+An earlier revision of this note claimed every time this crate hands back a plain `SvgNode`, the type implements `SVGGraphicsElement`, making the interface check on `bounding_box`/`ctm`/`screen_ctm` a defensive safety net rather than something reachable through this crate's own API.
+That was wrong, and is recorded as a correction rather than silently rewritten, per this document's own convention.
+
+It held for every *rendered shape* factory (`rect`, `circle`, `ellipse`, `line`, `polyline`, `polygon`, `path`, `text`, `tspan`, `textPath`, `use`, `image`, `g`, and the root `svg`), confirmed by checking `web-sys`'s own `extends` declarations — but it missed `SvgFilter`'s primitive-builder methods (`gaussian_blur`, `gaussian_blur_xy`, `offset`, `merge`, `flood`, `composite`, `color_matrix`, `drop_shadow`), which also return a plain `SvgNode` (see [`<filter>` primitives return a plain `SvgNode`](filters.md)).
+Filter primitive elements (`feGaussianBlur`, `feOffset`, `feMerge`, ...) are non-rendering: confirmed empirically (Chromium) that `feGaussianBlur`/`feOffset`/`feMerge` are each `instanceof SVGElement` but not `instanceof SVGGraphicsElement` or `instanceof SVGGeometryElement`.
+
+So `filter.gaussian_blur(4.0)?.bounding_box()` genuinely returns `Err`, and `.ctm()` and `.screen_ctm()` genuinely return `None`, through the crate's ordinary public API — not a defensive branch, a reachable one.
+Most visible SVG nodes that are returned as `SvgNode` do implement `SVGGraphicsElement`, but non-rendering nodes such as filter primitives do not, so the interface check is part of this method family's real runtime contract, not a safety net for a case that cannot occur.
+
 `SVGGeometryElement`, in contrast, is implemented only by `rect`/`circle`/`ellipse`/`line`/`polyline`/`polygon`/`path` — `text`/`tspan`/`textPath`/`use`/`image`/`g`/`svg` genuinely lack it, so `total_length`/`point_at_length`'s "does not apply" branch is real and tested (calling either on a `<text>` or `<g>` node).
 
 The gating itself follows the existing precedent set by `computed_text_length` (`src/node/text.rs`): `self.inner.element.dyn_ref::<web_sys::SvgGraphicsElement>()` returns `None` cleanly if the underlying element does not implement the interface, rather than the call panicking or throwing an uncaught JS exception.

@@ -2395,6 +2395,32 @@ fn should_return_none_for_total_length_on_a_group() -> Result<(), String> {
     common::check_eq(group.total_length(), None)
 }
 
+/// A filter primitive (`<feGaussianBlur>`, returned as a plain `SvgNode` by `SvgFilter::gaussian_blur`) fails every
+/// geometry interface check — `SVGGraphicsElement` and `SVGGeometryElement` alike — because filter primitives are
+/// non-rendering elements, unlike every shape/text/container factory this crate exposes. This proves the interface
+/// gate is reachable through the crate's own API, not only through raw `<text>`/`<g>` nodes checked against
+/// `SVGGeometryElement` alone: `bounding_box`, `ctm`, and `screen_ctm` are all gated on `SVGGraphicsElement`, which
+/// a filter primitive does not implement either.
+#[wasm_bindgen_test]
+fn should_fail_every_geometry_interface_check_on_a_filter_primitive() -> Result<(), String> {
+    let svg = make_svg("node-geometry-filter-primitive");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("blur-filter").map_err(|e| e.to_string())?;
+    let blur = filter.gaussian_blur(4.0).map_err(|e| e.to_string())?;
+
+    common::check(
+        blur.bounding_box().is_err(),
+        "expected Err: feGaussianBlur is not SVGGraphicsElement",
+    )?;
+    common::check_eq(blur.ctm(), None)?;
+    common::check_eq(blur.screen_ctm(), None)?;
+    common::check_eq(blur.total_length(), None)?;
+    common::check(
+        blur.point_at_length(0.0).is_err(),
+        "expected Err: feGaussianBlur is not SVGGeometryElement",
+    )
+}
+
 /// `point_at_length` returns `Err` for a `<text>` node, the `Result`-returning sibling of `total_length`'s `None`.
 #[wasm_bindgen_test]
 fn should_return_err_for_point_at_length_on_a_text_element() -> Result<(), String> {

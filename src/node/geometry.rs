@@ -71,8 +71,10 @@ impl SvgNode {
     /// # Errors
     ///
     /// Returns [`Error::Dom`] if the browser rejects the call, or if this element does not implement
-    /// `SVGGraphicsElement` (every element type this crate's factories return as a plain `SvgNode` does, so this is a
-    /// defensive case rather than one reachable through this crate's own API).
+    /// `SVGGraphicsElement`. Most element types returned by this crate's factories do implement it, but not all —
+    /// filter primitives (`SvgFilter::gaussian_blur`, `offset`, `merge`, ...) are also returned as a plain `SvgNode`
+    /// and are non-rendering elements that do not implement `SVGGraphicsElement`, so this branch is part of this
+    /// method's real, reachable contract, not a defensive-only check.
     ///
     /// [`SVGGraphicsElement.getBBox()`]: https://developer.mozilla.org/docs/Web/API/SVGGraphicsElement/getBBox
     ///
