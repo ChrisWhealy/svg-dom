@@ -57,7 +57,7 @@ They have been intentionally excluded:
 
 * The `<script>` element is a security-sensitive injection surface with no real workflow fit here.
 
-  Whilst this features comes at a low implementation cost, it creates the possibility to write an arbitrary script into a live DOM tree.
+  Whilst this feature is cheap to implement, it creates the possibility to write an arbitrary script into a live DOM tree.
   This is a genuinely ***bad*** idea since the security cost significantly outweighs any benefit it might bring.
 
 ### Priority
