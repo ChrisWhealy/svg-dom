@@ -242,9 +242,9 @@ impl SvgNode {
     /// # Point at distance along a path
     ///
     /// Returns the point at `distance` user units along this element's path, by wrapping
-    /// [`SVGGeometryElement.getPointAtLength()`]. A **finite** `distance` outside `[0,
-    /// `[`total_length`](Self::total_length)`]` does not error — it clamps to the path's start or end point, per the
-    /// SVG specification.
+    /// [`SVGGeometryElement.getPointAtLength()`]. `distance` is clamped to the interval from `0.0` to
+    /// [`total_length()`](Self::total_length) — a **finite** `distance` outside that range does not error, it
+    /// clamps to the path's start or end point, per the SVG specification.
     ///
     /// The underlying SVG DOM API uses 32-bit floating-point values on both sides of this call: the returned point's
     /// coordinates are widened to `f64` for consistency with the rest of this crate's geometry types, and `distance`

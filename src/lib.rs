@@ -11,7 +11,7 @@
 //!
 //! | Module | Key type | Purpose |
 //! |---|---|---|
-//! | [`demo`] | | Provides a set of SVG element examples.  Run `cargo demo` then visit http://localhost:8080/demo. |
+//! | `demo` (feature `demo`) | | Provides a set of SVG element examples.  Run `cargo demo` then visit http://localhost:8080/demo. |
 //! | [`error`] | [`Error`] | Wrapper for Browser DOM errors |
 //! | [`root`] | [`SvgRoot`] / [`SvgAttrs`] | Wraps the `<svg>` root; factory for all child elements; reusable attribute writing |
 //! | [`root::defs`] | [`SvgDefs`] | `<defs>` container; factory for markers, gradients, clip-paths, patterns, filters, and symbols |
@@ -59,6 +59,7 @@
 
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
+#![deny(rustdoc::broken_intra_doc_links)]
 
 /// The [`AnimationLoop`] `requestAnimationFrame` driver and its per-frame [`AnimationFrame`] scratch buffer.
 pub mod animate;
