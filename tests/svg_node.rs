@@ -2331,13 +2331,28 @@ fn should_write_fixed_precision_d_from_defs() -> Result<(), String> {
 // Geometry read-back: bounding_box / total_length / point_at_length / ctm / screen_ctm / bounding_client_rect
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-/// Small tolerance for browser-measured geometry comparisons — these are real layout reads, not pure computation.
+/// Tolerance for browser-measured geometry comparisons (`bounding_box`, `bounding_client_rect`, `total_length`,
+/// `point_at_length`) — these are real layout/paint reads, not pure computation, so sub-pixel slack is expected.
 const GEOM_EPS: f64 = 0.5;
+
+/// Tighter tolerance for matrix-component comparisons (`ctm`/`screen_ctm` fields) against values this test suite
+/// itself wrote via `set_matrix_precise`/`set_translate`/`set_scale`. The only expected divergence there is the
+/// `f32` round-trip through the legacy SVG DOM matrix types (see `src/node/geometry.rs`'s module doc comment) —
+/// `f32` carries roughly 7 significant decimal digits, so `1e-4` comfortably separates "expected `f32` noise" from
+/// a real mapping bug (e.g. a transposed `b`/`c` or `a`/`d` field) without being so tight it flakes on rounding.
+const MATRIX_EPS: f64 = 1e-4;
 
 fn approx(got: f64, expected: f64) -> Result<(), String> {
     common::check(
         (got - expected).abs() < GEOM_EPS,
         &format!("expected approximately {expected}, got {got}"),
+    )
+}
+
+fn approx_tight(got: f64, expected: f64) -> Result<(), String> {
+    common::check(
+        (got - expected).abs() < MATRIX_EPS,
+        &format!("expected approximately {expected} (tight), got {got}"),
     )
 }
 
@@ -2400,6 +2415,32 @@ fn should_report_point_at_length_zero_as_path_start() -> Result<(), String> {
     approx(start.y, 10.0)
 }
 
+/// A negative `distance` clamps to the path's start point, on a straight open path where start and end are
+/// unambiguously distinct (unlike a closed `<rect>`, whose implicit closing `Z` puts its start and end at the same
+/// point).
+#[wasm_bindgen_test]
+fn should_clamp_negative_point_at_length_distance_to_start() -> Result<(), String> {
+    let line = make_svg("node-point-at-length-negative")
+        .path("M10 10L90 10")
+        .map_err(|e| e.to_string())?;
+    let point = line.point_at_length(-50.0).map_err(|e| e.to_string())?;
+    approx(point.x, 10.0)?;
+    approx(point.y, 10.0)
+}
+
+/// A `distance` beyond `total_length()` clamps to the path's end point, the same open-path fixture as the negative
+/// case above so start and end are unambiguously distinct.
+#[wasm_bindgen_test]
+fn should_clamp_point_at_length_distance_beyond_total_length_to_end() -> Result<(), String> {
+    let line = make_svg("node-point-at-length-beyond-total")
+        .path("M10 10L90 10")
+        .map_err(|e| e.to_string())?;
+    let total = line.total_length().ok_or("expected Some(length) for a <path>")?;
+    let point = line.point_at_length(total + 50.0).map_err(|e| e.to_string())?;
+    approx(point.x, 90.0)?;
+    approx(point.y, 10.0)
+}
+
 /// `point_at_length` rejects `NaN` and both infinities without ever crossing into the browser.
 #[wasm_bindgen_test]
 fn should_reject_non_finite_point_at_length_distance() -> Result<(), String> {
@@ -2444,12 +2485,12 @@ fn should_report_identity_ctm_for_untransformed_rect() -> Result<(), String> {
         .rect(Point::origin(), Size::new(80.0, 40.0))
         .map_err(|e| e.to_string())?;
     let ctm = rect.ctm().ok_or("expected Some(ctm) for a rendered <rect>")?;
-    approx(ctm.h_scale, 1.0)?;
-    approx(ctm.v_scale, 1.0)?;
-    approx(ctm.h_skew, 0.0)?;
-    approx(ctm.v_skew, 0.0)?;
-    approx(ctm.h_trans, 0.0)?;
-    approx(ctm.v_trans, 0.0)
+    approx_tight(ctm.h_scale, 1.0)?;
+    approx_tight(ctm.v_scale, 1.0)?;
+    approx_tight(ctm.h_skew, 0.0)?;
+    approx_tight(ctm.v_skew, 0.0)?;
+    approx_tight(ctm.h_trans, 0.0)?;
+    approx_tight(ctm.v_trans, 0.0)
 }
 
 /// `ctm` reflects a `set_translate` round-trip: what was written is what comes back.
@@ -2461,8 +2502,40 @@ fn should_reflect_translate_in_ctm() -> Result<(), String> {
     let mut buf = String::new();
     rect.set_translate(&mut buf, 25.0, 15.0).map_err(|e| e.to_string())?;
     let ctm = rect.ctm().ok_or("expected Some(ctm) for a rendered <rect>")?;
-    approx(ctm.h_trans, 25.0)?;
-    approx(ctm.v_trans, 15.0)
+    approx_tight(ctm.h_trans, 25.0)?;
+    approx_tight(ctm.v_trans, 15.0)
+}
+
+/// `ctm()` correctly maps all six `SVGMatrix` components back onto `Matrix2D`'s role-named fields. The identity and
+/// single-axis-translation fixtures above cannot catch a mapping error involving `b`/`c` (`v_skew`/`h_skew`) or
+/// `a`/`d` (`h_scale`/`v_scale`), since those fields are all `0`/`1`/equal-to-each-other there; six distinct values
+/// (mirroring the `set_matrix` argument-order fixture) can.
+#[wasm_bindgen_test]
+fn should_read_back_all_six_distinct_ctm_components() -> Result<(), String> {
+    let rect = make_svg("node-ctm-six-components")
+        .rect(Point::origin(), Size::new(80.0, 40.0))
+        .map_err(|e| e.to_string())?;
+    let mut buf = String::new();
+    rect.set_matrix_precise(
+        &mut buf,
+        Matrix2D {
+            h_scale: 1.1,
+            v_scale: 2.2,
+            h_skew: 3.3,
+            v_skew: 4.4,
+            h_trans: 5.5,
+            v_trans: -6.6,
+        },
+    )
+    .map_err(|e| e.to_string())?;
+
+    let ctm = rect.ctm().ok_or("expected Some(ctm) for a rendered <rect>")?;
+    approx_tight(ctm.h_scale, 1.1)?;
+    approx_tight(ctm.v_scale, 2.2)?;
+    approx_tight(ctm.h_skew, 3.3)?;
+    approx_tight(ctm.v_skew, 4.4)?;
+    approx_tight(ctm.h_trans, 5.5)?;
+    approx_tight(ctm.v_trans, -6.6)
 }
 
 /// `ctm` accumulates every ancestor transform up to the nearest *viewport* ancestor — here, the root `<svg>` itself,
@@ -2480,8 +2553,32 @@ fn should_accumulate_ancestor_transforms_in_ctm_up_to_the_root_viewport() -> Res
     child.set_translate(&mut buf, 0.0, 50.0).map_err(|e| e.to_string())?;
 
     let ctm = child.ctm().ok_or("expected Some(ctm) for the nested <rect>")?;
-    approx(ctm.h_trans, 100.0)?;
-    approx(ctm.v_trans, 50.0)
+    approx_tight(ctm.h_trans, 100.0)?;
+    approx_tight(ctm.v_trans, 50.0)
+}
+
+/// `ctm` composes ancestor and own transforms in the mathematically correct order (`ctm_child = ctm_parent ·
+/// local_child`). Two translations alone (as above) cannot catch a reversed multiplication order, because
+/// translation matrices commute — `translate(a) · translate(b) == translate(b) · translate(a)` either way. A parent
+/// *scale* combined with a child *translate* does not commute, so this test fails under either transposed order:
+/// correct composition places the child's own `translate(10, 0)` in its local space first, then the parent's
+/// `scale(2)` maps that point out to `(20, 0)`; the reversed order would instead give `(10, 0)`.
+#[wasm_bindgen_test]
+fn should_accumulate_non_commuting_ancestor_transform_in_correct_order() -> Result<(), String> {
+    let svg = make_svg("node-ctm-non-commuting");
+    let group = svg.group().map_err(|e| e.to_string())?;
+    let mut buf = String::new();
+    group.set_scale(&mut buf, 2.0).map_err(|e| e.to_string())?;
+
+    let child = svg.rect(Point::origin(), Size::new(10.0, 10.0)).map_err(|e| e.to_string())?;
+    group.append(&child).map_err(|e| e.to_string())?;
+    child.set_translate(&mut buf, 10.0, 0.0).map_err(|e| e.to_string())?;
+
+    let ctm = child.ctm().ok_or("expected Some(ctm) for the nested <rect>")?;
+    approx_tight(ctm.h_scale, 2.0)?;
+    approx_tight(ctm.v_scale, 2.0)?;
+    approx_tight(ctm.h_trans, 20.0)?;
+    approx_tight(ctm.v_trans, 0.0)
 }
 
 /// `screen_ctm` additionally carries the root `<svg>`'s own position on the page, which `ctm` never reflects (`ctm`
@@ -2501,8 +2598,8 @@ fn should_reflect_page_position_in_screen_ctm_but_not_ctm() -> Result<(), String
     let screen_ctm = rect.screen_ctm().ok_or("expected Some(screen_ctm) for the rect")?;
 
     // Untransformed, and nothing between it and the root <svg> — ctm carries no page-position information at all.
-    approx(ctm.h_trans, 0.0)?;
-    approx(ctm.v_trans, 0.0)?;
+    approx_tight(ctm.h_trans, 0.0)?;
+    approx_tight(ctm.v_trans, 0.0)?;
 
     // screen_ctm additionally carries the root <svg>'s own position on the page, at least the spacer's height.
     common::check(
@@ -2524,4 +2621,31 @@ fn should_report_bounding_client_rect_as_nonzero_for_rendered_element() -> Resul
     let client_rect = rect.bounding_client_rect();
     common::check(client_rect.size.width > 0.0, "expected a positive width")?;
     common::check(client_rect.size.height > 0.0, "expected a positive height")
+}
+
+/// Turns the documented coordinate-space distinction between `bounding_box` (local, excludes the element's own
+/// `transform`) and `bounding_client_rect` (viewport, includes it) into an executable invariant: translating the
+/// element leaves `bounding_box` unchanged but moves `bounding_client_rect` by exactly the same amount.
+#[wasm_bindgen_test]
+fn should_diverge_bounding_box_and_bounding_client_rect_under_transform() -> Result<(), String> {
+    let rect = make_svg("node-bbox-vs-client-rect-transform")
+        .rect(Point::new(10.0, 10.0), Size::new(80.0, 40.0))
+        .map_err(|e| e.to_string())?;
+
+    let bbox_before = rect.bounding_box().map_err(|e| e.to_string())?;
+    let client_before = rect.bounding_client_rect();
+
+    let mut buf = String::new();
+    rect.set_translate(&mut buf, 300.0, 300.0).map_err(|e| e.to_string())?;
+
+    let bbox_after = rect.bounding_box().map_err(|e| e.to_string())?;
+    let client_after = rect.bounding_client_rect();
+
+    // bounding_box excludes the element's own transform — unaffected by the translate.
+    approx(bbox_after.origin.x, bbox_before.origin.x)?;
+    approx(bbox_after.origin.y, bbox_before.origin.y)?;
+
+    // bounding_client_rect includes it — the on-screen position moves by exactly (300, 300).
+    approx(client_after.origin.x - client_before.origin.x, 300.0)?;
+    approx(client_after.origin.y - client_before.origin.y, 300.0)
 }
