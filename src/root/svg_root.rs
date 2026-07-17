@@ -18,7 +18,7 @@ pub struct SvgRoot {
     /// The underlying `<svg>` element wrapped by this root.
     ///
     /// This is exposed as an escape hatch for the occasional attribute or property this crate does not wrap directly —
-    /// `preserveAspectRatio`, focus management, geometry read-back, and so on.
+    /// `preserveAspectRatio`, focus management, and so on.
     ///
     /// Note, however, that `width` and `height` are tracked by a cached viewport.
     /// Writing them directly on this element (for example `root.set_attribute("width", ...)`) desynchronises

@@ -7,7 +7,7 @@ default-members = ["."]
 [package]
 name = "svg-dom"
 authors = ["Chris Whealy <chris@whealy.com>"]
-version = "0.1.59"
+version = "0.1.60"
 edition = "2024"
 rust-version = "1.85"
 description = "A lightweight Rust/WebAssembly library for creating and mutating live SVG content directly in the browser DOM"
@@ -33,6 +33,7 @@ features = [
     "AddEventListenerOptions",
     "Document",
     "DocumentFragment",
+    "DomRect",
     "DomTokenList",
     "DragEvent",
     "Element",
@@ -46,6 +47,11 @@ features = [
     "PointerEvent",
     "Node",
     "SvgElement",
+    "SvgGeometryElement",
+    "SvgGraphicsElement",
+    "SvgMatrix",
+    "SvgPoint",
+    "SvgRect",
     "SvgsvgElement",
     "SvgTextContentElement",
     "TouchEvent",

@@ -107,6 +107,34 @@ impl std::fmt::Display for Size {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// An axis-aligned rectangle, returned by [`SvgNode::bounding_box`](crate::SvgNode::bounding_box) and
+/// [`SvgNode::bounding_client_rect`](crate::SvgNode::bounding_client_rect).
+///
+/// # Two producers, two different coordinate spaces
+///
+/// These two methods both return a `Rect`, but the coordinates are **not interchangeable**:
+///
+/// * [`bounding_box`](crate::SvgNode::bounding_box) wraps `getBBox()` and reports **local, user-space** coordinates —
+///   the same coordinate system the element's own `x`/`y`/`d`/`points` attributes are authored in, unaffected by any
+///   transform applied to the element or its ancestors.
+/// * [`bounding_client_rect`](crate::SvgNode::bounding_client_rect) wraps `getBoundingClientRect()` and reports
+///   **rendered CSS pixels**, relative to the browser viewport, after every transform, `viewBox` scale, and CSS zoom
+///   has been applied.
+///
+/// The two will differ whenever any transform, `viewBox`, or CSS scaling is in play. Do not feed one method's `Rect`
+/// into code that assumes the other's coordinate space — see `docs/rejected_ideas.md` ("Provide a rendered-size
+/// fallback...") for a worked example of exactly this mistake.
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Rect {
+    /// The rectangle's origin (top-left corner) — see the coordinate-space note above for which space this is in,
+    /// depending on which method produced this `Rect`.
+    pub origin: Point,
+    /// The rectangle's size — see the coordinate-space note above.
+    pub size: Size,
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// A 2D affine transform matrix, passed to [`SvgNode::set_matrix`](crate::SvgNode::set_matrix) and
 /// [`SvgNode::set_matrix_precise`](crate::SvgNode::set_matrix_precise).
 ///

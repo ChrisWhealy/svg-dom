@@ -152,6 +152,10 @@ impl SvgNode {
     /// element's local transform — or for a slow/precise rotation, where `set_matrix`'s quantisation can round a small
     /// sine term in a way that introduces visual artefacts or makes the rotation disappear entirely.
     ///
+    /// If the coefficients come from [`screen_ctm`](Self::screen_ctm) rather than a local-space source, read that
+    /// method's doc comment first — it includes every ancestor's transform, so writing it back here unmodified would
+    /// double-apply the ancestor component.
+    ///
     /// # Example
     ///
     /// ```rust,no_run
@@ -209,6 +213,10 @@ impl SvgNode {
     ///
     /// Choose based on whether the original `f64` values need to survive serialisation exactly, not on an assumption
     /// about which output is shorter.
+    ///
+    /// If the coefficients come from [`screen_ctm`](Self::screen_ctm) rather than a local-space source, read that
+    /// method's doc comment first — it includes every ancestor's transform, so writing it back here unmodified would
+    /// double-apply the ancestor component.
     ///
     /// # Example
     ///

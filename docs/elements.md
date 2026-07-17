@@ -73,6 +73,15 @@ The legacy `mouseover` / `mouseout` wrappers remain available for compatibility 
 - `SvgRoot::set_view_box(x, y, width, height)` — the root `<svg>`'s internal coordinate system, independent of `set_viewport`'s `width`/`height`. `SvgSymbol`, `SvgPattern`, and `SvgMarker` have the same method for their own `viewBox`; see [`<symbol>`](#symbol), [`<pattern>`](#pattern), and [`<marker>`](#marker) below.
 - CSS class manipulation on `SvgNode` — `add_class`, `remove_class`, `toggle_class`, `set_class_enabled` (deterministic set/clear via `classList.toggle(token, force)`), `has_class`, backed by the DOM `classList` API.
 
+# Implemented geometry helpers
+
+Read-only geometry queries on `SvgNode`, each wrapping a browser measurement that forces a layout/reflow read:
+
+- `bounding_box()` — local, user-space bounding box (`getBBox()`); `Err` if the browser rejects the call or the element does not implement `SVGGraphicsElement` (every element type this crate's factories return as a plain `SvgNode` does, so this is a defensive case).
+- `bounding_client_rect()` — rendered bounding rect in viewport CSS pixels (`getBoundingClientRect()`), reflecting every transform, `viewBox` scale, and CSS zoom currently in effect. Infallible, available on every element. **Not the same coordinate space as `bounding_box()`** — see `Rect`'s own doc comment.
+- `ctm()` / `screen_ctm()` — current transformation matrix, returned as the same role-named `Matrix2D` used by `set_matrix`/`set_matrix_precise`, so a matrix read here can be mutated and written straight back. `ctm()` accumulates every ancestor transform up to the nearest *viewport* ancestor; `screen_ctm()` continues all the way to screen space, additionally carrying the root `<svg>`'s own position on the page. Both return `None` if the element is not currently rendered.
+- `total_length()` / `point_at_length(distance)` — path measurement (`getTotalLength()`/`getPointAtLength()`), only meaningful for `<rect>`, `<circle>`, `<ellipse>`, `<line>`, `<polyline>`, `<polygon>`, and `<path>`. `total_length()` returns `None`, and `point_at_length()` returns `Err`, for element types that do not implement `SVGGeometryElement` (`<text>`, `<tspan>`, `<textPath>`, `<use>`, `<image>`, `<g>`, the root `<svg>`).
+
 ---
 
 ## `<clipPath>`

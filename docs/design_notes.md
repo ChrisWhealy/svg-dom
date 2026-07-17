@@ -19,6 +19,7 @@
 - [Downward tree navigation and query-by-selector reuse `parent`'s independent-handle pattern, not a new type](#downward-tree-navigation-and-query-by-selector-reuse-parents-independent-handle-pattern-not-a-new-type)
 - [`SvgRoot::set_view_box` reuses `SvgSymbol`/`SvgPattern`'s existing shape](#svgrootset_view_box-reuses-svgsymbolsvgpatterns-existing-shape)
 - [`classList` helpers are scoped to `SvgNode`, not duplicated per element type](#classlist-helpers-are-scoped-to-svgnode-not-duplicated-per-element-type)
+- [Geometry read-back methods gate on the DOM interface, not the element type](#geometry-read-back-methods-gate-on-the-dom-interface-not-the-element-type)
 - [Ideas Considered and Rejected](rejected_ideas.md)
 - [Performance Patterns](#performance-patterns)
 
@@ -677,6 +678,47 @@ The demo (`demo_events_classlist` in `src/demo/events.rs`) deliberately keeps al
 Each tile's `on_click` handler calls only `toggle_class("selected")`, never `set_fill`/`set_attr` on `stroke` directly, and the gold highlight comes purely from a `.tile.selected` CSS rule.
 This is the whole point of the demo: it shows that a `class` attribute change alone is enough to restyle an element, which is the actual reason `classList` helpers are useful over `set_attr("class", ...)` string-splicing.
 The "selected: n / 3" readout is recomputed from `has_class` on every tile after each click, rather than tracked in a separate Rust state, so it cannot drift from what the DOM actually contains.
+
+## Geometry read-back methods gate on the DOM interface, not the element type
+
+Six new `SvgNode` methods in `src/node/geometry.rs` have been implemented: `bounding_box`, `ctm`, `screen_ctm`, `total_length`, `point_at_length`, `bounding_client_rect`.
+
+### `dyn_ref` gating, not a closed element-type enum
+
+`SvgGraphicsElement` (`getBBox`/`getCTM`/`getScreenCTM`) and `SvgGeometryElement` (`getTotalLength`/`getPointAtLength`) are runtime DOM interfaces, not something this crate tracks statically.
+`SvgNode` is one type shared by every element this crate's factories produce, the same way `set_attr`/`attr` work on any element regardless of tag.
+Confirmed by checking `web-sys`'s own `extends` declarations: every element type this crate hands back as a plain `SvgNode` (`rect`, `circle`, `ellipse`, `line`, `polyline`, `polygon`, `path`, `text`, `tspan`, `textPath`, `use`, `image`, `g`, and the root `svg`) implements `SVGGraphicsElement`, so the interface check on `bounding_box`/`ctm`/`screen_ctm` is a defensive safety net rather than something reachable through this crate's own API today.
+`SVGGeometryElement`, in contrast, is implemented only by `rect`/`circle`/`ellipse`/`line`/`polyline`/`polygon`/`path` — `text`/`tspan`/`textPath`/`use`/`image`/`g`/`svg` genuinely lack it, so `total_length`/`point_at_length`'s "does not apply" branch is real and tested (calling either on a `<text>` or `<g>` node).
+
+The gating itself follows the existing precedent set by `computed_text_length` (`src/node/text.rs`): `self.inner.element.dyn_ref::<web_sys::SvgGraphicsElement>()` returns `None` cleanly if the underlying element does not implement the interface, rather than the call panicking or throwing an uncaught JS exception.
+
+### Three-way split between `Result`, `Option`, and a plain value
+
+- `bounding_box()`/`point_at_length()` return `Result<_, Error>`: even once the interface check passes, the underlying browser call (`getBBox`/`getPointAtLength`) is itself declared fallible in the DOM Standard, and the "wrong interface" case folds into the same `Error::Dom` rather than a separate error shape.
+- `ctm()`/`screen_ctm()`/`total_length()` return `Option<_>`: `getCTM`/`getScreenCTM` are nullable-but-not-throwing in the DOM Standard itself (`null` when not currently rendered), and `getTotalLength` is infallible once the interface check passes — `computed_text_length` already collapses an interface mismatch into a single `None` rather than a nested `Option<Result<_>>`, and these follow the same shape for consistency.
+- `bounding_client_rect()` returns a plain `Rect`: `Element.getBoundingClientRect()` is infallible and universal on every `Element`, so there is nothing to wrap.
+
+### `ctm`/`screen_ctm` reuse `Matrix2D`, not a new type
+
+`SVGMatrix`'s `a()`/`b()`/`c()`/`d()`/`e()`/`f()` getters map onto exactly the role layout `Matrix2D` already uses for `set_matrix`/`set_matrix_precise` (`a`→`h_scale`, `b`→`v_skew`, `c`→`h_skew`, `d`→`v_scale`, `e`→`h_trans`, `f`→`v_trans`).
+Reusing the existing struct rather than introducing a second matrix type gives a natural round-trip: read a `Matrix2D` via `ctm()`, mutate it, write it straight back with `set_matrix`.
+
+### `Rect` composes `Point` and `Size`, and its two producers are not interchangeable
+
+`Rect { origin: Point, size: Size }` reuses the crate's existing coordinate types rather than duplicating four `f64` fields — the same reasoning that keeps `Matrix2D` a single shared type instead of one-off structs per caller.
+
+`bounding_box()` (local, user-space, `getBBox()`) and `bounding_client_rect()` (rendered CSS pixels relative to the viewport, `getBoundingClientRect()`) both return a `Rect`, but the two coordinate spaces are not interchangeable — they differ whenever any transform, `viewBox`, or CSS scaling is in play.
+This is the same mistake `docs/rejected_ideas.md` ("Provide a rendered-size fallback...") already documents from the other direction: an earlier proposal to seed the cached viewport from `getBoundingClientRect()` was rejected specifically because doing so would silently compare CSS pixels against attribute user-units.
+`Rect`'s own doc comment states the distinction explicitly, rather than leaving it to be discovered the same way twice.
+
+### `screen_ctm` includes every ancestor's transform, including the root `<svg>`'s own page position
+
+`ctm()` accumulates every ancestor transform up to the nearest **viewport** ancestor — for ordinary content with no nested `<svg>`/`<symbol>` boundary, that is the root `<svg>` itself, so `ctm()` on a deeply nested shape already reflects the *combined* chain of every intermediate `<g>`'s transform, not just the shape's own.
+`screen_ctm()` continues past that point, additionally carrying the root `<svg>`'s own position on the page (normal document flow, any CSS transform on an HTML ancestor, and so on).
+
+A caller who reads `screen_ctm()` intending to feed it back into `set_matrix`/`set_matrix_precise` on the same element must not do so unmodified — the ancestor and page-position components are already applied by the browser through the normal ancestor chain, so writing the full `screen_ctm()` back as the element's own local `transform` would double-apply them.
+To convert a coordinate between screen space and this element's local space, compose with the inverse of the parent's own `screen_ctm` first.
+Both `set_matrix` and `set_matrix_precise`'s doc comments carry a short pointer to this note.
 
 # Performance Patterns
 

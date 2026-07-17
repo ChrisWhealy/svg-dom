@@ -53,6 +53,10 @@
                 drag/touch</button>
             <button type="button" class="menu-item" data-target="panel-events-passive">Passive Event Listeners</button>
             <button type="button" class="menu-item" data-target="panel-events-classlist">CSS class toggle</button>
+
+            <div class="menu-group">Geometry</div>
+            <button type="button" class="menu-item" data-target="panel-geometry-path-follow">Path follow</button>
+            <button type="button" class="menu-item" data-target="panel-geometry-bbox">Bounding box</button>
         </nav>
 
         <!-- Title panel  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -587,6 +591,33 @@
                         Click a tile — <strong>on_click</strong> calls <strong>toggle_class("selected")</strong>.
                         The gold highlight comes entirely from a <code>.tile.selected</code> CSS rule; the readout
                         is recomputed from <strong>has_class</strong> on every tile after each click.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- geometry: path follow -->
+            <section class="section" id="panel-geometry-path-follow">
+                <h2>Path follow — <code>total_length</code> / <code>point_at_length</code></h2>
+                <figure>
+                    <div class="canvas" id="demo-geometry-path-follow"></div>
+                    <figcaption>
+                        <strong>total_length()</strong> is measured once at setup; <strong>point_at_length()</strong>
+                        recomputes the runner's position every animation frame from the current lap fraction.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- geometry: bounding box -->
+            <section class="section" id="panel-geometry-bbox">
+                <h2>Bounding box — <code>bounding_box</code> / <code>bounding_client_rect</code></h2>
+                <figure>
+                    <div class="canvas" id="demo-geometry-bbox"></div>
+                    <figcaption>
+                        Click the icon — the dashed frame is drawn directly from <strong>bounding_box()</strong>, a
+                        tight, local-space rect around all three overlapping shapes. The text readouts compare it to
+                        <strong>bounding_client_rect()</strong>, the same element measured in rendered viewport CSS
+                        pixels — a different coordinate space, not just different units. Click outside the icon to
+                        clear the frame.
                     </figcaption>
                 </figure>
             </section>

@@ -2326,3 +2326,163 @@ fn should_write_fixed_precision_d_from_defs() -> Result<(), String> {
         .map_err(|e| e.to_string())?;
     common::check_eq(path.attr("d"), Some("M0 0A2 2 0 0 0 2 2".into()))
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Geometry read-back: bounding_box / total_length / point_at_length / ctm / screen_ctm / bounding_client_rect
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// Small tolerance for browser-measured geometry comparisons — these are real layout reads, not pure computation.
+const GEOM_EPS: f64 = 0.5;
+
+fn approx(got: f64, expected: f64) -> Result<(), String> {
+    common::check(
+        (got - expected).abs() < GEOM_EPS,
+        &format!("expected approximately {expected}, got {got}"),
+    )
+}
+
+/// `bounding_box` reports a known rect's `x`/`y`/`width`/`height` in local coordinates.
+#[wasm_bindgen_test]
+fn should_report_bounding_box_of_a_known_rect() -> Result<(), String> {
+    let rect = make_svg("node-bbox")
+        .rect(Point::new(10.0, 10.0), Size::new(80.0, 40.0))
+        .map_err(|e| e.to_string())?;
+    let bbox = rect.bounding_box().map_err(|e| e.to_string())?;
+    approx(bbox.origin.x, 10.0)?;
+    approx(bbox.origin.y, 10.0)?;
+    approx(bbox.size.width, 80.0)?;
+    approx(bbox.size.height, 40.0)
+}
+
+/// `total_length` on a `<rect>` matches its perimeter, per SVG's definition of a rect's implicit path.
+#[wasm_bindgen_test]
+fn should_report_total_length_of_a_known_rect() -> Result<(), String> {
+    let rect = make_svg("node-total-length-rect")
+        .rect(Point::new(10.0, 10.0), Size::new(80.0, 40.0))
+        .map_err(|e| e.to_string())?;
+    let length = rect.total_length().ok_or("expected Some(length) for a <rect>")?;
+    approx(length, 2.0 * (80.0 + 40.0))
+}
+
+/// `total_length` returns `None` for a `<text>` node — `SVGGeometryElement` does not apply to text content.
+#[wasm_bindgen_test]
+fn should_return_none_for_total_length_on_a_text_element() -> Result<(), String> {
+    let text = make_svg("node-total-length-text")
+        .text(Point::origin(), "hello")
+        .map_err(|e| e.to_string())?;
+    common::check_eq(text.total_length(), None)
+}
+
+/// `total_length` returns `None` for a `<g>` node — a container has no geometry of its own.
+#[wasm_bindgen_test]
+fn should_return_none_for_total_length_on_a_group() -> Result<(), String> {
+    let group = make_svg("node-total-length-group").group().map_err(|e| e.to_string())?;
+    common::check_eq(group.total_length(), None)
+}
+
+/// `point_at_length` returns `Err` for a `<text>` node, the `Result`-returning sibling of `total_length`'s `None`.
+#[wasm_bindgen_test]
+fn should_return_err_for_point_at_length_on_a_text_element() -> Result<(), String> {
+    let text = make_svg("node-point-at-length-text")
+        .text(Point::origin(), "hello")
+        .map_err(|e| e.to_string())?;
+    common::check(text.point_at_length(0.0).is_err(), "expected Err for a <text> node")
+}
+
+/// `point_at_length(0.0)` on a `<rect>` reports its starting corner (top-left, per SVG's rect-as-path definition).
+#[wasm_bindgen_test]
+fn should_report_point_at_length_zero_as_path_start() -> Result<(), String> {
+    let rect = make_svg("node-point-at-length-start")
+        .rect(Point::new(10.0, 10.0), Size::new(80.0, 40.0))
+        .map_err(|e| e.to_string())?;
+    let start = rect.point_at_length(0.0).map_err(|e| e.to_string())?;
+    approx(start.x, 10.0)?;
+    approx(start.y, 10.0)
+}
+
+/// `ctm` on an untransformed top-level `<rect>` is approximately the identity matrix.
+#[wasm_bindgen_test]
+fn should_report_identity_ctm_for_untransformed_rect() -> Result<(), String> {
+    let rect = make_svg("node-ctm-identity")
+        .rect(Point::origin(), Size::new(80.0, 40.0))
+        .map_err(|e| e.to_string())?;
+    let ctm = rect.ctm().ok_or("expected Some(ctm) for a rendered <rect>")?;
+    approx(ctm.h_scale, 1.0)?;
+    approx(ctm.v_scale, 1.0)?;
+    approx(ctm.h_skew, 0.0)?;
+    approx(ctm.v_skew, 0.0)?;
+    approx(ctm.h_trans, 0.0)?;
+    approx(ctm.v_trans, 0.0)
+}
+
+/// `ctm` reflects a `set_translate` round-trip: what was written is what comes back.
+#[wasm_bindgen_test]
+fn should_reflect_translate_in_ctm() -> Result<(), String> {
+    let rect = make_svg("node-ctm-translate")
+        .rect(Point::origin(), Size::new(80.0, 40.0))
+        .map_err(|e| e.to_string())?;
+    let mut buf = String::new();
+    rect.set_translate(&mut buf, 25.0, 15.0).map_err(|e| e.to_string())?;
+    let ctm = rect.ctm().ok_or("expected Some(ctm) for a rendered <rect>")?;
+    approx(ctm.h_trans, 25.0)?;
+    approx(ctm.v_trans, 15.0)
+}
+
+/// `ctm` accumulates every ancestor transform up to the nearest *viewport* ancestor — here, the root `<svg>` itself,
+/// since nothing between the rect and the root establishes a nested viewport. So a rect nested inside a translated
+/// `<g>` reports the *combined* chain, not just its own translate.
+#[wasm_bindgen_test]
+fn should_accumulate_ancestor_transforms_in_ctm_up_to_the_root_viewport() -> Result<(), String> {
+    let svg = make_svg("node-ctm-accumulates");
+    let group = svg.group().map_err(|e| e.to_string())?;
+    let mut buf = String::new();
+    group.set_translate(&mut buf, 100.0, 0.0).map_err(|e| e.to_string())?;
+
+    let child = svg.rect(Point::origin(), Size::new(80.0, 40.0)).map_err(|e| e.to_string())?;
+    group.append(&child).map_err(|e| e.to_string())?;
+    child.set_translate(&mut buf, 0.0, 50.0).map_err(|e| e.to_string())?;
+
+    let ctm = child.ctm().ok_or("expected Some(ctm) for the nested <rect>")?;
+    approx(ctm.h_trans, 100.0)?;
+    approx(ctm.v_trans, 50.0)
+}
+
+/// `screen_ctm` additionally carries the root `<svg>`'s own position on the page, which `ctm` never reflects (`ctm`
+/// stops at the nearest viewport ancestor, i.e. the root `<svg>` itself here). A tall spacer placed immediately
+/// before the `<svg>` guarantees a large, known vertical page offset, regardless of whatever earlier tests already
+/// left in the document (this suite has no teardown hooks between tests).
+#[wasm_bindgen_test]
+fn should_reflect_page_position_in_screen_ctm_but_not_ctm() -> Result<(), String> {
+    let spacer = common::div("node-ctm-vs-screen-ctm-spacer");
+    spacer.set_attribute("style", "height:600px").map_err(|e| format!("{e:?}"))?;
+
+    let rect = make_svg("node-ctm-vs-screen-ctm")
+        .rect(Point::origin(), Size::new(80.0, 40.0))
+        .map_err(|e| e.to_string())?;
+
+    let ctm = rect.ctm().ok_or("expected Some(ctm) for the rect")?;
+    let screen_ctm = rect.screen_ctm().ok_or("expected Some(screen_ctm) for the rect")?;
+
+    // Untransformed, and nothing between it and the root <svg> — ctm carries no page-position information at all.
+    approx(ctm.h_trans, 0.0)?;
+    approx(ctm.v_trans, 0.0)?;
+
+    // screen_ctm additionally carries the root <svg>'s own position on the page, at least the spacer's height.
+    common::check(
+        screen_ctm.v_trans - ctm.v_trans > 500.0,
+        &format!("expected screen_ctm to include a large page offset beyond ctm, got ctm={ctm:?} screen_ctm={screen_ctm:?}"),
+    )
+}
+
+/// `bounding_client_rect` on a rendered rect is a real, positive measurement. Exact pixel values are not asserted
+/// (they vary with the headless test runner's viewport), and it is not expected to equal `bounding_box`'s numbers —
+/// the two report different coordinate spaces (see `Rect`'s own doc comment).
+#[wasm_bindgen_test]
+fn should_report_bounding_client_rect_as_nonzero_for_rendered_element() -> Result<(), String> {
+    let rect = make_svg("node-bounding-client-rect")
+        .rect(Point::new(10.0, 10.0), Size::new(80.0, 40.0))
+        .map_err(|e| e.to_string())?;
+    let client_rect = rect.bounding_client_rect();
+    common::check(client_rect.size.width > 0.0, "expected a positive width")?;
+    common::check(client_rect.size.height > 0.0, "expected a positive height")
+}

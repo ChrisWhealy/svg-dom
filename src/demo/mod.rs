@@ -10,6 +10,7 @@
 
 mod colours;
 mod events;
+mod geometry;
 mod highlight;
 mod paint;
 mod shapes;
@@ -122,6 +123,10 @@ pub fn run_demo() -> Result<(), JsValue> {
     events::demo_events_passive().map_err(e)?;
     events::demo_events_classlist().map_err(e)?;
 
+    // Geometry read-back gallery
+    geometry::demo_geometry_path_follow().map_err(e)?;
+    geometry::demo_geometry_bounding_box().map_err(e)?;
+
     // Below each demo, show the Rust source of the function that produced it.
     inject_source_frames().map_err(e)?;
     Ok(())
@@ -142,6 +147,7 @@ const DEMO_SRC: &str = concat!(
     include_str!("structure.rs"),
     include_str!("paint.rs"),
     include_str!("events.rs"),
+    include_str!("geometry.rs"),
 );
 
 /// `(panel id, demo function name)` for every demo, in menu order.
@@ -184,6 +190,8 @@ const DEMO_SOURCES: &[(&str, &str)] = &[
     ("panel-events-drag-drop-touch", "demo_events_drag_drop_touch"),
     ("panel-events-passive", "demo_events_passive"),
     ("panel-events-classlist", "demo_events_classlist"),
+    ("panel-geometry-path-follow", "demo_geometry_path_follow"),
+    ("panel-geometry-bbox", "demo_geometry_bounding_box"),
 ];
 
 /// Appends a source frame to every panel listed in [`DEMO_SOURCES`].

@@ -1,6 +1,7 @@
 mod attrs;
 mod cached;
 mod event;
+mod geometry;
 mod listeners;
 mod text;
 mod transform;
@@ -158,7 +159,7 @@ impl SvgNode {
     /// Returns a reference to the underlying `web-sys` `SvgElement`.
     ///
     /// Use this when you need to call a `web-sys` method that has not yet been wrapped by `SvgNode`, such as
-    /// `get_bounding_client_rect` (requires the `DomRect` web-sys feature) or `set_inner_html`.
+    /// `set_inner_html` or `preserveAspectRatio`.
     ///
     /// # Example
     ///
