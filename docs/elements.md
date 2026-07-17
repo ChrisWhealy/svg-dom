@@ -283,7 +283,7 @@ Remove the mask with `SvgNode::remove_mask()`.
 
 * All mask ids must match the pattern `[A-Za-z_][A-Za-z0-9_-]*`.
 * Ids are document-scoped, so they must be globally unique across all `<svg>` elements on the page.
-* The mask region defaults to `-10% -10% 120% 120%` of the referencing element's bounding box (`maskUnits: ObjectBoundingBox`) and is a hard clip on the mask's own content, applied before luminance/alpha is evaluated — a mask shape that extends further than this (a wide gradient sweep, a large soft-edged reveal) can be silently cut off. Widen it explicitly with `set_x`/`set_y`/`set_width`/`set_height` when that happens.
+* The mask region defaults to `-10% -10% 120% 120%` of the referencing element's bounding box (`maskUnits: ObjectBoundingBox`) and is a hard clip on the mask's own content, applied before luminance/alpha is evaluated — a mask shape that extends further than this (a wide gradient sweep, a large soft-edged reveal) can be silently cut off. Widen it explicitly with `set_x`/`set_y`/`set_width`/`set_height` when that happens. Keep the region only as large as required, though: just like a `<filter>` region, it bounds the offscreen buffer the browser rasterises while evaluating the mask, so an unnecessarily large region may increase rendering and memory cost.
 
 ---
 

@@ -97,6 +97,10 @@ impl MaskType {
 /// Widen it explicitly with [`set_x`](Self::set_x)/[`set_y`](Self::set_y)/[`set_width`](Self::set_width)/
 /// [`set_height`](Self::set_height) if the mask content is unexpectedly being cut off.
 ///
+/// Keep the region only as large as required, though: as with a `<filter>` region, this is the maximum size of the
+/// offscreen buffer the browser rasterises while evaluating the mask, so an unnecessarily large region may increase
+/// rendering and memory cost, not just the risk of over-widening.
+///
 /// # Example
 ///
 /// ```rust,no_run
@@ -246,8 +250,10 @@ impl SvgMask {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the width of the mask region.
     ///
-    /// See the [type-level docs](Self) for why this often needs widening beyond the SVG default, and
-    /// [`set_x`](Self::set_x) for the coordinate space this value is interpreted in.
+    /// See the [type-level docs](Self) for why this often needs widening beyond the SVG default — and, in the same
+    /// breath, why it should not be widened further than the mask content actually needs, since the region bounds
+    /// the offscreen buffer the browser rasterises while evaluating the mask.
+    /// See [`set_x`](Self::set_x) for the coordinate space this value is interpreted in.
     pub fn set_width(&self, v: f64) -> Result<(), Error> {
         self.attrs.borrow_mut().display_element(&self.element, "width", v)
     }
