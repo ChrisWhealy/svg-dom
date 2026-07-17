@@ -1,5 +1,10 @@
 # Change Log
 
+## 0.1.61 — 2026-07-17
+- `7392be2` Refactor rejected ideas document (2026-07-17)
+- `065c9b8` Update stale geometry documentation (2026-07-17)
+- `fa83536` Correct positive path-distance endpoint docs (2026-07-17)
+
 ## 0.1.60 — 2026-07-17
 - `55b973f` Add 4 geometry read-back helpers (2026-07-17)
 - `ff1736b` Correct ctm() write-back round trip docs (2026-07-17)
