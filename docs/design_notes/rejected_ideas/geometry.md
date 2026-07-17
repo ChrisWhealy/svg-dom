@@ -21,8 +21,9 @@ We tightened the documentation instead (`attach` now states that only the two at
   `attach` is frequently called either during module `init`, before first layout/paint, or on a `display:none`/not-yet-attached element — all of which will return a measurement of `0`.
   So the fallback would not even fix the motivating case dependably; it would only paper over some of it, while making the failure mode harder to reason about (sometimes `0`, sometimes a stale pre-layout value).
 
-* **Rendered measurement was, at the time, a documented non-goal — and even now that it is wrapped, the specific proposed *use* remains wrong.**<br>
-  At the time of this rejection, `docs/gaps.md` listed `getBoundingClientRect()` among the deliberately out-of-scope DOM-geometry features.
-  `SvgNode::bounding_client_rect()` has since been implemented as a general-purpose read-only geometry method (see [Geometry read-back](../geometry.md)), so that specific blocker no longer applies — but this does not reopen idea 7.
-  `bounding_client_rect()` is not used to seed any cache, and the coordinate-space-mixing problem in the first bullet above is unaffected by the method now existing: feeding a CSS-pixel measurement into an attribute-unit cache is exactly as wrong today as it was before the method was wrapped.
-  The crate's contract remains that `width()`/`height()` report the *attribute* values read once at attach time; a caller who needs the rendered size can call `bounding_client_rect()` themselves and pass the result to `set_viewport`, which keeps the cache coherent with what the crate actually writes.
+* **Rendered CSS-pixel geometry is available through `SvgNode::bounding_client_rect()`, but it remains unsuitable as a fallback for `SvgRoot`'s user-unit viewport cache.**<br>
+  At the time of this rejection, `docs/gaps.md` listed `getBoundingClientRect()` among the deliberately out-of-scope DOM-geometry features; that blocker no longer applies, since `bounding_client_rect()` has now been implemented as a general-purpose read-only geometry method (see [Geometry read-back](../geometry.md)).
+
+  This does not reopen that rejection: `bounding_client_rect()` is not used to seed any cache and the coordinate-space-mixing problem in the first bullet above is unaffected by this method — feeding a CSS-pixel measurement into an attribute-unit cache is exactly as wrong today as it was before the method was wrapped.
+
+  What changed is that a caller who wants the rendered size no longer has to reach past the crate for it: `bounding_client_rect()` is the supported way to obtain it explicitly, then pass the result to `set_viewport`, which keeps the cache coherent with what the crate actually writes. `SvgRoot::attach`/`width()`/`height()` still never call it implicitly.
