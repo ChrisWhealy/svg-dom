@@ -17,6 +17,7 @@
 //! | [`root::defs`] | [`SvgDefs`] | `<defs>` container; factory for markers, gradients, clip-paths, patterns, filters, and symbols |
 //! | [`root::gradient`] | [`SvgLinearGradient`] / [`SvgRadialGradient`] | Gradient paint servers defined in `<defs>` |
 //! | [`root::clip_path`] | [`SvgClipPath`] / [`ClipPathUnits`] | Clipping region defined in `<defs>`, applied with `set_clip_path_ref` |
+//! | [`root::mask`] | [`SvgMask`] / [`MaskUnits`] / [`MaskType`] | Luminance/alpha mask defined in `<defs>`, applied with `set_mask_ref` |
 //! | [`root::filter`] | [`SvgFilter`] / [`FilterUnits`] | Raster-effect filter (`<feGaussianBlur>`, ...) defined in `<defs>`, applied with `set_filter_ref` |
 //! | [`root::marker`] | [`SvgMarker`] / [`MarkerUnits`] | Path-decoration markers (`<marker>`) with shape factories |
 //! | [`root::path`] | [`PathDef`] | Type-safe `<path>` `d`-attribute builder from a sequence of typed segments |
@@ -88,6 +89,7 @@ pub use root::{
     filter::{ColorMatrixType, CompositeOperator, FilterUnits, SvgFilter},
     gradient::{GradientUnits, SpreadMethod, linear::SvgLinearGradient, radial::SvgRadialGradient},
     marker::{MarkerUnits, SvgMarker},
+    mask::{MaskType, MaskUnits, SvgMask},
     path::{
         PathDef, PathDefAbsolute, PathDefRelative, build_d, build_d_fixed,
         elliptical_arc::{ArcSize, ArcSweep, EllipticalArc},

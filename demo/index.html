@@ -34,6 +34,7 @@
             <button type="button" class="menu-item" data-target="panel-linear-gradient">linearGradient</button>
             <button type="button" class="menu-item" data-target="panel-radial-gradient">radialGradient</button>
             <button type="button" class="menu-item" data-target="panel-clip-path">clipPath</button>
+            <button type="button" class="menu-item" data-target="panel-mask">mask</button>
             <button type="button" class="menu-item" data-target="panel-pattern">pattern</button>
             <button type="button" class="menu-item" data-target="panel-filter">filter</button>
             <button type="button" class="menu-item" data-target="panel-color-matrix">feColorMatrix</button>
@@ -352,6 +353,22 @@
                         <strong>polygon clip</strong> (radial gradient revealed through a hexagon) ·
                         <strong>group clip</strong> (three coloured bands clipped to an arrow path,
                         demonstrating that <code>clip-path</code> applies to <code>&lt;g&gt;</code> elements too)
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- mask -->
+            <section class="section" id="panel-mask">
+                <h2><code>&lt;mask&gt;</code> — reveal/hide by luminance or alpha</h2>
+                <figure>
+                    <div class="canvas" id="demo-mask"></div>
+                    <figcaption>
+                        <strong>luminance gradient fade</strong> (a white-to-black gradient fades a solid rect from
+                        opaque to invisible, the default <strong>mask-type: luminance</strong>) ·
+                        <strong>text mask</strong> (a black backing hides everything except a white "SVG" cut-out) ·
+                        <strong>alpha mask on a group</strong> (<strong>mask-type: alpha</strong> — two identically
+                        coloured circles revealed at different strengths purely by the mask shape's
+                        <code>fill-opacity</code>, not its colour)
                     </figcaption>
                 </figure>
             </section>

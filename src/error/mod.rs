@@ -3,7 +3,7 @@
 ///
 /// Every fallible function in this crate returns `Result<_, Error>`.
 ///
-/// The variants cover seven categories, one of which contains six subtypes:
+/// The variants cover seven categories, one of which contains seven subtypes:
 ///
 /// - you asked for a non-existent element by id ([`Error::ElementNotFound`])
 /// - a `web-sys` call returned a JavaScript error ([`Error::Dom`])
@@ -15,6 +15,7 @@
 ///   - a bad marker id ([`Error::InvalidMarkerId`])
 ///   - a bad gradient id ([`Error::InvalidGradientId`])
 ///   - a bad clip-path id ([`Error::InvalidClipPathId`])
+///   - a bad mask id ([`Error::InvalidMaskId`])
 ///   - a bad symbol id ([`Error::InvalidSymbolId`])
 ///   - a bad pattern id ([`Error::InvalidPatternId`])
 ///   - a bad filter id ([`Error::InvalidFilterId`])
@@ -75,6 +76,19 @@ pub enum Error {
     ///
     /// The inner `String` is the rejected id.
     InvalidClipPathId(String),
+
+    /// A mask `id` string was rejected before reaching the DOM.
+    ///
+    /// Valid mask ids must match the pattern `[A-Za-z_][A-Za-z0-9_-]*`: an ASCII letter or underscore followed
+    /// by zero or more ASCII letters, digits, underscores, or hyphens.
+    ///
+    /// This error is returned when a non-conforming string is passed to
+    /// [`SvgDefs::mask`](crate::SvgDefs::mask),
+    /// [`SvgDefs::build_mask`](crate::SvgDefs::build_mask), or
+    /// [`SvgNode::set_mask`](crate::SvgNode::set_mask).
+    ///
+    /// The inner `String` is the rejected id.
+    InvalidMaskId(String),
 
     /// A symbol `id` string was rejected before reaching the DOM.
     ///
@@ -197,6 +211,7 @@ impl std::fmt::Display for Error {
             Error::InvalidMarkerId(id) => write!(f, "invalid svg marker id: {id:?}"),
             Error::InvalidGradientId(id) => write!(f, "invalid svg gradient id: {id:?}"),
             Error::InvalidClipPathId(id) => write!(f, "invalid svg clip-path id: {id:?}"),
+            Error::InvalidMaskId(id) => write!(f, "invalid svg mask id: {id:?}"),
             Error::InvalidSymbolId(id) => write!(f, "invalid svg symbol id: {id:?}"),
             Error::InvalidPatternId(id) => write!(f, "invalid svg pattern id: {id:?}"),
             Error::InvalidFilterId(id) => write!(f, "invalid svg filter id: {id:?}"),

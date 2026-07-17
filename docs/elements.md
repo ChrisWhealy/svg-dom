@@ -12,6 +12,7 @@ The following SVG elements are supported:
 * `line`
 * `linearGradient` (with `stop`)
 * `marker`
+* `mask`
 * `pattern`
 * `rect`
 * `path` (with a type-safe `PathDef` builder — see below — as an alternative to hand-written `d` strings)
@@ -238,6 +239,48 @@ Apply it to any stroked element — `<line>`, `<path>`, `<polyline>`, `<polygon>
 The `MarkerUnits` enum controls whether `markerWidth`/`markerHeight` are relative to `strokeWidth` (default) or user coordinates.
 
 `set_view_box(x, y, width, height)` establishes an internal coordinate system for the marker's content, mapped onto the `markerWidth`/`markerHeight` viewport — the same `viewBox` relationship `<symbol>`/`<use>` has, validated the same way (`Error::InvalidViewBox` on a non-finite component or a negative `width`/`height`). `preserveAspectRatio` has no dedicated setter for `<marker>`; use `set_attr("preserveAspectRatio", value)`.
+
+---
+
+## `<mask>`
+
+A `<mask>` reveals or hides parts of any element that references it, based on the luminance or alpha of the mask's own rendered content.
+Unlike `<clipPath>`, which is a hard, binary (in/out) boundary defined purely by shape geometry, `<mask>` supports gradual transparency: each pixel of the referencing element is scaled by the corresponding pixel's luminance (or alpha) in the mask's rendered content — a white fill reveals fully, black hides fully, and anything in between (including gradients) reveals partially.
+
+Obtain one from `SvgDefs::mask(id)` (live-append) or `SvgDefs::build_mask(id, closure)` (detached until the closure succeeds).
+Apply it to any element with `SvgNode::set_mask_ref(&mask)` or `SvgNode::set_mask("id")`.
+Remove the mask with `SvgNode::remove_mask()`.
+
+**Mask shape factories** available on `SvgMask`:
+`rect`, `circle`, `ellipse`, `line`, `path`, `polyline`, `polygon`, `text`, `group`
+
+**Coordinate spaces** — controlled by `SvgMask::set_mask_units(MaskUnits)` (the mask region's own position/size) and `SvgMask::set_mask_content_units(MaskUnits)` (the shapes inside the mask), independently:
+
+| Variant | Attribute value | Meaning |
+|---|---|---|
+| `UserSpaceOnUse` | `userSpaceOnUse` | Same coordinate system as the element being masked. SVG default for `maskContentUnits`. |
+| `ObjectBoundingBox` | `objectBoundingBox` | Normalised coordinates (0.0–1.0) relative to the referencing element's bounding box. SVG default for `maskUnits`. |
+
+**`mask-type`** — controlled by `SvgMask::set_mask_type(MaskType)`:
+
+| Variant | Meaning |
+|---|---|
+| `Luminance` (default) | Reveal is proportional to the mask content's perceived brightness; colour matters. |
+| `Alpha` | Reveal is proportional to the mask content's alpha channel only; colour is ignored, only `fill-opacity`/`opacity` matters. |
+
+**Applying and removing masks** on `SvgNode`:
+
+| Method | Description |
+|---|---|
+| `set_mask_ref(&mask)` | Apply by handle (preferred — no typo risk). |
+| `set_mask("id")` | Apply by bare id string; `url(#...)` is added automatically. |
+| `remove_mask()` | Remove the `mask` attribute, making the full element visible. |
+
+***IMPORTANT***
+
+* All mask ids must match the pattern `[A-Za-z_][A-Za-z0-9_-]*`.
+* Ids are document-scoped, so they must be globally unique across all `<svg>` elements on the page.
+* The mask region defaults to `-10% -10% 120% 120%` of the referencing element's bounding box (`maskUnits: ObjectBoundingBox`) and is a hard clip on the mask's own content, applied before luminance/alpha is evaluated — a mask shape that extends further than this (a wide gradient sweep, a large soft-edged reveal) can be silently cut off. Widen it explicitly with `set_x`/`set_y`/`set_width`/`set_height` when that happens.
 
 ---
 

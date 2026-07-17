@@ -33,7 +33,6 @@ These elements have no wrapper anywhere in `src/` and, unlike the filter primiti
 
 | Missing element | Cost | Benefit |
 |---|---|---|
-| `<mask>` | Low-medium — a near-exact structural clone of `clip_path.rs` (`SvgMask` struct, `build_mask`/`mask()` factory, `set_mask_ref` setter): the `clipPath` template with `mask`/`mask-type` swapped for `clip-path`/`clipPathUnits`. | High — masks are used constantly alongside clipPaths in real work (gradient fades, vignettes, reveal effects); a foundational compositing primitive, not a specialty effect, and sits right next to a gap this crate already chose to close (`clipPath`). |
 | `<desc>` / `<title>` | Very low — create the element, `set_text_content`, done; smaller than one filter primitive. | Real but narrow — the only accessibility gap on this list; nothing else gives SVG content an accessible name/description. |
 | `<a>` (anchor) | Low — a `<g>`-like wrapper plus `href`/`target`. | Low-moderate — useful for interactive diagrams/maps, rarely essential. |
 | `<switch>` | Low structurally, but `systemLanguage`/`requiredFeatures` are already reachable as plain attributes on a `g()` via `set_attr`. | Low — a dedicated wrapper buys little over what is already reachable. |
@@ -62,6 +61,7 @@ They have been intentionally excluded:
 
 ### Priority
 
-Cost/benefit favours **`<mask>`** as the most productive gap to close next: its implementation cost is comparable to one of the pricier filter primitives above, since it follows the same proven structural pattern as `clipPath`, but its benefit is broader, since it is a foundational compositing primitive rather than a specialty visual effect.
+The cost/benefit favours **`feBlend`** as the next gap worth closing: it is one of the cheapest remaining filter primitives (a single `mode` enum, the same shape as `composite`'s `CompositeOperator`) with moderate-high benefit, since blend modes are common in realistic shadow/lighting effects.
+The best value-per-effort ordering within the filter primitives is `feBlend` → `feComponentTransfer` → `feTurbulence`/`feDisplacementMap`; `feConvolveMatrix` and `feDiffuseLighting`/`feSpecularLighting` are the most expensive items on either list for the narrowest payoff, and are deprioritised accordingly.
 
-Within the filter primitives, the best value-per-effort ordering is `feBlend` → `feComponentTransfer` → `feTurbulence`/`feDisplacementMap`; `feConvolveMatrix` and `feDiffuseLighting`/`feSpecularLighting` are the most expensive items on either list for the narrowest payoff, and are deprioritised accordingly.
+`<desc>`/`<title>` remain the cheapest item on this page and are worth picking up opportunistically for their accessibility benefit, even though that benefit is narrower than `feBlend`'s.

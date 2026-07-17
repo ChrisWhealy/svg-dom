@@ -15,6 +15,8 @@ pub mod filter;
 pub mod gradient;
 /// The [`SvgMarker`](crate::SvgMarker) element and its [`MarkerUnits`](crate::MarkerUnits) enum.
 pub mod marker;
+/// The [`SvgMask`](crate::SvgMask) element and its [`MaskUnits`](crate::MaskUnits) / [`MaskType`](crate::MaskType) enums.
+pub mod mask;
 /// The [`SvgRoot::path`](crate::SvgRoot::path) / [`SvgRoot::path_from_defs`](crate::SvgRoot::path_from_defs)
 /// factories and the type-safe [`PathDef`](crate::PathDef) path-segment builder.
 pub mod path;

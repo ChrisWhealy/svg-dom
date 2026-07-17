@@ -15,6 +15,7 @@ use super::{
     filter::SvgFilter,
     gradient::{linear::SvgLinearGradient, radial::SvgRadialGradient},
     marker::SvgMarker,
+    mask::SvgMask,
     pattern::SvgPattern,
     svg_root::SvgRoot,
     symbol::SvgSymbol,
@@ -83,6 +84,18 @@ pub(crate) fn validate_clip_path_id(id: &str) -> Result<(), Error> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Rejects mask ids that would produce broken or ambiguous `url(#...)` references.
+///
+/// Applies the same allow-list as [`validate_marker_id`]: the id must match `[A-Za-z_][A-Za-z0-9_-]*`.
+pub(crate) fn validate_mask_id(id: &str) -> Result<(), Error> {
+    if is_valid_svg_id(id) {
+        Ok(())
+    } else {
+        Err(Error::InvalidMaskId(id.to_owned()))
+    }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Rejects filter ids that would produce broken or ambiguous `url(#...)` references.
 ///
 /// Applies the same allow-list as [`validate_marker_id`]: the id must match `[A-Za-z_][A-Za-z0-9_-]*`.
@@ -131,6 +144,7 @@ pub(crate) fn validate_pattern_id(id: &str) -> Result<(), Error> {
 /// | [`SvgLinearGradient`] | [`linear_gradient`](Self::linear_gradient) | [`build_linear_gradient`](Self::build_linear_gradient) |
 /// | [`SvgRadialGradient`] | [`radial_gradient`](Self::radial_gradient) | [`build_radial_gradient`](Self::build_radial_gradient) |
 /// | [`SvgClipPath`] | [`clip_path`](Self::clip_path) | [`build_clip_path`](Self::build_clip_path) |
+/// | [`SvgMask`] | [`mask`](Self::mask) | [`build_mask`](Self::build_mask) |
 /// | [`SvgSymbol`] | [`symbol`](Self::symbol) | [`build_symbol`](Self::build_symbol) |
 /// | [`SvgPattern`] | [`pattern`](Self::pattern) | [`build_pattern`](Self::build_pattern) |
 /// | [`SvgFilter`] | [`filter`](Self::filter) | [`build_filter`](Self::build_filter) |
@@ -355,6 +369,100 @@ impl SvgDefs {
         build(&clip)?;
         self.element.append_child(clip.as_element()).map_err(dom_err)?;
         Ok(clip)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Creates a `<mask>` child element with the given `id`, appends it to `<defs>` immediately and returns its
+    /// handle.
+    ///
+    /// The `id` is used to reference the mask from any element via [`set_mask_ref`](crate::SvgNode::set_mask_ref) or
+    /// [`set_mask`](crate::SvgNode::set_mask).
+    ///
+    /// Each shape added to the returned [`SvgMask`] is appended to the live element one at a time.
+    /// Use this when you need to add mask shapes dynamically after initial construction.
+    ///
+    /// Prefer [`build_mask`](Self::build_mask) when all mask shapes are known upfront: that variant holds the
+    /// `<mask>` element detached until the closure succeeds, so a mid-build error leaves no partial element in
+    /// `<defs>`.
+    /// With this method, if a shape or attribute setter fails after `mask()` returns, the partial `<mask>`
+    /// remains in `<defs>` (though an incomplete mask is harmless — it reveals nothing unless referenced).
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::InvalidMaskId`] — `id` failed validation.
+    /// - [`Error::Dom`] — the browser refused to create or append the element.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::{Point, Size}};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    /// let fade = defs.mask("fade")?;
+    /// fade.rect(Point::origin(), Size::new(120.0, 120.0))?.set_fill_gradient("fade-gradient")?;
+    ///
+    /// let bg = svg.rect(Point::origin(), Size::new(120.0, 120.0))?;
+    /// bg.set_fill("steelblue")?;
+    /// bg.set_mask_ref(&fade)?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn mask(&self, id: &str) -> Result<SvgMask, Error> {
+        validate_mask_id(id)?;
+        let el = super::create_svg_element::<SvgElement>(&self.document, "mask", "SvgElement")?;
+        el.set_attribute("id", id).map_err(dom_err)?;
+        self.element.append_child(&el).map_err(dom_err)?;
+        Ok(SvgMask::new(id, el, self.document.clone()))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Builds a `<mask>` and all its mask shapes in one shot, appending to `<defs>` only after the closure
+    /// succeeds.
+    ///
+    /// The closure receives a reference to the new [`SvgMask`].
+    /// All shapes added inside the closure are appended to a detached element.
+    ///
+    /// If the closure returns `Ok(())`, the mask is appended to `<defs>` and the handle is returned.
+    /// If the closure returns `Err`, the element is dropped without being attached to `<defs>`.
+    ///
+    /// This is the preferred way to build a mask when all its shapes are known upfront.
+    /// For dynamically adding shapes over time, use [`mask`](Self::mask) instead.
+    ///
+    /// # Errors
+    ///
+    /// - Any error returned by `build`.
+    /// - [`Error::InvalidMaskId`] — `id` failed validation.
+    /// - [`Error::Dom`] — the browser refused to create or append the element.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::{Point, Size}};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    ///
+    /// let fade = defs.build_mask("fade", |m| {
+    ///     m.rect(Point::origin(), Size::new(120.0, 120.0))?.set_fill_gradient("fade-gradient")?;
+    ///     Ok(())
+    /// })?;
+    ///
+    /// let bg = svg.rect(Point::origin(), Size::new(120.0, 120.0))?;
+    /// bg.set_fill("steelblue")?;
+    /// bg.set_mask_ref(&fade)?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn build_mask<F>(&self, id: &str, build: F) -> Result<SvgMask, Error>
+    where
+        F: FnOnce(&SvgMask) -> Result<(), Error>,
+    {
+        validate_mask_id(id)?;
+        let el = super::create_svg_element::<SvgElement>(&self.document, "mask", "SvgElement")?;
+        el.set_attribute("id", id).map_err(dom_err)?;
+        let mask = SvgMask::new(id, el, self.document.clone());
+        build(&mask)?;
+        self.element.append_child(mask.as_element()).map_err(dom_err)?;
+        Ok(mask)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -6,11 +6,12 @@ use crate::{
         clip_path::SvgClipPath,
         defs::{
             URL_PREFIX, validate_clip_path_id, validate_filter_id, validate_gradient_id, validate_marker_id,
-            validate_pattern_id,
+            validate_mask_id, validate_pattern_id,
         },
         filter::SvgFilter,
         gradient::{linear::SvgLinearGradient, radial::SvgRadialGradient},
         marker::SvgMarker,
+        mask::SvgMask,
         path::path_def::{PathDef, build_d, validate_starts_with_moveto},
         pattern::SvgPattern,
     },
@@ -818,6 +819,67 @@ impl SvgNode {
     /// Has no effect if no clip path is currently applied.
     pub fn remove_clip_path(&self) -> Result<(), Error> {
         self.remove_attr("clip-path")
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the `mask` attribute by bare mask `id`, revealing or hiding parts of this element according to the
+    /// luminance or alpha of the named [`SvgMask`]'s rendered content.
+    ///
+    /// `mask_id` is the bare `id` of a [`SvgMask`] defined in a [`SvgDefs`](crate::SvgDefs) block; the `url(#...)`
+    /// wrapper is added automatically.
+    ///
+    /// The same validation rules that apply at mask construction time are enforced here: an id that does not match
+    /// `[A-Za-z_][A-Za-z0-9_-]*` returns [`Error::InvalidMaskId`].
+    ///
+    /// Prefer [`set_mask_ref`](Self::set_mask_ref) when you have the [`SvgMask`] handle available, as it eliminates
+    /// the risk of typos and `url(#...)` double-wrapping.
+    ///
+    /// To remove the mask, call [`remove_mask`](Self::remove_mask).
+    pub fn set_mask(&self, mask_id: &str) -> Result<(), Error> {
+        validate_mask_id(mask_id)?;
+        self.set_url_ref("mask", mask_id)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Sets the `mask` attribute from a live [`SvgMask`] handle.
+    ///
+    /// This is the preferred alternative to [`set_mask`](Self::set_mask): the id is taken directly from the handle, so
+    /// there is no risk of typos or `url(#...)` double-wrapping.
+    ///
+    /// The written attribute stores the mask's id as a string at call time.
+    /// If the mask is later renamed with [`SvgMask::set_id`](crate::SvgMask::set_id), this element's attribute is not
+    /// updated automatically — reapply the reference after renaming if needed.
+    ///
+    /// To remove the mask, call [`remove_mask`](Self::remove_mask).
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::{Point, Size}};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    ///
+    /// let fade = defs.build_mask("fade", |m| {
+    ///     m.rect(Point::origin(), Size::new(120.0, 120.0))?.set_fill_gradient("fade-gradient")?;
+    ///     Ok(())
+    /// })?;
+    ///
+    /// let bg = svg.rect(Point::origin(), Size::new(120.0, 120.0))?;
+    /// bg.set_fill("steelblue")?;
+    /// bg.set_mask_ref(&fade)?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn set_mask_ref(&self, mask: &SvgMask) -> Result<(), Error> {
+        self.set_attr("mask", mask.url_ref())
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Removes the `mask` attribute from this element, making the full element visible again.
+    ///
+    /// Has no effect if no mask is currently applied.
+    pub fn remove_mask(&self) -> Result<(), Error> {
+        self.remove_attr("mask")
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
