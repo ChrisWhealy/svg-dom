@@ -698,6 +698,20 @@ The gating itself follows the existing precedent set by `computed_text_length` (
 - `ctm()`/`screen_ctm()`/`total_length()` return `Option<_>`: `getCTM`/`getScreenCTM` are nullable-but-not-throwing in the DOM Standard itself (`null` when not currently rendered), and `getTotalLength` is infallible once the interface check passes — `computed_text_length` already collapses an interface mismatch into a single `None` rather than a nested `Option<Result<_>>`, and these follow the same shape for consistency.
 - `bounding_client_rect()` returns a plain `Rect`: `Element.getBoundingClientRect()` is infallible and universal on every `Element`, so there is nothing to wrap.
 
+### `bounding_box()` wraps only the no-argument `getBBox` — the object/fill box, not everything painted
+
+Called with no arguments, `getBBox()` returns the SVG specification's default `SVGBoundingBoxOptions`: `fill=true`, `stroke=false`, `markers=false`, `clipped=false` — the **object/fill bounding box**, geometry only.
+A wide `stroke-width`, marker decorations (arrowheads and the like), and any `clip-path` applied to the element are not included, so `bounding_box()` can report a rect visibly smaller than everything the element actually paints.
+This is not a bug in the wrapper; it is exactly what the no-argument DOM call returns, and it is why `bounding_box()`'s own doc comment calls this out explicitly rather than leaving "bounding box" to be read as "everything visibly painted."
+
+`web-sys` 0.3.102 does expose the options-taking overload as `get_b_box_with_a_options` (gated behind the `SvgBoundingBoxOptions`/`SvgRect` features), so a `bounding_box_with_options`-style method is mechanically possible.
+It was not added here: the options-taking form of `getBBox()` is a newer part of the SVG2 spec, and unlike the plain no-argument form (long-supported, exercised throughout this crate's own test suite), its cross-browser support was not verified as reliable across the browser/toolchain range this crate targets.
+Wrapping a DOM method whose actual runtime behaviour is uncertain outside of Chromium would trade a well-understood gap (documented, no-argument only) for a worse one (an API that appears to let a caller opt into the stroked/decorated box, but might silently ignore the options argument, or behave inconsistently, depending on the browser).
+If and when that support picture is confirmed reliable, the overload can be added the same way the no-argument form was: a thin wrapper, `dyn_ref`-gated the same as the other five methods.
+
+Note also that `getBoundingClientRect()` (`bounding_client_rect()`) is not a reliable substitute for "the stroked/painted extent" either — checked empirically (Chromium/Playwright) against a `<rect>` with `stroke-width="20"`, `getBoundingClientRect()` reported the exact same fill-only extent as `getBBox()`, not a stroke-widened one.
+`Rect`'s own doc comment flags this rather than letting a reader assume `bounding_client_rect()` is the "everything painted" alternative to `bounding_box()`'s fill-only box.
+
 ### `ctm`/`screen_ctm` reuse `Matrix2D`, not a new type
 
 `SVGMatrix`'s `a()`/`b()`/`c()`/`d()`/`e()`/`f()` getters map onto exactly the role layout `Matrix2D` already uses for `set_matrix`/`set_matrix_precise` (`a`→`h_scale`, `b`→`v_skew`, `c`→`h_skew`, `d`→`v_scale`, `e`→`h_trans`, `f`→`v_trans`).

@@ -15,9 +15,20 @@ use wasm_bindgen::JsCast;
 impl SvgNode {
     /// # Bounding box
     ///
-    /// Returns this element's bounding box in its own **local, user-space** coordinates, by wrapping
-    /// [`SVGGraphicsElement.getBBox()`]. This is unaffected by any transform applied to the element or its ancestors —
-    /// see [`Rect`]'s own doc comment for how this differs from [`bounding_client_rect`](Self::bounding_client_rect).
+    /// Returns this element's bounding box in its own **local, user-space** coordinates, by wrapping the
+    /// **no-argument** form of [`SVGGraphicsElement.getBBox()`]. This is unaffected by any transform applied to the
+    /// element or its ancestors — see [`Rect`]'s own doc comment for how this differs from
+    /// [`bounding_client_rect`](Self::bounding_client_rect).
+    ///
+    /// # Only the object/fill bounding box
+    ///
+    /// The no-argument form of `getBBox()` returns the **object bounding box** — geometry only, `fill = true`,
+    /// `stroke = false`, `markers = false`, `clipped = false` per the SVG specification's default
+    /// `SVGBoundingBoxOptions`. A wide `stroke-width`, marker decorations (arrowheads and the like), and any
+    /// `clip-path` applied to the element are **not** included, so the returned rect can be visibly smaller than
+    /// everything actually painted on screen. This crate does not currently expose the options-taking overload
+    /// (`getBBox(options)`) that would let a caller opt into the stroke/decorated/visible box instead — see
+    /// `docs/design_notes.md` ("`bounding_box` wraps only the no-argument `getBBox`...") for why.
     ///
     /// **Performance:** this call triggers a browser layout read. Do not call it inside a hot animation or pointer-move
     /// callback unless you have determined that this cost is acceptable.

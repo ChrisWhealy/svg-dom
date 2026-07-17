@@ -114,9 +114,14 @@ impl std::fmt::Display for Size {
 ///
 /// These two methods both return a `Rect`, but the coordinates are **not interchangeable**:
 ///
-/// * [`bounding_box`](crate::SvgNode::bounding_box) wraps `getBBox()` and reports **local, user-space** coordinates —
-///   the same coordinate system the element's own `x`/`y`/`d`/`points` attributes are authored in, unaffected by any
-///   transform applied to the element or its ancestors.
+/// * [`bounding_box`](crate::SvgNode::bounding_box) wraps the no-argument form of `getBBox()` and reports **local,
+///   user-space** coordinates — the same coordinate system the element's own `x`/`y`/`d`/`points` attributes are
+///   authored in, unaffected by any transform applied to the element or its ancestors. It is also the **object/fill**
+///   bounding box only: stroke width, markers, and clipping are not included (see
+///   [`bounding_box`](crate::SvgNode::bounding_box)'s own doc comment). Empirically, in Chromium at least,
+///   `getBoundingClientRect()` reports this same fill-only extent for SVG shape elements too — a wide stroke does
+///   not necessarily widen either box, so do not assume `bounding_client_rect` is the "include everything painted"
+///   alternative to `bounding_box`; verify against the specific browsers you target if that distinction matters.
 /// * [`bounding_client_rect`](crate::SvgNode::bounding_client_rect) wraps `getBoundingClientRect()` and reports
 ///   **rendered CSS pixels**, relative to the browser viewport, after every transform, `viewBox` scale, and CSS zoom
 ///   has been applied.
