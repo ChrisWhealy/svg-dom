@@ -12,6 +12,7 @@
 - [`ctm`/`screen_ctm` are accumulated matrices, not generally the element's own local transform](#ctmscreen_ctm-are-accumulated-matrices-not-generally-the-elements-own-local-transform)
   - [Converting a point between viewport and local coordinates](#converting-a-point-between-viewport-and-local-coordinates)
   - [Recovering the local matrix](#recovering-the-local-matrix)
+- [`point_at_length`'s `distance` is saturated to `f32` range, not just cast](#point_at_lengths-distance-is-saturated-to-f32-range-not-just-cast)
 
 Six new `SvgNode` methods in `src/node/geometry.rs` have been implemented: `bounding_box`, `ctm`, `screen_ctm`, `total_length`, `point_at_length`, `bounding_client_rect`.
 
@@ -134,3 +135,24 @@ Composing that inverse with `child.ctm() = translate(100, 50)` gives `translate(
 This crate deliberately does not ship an `inverse`/`compose` method on `Matrix2D` — `Matrix2D` remains a plain data struct with no matrix-composition API of its own (the same scope boundary already noted above), so a caller who needs this implements it from the formula above rather than this crate silently growing a small linear-algebra library.
 
 Both `set_matrix` and `set_matrix_precise`'s doc comments carry a short pointer to this note.
+
+## `point_at_length`'s `distance` is saturated to `f32` range, not just cast
+
+`SVGGeometryElement.getPointAtLength()` takes an IDL `float` (32-bit), so `point_at_length(&self, distance: f64)` has to narrow its argument before crossing into the browser.
+The first implementation did this with a plain `distance as f32`, and the doc comment claimed an out-of-range `distance` never errors — the browser clamps it to the path's start or end.
+That claim was correct for ordinary finite values, but not for the entire `f64` domain, and the gap was only found by checking the exact browser behaviour rather than assuming the DOM Standard's clamping rule was the whole story.
+
+Rust's documented behaviour for an overflowing float-to-float `as` cast is to saturate to infinity: `f64::MAX as f32` is `f32::INFINITY`, not a large finite `f32`.
+Passing that to the browser does not clamp — `getPointAtLength`'s IDL parameter is a *restricted* `float`, not `unrestricted float`, so the browser's own WebIDL binding rejects `NaN`/`±Infinity` before the SVG path-clamping algorithm ever runs.
+Confirmed empirically (Chromium): `rect.getPointAtLength(Infinity)` throws `TypeError: ... The provided float value is non-finite`, while `rect.getPointAtLength(1e30)` — large, but still finite and well within `f32`'s range — clamps to the path start exactly as the original doc comment described.
+So `f64::MAX`, `f64::MIN`, and any other overflowing-but-finite `f64` all silently became a `TypeError` (mapped to `Err` by this crate's own `dom_err`), directly contradicting the "never errors for an out-of-range distance" claim for that slice of the input domain.
+
+Two fixes were available: document the narrower true behaviour (finite, `f32`-representable distances clamp; anything that would overflow to infinity errors instead), or preserve the originally-documented behaviour across the full `f64` domain by saturating rather than letting the cast overflow.
+The second was chosen: it keeps the public `f64` signature behaving intuitively (any finite distance clamps, exactly as documented) without adding a second browser boundary crossing (an alternative fix — clamping in Rust against a `total_length()` reading before ever calling `get_point_at_length` — would have doubled the number of calls into the browser for every use, including the overwhelmingly common in-range case that never needed clamping at all).
+
+The fix has two parts, in this order:
+
+1. Reject genuinely non-finite `distance` (`NaN`, `+Infinity`, `-Infinity`) explicitly, with a clear `Error::Dom` before any browser call is made — these were never meaningful path measurements to begin with, so turning them into a clean, immediate `Err` is more useful than letting them surface as an opaque browser `TypeError` (or, worse, a different opaque error depending on which browser is running).
+2. For everything else — every finite `f64` — compare against `f32::MAX`/`f32::MIN` (widened to `f64` for an exact, lossless comparison) and saturate to the nearest `f32` boundary rather than casting directly. A saturated `f32::MAX`/`f32::MIN` is still a perfectly ordinary finite `f32` from the browser's point of view, so it clamps to the path's start/end exactly like `1e30` does above — no special-casing needed on the browser side, and no behavioural difference from an "ordinary" large out-of-range distance a caller might pass by hand.
+
+Three new browser tests (`tests/svg_node.rs`) lock this in: `should_reject_non_finite_point_at_length_distance` (`NaN`/both infinities all return `Err`), and `should_saturate_out_of_f32_range_finite_distance_instead_of_erroring` (`f64::MAX` and `f64::MIN` both return `Ok`, matching the same point as calling with `total_length()`/a large negative number would).

@@ -22,6 +22,10 @@
 //! narrows [`point_at_length`](SvgNode::point_at_length)'s `distance` argument to `f32` on the way in) purely for
 //! API uniformity — it does not, and cannot, recover precision the browser never had.
 //!
+//! Narrowing that `distance` argument is not a plain `as f32` cast, either: see
+//! [`point_at_length`](SvgNode::point_at_length)'s own doc comment for why an out-of-`f32`-range *finite* `f64` is
+//! saturated rather than allowed to become an actual `f32` infinity, which the browser's binding rejects outright.
+//!
 //! [`SvgNode::bounding_client_rect`] is the one exception: it wraps `Element.getBoundingClientRect()`, a modern Web
 //! API whose `DOMRect` has always used `double` (`f64`) fields — no widening happens there, and no precision is
 //! lost at that boundary.
@@ -226,8 +230,21 @@ impl SvgNode {
     /// # Point at distance along a path
     ///
     /// Returns the point at `distance` user units along this element's path, by wrapping
-    /// [`SVGGeometryElement.getPointAtLength()`]. `distance` is clamped to `[0, `[`total_length`](Self::total_length)`]`
-    /// by the browser, so an out-of-range value does not error — it returns the start or end point.
+    /// [`SVGGeometryElement.getPointAtLength()`]. A **finite** `distance` outside `[0,
+    /// `[`total_length`](Self::total_length)`]` does not error — it clamps to the path's start or end point, per the
+    /// SVG specification.
+    ///
+    /// # `distance` is saturated to `f32` range, not just narrowed
+    ///
+    /// `getPointAtLength` takes an IDL `float` (32-bit), so `distance` is narrowed from `f64` before crossing into
+    /// the browser. A plain `distance as f32` cast is not enough on its own: Rust saturates an out-of-`f32`-range
+    /// finite `f64` (for example `f64::MAX`) to `f32::INFINITY`, and unlike an ordinary out-of-range *finite*
+    /// distance, the browser's binding rejects an actually-infinite argument outright instead of clamping it —
+    /// confirmed empirically (Chromium): passing `Infinity` throws `TypeError: ... non-finite`, while a large but
+    /// still-finite `f32`-representable distance (e.g. `1e30`) clamps to the path start exactly as documented.
+    /// To keep the clamping behaviour intuitive across the full `f64` domain, an out-of-`f32`-range *finite*
+    /// `distance` is saturated to `f32::MIN`/`f32::MAX` (which then clamps to the path's end/start the same as any
+    /// other out-of-range finite value) rather than being allowed to become an actual infinity.
     ///
     /// **Performance:** this call crosses into the browser and may trigger synchronous style or layout calculation.
     /// Profile before calling it inside a hot animation or pointer-move callback — the actual cost depends on the
@@ -235,8 +252,9 @@ impl SvgNode {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::Dom`] if the browser rejects the call, or if this element does not implement
-    /// `SVGGeometryElement` — see [`total_length`](Self::total_length) for which element types that excludes.
+    /// Returns [`Error::Dom`] if `distance` is `NaN` or infinite, if the browser rejects the call, or if this
+    /// element does not implement `SVGGeometryElement` — see [`total_length`](Self::total_length) for which element
+    /// types that excludes.
     ///
     /// [`SVGGeometryElement.getPointAtLength()`]: https://developer.mozilla.org/docs/Web/API/SVGGeometryElement/getPointAtLength
     ///
@@ -251,13 +269,26 @@ impl SvgNode {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn point_at_length(&self, distance: f64) -> Result<Point, Error> {
+        if !distance.is_finite() {
+            return Err(Error::Dom("getPointAtLength: distance must be finite".into()));
+        }
         let geometry = self
             .inner
             .element
             .dyn_ref::<web_sys::SvgGeometryElement>()
             .ok_or_else(|| Error::Dom("getPointAtLength: element does not implement SVGGeometryElement".into()))?;
+        // Saturate rather than cast directly: a finite `f64` beyond `f32`'s range would otherwise become an actual
+        // `f32::INFINITY`/`f32::NEG_INFINITY`, which the browser's IDL `float` binding rejects outright instead of
+        // clamping — see this method's own doc comment for the empirical confirmation.
+        let distance_f32 = if distance > f64::from(f32::MAX) {
+            f32::MAX
+        } else if distance < f64::from(f32::MIN) {
+            f32::MIN
+        } else {
+            distance as f32
+        };
         geometry
-            .get_point_at_length(distance as f32)
+            .get_point_at_length(distance_f32)
             .map(|p| Point::new(f64::from(p.x()), f64::from(p.y())))
             .map_err(dom_err)
     }

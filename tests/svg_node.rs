@@ -2400,6 +2400,43 @@ fn should_report_point_at_length_zero_as_path_start() -> Result<(), String> {
     approx(start.y, 10.0)
 }
 
+/// `point_at_length` rejects `NaN` and both infinities without ever crossing into the browser.
+#[wasm_bindgen_test]
+fn should_reject_non_finite_point_at_length_distance() -> Result<(), String> {
+    let rect = make_svg("node-point-at-length-non-finite")
+        .rect(Point::new(10.0, 10.0), Size::new(80.0, 40.0))
+        .map_err(|e| e.to_string())?;
+    common::check(rect.point_at_length(f64::NAN).is_err(), "expected Err for NaN")?;
+    common::check(rect.point_at_length(f64::INFINITY).is_err(), "expected Err for +infinity")?;
+    common::check(rect.point_at_length(f64::NEG_INFINITY).is_err(), "expected Err for -infinity")
+}
+
+/// A finite `distance` far beyond `f32::MAX` (e.g. `f64::MAX`) is saturated to `f32::MAX`/`f32::MIN`, not left to
+/// overflow into an actual `f32` infinity — it clamps to the path's end/start exactly like any other out-of-range
+/// finite distance, rather than erroring the way an actually-infinite distance does.
+#[wasm_bindgen_test]
+fn should_saturate_out_of_f32_range_finite_distance_instead_of_erroring() -> Result<(), String> {
+    let rect = make_svg("node-point-at-length-saturate")
+        .rect(Point::new(10.0, 10.0), Size::new(80.0, 40.0))
+        .map_err(|e| e.to_string())?;
+    let total = rect.total_length().ok_or("expected Some(length) for a <rect>")?;
+
+    let end = rect.point_at_length(f64::MAX).map_err(|e| e.to_string())?;
+    let start_via_min = rect.point_at_length(f64::MIN).map_err(|e| e.to_string())?;
+    let start_via_negative = rect.point_at_length(-1.0).map_err(|e| e.to_string())?;
+
+    // f64::MAX saturates to a huge but finite positive f32, which clamps to the path's end, the same as any other
+    // distance past `total_length`.
+    let expected_end = rect.point_at_length(total).map_err(|e| e.to_string())?;
+    approx(end.x, expected_end.x)?;
+    approx(end.y, expected_end.y)?;
+
+    // f64::MIN saturates to a huge but finite negative f32, which clamps to the path's start, same as any ordinary
+    // negative distance.
+    approx(start_via_min.x, start_via_negative.x)?;
+    approx(start_via_min.y, start_via_negative.y)
+}
+
 /// `ctm` on an untransformed top-level `<rect>` is approximately the identity matrix.
 #[wasm_bindgen_test]
 fn should_report_identity_ctm_for_untransformed_rect() -> Result<(), String> {
