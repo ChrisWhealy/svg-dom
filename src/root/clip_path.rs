@@ -254,8 +254,8 @@ impl SvgClipPath {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates a `<line>` clip shape inside this `<clipPath>`.
     ///
-    /// A `<line>` has no area, so it clips nothing by default unless the referenced element has a non-zero
-    /// `stroke-width` on the line itself — this combination is uncommon.
+    /// A `<line>` has no fillable area. To clip anything, this line itself needs both a visible stroke (the default
+    /// `stroke` is `none`) and a non-zero `stroke-width` — this combination is uncommon.
     /// Prefer area shapes (`<rect>`, `<circle>`, `<path>`, `<polygon>`) when defining clip regions.
     pub fn line(&self, start: Point, end: Point) -> Result<SvgNode, Error> {
         self.create_line(start, end)

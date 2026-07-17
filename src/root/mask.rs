@@ -350,8 +350,8 @@ impl SvgMask {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates a `<line>` mask shape inside this `<mask>`.
     ///
-    /// A `<line>` has no area, so it reveals nothing by default unless the referenced element has a non-zero
-    /// `stroke-width` on the line itself — this combination is uncommon.
+    /// A `<line>` has no fillable area. To contribute to the mask, this line itself needs both a visible stroke
+    /// (the default `stroke` is `none`) and a non-zero `stroke-width` — this combination is uncommon.
     ///
     /// Prefer area shapes (`<rect>`, `<circle>`, `<path>`, `<polygon>`) when defining mask content.
     pub fn line(&self, start: Point, end: Point) -> Result<SvgNode, Error> {
