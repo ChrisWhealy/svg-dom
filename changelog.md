@@ -7,6 +7,11 @@
 - `745ed91` Document bounding_box() inclusion semantics (2026-07-17)
 - `db78c2b` Public f64s may carry only f32 precision (2026-07-17)
 - `124fa5f` Correct layout/reflow statements (2026-07-17)
+- `2df0553` Refactor design notes documentation (2026-07-17)
+- `45a1441` Use f64 -> f32 saturation instead of casting (2026-07-17)
+- `03eff35` Add f32-precision explanation to public methods for docs.rs completeness (2026-07-17)
+- `ffa2825` Add #!\[deny(rustdoc::broken_intra_doc_link\]) to catch link mistakes (2026-07-17)
+- `ef4bf9a` Improve test coverage (2026-07-17)
 
 ## 0.1.59 — 2026-07-16
 - `fddc1cd` Implement 4 CSS class helpers on SvgNode (2026-07-16)
