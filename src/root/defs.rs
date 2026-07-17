@@ -399,6 +399,11 @@ impl SvgDefs {
     ///
     /// let svg  = SvgRoot::attach("diagram")?;
     /// let defs = svg.defs()?;
+    /// defs.build_linear_gradient("fade-gradient", |g| {
+    ///     g.add_stop(0.0, "white")?;
+    ///     g.add_stop(1.0, "black")?;
+    ///     Ok(())
+    /// })?;
     /// let fade = defs.mask("fade")?;
     /// fade.rect(Point::origin(), Size::new(120.0, 120.0))?.set_fill_gradient("fade-gradient")?;
     ///
@@ -442,6 +447,11 @@ impl SvgDefs {
     /// let svg  = SvgRoot::attach("diagram")?;
     /// let defs = svg.defs()?;
     ///
+    /// defs.build_linear_gradient("fade-gradient", |g| {
+    ///     g.add_stop(0.0, "white")?;
+    ///     g.add_stop(1.0, "black")?;
+    ///     Ok(())
+    /// })?;
     /// let fade = defs.build_mask("fade", |m| {
     ///     m.rect(Point::origin(), Size::new(120.0, 120.0))?.set_fill_gradient("fade-gradient")?;
     ///     Ok(())
