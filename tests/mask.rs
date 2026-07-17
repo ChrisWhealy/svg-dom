@@ -311,3 +311,41 @@ fn should_remove_mask_attribute() -> Result<(), String> {
     rect.remove_mask().map_err(|e| e.to_string())?;
     check_eq(rect.as_element().get_attribute("mask"), None)
 }
+
+/// End-to-end cached-reference invariant: renaming a mask via `set_id` and then applying it with `set_mask_ref`
+/// writes the *new* id, not the one the mask was originally constructed with — proving `url_ref` is kept in sync
+/// rather than snapshotted once at construction.
+#[wasm_bindgen_test]
+fn should_reflect_renamed_mask_id_in_set_mask_ref() -> Result<(), String> {
+    let svg = make_svg("mask-rename-then-ref");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let mut mask = defs.mask("old").map_err(|e| e.to_string())?;
+    mask.set_id("new").map_err(|e| e.to_string())?;
+    let rect = svg.rect(Point::origin(), Size::new(50.0, 50.0)).map_err(|e| e.to_string())?;
+    rect.set_mask_ref(&mask).map_err(|e| e.to_string())?;
+    check_eq(rect.as_element().get_attribute("mask"), Some("url(#new)".into()))
+}
+
+/// `set_attr("ID", ...)` (case-insensitive) and `set_attr_display("id", ...)` are both rejected to protect the
+/// cached id, and neither one is allowed to desynchronise the cache from the DOM before returning the error.
+#[wasm_bindgen_test]
+fn should_reject_reserved_id_attribute_case_insensitively_and_leave_cache_unchanged() -> Result<(), String> {
+    let svg = make_svg("mask-reserved-id");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let mask = defs.mask("safe").map_err(|e| e.to_string())?;
+
+    let result = mask.set_attr("ID", "injected");
+    check(
+        matches!(result, Err(Error::ReservedAttribute("id"))),
+        "expected ReservedAttribute error for set_attr(\"ID\", ...)",
+    )?;
+
+    let result = mask.set_attr_display("id", "injected");
+    check(
+        matches!(result, Err(Error::ReservedAttribute("id"))),
+        "expected ReservedAttribute error for set_attr_display(\"id\", ...)",
+    )?;
+
+    check_eq(mask.id(), "safe")?;
+    check_eq(mask.as_element().get_attribute("id"), Some("safe".into()))
+}
