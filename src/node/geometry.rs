@@ -51,6 +51,9 @@ impl SvgNode {
     /// element or its ancestors — see [`Rect`]'s own doc comment for how this differs from
     /// [`bounding_client_rect`](Self::bounding_client_rect).
     ///
+    /// The underlying SVG DOM API uses 32-bit floating-point values; the returned coordinates are widened to `f64`
+    /// for consistency with the rest of this crate's geometry types.
+    ///
     /// # Only the object/fill bounding box
     ///
     /// The no-argument form of `getBBox()` returns the **object bounding box** — geometry only, `fill = true`,
@@ -110,6 +113,9 @@ impl SvgNode {
     /// Unlike [`screen_ctm`](Self::screen_ctm), this does **not** include any ancestor's transform beyond the nearest
     /// viewport — see [`screen_ctm`](Self::screen_ctm) for the full-chain equivalent.
     ///
+    /// The underlying SVG DOM API uses 32-bit floating-point values; the returned matrix components are widened to
+    /// `f64` for consistency with the rest of this crate's geometry types.
+    ///
     /// # Not generally this element's own local transform
     ///
     /// `ctm()` accumulates **every** ancestor transform between this element and its nearest viewport ancestor, not
@@ -154,6 +160,9 @@ impl SvgNode {
     /// physical monitor/screen coordinates — per the SVG specification it maps into the document viewport's
     /// CSS-pixel coordinates, incorporating the relevant SVG, CSS-box, and page-position transforms. Returns `None`
     /// if the element is not currently part of a rendered tree, or does not implement `SVGGraphicsElement`.
+    ///
+    /// The underlying SVG DOM API uses 32-bit floating-point values; the returned matrix components are widened to
+    /// `f64` for consistency with the rest of this crate's geometry types.
     ///
     /// # Two different uses — do not conflate them
     ///
@@ -203,6 +212,9 @@ impl SvgNode {
     /// this includes `<text>`, `<tspan>`, `<textPath>`, `<use>`, `<image>`, `<g>`, and the root `<svg>`; only `<rect>`,
     /// `<circle>`, `<ellipse>`, `<line>`, `<polyline>`, `<polygon>`, and `<path>` support it.
     ///
+    /// The underlying SVG DOM API uses a 32-bit floating-point value; the returned length is widened to `f64` for
+    /// consistency with the rest of this crate's geometry types.
+    ///
     /// **Performance:** this call crosses into the browser and may trigger synchronous style or layout calculation.
     /// Profile before calling it inside a hot animation or pointer-move callback — the actual cost depends on the
     /// scene's complexity and whether the browser's geometry is already current.
@@ -233,6 +245,11 @@ impl SvgNode {
     /// [`SVGGeometryElement.getPointAtLength()`]. A **finite** `distance` outside `[0,
     /// `[`total_length`](Self::total_length)`]` does not error — it clamps to the path's start or end point, per the
     /// SVG specification.
+    ///
+    /// The underlying SVG DOM API uses 32-bit floating-point values on both sides of this call: the returned point's
+    /// coordinates are widened to `f64` for consistency with the rest of this crate's geometry types, and `distance`
+    /// itself is narrowed to `f32` before crossing into the browser — see the next section for why that narrowing
+    /// needs more care than a plain cast.
     ///
     /// # `distance` is saturated to `f32` range, not just narrowed
     ///
