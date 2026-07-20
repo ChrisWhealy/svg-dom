@@ -23,7 +23,7 @@ That said, all reasonable, conventional steps have been taken to provide a secur
 - [Demo Server](#demo-server)
 - [Quick Start](#quick-start)
 - [Testing](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/testing.md)
-- [Supported SVG Elements](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/elements.md)
+- [Supported SVG Elements](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/svg_elements/README.md)
 - [Design Notes](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/design_notes/README.md)
 - [Gap Analysis](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/gaps.md)
 

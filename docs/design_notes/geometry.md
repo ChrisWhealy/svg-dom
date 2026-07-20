@@ -69,7 +69,7 @@ This is the same mistake [`rejected_ideas/geometry.md`](rejected_ideas/geometry.
 
 ## `ctm`/`screen_ctm` are accumulated matrices, not generally the element's own local transform
 
-An earlier draft of this note (and of `docs/elements.md`) claimed a matrix read via `ctm()` could be "mutated and written straight back" with `set_matrix`.
+An earlier draft of this note (and of `docs/elements.md`, since reorganised into [`docs/svg_elements/`](../svg_elements/README.md)) claimed a matrix read via `ctm()` could be "mutated and written straight back" with `set_matrix`.
 That is wrong in general, and worth recording as a corrected claim rather than silently rewriting it (this document's convention for corrections — kept even across this reorganisation into topic files).
 
 Per the SVG specification, `getCTM()` returns the matrix mapping the element's own coordinate system into its **nearest SVG viewport's** coordinate system.

@@ -1,7 +1,7 @@
 # Gap Analysis
 
 This document tracks the known functional gaps in `svg-dom`.
-For a description of what the crate currently supports, see [Supported SVG Elements](elements.md).
+For a description of what the crate currently supports, see [Supported SVG Elements](svg_elements/README.md).
 
 These gaps will be filled in time, but for now, this crate must be treated as a work-in-progress, not a general-purpose SVG library.
 
