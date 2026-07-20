@@ -44,8 +44,16 @@ impl MaskUnits {
 /// # `mask-type` is a preference, not a guarantee
 ///
 /// `mask-type` expresses this mask element's own preferred interpretation.
-/// The element that *references* the mask can override it with its own `mask-mode` attribute (not currently wrapped
-/// by a named setter — reach for `SvgNode::set_attr("mask-mode", ...)` if you need it).
+///
+/// The element that *references* the mask can override it with its own `mask-mode` **CSS property** — unlike
+/// `mask-type`, `mask-mode` is not an SVG presentation attribute, so it cannot be set as a plain XML attribute.
+/// A literal `mask-mode="alpha"` attribute is not the specification-defined syntax, however tolerant some browsers may
+/// happen to be about it.
+///
+/// As a result, there is no dedicated typed setter for it; instead, write it into the element's `style` attribute
+/// e.g. `SvgNode::set_attr("style", "mask-mode: alpha")` — bearing in mind that this statement alone will overwrite the
+/// whole `style` attribute, so merge in any other inline declarations the element already has or might need.
+///
 /// `mask-mode`'s default value, `match-source`, honours whatever `mask-type` says, so the behaviour documented here
 /// is what callers get unless a referencing element opts out explicitly.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

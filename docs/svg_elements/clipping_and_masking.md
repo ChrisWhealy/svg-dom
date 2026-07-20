@@ -105,7 +105,12 @@ Controlled by `SvgMask::set_mask_type(MaskType)`:
 | `Luminance` | ✅ | The masked element is revealed according to the combination of teh mask content's perceived brightness *and* its opacity.<br>Transparent content hides fully no matter how bright its colour is. |
 | `Alpha` |  | The masked element is revealed according to the mask content's alpha channel only; the colour is ignored.<br>In this case, only `fill-opacity`/`opacity` is significant. |
 
-`mask-type` expresses the `<mask>` element's own preference; the element that *references* the mask can override it with its own `mask-mode` attribute (not currently wrapped by a named setter — use `SvgNode::set_attr("mask-mode", ...)`).
+`mask-type` expresses the `<mask>` element's own preference; the element that *references* the mask can override it with its own `mask-mode` **CSS property**.
+Unlike `mask-type`, `mask-mode` is not an SVG presentation attribute, so it cannot be set as a plain XML attribute — a literal `mask-mode="alpha"` attribute is not the specification-defined syntax, whatever some browsers happen to tolerate.
+
+There is no dedicated typed setter for it; write it into the element's `style` attribute instead, e.g. `SvgNode::set_attr("style", "mask-mode: alpha")`.
+On its own, this statement will overwrite the whole `style` attribute, so merge in any other inline declarations the element may already need/have.
+
 `mask-mode`'s default, `match-source`, honours `mask-type`, so this override only matters if a caller sets `mask-mode` explicitly.
 
 ### Applying and Removing Masks on `SvgNode`:
