@@ -3,19 +3,23 @@ use wasm_bindgen::JsCast;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 impl SvgNode {
-    /// # Accessible name
+    /// # `<title>` child element
     ///
-    /// Sets this element's accessible name via a `<title>` child element, creating one if it does not already exist.
+    /// Creates or updates this element's direct `<title>` child.
     ///
-    /// As per the SVG accessibility model, the *first* `<title>` child (in document order) provides the element's
-    /// accessible name to assistive technology — this is also what most browsers render as a tooltip on hover.
+    /// This `<title>` participates in the element's accessible-name computation, but does not unconditionally determine
+    /// it: as per the accessible-name-and-description computation algorithm, `aria-labelledby` and `aria-label` — when
+    /// present on this element — take precedence over a `<title>` child.
     ///
-    /// This method is idempotent: calling it again updates the existing `<title>` child's text rather than
-    /// accumulating duplicates, and a brand-new `<title>` is inserted as the *first* child so it is unambiguously
-    /// the one that wins, regardless of what this element already contains.
+    /// When neither ARIA attribute is present, the first `<title>` child (in document order) supplies the accessible
+    /// name. Separately, a `<title>` child is also what most browsers render as a native tooltip on hover.
     ///
-    /// See [`title`](Self::title) to read the current value back, and [`remove_title`](Self::remove_title) to
-    /// remove it entirely (for example, to fall back to an ancestor's accessible name).
+    /// This method is idempotent: calling it again updates the existing `<title>` child's text rather than accumulating
+    /// duplicates, and a brand-new `<title>` is inserted as this element's first child, so it is unambiguously the one
+    /// [`title`](Self::title) finds, regardless of what other content this element already has.
+    ///
+    /// See [`title`](Self::title) to read the current child text back, and [`remove_title`](Self::remove_title) to
+    /// remove it entirely.
     ///
     /// # Errors
     ///
@@ -38,9 +42,12 @@ impl SvgNode {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Returns this element's accessible name.
+    /// Returns the text of this element's first direct `<title>` child, or `None` if it has none.
     ///
-    /// The text content of its first `<title>` child or `None` if it has none.
+    /// This is **not necessarily the element's computed accessible name** — if `aria-labelledby` or `aria-label` are
+    /// present on this element, they take precedence over a `<title>` child in accessible-name computation.
+    ///
+    /// This method reads the `<title>` child directly; it does not run that computation or consult ARIA attributes.
     ///
     /// See [`set_title`](Self::set_title) for how that child is created and kept singular.
     pub fn title(&self) -> Option<String> {
@@ -56,19 +63,21 @@ impl SvgNode {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// # Accessible description
+    /// # `<desc>` child element
     ///
-    /// Sets this element's accessible description via a `<desc>` child element, creating one if it does not already
-    /// exist.
+    /// Creates or updates this element's direct `<desc>` child.
     ///
-    /// Unlike [`set_title`](Self::set_title)'s tooltip-and-name role, `<desc>` provides supplementary detail that
-    /// assistive technology exposes as the element's *description*, distinct from its name: browsers do not render it
-    /// as a tooltip.
+    /// This `<desc>` participates in the element's accessible-description computation, but does not unconditionally
+    /// determine it: if present on the element, `aria-describedby` takes precedence over a `<desc>` child.
+    ///
+    /// When `aria-describedby` is not present, the first `<desc>` child (in document order) supplies the accessible
+    /// description. Unlike [`set_title`](Self::set_title), browsers do not render `<desc>` as a tooltip.
     ///
     /// The same singular-child, first-position behaviour applies: calling this again updates the existing `<desc>` in
     /// place rather than accumulating duplicates.
     ///
-    /// See [`desc`](Self::desc) to read the current value back, and [`remove_desc`](Self::remove_desc) to remove it.
+    /// See [`desc`](Self::desc) to read the current child text back, and [`remove_desc`](Self::remove_desc) to remove
+    /// it.
     ///
     /// # Errors
     ///
@@ -91,8 +100,11 @@ impl SvgNode {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Returns this element's accessible description — the text content of its first `<desc>` child — or `None` if
-    /// it has none.
+    /// Returns the text of this element's first direct `<desc>` child, or `None` if it has none.
+    ///
+    /// This is **not necessarily the element's computed accessible description** — `aria-describedby`, when present
+    /// on this element, takes precedence over a `<desc>` child in accessible-description computation. This method
+    /// reads the `<desc>` child directly; it does not run that computation or consult ARIA attributes.
     ///
     /// See [`set_desc`](Self::set_desc) for how that child is created and kept singular.
     pub fn desc(&self) -> Option<String> {
@@ -139,8 +151,9 @@ impl SvgNode {
         let node = SvgNode::new(el);
         node.set_text(text);
 
-        // <title> always becomes this element's first child, so it is unambiguously the one assistive technology
-        // picks up, regardless of what content this element already has.
+        // <title> always becomes this element's first child, so it is unambiguously the one title()/accessible-name
+        // computation finds (when not superseded by aria-label/aria-labelledby), regardless of what content this
+        // element already has.
         //
         // <desc> is inserted immediately after an existing <title> when there is one — matching the SVG
         // specification's own examples, and keeping the two in the conventional order when both are set, whichever

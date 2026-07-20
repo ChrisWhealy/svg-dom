@@ -116,7 +116,7 @@ The `svg-dom` crate acts as a thin wrapper for `web-sys` SVG DOM bindings that a
    - `drag-and-drop`
    - and generic `Event` handlers
 - Drive reactive updates through a `requestAnimationFrame` loop via `AnimationLoop`
-- Give any element an accessible name and description with `set_title` / `set_desc` (and read them back with `title` / `desc`) — `set_title` also drives the browser's native hover tooltip
+- Give any element a `<title>` / `<desc>` child with `set_title` / `set_desc` (and read them back with `title` / `desc`) — each feeds into (but is not always the same as) the element's computed accessible name/description, since ARIA naming/description attributes take precedence when present; `<title>` also drives the browser's native hover tooltip
 
 ## What This Crate Is NOT
 

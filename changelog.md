@@ -26,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Correct alpha-mask wording (`c17addc`)
 - Filter primitive values are not always user units (`1411b3d`)
 - Correct various typos (`833f8b1`)
+- Reject empty or whitespace-only values (`26ac6d6`)
 
 # [Released]
 

@@ -585,10 +585,14 @@ pub(super) fn demo_tree_nav() -> Result<(), Error> {
 pub(super) fn demo_accessibility() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-accessibility", Size::new(W, H))?;
 
-    // Three icon-button-style circles, each carrying its own accessible name (<title>, also the native hover
-    // tooltip) and accessible description (<desc>, not shown as a tooltip by any browser — assistive technology
-    // only). The readout below echoes both back via the title()/desc() getters when a pointer enters an icon, so
-    // the invisible <desc> becomes visible for the purposes of this demo.
+    // Three icon-button-style circles, each carrying its own <title> child (also the native hover tooltip) and
+    // <desc> child (which is visible only to assistive technology).
+    //
+    // Neither is used here as a stand-in for real accessible-name/description computation: aria-label/aria-labelledby
+    // and aria-describedby would take precedence over these if present, which this demo deliberately doesn't exercise.
+    //
+    // The readout below echoes both back via the title()/desc() getters when a pointer enters an icon, so the invisible
+    // <desc> becomes visible for the purposes of this demo.
     let icons: [(f64, &str, &str, &str, &str); 3] = [
         (150.0, STEELBLUE, "Save", "Save file", "Writes the current document to disk."),
         (400.0, ACCENT_AMBER, "Share", "Share", "Opens the share sheet for this item."),

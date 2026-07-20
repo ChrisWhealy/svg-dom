@@ -141,16 +141,25 @@ Each call crosses into the browser and potentially triggers synchronous style or
 
 # Implemented accessibility helpers
 
-`<title>` (accessible name) and `<desc>` (accessible description) are supported generically on `SvgNode`, so they work on any element such as a shape, a group, or the root `<svg>` itself.
+`<title>` and `<desc>` child elements are supported generically on `SvgNode`, so they work on any element such as a shape, a group, or the root `<svg>` itself.
 
 | Method | Effect |
 |---|---|
-| `set_title(text)` | Creates (or updates) this element's `<title>` child. The *first* `<title>` child provides the accessible name to assistive technology and is what most browsers render as a native hover tooltip. |
-| `title()` | Returns the text content of the first `<title>` child or `None` if there isn't one. |
-| `remove_title()` | Idemopotent removal of the `<title>` child. |
-| `set_desc(text)` | Creates (or updates) this element's `<desc>` child. This is supplementary detail (distinct from its name) exposed to assistive technology as the element's accessible *description*. Browsers do not render `<desc>` as a tooltip. |
-| `desc()` | Returns the text content of the first `<desc>` child or `None` if there isn't one. |
+| `set_title(text)` | Creates (or updates) this element's direct `<title>` child. |
+| `title()` | Returns the text of the first direct `<title>` child, or `None` if there isn't one. |
+| `remove_title()` | Idempotent removal of the `<title>` child. |
+| `set_desc(text)` | Creates (or updates) this element's direct `<desc>` child. |
+| `desc()` | Returns the text of the first direct `<desc>` child, or `None` if there isn't one. |
 | `remove_desc()` | Idempotent removal of the `<desc>` child. |
+
+***IMPORTANT***<br>
+`title()`/`desc()` read the DOM child directly — they do **not** compute the element's *accessible name* or *accessible description*, and the value they return is not always the same thing.
+
+Per the accessible-name-and-description computation algorithm, the values held in `aria-labelledby` and `aria-label` take precedence over a `<title>` child for the accessible name, and `aria-describedby` takes precedence over a `<desc>` child for the accessible description.
+
+A `<title>` child only supplies the accessible name (and only then does it also drive the browser's native hover tooltip) when neither ARIA attribute is present on the element; `<desc>` is otherwise never rendered as a tooltip by any browser.
+
+`remove_title()`/`remove_desc()` remove only the direct child; accessible names are not inherited from an ancestor, so removing a `<title>` does not cause "fallback" to some ancestor's name — the practical effect on the accessibility tree depends on what else, if anything, supplies a name (ARIA attributes, other content, or nothing at all).
 
 A newly created `<title>` is always inserted as this element's first child.
 

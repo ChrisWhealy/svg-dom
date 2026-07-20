@@ -317,18 +317,22 @@
 
             <!-- accessibility: desc / title -->
             <section class="section" id="panel-accessibility">
-                <h2><code>&lt;title&gt;</code> / <code>&lt;desc&gt;</code> — accessible name and description</h2>
+                <h2><code>&lt;title&gt;</code> / <code>&lt;desc&gt;</code> child elements</h2>
                 <figure>
                     <div class="canvas" id="demo-accessibility"></div>
                     <figcaption>
-                        Three icons have each been given an accessible name using <code>set_title()</code> and an
-                        accessible description using <code>set_desc()</code>.<br>
+                        Three icons have each been given a <code>&lt;title&gt;</code> child using
+                        <code>set_title()</code> and a <code>&lt;desc&gt;</code> child using <code>set_desc()</code>.<br>
                         Hovering over an icon shows the browser's native tooltip, driven by its <code>&lt;title&gt;</code>
                         - no extra code is needed for that part.<br>
                         <code>&lt;desc&gt;</code> has no visible tooltip in any browser; this value is made available to
                         someone using assistive technology such as a screen reader. The readout below echoes both back
                         via the <strong>title()</strong> / <strong>desc()</strong> getters so the otherwise invisible
-                        description is visible for this demo.
+                        description is visible for this demo.<br>
+                        <strong>Note:</strong> a <code>&lt;title&gt;</code>/<code>&lt;desc&gt;</code> child feeds into,
+                        but does not unconditionally determine, the element's computed accessible name/description —
+                        When present, <code>aria-label</code>, <code>aria-labelledby</code> and <code>aria-describedby</code> take
+                        precedence.
                     </figcaption>
                 </figure>
             </section>
