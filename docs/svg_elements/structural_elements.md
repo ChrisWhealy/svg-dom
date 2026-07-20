@@ -110,7 +110,9 @@ Always use `SvgSymbol::set_id` to rename a symbol after construction; `set_attr(
 
 Obtain a handle via `SvgRoot::use_node(href, at)` or `SvgBatch::use_node(href, at)`.
 
-- `href` is a local fragment reference such as `"#my-shape"` (the `id` attribute of the target element).
+- `href` is normally a local fragment reference such as `"#my-shape"` (the `id` attribute of the target element).
+  The crate writes the value unchanged, so same-origin external SVG references such as `"icons.svg#my-shape"` are also representable (a URL containing no fragment references the whole external document), subject to browser security and resource-loading restrictions.
+- SVG 2 prohibits cross-origin external `<use>` references.
 - `at` is an `(x, y)` offset in the parent coordinate system; pass `Point::origin()` to control positioning entirely through `transform`.
 - Each returned `SvgNode` is independent: attributes set on one copy never affect the original or any other copy, but what an attribute actually does depends on its kind:
   - `transform` is a geometric attribute and is not inherited.

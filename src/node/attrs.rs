@@ -950,15 +950,22 @@ impl SvgNode {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the `href` attribute, which `<use>` elements use to reference a reusable asset.
     ///
-    /// Pass a local fragment reference such as `"#my-shape"` (where `"my-shape"` is the `id` of the target element)
-    /// or a full URL for cross-document references.
+    /// Pass a local fragment reference such as:
+    ///
+    /// * `"#my-shape"` (where `"my-shape"` is the `id` of the target element), or
+    /// * a same-origin external SVG document's fragment (`"icons.svg#my-shape"`), or
+    /// * a fragment-less URL to reference an entire external document
+    ///
+    /// SVG 2 prohibits cross-origin external `<use>` references, and browsers may impose further restrictions on
+    /// external resource loading.
+    ///
     /// Use this to redirect a `<use>` node to a different asset after it was created with
     /// [`SvgRoot::use_node`](crate::SvgRoot::use_node).
     ///
     /// # Security
     ///
     /// The value is written verbatim via `setAttribute`. Do not pass a `javascript:` URL or any other
-    /// attacker-controlled value without validation.
+    /// attacker-controlled value without careful validation.
     ///
     /// # Example
     ///

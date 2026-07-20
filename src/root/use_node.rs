@@ -14,9 +14,14 @@ impl SvgRoot {
     ///
     /// # Arguments
     ///
-    /// * `href` — a local fragment reference to the element being reused, e.g. `"#my-shape"`, where `"my-shape"` is the
-    ///   `id` attribute of the target element.
-    ///   The referenced element is typically defined inside `<defs>` and is not rendered directly.
+    /// * `href` — normally a local fragment reference to the element being reused, e.g. `"#my-shape"`, where
+    ///   `"my-shape"` is the `id` attribute of the target element. The referenced element is typically defined inside
+    ///   `<defs>` and is not rendered directly.
+    ///
+    ///   This crate writes `href` unchanged, so SVG 2's other reference forms are also representable: a same-origin
+    ///   external SVG document's fragment (`"icons.svg#my-shape"`), or an entire external SVG document when the URL
+    ///   has no fragment. Cross-origin external `<use>` references are prohibited by SVG 2, and browsers may impose
+    ///   further restrictions on external resource loading.
     /// * `at` — position in the parent coordinate system, written as `x`/`y` attributes on the `<use>` element.
     ///   These apply an additional translation on top of any coordinate already implied by the `transform` attribute.
     ///   Pass [`Point::origin`](Point::origin) when you intend to control positioning entirely via `transform`.
