@@ -101,7 +101,14 @@ Obtain a handle via `SvgRoot::use_node(href, at)` or `SvgBatch::use_node(href, a
 
 - `href` is a local fragment reference such as `"#my-shape"` (the `id` attribute of the target element).
 - `at` is an `(x, y)` offset in the parent coordinate system; pass `Point::origin()` to control positioning entirely through `transform`.
-- Each returned `SvgNode` is independent: `transform`, `opacity`, `fill`, and other presentation attributes can be set per-copy without affecting the original.
+- Each returned `SvgNode` is independent: attributes set on one copy never affect the original or any other copy, but what an attribute actually does depends on its kind:
+  - `transform` is a geometric attribute and is not inherited.
+    `opacity` is applied once to the generated instance, like a group opacity.
+    Both of these attributes always take effect independently per copy.
+  - Presentation properties such as `fill` or `stroke` provide inherited values to the referenced instance only.
+    They do **not** override an explicit `fill` or `stroke` already set on the referenced element or one of its descendants.
+  - A `<use>` on a `<symbol>` that hard-codes its own colours will not be recoloured by `set_fill` on the `<use>` instance.
+    This is the single most common surprise when styling `<use>` copies.
 - To change the referenced element after creation, call `SvgNode::set_href("#other-shape")`.
 
 Any change to the original definition is immediately visible in all copies.

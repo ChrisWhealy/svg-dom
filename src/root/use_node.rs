@@ -21,8 +21,19 @@ impl SvgRoot {
     ///   These apply an additional translation on top of any coordinate already implied by the `transform` attribute.
     ///   Pass [`Point::origin`](Point::origin) when you intend to control positioning entirely via `transform`.
     ///
-    /// Each `<use>` instance receives its own [`SvgNode`] handle and can have independent attributes — `transform`,
-    /// `opacity`, `fill`, `stroke` — applied to it without affecting the original or any other copy.
+    /// Each `<use>` instance receives its own [`SvgNode`] handle, and attributes set on it never affect the original
+    /// or any other copy.  However, what those attributes actually *do* depends on their kind:
+    ///
+    /// - `transform` is a geometric attribute not an inherited one.
+    ///   `opacity` is applied once to the whole generated instance like a group opacity
+    ///   Both of these attributes always take effect independently per copy.
+    /// - Presentation properties such as `fill` and `stroke` only provide an *inherited* value to the referenced
+    ///   content. They do **not** override an explicit `fill` or `stroke` already set on the referenced element or one
+    ///   of its descendants
+    /// - A `<use>` on a `<symbol>` that hard-codes its own colours will not be recoloured by `set_fill` on the `<use>`
+    ///   instance.
+    ///  
+    ///   This is the single most common surprise when styling `<use>` copies.
     ///
     /// # Errors
     ///
