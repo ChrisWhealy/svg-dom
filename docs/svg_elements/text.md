@@ -65,19 +65,36 @@ Obtain a handle by calling `text_path(href, content)` on any `SvgNode` that wrap
 
 Each span can override any text presentation attribute inherited from its parent, making it the standard mechanism for multi-line text and mixed-style inline text in SVG.
 
-Obtain a span by calling `tspan` or `tspan_dy` on any `SvgNode` that wraps a `<text>` or `<tspan>` element:
+Obtain a span by calling `tspan`, `tspan_dy`, or `tspan_line` on any `SvgNode` that wraps a `<text>` or `<tspan>` element:
 
 | Method | Effect |
 |---|---|
 | `node.tspan(content)` | Appends a `<tspan>` with `content`; inherits position from the parent. |
-| `node.tspan_dy(dy, content)` | Same but also sets `dy` — advances the text position `dy` user units downward before rendering. |
+| `node.tspan_dy(dy, content)` | Same, but also sets `dy` — advances the text position `dy` user units downward, *continuing from the current horizontal position*. Correct for superscripts, subscripts, and other in-line vertical nudges, but it does **not** reset `x` position, so subsequent lines form a staircase descending to the right by however much the previous line's rendered width was, rather than staying left-aligned. This is analgous to the old dot-matrix printer problem of issuing a line feed command, but not issuing a carriage return command. |
+| `node.tspan_line(x, dy, content)` | Sets **both** an absolute `x` and a relative `dy` — resets the horizontal position to `x` and advances `dy` user units down. This is the correct helper for aligned multi-line text. |
 | `node.set_dy(dy)` | Sets the `dy` attribute on an existing node. |
 | `node.set_dx(dx)` | Sets the `dx` attribute on an existing node (horizontal offset). |
 
 All text styling helpers (`set_fill`, `set_font_size`, `set_font_family`, `set_text_anchor`, `set_dominant_baseline`) work on the returned `SvgNode` and override the inherited value for that span only.
 
-**Multi-line text:**<br>
-Create a `<text>` with an empty content string (`""`), add the first line as a `tspan`, then add subsequent lines with `tspan_dy` and a consistent `dy` value equal to the desired line height.
+**Multi-line, left-aligned text:**<br>
+Create a `<text>` with an empty content string (`""`), add the first line as a plain `tspan` (it inherits `x` from the parent), then add each subsequent line with `tspan_line(x, line_height, content)` using the same `x` every time:
+
+```rust,no_run
+use svg_dom::{SvgRoot, root::utils::Point};
+let svg = SvgRoot::attach("diagram")?;
+let x   = 20.0;
+let txt = svg.text(Point::new(x, 40.0), "")?;
+txt.tspan("First line")?;
+txt.tspan_line(x, 20.0, "Second line")?;
+txt.tspan_line(x, 20.0, "Third line")?;
+Ok::<(), svg_dom::Error>(())
+```
+
+`tspan_dy` alone does *not* reliably produce left-aligned lines as `dy` changes only the vertical position relative to wherever the text cursor happens to be after the previous line.
+The horizontal position has already advanced by the rendered width of whatever text is on that line.
+Only an absolute `x` (as written by `tspan_line`) resets each line to a common starting column.
+Think of `tspan_line` issuing both a line feed (`dy`) and a carriage return (`x`) command.
 
 **Mixed-style inline text:**<br>
 Create a `<text>`, then add each word or phrase as a `tspan`, setting fill/size per span.
