@@ -14,12 +14,31 @@ impl SvgNode {
     /// When neither ARIA attribute is present, the first `<title>` child (in document order) supplies the accessible
     /// name. Separately, a `<title>` child is also what most browsers render as a native tooltip on hover.
     ///
-    /// This method is idempotent: calling it again updates the existing `<title>` child's text rather than accumulating
-    /// duplicates, and a brand-new `<title>` is inserted as this element's first child, so it is unambiguously the one
-    /// [`title`](Self::title) finds, regardless of what other content this element already has.
+    /// Calling this again updates the *first* `<title>` child's text (see the scope note below) rather than always
+    /// creating a new one, and when there was no `<title>` child at all, the brand-new one is inserted as this
+    /// element's first child, so it is unambiguously the one [`title`](Self::title) finds next time.
     ///
     /// See [`title`](Self::title) to read the current child text back, and [`remove_title`](Self::remove_title) to
-    /// remove it entirely.
+    /// remove it.
+    ///
+    /// # Scope: a first-direct-child convenience, not a language-aware manager
+    ///
+    /// This method (and [`title`](Self::title)/[`remove_title`](Self::remove_title)) is a simple, single-value
+    /// convenience for the common case: read, write, or remove whichever `<title>` happens to be this element's
+    /// *first* direct `<title>` child.
+    ///
+    /// SVG 2 deliberately permits multiple `<title>`/`<desc>` siblings on one element, one per language, with the
+    /// user agent selecting the most appropriate one via `lang`/`xml:lang`. This crate does not implement that
+    /// selection, and these methods make **no attempt to keep a `<title>` singular** on an element whose DOM they
+    /// did not build from scratch: if this element already has more than one `<title>` child — for example, one
+    /// attached from externally authored markup, or a multilingual set built by hand — `set_title` updates only the
+    /// first one, `title()` reads only the first one, and `remove_title` removes only the first one. Every other
+    /// `<title>` sibling is left completely untouched by any of these three methods.
+    ///
+    /// Build or manage multilingual `<title>`/`<desc>` sets through the underlying DOM directly (via
+    /// [`as_element`](Self::as_element), or this crate's generic tree/attribute methods) — this convenience API
+    /// intentionally does not grow a `lang`-aware surface; that would be a distinct, future capability rather than
+    /// an extension of what these methods already promise.
     ///
     /// # Errors
     ///
@@ -47,17 +66,19 @@ impl SvgNode {
     /// This is **not necessarily the element's computed accessible name** — if `aria-labelledby` or `aria-label` are
     /// present on this element, they take precedence over a `<title>` child in accessible-name computation.
     ///
-    /// This method reads the `<title>` child directly; it does not run that computation or consult ARIA attributes.
-    ///
-    /// See [`set_title`](Self::set_title) for how that child is created and kept singular.
+    /// This method reads the *first* direct `<title>` child; it does not run that computation, consult ARIA
+    /// attributes, or account for language-tagged sibling `<title>`s. See [`set_title`](Self::set_title)'s
+    /// `# Scope` section for the full explanation of that limitation.
     pub fn title(&self) -> Option<String> {
         self.accessible_child_text("title")
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Removes this element's `<title>` child, if one exists.
+    /// Removes this element's *first* direct `<title>` child, if one exists.
     ///
-    /// This method is idempotent: calling it has no effect if no `<title>` child is present.
+    /// This method is idempotent: calling it has no effect if no `<title>` child is present. See
+    /// [`set_title`](Self::set_title)'s `# Scope` section — if this element has more than one `<title>` sibling,
+    /// only the first is removed; the rest are left untouched.
     pub fn remove_title(&self) {
         self.remove_accessible_child("title");
     }
@@ -73,11 +94,15 @@ impl SvgNode {
     /// When `aria-describedby` is not present, the first `<desc>` child (in document order) supplies the accessible
     /// description. Unlike [`set_title`](Self::set_title), browsers do not render `<desc>` as a tooltip.
     ///
-    /// The same singular-child, first-position behaviour applies: calling this again updates the existing `<desc>` in
-    /// place rather than accumulating duplicates.
+    /// Calling this again updates the *first* `<desc>` child's text rather than always creating a new one, and when
+    /// there was no `<desc>` child at all, the brand-new one is inserted immediately after an existing `<title>` (or
+    /// as the first child if there is no `<title>` either).
     ///
     /// See [`desc`](Self::desc) to read the current child text back, and [`remove_desc`](Self::remove_desc) to remove
-    /// it.
+    /// it. This method has exactly the same first-direct-child scope, and the same non-goal of language-aware
+    /// management, as [`set_title`](Self::set_title) — see that method's `# Scope` section for the full explanation:
+    /// if this element already has more than one `<desc>` sibling, `set_desc`/`desc`/`remove_desc` only ever act on
+    /// the first one.
     ///
     /// # Errors
     ///
@@ -104,17 +129,19 @@ impl SvgNode {
     ///
     /// This is **not necessarily the element's computed accessible description** — `aria-describedby`, when present
     /// on this element, takes precedence over a `<desc>` child in accessible-description computation. This method
-    /// reads the `<desc>` child directly; it does not run that computation or consult ARIA attributes.
-    ///
-    /// See [`set_desc`](Self::set_desc) for how that child is created and kept singular.
+    /// reads the *first* direct `<desc>` child; it does not run that computation, consult ARIA attributes, or
+    /// account for language-tagged sibling `<desc>`s. See [`set_title`](Self::set_title)'s `# Scope` section (which
+    /// [`set_desc`](Self::set_desc) shares) for the full explanation of that limitation.
     pub fn desc(&self) -> Option<String> {
         self.accessible_child_text("desc")
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Removes this element's `<desc>` child, if one exists.
+    /// Removes this element's *first* direct `<desc>` child, if one exists.
     ///
     /// Has no effect if no `<desc>` child is present. Idempotent, like the rest of this crate's `remove_*` helpers.
+    /// See [`set_title`](Self::set_title)'s `# Scope` section — if this element has more than one `<desc>` sibling,
+    /// only the first is removed; the rest are left untouched.
     pub fn remove_desc(&self) {
         self.remove_accessible_child("desc");
     }

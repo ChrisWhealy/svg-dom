@@ -285,3 +285,64 @@ fn should_not_blank_existing_desc_on_rejected_update() -> Result<(), String> {
     )?;
     check_eq(rect.desc(), Some("Original".to_owned()))
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Singularity scope: pre-existing extra siblings (e.g. externally authored multilingual markup) are left untouched.
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// A pre-existing second `<title>` sibling (simulating externally authored, multilingual markup this crate did not
+/// build) is left completely untouched by `set_title`/`title()`/`remove_title` — they only ever act on the first
+/// direct `<title>` child, per `set_title`'s `# Scope` doc section.
+#[wasm_bindgen_test]
+fn should_leave_other_title_siblings_untouched() -> Result<(), String> {
+    let svg = make_svg("a11y-title-multi-sibling");
+    let rect = svg.rect(Point::origin(), Size::new(20.0, 20.0)).map_err(|e| e.to_string())?;
+    rect.set_title("English").map_err(|e| e.to_string())?;
+
+    let doc = rect.as_element().owner_document().ok_or("expected an owner document")?;
+    let fr_title = doc
+        .create_element_ns(Some("http://www.w3.org/2000/svg"), "title")
+        .map_err(|_| "create_element_ns failed")?;
+    fr_title.set_attribute("lang", "fr").map_err(|_| "set_attribute failed")?;
+    fr_title.set_text_content(Some("Français"));
+    rect.as_element().append_child(&fr_title).map_err(|_| "append_child failed")?;
+    check_eq(rect.as_element().child_element_count(), 2)?;
+
+    // set_title/title() only ever touch the first <title> — the English one.
+    rect.set_title("Updated English").map_err(|e| e.to_string())?;
+    check_eq(rect.title(), Some("Updated English".to_owned()))?;
+    check_eq(fr_title.text_content(), Some("Français".to_owned()))?;
+
+    // remove_title() removes only the first <title>, leaving the French sibling in place.
+    rect.remove_title();
+    check_eq(rect.as_element().child_element_count(), 1)?;
+    check_eq(fr_title.text_content(), Some("Français".to_owned()))?;
+    // With the English <title> gone, the French one is now the sole/first match.
+    check_eq(rect.title(), Some("Français".to_owned()))
+}
+
+/// Same as `should_leave_other_title_siblings_untouched`, but for `<desc>`.
+#[wasm_bindgen_test]
+fn should_leave_other_desc_siblings_untouched() -> Result<(), String> {
+    let svg = make_svg("a11y-desc-multi-sibling");
+    let rect = svg.rect(Point::origin(), Size::new(20.0, 20.0)).map_err(|e| e.to_string())?;
+    rect.set_desc("English description").map_err(|e| e.to_string())?;
+
+    let doc = rect.as_element().owner_document().ok_or("expected an owner document")?;
+    let fr_desc = doc
+        .create_element_ns(Some("http://www.w3.org/2000/svg"), "desc")
+        .map_err(|_| "create_element_ns failed")?;
+    fr_desc.set_attribute("lang", "fr").map_err(|_| "set_attribute failed")?;
+    fr_desc.set_text_content(Some("Description française"));
+    rect.as_element().append_child(&fr_desc).map_err(|_| "append_child failed")?;
+    check_eq(rect.as_element().child_element_count(), 2)?;
+
+    rect.set_desc("Updated English description").map_err(|e| e.to_string())?;
+    check_eq(rect.desc(), Some("Updated English description".to_owned()))?;
+    check_eq(fr_desc.text_content(), Some("Description française".to_owned()))?;
+
+    rect.remove_desc();
+    check_eq(rect.as_element().child_element_count(), 1)?;
+    check_eq(fr_desc.text_content(), Some("Description française".to_owned()))?;
+    check_eq(rect.desc(), Some("Description française".to_owned()))
+}

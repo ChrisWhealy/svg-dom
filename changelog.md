@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Filter primitive values are not always user units (`1411b3d`)
 - Correct various typos (`833f8b1`)
 - Reject empty or whitespace-only values (`26ac6d6`)
+- Distinguish values set by set_title from ARIA values in accessible name calculation (`3ba62eb`)
 
 # [Released]
 

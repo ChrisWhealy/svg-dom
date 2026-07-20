@@ -145,25 +145,35 @@ Each call crosses into the browser and potentially triggers synchronous style or
 
 | Method | Effect |
 |---|---|
-| `set_title(text)` | Creates (or updates) this element's direct `<title>` child. |
-| `title()` | Returns the text of the first direct `<title>` child, or `None` if there isn't one. |
-| `remove_title()` | Idempotent removal of the `<title>` child. |
-| `set_desc(text)` | Creates (or updates) this element's direct `<desc>` child. |
-| `desc()` | Returns the text of the first direct `<desc>` child, or `None` if there isn't one. |
-| `remove_desc()` | Idempotent removal of the `<desc>` child. |
+| `set_title(text)` | Creates (or updates) the *first* direct `<title>` child. |
+| `title()` | Returns the text of the *first* direct `<title>` child, or `None` if there isn't one. |
+| `remove_title()` | Idempotent removal of the *first* direct `<title>` child. |
+| `set_desc(text)` | Creates (or updates) the *first* direct `<desc>` child. |
+| `desc()` | Returns the text of the *first* direct `<desc>` child, or `None` if there isn't one. |
+| `remove_desc()` | Idempotent removal of the *first* direct `<desc>` child. |
 
-***IMPORTANT***<br>
+***IMPORTANT — this is a first-child convenience API, not a full DOM manager***<br>
+All six methods listed above operate on whichever `<title>`/`<desc>` happens to be this element's *first* matching direct child.
+They are a simple, single-value convenience for the common case, not a general manager of every `<title>`/`<desc>` an element might have.
+
+SVG 2 deliberately permits **multiple `<title>`/`<desc>` siblings on one element, one per language**, with the user agent selecting the most appropriate one via `lang`/`xml:lang`.
+This crate does not implement that selection, and these methods make **no attempt to enforce singularity** on DOM they did not build from scratch: if an element already has more than one `<title>` (for example, attached from externally authored markup, or a multilingual set built by hand), `set_title`/`title()`/`remove_title()` only ever read, write, or remove the first one — every other `<title>` sibling is left completely untouched.
+
+The same applies to `<desc>`.
+
+Build or manage multilingual `<title>`/`<desc>` sets through the underlying DOM directly; a `lang`-aware API remains a possible future addition, not something these methods provide today.
+
 `title()`/`desc()` read the DOM child directly — they do **not** compute the element's *accessible name* or *accessible description*, and the value they return is not always the same thing.
 
 Per the accessible-name-and-description computation algorithm, the values held in `aria-labelledby` and `aria-label` take precedence over a `<title>` child for the accessible name, and `aria-describedby` takes precedence over a `<desc>` child for the accessible description.
 
 A `<title>` child only supplies the accessible name (and only then does it also drive the browser's native hover tooltip) when neither ARIA attribute is present on the element; `<desc>` is otherwise never rendered as a tooltip by any browser.
 
-`remove_title()`/`remove_desc()` remove only the direct child; accessible names are not inherited from an ancestor, so removing a `<title>` does not cause "fallback" to some ancestor's name — the practical effect on the accessibility tree depends on what else, if anything, supplies a name (ARIA attributes, other content, or nothing at all).
+`remove_title()`/`remove_desc()` remove only the first direct child; accessible names are not inherited from an ancestor, so removing a `<title>` does not cause "fallback" to some ancestor's name — the practical effect on the accessibility tree depends on what else, if anything, supplies a name (ARIA attributes, other content, or nothing at all).
 
-A newly created `<title>` is always inserted as this element's first child.
+A newly created `<title>` (i.e. when the element had none at all) is always inserted as this element's first child.
 
-A newly created `<desc>` is inserted immediately after an existing `<title>` (or as the first child if there is no `<title>` yet) — so `<title>` always precedes `<desc>` once both are set, regardless of which one you call first.
+A newly created `<desc>` (i.e. when the element had none at all) is inserted immediately after an existing `<title>` (or as the first child if there is no `<title>` yet) — so `<title>` always precedes `<desc>` once both are set, regardless of which one you call first.
 
 **Example**:
 
