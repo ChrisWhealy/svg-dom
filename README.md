@@ -1,11 +1,18 @@
 # svg-dom
 
+[![CI](https://github.com/ChrisWhealy/svg-dom/actions/workflows/ci.yml/badge.svg)](https://github.com/ChrisWhealy/svg-dom/actions)
+[![crates.io](https://img.shields.io/crates/v/svg-dom.svg)](https://crates.io/crates/svg-dom)
+[![Documentation](https://docs.rs/svg-dom/badge.svg)](https://docs.rs/svg-dom)
+[![Rust](https://img.shields.io/badge/rust-1.85.0%2B-blue.svg?maxAge=3600)](https://github.com/ChrisWhealy/svg-dom)
+
 A lightweight Rust/WebAssembly library for creating and mutating live SVG content directly in the browser DOM.
 
 This crate is a work-in-progress and contains known functional [gaps](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/gaps.md) that will be filled in time.
 That said, all reasonable, conventional steps have been taken to provide a secure, stable and robust foundation upon which to develop future functionality.
 
 ***IMPORTANT***<br>This crate targets WebAssembly only.
+
+# [Change Log](https://github.com/ChrisWhealy/svg-dom/blob/main/changelog.md)
 
 # Table of Contents
 
@@ -19,7 +26,6 @@ That said, all reasonable, conventional steps have been taken to provide a secur
 - [Supported SVG Elements](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/elements.md)
 - [Design Notes](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/design_notes/README.md)
 - [Gap Analysis](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/gaps.md)
-- [Change Log](https://github.com/ChrisWhealy/svg-dom/blob/main/changelog.md)
 
 ## ToDo List
 
@@ -73,6 +79,12 @@ That said, all reasonable, conventional steps have been taken to provide a secur
     - [ ] `feSpecularLighting`
     - [ ] `feTile`
     - [ ] `feTurbulence`
+  - [ ] `<desc>` / `<title>`
+  - [ ] `<a>` (anchor)
+  - [ ] `<switch>`
+  - [ ] `<view>`
+  - [ ] `<foreignObject>`
+  - [ ] `<style>`
 - [x] Type-safe `<path>` `d`-attribute builder (`PathDef` / `path_from_defs`) as a typesafe alternative to hand-written `d` strings
 
 ## What This Crate Is
