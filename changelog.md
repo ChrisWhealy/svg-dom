@@ -4,7 +4,34 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project's crate version follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+# [Unreleased]
+
+## [0.1.62] - 2026-07-20
+
+### Added
+
+- Add warning about leaving Arithmetic coefficients unspecified (`4795f71`)
+- Per-instance styling of \<use\> needs an inheritence qualification (`92c067f`)
+
+### Changed
+
+- Update README and reformat changelog (`a992932`)
+- Bump version number (`f17a2fe`)
+- Refactor SVG element documentation (`f1fef65`)
+- Remove SvgClipPath::group() and correct documentation (`74f9bfb`)
+- Remove conflation of create constraint as an SVG 2 constraint (`5e5ae05`)
+
+### Fixed
+
+- Correct multiline text guidance (`8aa6559`)
+- Keep clippy happy (`4859966`)
+- Correct clip_path documentation (`4144a89`)
+- Set mask-mode as CSS atribute, not ordinary SVG attribute (`01b9a49`)
+- Correct \<textPath\> specification errors (`342155a`)
+- Correct radial-gradient fr explanation (`5196680`)
+- Correct various typos (`b14fb4`)
+
+# [Released]
 
 ## [0.1.61] - 2026-07-17
 
