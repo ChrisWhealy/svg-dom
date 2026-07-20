@@ -8,6 +8,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [0.1.63] - 2026-07-21
 
+### Added
+
+- Add SvgMask to path factory table (`8a5f6d5`)
+- Add \<textPath\> as valid parent for \<tspan\> (`4131fb5`)
+- Add explanation that viewBox disables the effect of patternContentUnits (`a76ddc1`)
+- Describe Marker applicability in SVG 1.1 and 2 (`2f14fc4`)
+- Implement the \<desc\> and \<title\> accessibility elements (`02204cd`)
+
+### Changed
+
+- Bump version number and remove Cargo.lock from version management (`a69e1f6`)
+- Clarify that \<use\> is not restricted to local fragments (`452ad50`)
+
+### Fixed
+
+- Correct alpha-mask wording (`c17addc`)
+- Filter primitive values are not always user units (`1411b3d`)
+- Correct various typos (`833f8b1`)
+
 # [Released]
 
 ## [0.1.62] - 2026-07-20
@@ -407,13 +426,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Use scratch buffer for demo code on the hot path (`042767f`)
 - Reject the idea that CSS-sized viewport dimensions of 0x0 create an inconsistency (`46998e7`)
 - Reject the idea to hide SvgRoot::root (`adffd3b`)
-- Deprecate Point/Size string helpers (`ade7267`)
 - Change colour-wheel demo to use on_pointermove rather than on_mousemove (`56b87a5`)
 - In drag/drop demo, borrow the drag scratch buffer once not twice (`bd8c32f`)
 - Use CachedAttr in the drag/touch demos repeated readout writes (`a5a6094`)
 - Reject idea to simplify ListenerStore::push (`cfde0ad`)
 - Narrow visibility for enums and struct (`d32d5b5`)
 - Make fields AttrWrite struct private (`8a63f4d`)
+
+### Deprecated
+
+- Deprecate Point/Size string helpers (`ade7267`)
 
 ### Fixed
 
