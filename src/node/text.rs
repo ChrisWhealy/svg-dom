@@ -108,14 +108,16 @@ impl TextPathMethod {
 /// Controls glyph-spacing adjustment along the path referenced by a `<textPath>`.
 ///
 /// Maps to the `spacing` attribute of `<textPath>`.
-/// The default is [`Auto`](TextPathSpacing::Auto).
+///
+/// The default is [`Exact`](TextPathSpacing::Exact) — SVG2 defines `exact` as the initial value, with `auto` as the
+/// alternative that opts into user-agent adjustment.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TextPathSpacing {
-    /// The renderer automatically adjusts spacing to compensate for the path's curvature (SVG default).
-    Auto,
-    /// Spacing between glyphs follows the font's natural advance widths exactly, with no curvature compensation —
-    /// text can visibly bunch or gap on tight curves.
+    /// Spacing between glyphs follows the font's natural advance widths exactly, with no compensation for text path
+    /// curvature. Text might visibly bunch on tight internal curves, or gap on tight external curves (SVG default).
     Exact,
+    /// The renderer automatically adjusts spacing to compensate for the path's curvature.
+    Auto,
 }
 
 impl TextPathSpacing {
@@ -521,6 +523,11 @@ impl SvgNode {
     /// Creates a `<textPath>` child element that glues `content` to the path referenced by `href`, appends it to
     /// `self` (a `<text>` element) and returns a handle.
     ///
+    /// This method is implemented generically on `SvgNode`, but per the SVG2 content model `<text>` is the only
+    /// conforming parent for a `<textPath>`. `<tspan>` and `<textPath>` may themselves contain text and nested
+    /// `<tspan>` elements, but not a nested `<textPath>`; calling this on one of those will not error, but the
+    /// resulting markup will not conform to the spec.
+    ///
     /// # Arguments
     ///
     /// * `href` — fragment reference to the path the text should follow, e.g. `"#wave"`, where `"wave"` is the `id`
@@ -614,7 +621,7 @@ impl SvgNode {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the `spacing` attribute on a `<textPath>`, controlling glyph-spacing adjustment along the path.
     ///
-    /// See [`TextPathSpacing`] for the available values; the SVG default is [`TextPathSpacing::Auto`].
+    /// See [`TextPathSpacing`] for the available values; the SVG default is [`TextPathSpacing::Exact`].
     pub fn set_text_path_spacing(&self, spacing: TextPathSpacing) -> Result<(), Error> {
         self.set_attr("spacing", spacing.as_str())
     }

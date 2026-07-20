@@ -40,14 +40,15 @@ Four typed helpers are available on any `SvgNode` for styling text:
 `<textPath>` glues a `<text>` string to the outline of a `<path>` (or, as per the SVG2 specification, a basic shape).
 In other words, the baseline of the letters follow the outline defined by the path instead of a straight line.
 
-Obtain a handle by calling `text_path(href, content)` on any `SvgNode` that wraps a `<text>` element (or another `<tspan>`/`<textPath>`).
+`text_path(href, content)` is implemented generically on `SvgNode`, but per the SVG2 content model, `<text>` is the only conforming parent for a `<textPath>`.
+Calling it on the `SvgNode` returned by `SvgRoot::text`/`SvgBatch::text`. `<tspan>` and `<textPath>` may contain text and nested `<tspan>` elements, but not a nested `<textPath>`; the crate does not enforce this at the type level, so calling `text_path` on one of those will not error, but the resulting markup will not conform to the SVG2 content model spec.
 
 | Method | Effect |
 |---|---|
 | `node.text_path(href, content)` | Appends a `<textPath>` with `content`, following the path referenced by `href`. |
 | `node.set_start_offset(offset)` | Sets `startOffset` — the distance in user units along the path where the text begins. |
 | `node.set_text_path_method(TextPathMethod)` | Sets `method` — `Align` (default) rotates whole glyphs onto the path; `Stretch` distorts glyph outlines to match its curvature. |
-| `node.set_text_path_spacing(TextPathSpacing)` | Sets `spacing` — `Auto` (default) compensates spacing for curvature; `Exact` uses the font's natural advance widths. |
+| `node.set_text_path_spacing(TextPathSpacing)` | Sets `spacing` — `Exact` (specification default) uses the font's natural advance widths with no curvature compensation; `Auto` permits the user agent to adjust spacing to compensate for the path's curvature. |
 | `node.set_text_path_side(TextPathSide)` | Sets the SVG2 `side` attribute — `Left` (default) or `Right` of the path. |
 
 - `href` is a local fragment reference such as `"#wave"` (the `id` attribute of the target `<path>`).
