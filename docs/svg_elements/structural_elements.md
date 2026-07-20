@@ -19,10 +19,21 @@ All shape factory methods are available on `SvgDefs` for building inner content.
 
 ## `<marker>`
 
-`<marker>` defines a reusable graphic (e.g. an arrowhead or a dot etc) rendered at the start, mid-point, or end of a stroked path and can be obtained from `SvgDefs::marker(id)`.
+`<marker>` defines a reusable graphic (e.g. an arrowhead or a dot etc) rendered at the start, mid-point, or end of a shape and can be obtained from `SvgDefs::marker(id)`.
 
-Apply it to any stroked element — `<line>`, `<path>`, `<polyline>`, `<polygon>` — via `SvgNode::set_marker_start`, `set_marker_mid`, or `set_marker_end`.
-The `MarkerUnits` enum controls whether `markerWidth`/`markerHeight` are relative to `strokeWidth` (default) or user coordinates.
+Apply it to a shape using `set_marker_start`, `set_marker_mid`, or `set_marker_end`.
+The commonly used targets are `<path>`, `<line>`, `<polyline>`, and `<polygon>` (which have been markable elements since SVG 1.1).
+
+SVG 2 also defines marker positions for `<rect>`, `<circle>`, and `<ellipse>` (derived from each shape's equivalent path).
+
+***Caveat***: Verify browser support for those SVG 2 additions on the engines you target.
+
+Marker rendering is not conditional on the shape having visible stroke since markers are a separate painting operation.
+`marker-start`/`-mid`/`-end` apply regardless of `stroke`.
+
+The `MarkerUnits` enum controls whether `markerWidth`/`markerHeight` are relative to `strokeWidth` (which is the default, used only as a scale factor for the marker's own size) or user coordinates.
+
+`stroke="none"` does not itself make the marker properties inapplicable.
 
 `set_view_box(x, y, width, height)` establishes an internal coordinate system for the marker's content, mapped onto the `markerWidth`/`markerHeight` viewport — the same `viewBox` relationship `<symbol>`/`<use>` has, validated the same way (`Error::InvalidViewBox` on a non-finite component or a negative `width`/`height`). `preserveAspectRatio` has no dedicated setter for `<marker>`; use `set_attr("preserveAspectRatio", value)`.
 

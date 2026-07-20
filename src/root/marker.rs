@@ -33,15 +33,25 @@ impl MarkerUnits {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// A `<marker>` element that can be referenced by `marker-start`, `marker-mid`, or `marker-end` on lines and paths.
+/// A `<marker>` element defines a reusable graphic such as an arrowhead or dot, that the browser renders at a specified
+/// position along the shape's geometry using the methods `marker-start`, `marker-mid`, or `marker-end` on a shape.
 ///
-/// A marker defines a reusable graphic — typically an arrowhead or dot — that the browser renders at a specified
-/// position along the stroked path.
 /// The shapes inside it are added with the same factory methods available on [`SvgRoot`](crate::SvgRoot).
 ///
-/// Obtain one from [`SvgDefs::marker`](crate::SvgDefs::marker); attach it to any stroked element (`<line>`,
-/// `<path>`, `<polyline>`, `<polygon>`) with [`SvgNode::set_marker_end`](crate::SvgNode::set_marker_end) and its
-/// `_start` / `_mid` siblings.
+/// Obtain one from [`SvgDefs::marker`](crate::SvgDefs::marker); attach it to a shape with
+/// [`SvgNode::set_marker_end`](crate::SvgNode::set_marker_end) and its `_start` / `_mid` siblings.
+///
+/// Marker rendering is not conditional on the shape having visible stroke paint since markers are a separate painting
+/// operation and `marker-start`/`-mid`/`-end` apply to the shape regardless of `stroke`.
+///
+/// `MarkerUnits::StrokeWidth` uses the stroke *width* as a scale factor for the marker's own size, but `stroke="none"`
+/// does not itself make the marker properties inapplicable.
+///
+/// The commonly used targets are `<path>`, `<line>`, `<polyline>`, and `<polygon>` which have all been the markable
+/// elements since SVG 1.1. SVG 2 also defines marker positions for `<rect>`, `<circle>`, and `<ellipse>` (derived from
+/// each shape's equivalent path).
+///
+/// ***Caveat***: Verify browser support for those SVG 2 additions on the engines you target before relying on them.
 ///
 /// # Example
 ///
