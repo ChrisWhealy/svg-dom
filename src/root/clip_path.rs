@@ -40,6 +40,18 @@ impl ClipPathUnits {
 /// The browser paints only the parts of the referencing element that fall inside the union of those shapes;
 /// everything outside is invisible.
 ///
+/// # `group()` is deliberatley absent as `<g>` is not a conforming `<clipPath>` child
+///
+/// Unlike [`SvgMask`](crate::SvgMask), [`SvgPattern`](crate::SvgPattern), and [`SvgSymbol`](crate::SvgSymbol), this
+/// type deliberately has no `group()` method.
+///
+/// Per the CSS Masking Module Level 1 content model, `<clipPath>` only accepts shape elements, `<text>`, and `<use>`
+/// as children. `<g>` is not permitted, so wrapping several clip shapes in a group would produce a non-conforming SVG
+/// with undefined cross-browser behaviour.
+///
+/// There is no need for one anyway: every shape added directly to a `<clipPath>` already contributes to the same
+/// unioned clip region, so add multiple shapes as direct siblings instead of attempting to group them.
+///
 /// Obtain one from [`SvgDefs::clip_path`](crate::SvgDefs::clip_path) or
 /// [`SvgDefs::build_clip_path`](crate::SvgDefs::build_clip_path), and apply it to any element with
 /// [`SvgNode::set_clip_path_ref`](crate::SvgNode::set_clip_path_ref) or
@@ -254,9 +266,13 @@ impl SvgClipPath {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates a `<line>` clip shape inside this `<clipPath>`.
     ///
-    /// A `<line>` has no fillable area. To clip anything, this line itself needs both a visible stroke (the default
-    /// `stroke` is `none`) and a non-zero `stroke-width` — this combination is uncommon.
-    /// Prefer area shapes (`<rect>`, `<circle>`, `<path>`, `<polygon>`) when defining clip regions.
+    /// A clip region is computed from the raw *fill* geometry of its children, never from rendering properties.
+    /// `stroke`/`stroke-width` do not participate in that computation at all, visible or not.
+    ///
+    /// Since a `<line>` is one-dimensional and therefore cannot have any fill area under any circumstances, on its own,
+    /// it contributes nothing to the clip silhouette, regardless of how it is stroked.
+    /// 
+    /// When defining clip regions, prefer area shapes (`<rect>`, `<circle>`, `<path>`, `<polygon>`).
     pub fn line(&self, start: Point, end: Point) -> Result<SvgNode, Error> {
         self.create_line(start, end)
     }
@@ -302,14 +318,6 @@ impl SvgClipPath {
     /// The resulting glyphs act as a stencil: only pixels inside the rendered glyph areas are painted.
     pub fn text(&self, anchored_at: Point, content: &str) -> Result<SvgNode, Error> {
         self.create_text(anchored_at, content)
-    }
-
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Creates a `<g>` group clip shape inside this `<clipPath>`.
-    ///
-    /// All shapes inside the group contribute to the clipping region, letting you combine several primitives.
-    pub fn group(&self) -> Result<SvgNode, Error> {
-        self.create_group()
     }
 }
 

@@ -23,7 +23,19 @@ Remove the clip with `SvgNode::remove_clip_path()`.
 
 ### Clip Shape Factories
 
-Available on `SvgClipPath`: `rect`, `circle`, `ellipse`, `line`, `path`, `polyline`, `polygon`, `text`, `group`
+Available on `SvgClipPath`: `rect`, `circle`, `ellipse`, `line`, `path`, `polyline`, `polygon`, `text`
+
+There is deliberately no `group()` here, unlike `SvgMask`/`SvgPattern`/`SvgSymbol`.
+Per the CSS Masking Module Level 1 content model, `<clipPath>` only accepts shape elements, `<text>`, and `<use>` as children; however, `<g>` is not a conforming child, so wrapping several clip shapes in a group would produce non-conforming SVG with undefined cross-browser behaviour.
+
+Instead, add multiple shapes as direct siblings of the `<clipPath>`; every shape added already contributes to the same unioned clip region, so grouping is not necessary.
+
+A clip region is computed purely from the raw *fill* geometry of its children.
+Irrespective of their visibility, `stroke` and `stroke-width` do not participate in this computation.
+
+A `<line>` is one-dimensional and therefore cannot have any fill area under any circumstances, so on its own, it contributes nothing to the clip silhouette, however it is stroked.
+
+When defining clip regions, prefer area shapes (`rect`, `circle`, `path`, `polygon`) over `<line>`.
 
 ### Coordinate Spaces
 
