@@ -4,3 +4,4 @@
 /.idea
 /.tools
 .DS_Store
+Cargo.lock
