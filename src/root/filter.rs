@@ -27,6 +27,28 @@ pub enum CompositeOperator {
     /// wrapped by a named parameter here; set them via the returned [`SvgNode`]'s
     /// [`set_attr`](crate::SvgNode::set_attr) — this is the one operator [`composite`](SvgFilter::composite)
     /// does not fully configure on its own).
+    ///
+    /// ***⚠️ `k1`–`k4` arguments all default to `0`*** — [`composite`](SvgFilter::composite) does not write them, and
+    /// the SVG initial value for each is `0`. Selecting `Arithmetic` and stopping there evaluates to
+    /// `0*i1*i2 + 0*i1 + 0*i2 + 0` for every pixel, i.e. **transparent black**, not a blend of the two inputs.
+    ///
+    /// Always set all four coefficients you need immediately after calling `composite` with this operator:
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::filter::CompositeOperator};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    /// let flt  = defs.filter("blend")?;
+    /// flt.gaussian_blur(6.0)?.set_attrs([("in", "SourceGraphic"), ("result", "blur")])?;
+    ///
+    /// // A straightforward 50/50 blend of the sharp source and its blurred copy: k2 = k3 = 0.5, k1 = k4 = 0.
+    /// flt.composite("blur", CompositeOperator::Arithmetic)?.set_attrs([
+    ///     ("in", "SourceGraphic"),
+    ///     ("k1", "0"), ("k2", "0.5"), ("k3", "0.5"), ("k4", "0"),
+    /// ])?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
     Arithmetic,
 }
 
@@ -587,6 +609,9 @@ impl SvgFilter {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Appends a `<feComposite>` primitive to this filter, combining this primitive's `in` input with `in2` using
     /// the given Porter-Duff [`operator`](CompositeOperator).
+    ///
+    /// ***⚠️ [`CompositeOperator::Arithmetic`] needs `k1`–`k4` to be set manually*** — see that variant's own doc for
+    /// why skipping them silently produces transparent black rather than an error.
     ///
     /// `in2` is written directly.
     ///

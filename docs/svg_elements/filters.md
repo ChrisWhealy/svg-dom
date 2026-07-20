@@ -27,9 +27,31 @@ Remove the filter with `SvgNode::remove_filter()`.
 | `offset(dx, dy)` | `<feOffset>` | Shifts the input by `(dx, dy)` user units. Returns an `SvgNode` for `in`/`result`, as above. |
 | `merge(inputs)` | `<feMerge>` (with `<feMergeNode>` children) | Stacks each `&str` in `inputs` as one `<feMergeNode in="...">` child, in order (later entries painted on top). The standard way to layer a shadow underneath the original graphic. |
 | `flood(color, opacity)` | `<feFlood>` | Fills the filter region with a solid `flood-color`/`flood-opacity`. Combined with `composite`, gives a shadow an independent colour rather than a blurred copy of the source graphic's own fill. |
-| `composite(in2, operator)` | `<feComposite>` | Combines this primitive's `in` input with `in2` using a [Porter-Duff](https://en.wikipedia.org/wiki/Alpha_compositing) `CompositeOperator` (`Over`/`In`/`Out`/`Atop`/`Xor`/`Lighter`/`Arithmetic`). `operator: In` against a blurred alpha mask is the standard way to tint a shadow. |
+| `composite(in2, operator)` | `<feComposite>` | Combines this primitive's `in` input with `in2` using a [Porter-Duff](https://en.wikipedia.org/wiki/Alpha_compositing) `CompositeOperator` (`Over`/`In`/`Out`/`Atop`/`Xor`/`Lighter`/`Arithmetic`). `operator: In` against a blurred alpha mask is the standard way to tint a shadow. **`Arithmetic` needs extra setup — see the warning below before using it.** |
 | `drop_shadow(std_deviation, dx, dy, color, opacity)` | `<feDropShadow>` | Implements the browser-native shorthand for the entire `gaussian_blur` → `flood` → `composite` → `offset` → `merge` chain described below. Its result already has the original graphic merged on top: a `<filter>` containing only `drop_shadow` is a complete effect, so there is no need to call `merge` after it. |
 | `color_matrix(matrix_type)` | `<feColorMatrix>` | Transforms colours via a `ColorMatrixType`: `Saturate(amount)`, `HueRotate(degrees)`, `LuminanceToAlpha`, or a full custom `Matrix([f64; 20])` (the fixed-size array rules out a wrong element count at compile time). Independent of the shadow primitives above — greyscale, saturation, and hue effects, not compositing. |
+
+***⚠️ `CompositeOperator::Arithmetic` requires `k1`–`k4` to be set manually***
+
+`composite()` does not write these arguments and their SVG initial value is `0`.
+Choosing `Arithmetic` and stopping there evaluates `0*i1*i2 + 0*i1 + 0*i2 + 0` for every pixel: that is, a **transparent black** not a blend of the two inputs - and no error to signal the mistake.
+Always set all four coefficients immediately after the call:
+
+```rust,no_run
+use svg_dom::{SvgRoot, root::filter::CompositeOperator};
+
+let svg  = SvgRoot::attach("diagram")?;
+let defs = svg.defs()?;
+let flt  = defs.filter("blend")?;
+flt.gaussian_blur(6.0)?.set_attrs([("in", "SourceGraphic"), ("result", "blur")])?;
+
+// A straightforward 50/50 blend of the sharp source and its blurred copy: k2 = k3 = 0.5, k1 = k4 = 0.
+flt.composite("blur", CompositeOperator::Arithmetic)?.set_attrs([
+    ("in", "SourceGraphic"),
+    ("k1", "0"), ("k2", "0.5"), ("k3", "0.5"), ("k4", "0"),
+])?;
+Ok::<(), svg_dom::Error>(())
+```
 
 A drop-shadow can be constructed by chaining `gaussian_blur` + `flood` + `composite` + `offset` + `merge` together: blur the source alpha, composite a flood colour into the blurred mask, offset it, then merge it underneath the original — see the `<filter>` demo panel or `SvgFilter::composite`'s doc example.
 
