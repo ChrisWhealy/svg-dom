@@ -59,11 +59,15 @@ impl ClipPathUnits {
 ///
 /// # Coordinate spaces
 ///
-/// By default (`clipPathUnits="userSpaceOnUse"`) the shapes inside the `<clipPath>` share the same coordinate system
-/// as the element being clipped — they are positioned in SVG root coordinates.
-/// Switch to [`ClipPathUnits::ObjectBoundingBox`] (via [`set_units`](Self::set_units)) when you want the clip shape
-/// to scale automatically with the element's bounding box.
-/// In that mode coordinates run from `0.0` (top-left) to `1.0` (bottom-right) of the element's bounding box.
+/// By default (`clipPathUnits="userSpaceOnUse"`) the shapes inside the `<clipPath>` are interpreted in the *current*
+/// *user coordinate system* of the element the clip path is applied to, and not unconditionally the outer SVG root's
+/// coordinate system. Those coincide only when nothing between the referencing element and the root applies a transform
+/// or establishes a new viewport; a referencing element nested inside a transformed `<g>` or a nested `<svg>` clips in
+/// that ancestor's local coordinates instead.
+///
+/// Switch to [`ClipPathUnits::ObjectBoundingBox`] (via [`set_units`](Self::set_units)) when you want the clip shape to
+/// scale automatically with the element's bounding box. In that mode, coordinates run from `0.0` (top-left) to `1.0`
+/// (bottom-right) of the element's bounding box.
 ///
 /// # Example
 ///

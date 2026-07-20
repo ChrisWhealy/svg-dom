@@ -43,7 +43,7 @@ Controlled by `SvgClipPath::set_units(ClipPathUnits)`:
 
 | Variant | Default | `clipPathUnits` | Meaning |
 |---|:---:|---|---|
-| `UserSpaceOnUse` | ✅ | `userSpaceOnUse` | The clip shape shares the same coordinate space as the SVG root, so you position the clip shape using the same coordinates as the element being clipped. |
+| `UserSpaceOnUse` | ✅ | `userSpaceOnUse` | The clip shape is interpreted in the current user coordinate system of the element the clip path is applied to, and not unconditionally the outer SVG root's coordinate system. These coincide only when nothing between the referencing element and the root applies a transform or establishes a new viewport. |
 | `ObjectBoundingBox` | | `objectBoundingBox` | The clip shape uses normalised coordinates (0.0 – 1.0) relative to the referencing element's bounding box; the clip shape scales automatically with the element. |
 
 ### Applying and Removing Clips on `SvgNode`
