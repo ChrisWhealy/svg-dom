@@ -4,7 +4,11 @@ This directory describes what `svg-dom` currently supports:
 
 * the SVG elements wrapped so far
 * their capabilities
-* the full per-element API reference
+* element-focused guides for the ones with enough surface area to warrant one
+
+The basic shape factories (`circle`, `ellipse`, `g`, `line`, `polygon`, `polyline`, `rect`) are listed below but do not
+yet have their own thematic page here — their construction is largely self-explanatory (a factory method plus the
+shared presentation-attribute setters on `SvgNode`), so consult their own rustdoc for the full signature of each.
 
 For known gaps, see [Gap Analysis](../gaps.md).
 

@@ -71,7 +71,7 @@ To avoid this, `set_matrix_precise` uses exact shortest-round-trip formatting fo
 
 ## `<text>`
 
-To updating `<text>` content after creation, use `set_text`, plus the buffer-reusing methods `set_text_fmt` and `set_text_display`
+To update `<text>` content after creation, use `set_text`, plus the buffer-reusing methods `set_text_fmt` and `set_text_display`
 
 ## Allocation-light Numeric Attribute Writes
 
@@ -107,7 +107,7 @@ Each call crosses into the browser and potentially triggers synchronous style or
 
 - `bounding_client_rect()`
 
-  Rendered bounding rectangle whose size if given in viewport CSS pixels (`getBoundingClientRect()`).
+  Rendered bounding rectangle whose size is given in viewport CSS pixels (`getBoundingClientRect()`).
   This reflects every transform, `viewBox` scale and CSS zoom currently in effect.
 
   This method is infallible and is available on every element.
@@ -125,7 +125,7 @@ Each call crosses into the browser and potentially triggers synchronous style or
 
   Both return accumulated coordinate-conversion matrices, which is not generally this element's own local transform.
 
-  Writing one straight back via `set_matrix` or `set_matrix_precise` is only correct when there is a one to one scaling ralationship between the parent and the viewport (i.e., the parent-to-viewport transform is the identity matrix.
+  Writing the ctm straight back via `set_matrix` or `set_matrix_precise` is only correct when there is a one-to-one scaling relationship between the parent and the viewport (i.e., the parent-to-viewport transform is the identity matrix).
 
   Converting a *point* between viewport coordinates and the element's local coordinates (which requires you to invert this element's own `screen_ctm()`) and recovering this element's own writable local *transform* (compare this element's `ctm()` against its parent's) are two different operations — see [`design_notes/geometry.md`](../design_notes/geometry.md#ctmscreen_ctm-are-accumulated-matrices-not-generally-the-elements-own-local-transform) for both.
 

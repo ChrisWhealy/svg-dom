@@ -70,14 +70,14 @@ Unlike `<clipPath>`, which defines a hard, binary boundary defined purely by sha
 Each pixel of the referencing element is scaled by a value derived from the corresponding pixel of the mask's rendered content.
 
 Under the default luminance mode, opaque white fully reveals the underlying element and opaque black fully obscures the underlying element.
-Anything shade of grey in between (including gradients, and partial *opacity* on an otherwise-bright shape) partially reveals.
+Any shade of grey in between (including gradients, and partial *opacity* on an otherwise-bright shape) partially reveals.
 
 Transparent content hides fully regardless of colour.
 
 To live-append a mask directly to a DOM element, use `SvgDefs::mask(id)`.
 
 To create a mask from a closure, use `SvgDefs::build_mask(id, closure)`.
-This mask will remained detached from the DOM until the closure succeeds.
+This mask will remain detached from the DOM until the closure succeeds.
 
 A mask is applied to an element using `SvgNode::set_mask_ref(&mask)` or `SvgNode::set_mask("id")`.
 
@@ -102,7 +102,7 @@ Controlled by `SvgMask::set_mask_type(MaskType)`:
 
 | Variant | Default | Meaning |
 |---|:-:|---|
-| `Luminance` | ✅ | The masked element is revealed according to the combination of teh mask content's perceived brightness *and* its opacity.<br>Transparent content hides fully no matter how bright its colour is. |
+| `Luminance` | ✅ | The masked element is revealed according to the combination of the mask content's perceived brightness *and* its opacity.<br>Transparent content hides fully no matter how bright its colour is. |
 | `Alpha` |  | The masked element is revealed according to the mask content's alpha channel only; the colour is ignored.<br>In this case, only `fill-opacity`/`opacity` is significant. |
 
 `mask-type` expresses the `<mask>` element's own preference; the element that *references* the mask can override it with its own `mask-mode` **CSS property**.
