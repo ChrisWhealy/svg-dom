@@ -21,6 +21,20 @@ impl SvgNode {
     /// See [`title`](Self::title) to read the current child text back, and [`remove_title`](Self::remove_title) to
     /// remove it.
     ///
+    /// # Use judiciously: not every element needs a name or description!
+    ///
+    /// Adding a non-empty `<title>` or `<desc>` can cause an otherwise purely decorative or presentational element
+    /// to be exposed to assistive technology as its own separate object in the accessibility tree. That is exactly
+    /// the point for meaningful icons, controls, diagrams, and diagram components — but naming every individual
+    /// decorative path or primitive produces a noisy, cumbersome accessibility tree that works against the users
+    /// it is meant to help.
+    ///
+    /// Because [`set_title`](Self::set_title)/[`set_desc`](Self::set_desc) are generic on [`SvgNode`], they are
+    /// callable on almost any element this crate hands back, which makes it easy to over-apply them. As a rule of
+    /// thumb: attach `<title>`/`<desc>` to elements that are meaningful on their own — icons, controls, whole
+    /// diagrams, or a `<g>` representing one logical idea — and leave purely decorative geometry (the individual
+    /// paths/shapes that only exist to render a larger meaningful group) unnamed, so it is not individually exposed.
+    ///
     /// # Scope: a first-direct-child convenience, not a language-aware manager
     ///
     /// This method (and [`title`](Self::title)/[`remove_title`](Self::remove_title)) is a simple, single-value
@@ -103,6 +117,10 @@ impl SvgNode {
     /// management, as [`set_title`](Self::set_title) — see that method's `# Scope` section for the full explanation:
     /// if this element already has more than one `<desc>` sibling, `set_desc`/`desc`/`remove_desc` only ever act on
     /// the first one.
+    ///
+    /// The same "use judiciously" caution applies here too — see [`set_title`](Self::set_title)'s
+    /// `# Use judiciously` section: a `<desc>` on every decorative primitive is just as noisy for assistive
+    /// technology as a `<title>` on every one.
     ///
     /// # Errors
     ///

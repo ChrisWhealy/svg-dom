@@ -332,7 +332,11 @@
                         <strong>Note:</strong> a <code>&lt;title&gt;</code>/<code>&lt;desc&gt;</code> child feeds into,
                         but does not unconditionally determine, the element's computed accessible name/description —
                         When present, <code>aria-label</code>, <code>aria-labelledby</code> and <code>aria-describedby</code> take
-                        precedence.
+                        precedence.<br>
+                        <strong>Use judiciously:</strong> these icons are meaningful on their own, which is why each
+                        one earns a name here. Attaching a <code>&lt;title&gt;</code>/<code>&lt;desc&gt;</code> to
+                        every decorative path or primitive instead would just make the accessibility tree noisy and
+                        harder to navigate.
                     </figcaption>
                 </figure>
             </section>
