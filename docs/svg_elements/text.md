@@ -72,7 +72,7 @@ Call these helpers only on an `SvgNode` wrapping a `<text>`, `<textPath>`, or `<
 | Method | Effect |
 |---|---|
 | `node.tspan(content)` | Appends a `<tspan>` with `content`; inherits position from the parent. |
-| `node.tspan_dy(dy, content)` | Same, but also sets `dy` — advances the text position `dy` user units downward, *continuing from the current horizontal position*. Correct for superscripts, subscripts, and other in-line vertical nudges, but it does **not** reset `x` position, so subsequent lines form a staircase descending to the right by however much the previous line's rendered width was, rather than staying left-aligned. This is analgous to the old dot-matrix printer problem of issuing a line feed command, but not issuing a carriage return command. |
+| `node.tspan_dy(dy, content)` | Same, but also sets `dy` — advances the text position `dy` user units downward, *continuing from the current horizontal position*. Correct for superscripts, subscripts, and other in-line vertical nudges, but it does **not** reset `x` position, so subsequent lines form a staircase descending to the right by however much the previous line's rendered width was, rather than staying left-aligned. This is analogous to the old dot-matrix printer problem of issuing a line feed command, but not issuing a carriage return command. |
 | `node.tspan_line(x, dy, content)` | Sets **both** an absolute `x` and a relative `dy` — resets the horizontal position to `x` and advances `dy` user units down. This is the correct helper for aligned multi-line text. |
 | `node.set_dy(dy)` | Sets the `dy` attribute on an existing node. |
 | `node.set_dx(dx)` | Sets the `dx` attribute on an existing node (horizontal offset). |

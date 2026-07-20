@@ -243,7 +243,7 @@ impl SvgFilter {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Returns the cached `url(#id)` reference, ready to write directly to a `filter` attribute.
     ///
-    /// Visbility need only be `pub(crate)` since [`SvgNode::set_filter_ref`](crate::SvgNode::set_filter_ref) is the
+    /// Visibility need only be `pub(crate)` since [`SvgNode::set_filter_ref`](crate::SvgNode::set_filter_ref) is the
     /// only caller that needs it; external callers use [`id`](Self::id) instead.
     pub(crate) fn url_ref(&self) -> &str {
         &self.url_ref
@@ -300,7 +300,7 @@ impl SvgFilter {
     ///
     /// ⚠️ Caveat ⚠️
     ///
-    /// Name and value are written verbatim; so be careful not pass any untrusted input!
+    /// Name and value are written verbatim; so be careful not to pass any untrusted input!
     ///
     /// # Reserved attributes
     ///
@@ -594,7 +594,7 @@ impl SvgFilter {
     /// `opacity` (written as `flood-opacity`) is a value in the range `0.0` to `1.0`.
     ///
     /// **IMPORTANT** values outside that range will not cause a runtime error, but may well produce an unspecified
-    /// rendering results.  This is the same convention as used by
+    /// rendering result.  This is the same convention as used by
     /// [`SvgLinearGradient::add_stop_opacity`](crate::SvgLinearGradient::add_stop_opacity)
     ///
     /// On its own, a flood fills the entire filter region with one flat colour, which by itself is rarely useful, but

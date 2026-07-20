@@ -49,7 +49,7 @@ Obtain a handle via `SvgRoot::image(href, top_left, size)` or `SvgBatch::image(h
 - `top_left` and `size` define the display rectangle.
 
   `svg-dom`'s `image` constructor requires a `Size` and therefore always writes both `width` and `height`; a zero value for either dimension prevents rendering.
-  This constraint is applied only by thois convenience constructor, it is not actually part of SVG 2 itself.
+  This constraint is applied only by this convenience constructor, it is not actually part of SVG 2 itself.
   SVG 2 permits automatic sizing from the referenced resource's own intrinsic dimensions when `width`/`height` are omitted.
 
 - Control aspect-ratio handling with `set_attr("preserveAspectRatio", value)`:

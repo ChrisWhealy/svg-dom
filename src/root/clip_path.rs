@@ -40,7 +40,7 @@ impl ClipPathUnits {
 /// The browser paints only the parts of the referencing element that fall inside the union of those shapes;
 /// everything outside is invisible.
 ///
-/// # `group()` is deliberatley absent as `<g>` is not a conforming `<clipPath>` child
+/// # `group()` is deliberately absent as `<g>` is not a conforming `<clipPath>` child
 ///
 /// Unlike [`SvgMask`](crate::SvgMask), [`SvgPattern`](crate::SvgPattern), and [`SvgSymbol`](crate::SvgSymbol), this
 /// type deliberately has no `group()` method.

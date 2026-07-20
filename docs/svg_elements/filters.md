@@ -62,7 +62,7 @@ A "poor man's" drop-shadow can be constructed by chaining `gaussian_blur` + `off
 
 See [`../gaps.md`](../gaps.md) for the primitives (`feBlend`, `feTile`, and others) still to be added.
 
-## Region and Coordinate-Space Attributes**
+## Region and Coordinate-Space Attributes
 
 `set_x`, `set_y`, `set_width` and `set_height` set the filter region.
 
