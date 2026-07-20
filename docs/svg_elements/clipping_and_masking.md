@@ -103,7 +103,7 @@ Controlled by `SvgMask::set_mask_type(MaskType)`:
 | Variant | Default | Meaning |
 |---|:-:|---|
 | `Luminance` | ✅ | The masked element is revealed according to the combination of the mask content's perceived brightness *and* its opacity.<br>Transparent content hides fully no matter how bright its colour is. |
-| `Alpha` |  | The masked element is revealed according to the mask content's alpha channel only; the colour is ignored.<br>In this case, only `fill-opacity`/`opacity` is significant. |
+| `Alpha` |  | The mask content's rendered alpha channel determines visibility; colour and luminance are ignored.<br>Alpha may come from `fill-opacity`, `stroke-opacity`, overall `opacity`, transparent paint or images, gradients, and filter output — not just `fill-opacity`/`opacity`. |
 
 `mask-type` expresses the `<mask>` element's own preference; the element that *references* the mask can override it with its own `mask-mode` **CSS property**.
 Unlike `mask-type`, `mask-mode` is not an SVG presentation attribute, so it cannot be set as a plain XML attribute — a literal `mask-mode="alpha"` attribute is not the specification-defined syntax, whatever some browsers happen to tolerate.
