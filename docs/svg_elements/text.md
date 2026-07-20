@@ -41,7 +41,7 @@ Four typed helpers are available on any `SvgNode` for styling text:
 In other words, the baseline of the letters follow the outline defined by the path instead of a straight line.
 
 `text_path(href, content)` is implemented generically on `SvgNode`, but per the SVG2 content model, `<text>` is the only conforming parent for a `<textPath>`.
-Calling it on the `SvgNode` returned by `SvgRoot::text`/`SvgBatch::text`. `<tspan>` and `<textPath>` may contain text and nested `<tspan>` elements, but not a nested `<textPath>`; the crate does not enforce this at the type level, so calling `text_path` on one of those will not error, but the resulting markup will not conform to the SVG2 content model spec.
+When called on the `SvgNode` returned by `SvgRoot::text` or `SvgBatch::text`, `<tspan>` and `<textPath>` may contain text and nested `<tspan>` elements, but not a nested `<textPath>`; the crate does not enforce this at the type level, so calling `text_path` on one of those will not error, but the resulting markup will not conform to the SVG2 content model spec.
 
 | Method | Effect |
 |---|---|
@@ -62,11 +62,12 @@ Calling it on the `SvgNode` returned by `SvgRoot::text`/`SvgBatch::text`. `<tspa
 
 ## `<tspan>`
 
-`<tspan>` is an inline text span that lives inside a `<text>` element (or another `<tspan>`).
+`<tspan>` is an inline text span that may appear inside `<text>`, `<textPath>`, or another `<tspan>`.
 
 Each span can override any text presentation attribute inherited from its parent, making it the standard mechanism for multi-line text and mixed-style inline text in SVG.
 
-Obtain a span by calling `tspan`, `tspan_dy`, or `tspan_line` on any `SvgNode` that wraps a `<text>` or `<tspan>` element:
+Obtain a span by calling `tspan`, `tspan_dy`, or `tspan_line` — implemented generically on `SvgNode`, with no parent-type restriction — on the handle to which to append the span.
+Call these helpers only on an `SvgNode` wrapping a `<text>`, `<textPath>`, or `<tspan>` element if standards-conforming SVG is required:
 
 | Method | Effect |
 |---|---|
