@@ -271,7 +271,7 @@ impl SvgClipPath {
     ///
     /// Since a `<line>` is one-dimensional and therefore cannot have any fill area under any circumstances, on its own,
     /// it contributes nothing to the clip silhouette, regardless of how it is stroked.
-    /// 
+    ///
     /// When defining clip regions, prefer area shapes (`<rect>`, `<circle>`, `<path>`, `<polygon>`).
     pub fn line(&self, start: Point, end: Point) -> Result<SvgNode, Error> {
         self.create_line(start, end)
