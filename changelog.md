@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Unreleased]
 
+## [0.1.63] - 2026-07-21
+
+# [Released]
+
 ## [0.1.62] - 2026-07-20
 
 ### Added
@@ -30,8 +34,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Correct \<textPath\> specification errors (`342155a`)
 - Correct radial-gradient fr explanation (`5196680`)
 - Correct various typos (`b14fb4`)
-
-# [Released]
 
 ## [0.1.61] - 2026-07-17
 
