@@ -437,7 +437,11 @@ impl SvgFilter {
     /// Appends a `<feGaussianBlur>` primitive to this filter, blurring its input equally on both axes by
     /// `std_deviation`.
     ///
-    /// `std_deviation` is the standard deviation of the Gaussian blur kernel, in user units; larger values blur more.
+    /// `std_deviation` is the standard deviation of the Gaussian blur kernel where larger values blur more and is
+    /// interpreted in the coordinate system established by [`primitiveUnits`](Self::set_primitive_units) — user-space
+    /// units under the default [`FilterUnits::UserSpaceOnUse`], or a fraction/percentage of the referencing element's
+    /// box under [`FilterUnits::ObjectBoundingBox`].
+    ///
     /// A `std_deviation` of `0.0` produces no blur (the input passes through unchanged).
     ///
     /// See [`gaussian_blur_xy`](Self::gaussian_blur_xy) for a blur with independent horizontal and vertical
@@ -470,7 +474,10 @@ impl SvgFilter {
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Appends a `<feGaussianBlur>` primitive to this filter with independent horizontal and vertical standard
-    /// deviations, writing the SVG `stdDeviation="std_deviation_x std_deviation_y"` two-number form.
+    /// deviations, writing the SVG `stdDeviation="std_deviation_x std_deviation_y"` two-number form internally.
+    ///
+    /// Both values are interpreted in the same [`primitiveUnits`](Self::set_primitive_units)-dependent coordinate
+    /// system as [`gaussian_blur`](Self::gaussian_blur)'s `std_deviation`.
     ///
     /// Pass `0.0` for one axis to blur only along the other — for example `gaussian_blur_xy(0.0, 6.0)` blurs
     /// vertically only, useful for a horizontal motion-blur effect.
@@ -500,7 +507,10 @@ impl SvgFilter {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Appends a `<feOffset>` primitive to this filter, shifting its input by `(dx, dy)` user units.
+    /// Appends a `<feOffset>` primitive to this filter, shifting its input by `(dx, dy)` in the coordinate system
+    /// established by [`primitiveUnits`](Self::set_primitive_units) — user-space units under the default
+    /// [`FilterUnits::UserSpaceOnUse`], or a fraction/percentage of the referencing element's bounding box under
+    /// [`FilterUnits::ObjectBoundingBox`].
     ///
     /// The most common use is shifting a blurred alpha silhouette to build a drop shadow — see [`merge`](Self::merge)
     /// for combining the result back with the original graphic.
