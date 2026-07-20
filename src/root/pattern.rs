@@ -12,17 +12,25 @@ use std::{cell::RefCell, fmt::Display};
 use web_sys::{Document, SvgElement};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Controls which coordinate space the tile dimensions and position of a [`SvgPattern`] are expressed in.
+/// Determines the coordinate space in which an [`SvgPattern`] attribute is expressed.
 ///
-/// Used for both the `patternUnits` and `patternContentUnits` attributes.
-/// Passed to [`SvgPattern::set_pattern_units`] and [`SvgPattern::set_pattern_content_units`].
+/// Shared by two attributes with different jobs:
+///
+/// * [`set_pattern_units`](SvgPattern::set_pattern_units) - the tile's `x`/`y`/`width`/`height`
+/// * [`set_pattern_content_units`](SvgPattern::set_pattern_content_units) - the coordinate space of the shapes *inside*
+///   the tile
+///
+/// `patternContentUnits` is ignored once [`set_view_box`](SvgPattern::set_view_box) has been called, since the `viewBox`
+/// then establishes the content coordinate system on its own.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PatternUnits {
-    /// Tile dimensions and position are expressed in the same coordinate space as the element that references
-    /// the pattern (SVG default for `patternUnits`).
+    /// For `patternUnits`: the tile's `x`, `y`, `width`, and `height` are expressed in the same coordinate space as the
+    /// element that references the pattern.
+    /// For `patternContentUnits` (SVG default): shapes inside the tile use that same coordinate space.
     UserSpaceOnUse,
-    /// Tile dimensions and position are expressed as fractions of the referencing element's bounding box.
-    /// `(0, 0)` maps to the top-left corner and `(1, 1)` maps to the bottom-right corner.
+    /// For `patternUnits` (SVG default): the tile's `x`, `y`, `width`, and `height` are fractions of the referencing
+    /// element's bounding box — `(0, 0)` maps to the top-left corner and `(1, 1)` maps to the bottom-right corner.
+    /// For `patternContentUnits`: shapes inside the tile use that same fractional coordinate space.
     ObjectBoundingBox,
 }
 
@@ -223,6 +231,13 @@ impl SvgPattern {
     /// Sets the `patternContentUnits` attribute, controlling the coordinate space used by the shapes inside the tile.
     ///
     /// The default is `userSpaceOnUse` — shapes inside the tile use the same coordinates as the referencing element.
+    ///
+    /// ***Note*** — as per the SVG 2 specification, `patternContentUnits` has no effect once
+    /// [`set_view_box`](Self::set_view_box) has been called: a `viewBox` establishes the tile content's coordinate
+    /// system on its own, superseding this setting.
+    ///
+    /// `patternUnits` is unaffected and continues to control the tile's `x`, `y`, `width`, and `height` regardless of
+    /// whether a `viewBox` is present.
     pub fn set_pattern_content_units(&self, u: PatternUnits) -> Result<(), Error> {
         self.element.set_attribute("patternContentUnits", u.as_str()).map_err(dom_err)
     }
@@ -241,6 +256,12 @@ impl SvgPattern {
     ///
     /// The four values are formatted as `"x y width height"`.
     /// When `viewBox` is present, the pattern's content is scaled to fit the tile dimensions.
+    ///
+    /// ***Note*** — once a `viewBox` is set, it establishes the tile content's coordinate system on its own; as per the
+    /// SVG 2 specification, any [`set_pattern_content_units`](Self::set_pattern_content_units) value is then ignored.
+    ///
+    /// [`set_pattern_units`](Self::set_pattern_units) is unaffected and still controls the tile's own `x`, `y`, `width`,
+    /// and `height`.
     ///
     /// # Errors
     ///

@@ -96,6 +96,10 @@ Apply it to any element with `SvgNode::set_fill_pattern_ref(&pat)` or `SvgNode::
 | `set_id(&mut self, id)` | `id` | Renames the pattern (updates both DOM and cached id) |
 | `set_attr(name, value)` | — | Generic setter for unlisted attributes |
 
+***IMPORTANT***<br>
+When a `viewBox` is present, it establishes the tile content's coordinate system on its own, and the value of `patternContentUnits` is ignored — as per the SVG 2 spec, a `viewBox` supersedes it.
+`patternUnits` is unaffected either way and always controls the tile's own `x`, `y`, `width`, and `height` values.
+
 All shape factory methods are available on `SvgPattern`.
 
 ### Applying Patterns on `SvgNode`
@@ -109,12 +113,17 @@ All shape factory methods are available on `SvgPattern`.
 
 ### Coordinate Systems
 
-These are controlled by `PatternUnits` and are used for both `patternUnits` and `patternContentUnits`.
+`PatternUnits` is shared by two attributes with different jobs:
 
-| Variant | SVG value | Meaning |
-|---|---|---|
-| `UserSpaceOnUse` | `userSpaceOnUse` | Tile dimensions use the same coordinate space as the referencing element. |
-| `ObjectBoundingBox` | `objectBoundingBox` | Tile dimensions are fractions of the referencing element's bounding box (SVG default for `patternUnits`). |
+* `patternUnits` - the tile's own position and size, and
+* `patternContentUnits` - the coordinate space used when drawing the shapes *inside* the tile
+
+| Variant | SVG value | Meaning for `patternUnits` | Meaning for `patternContentUnits` |
+|---|---|---|---|
+| `UserSpaceOnUse` | `userSpaceOnUse` | The tile's `x`, `y`, `width` and `height` use the same coordinate space as the referencing element. | Shapes inside the tile use the same coordinate space as the referencing element (SVG default for `patternContentUnits`). |
+| `ObjectBoundingBox` | `objectBoundingBox` | The tile's `x`, `y`, `width` and `height` are fractions of the referencing element's bounding box (SVG default for `patternUnits`). | Shapes inside the tile are fractions of the referencing element's bounding box. |
+
+Remember that `patternContentUnits` (either variant) is ignored whenever the pattern has a `viewBox` — see the note above.
 
 **Example**:
 
