@@ -3,7 +3,7 @@
 ///
 /// Every fallible function in this crate returns `Result<_, Error>`.
 ///
-/// The variants cover seven categories, one of which contains seven subtypes:
+/// The variants cover eight categories, one of which contains seven subtypes:
 ///
 /// - you asked for a non-existent element by id ([`Error::ElementNotFound`])
 /// - a `web-sys` call returned a JavaScript error ([`Error::Dom`])
@@ -11,6 +11,7 @@
 /// - a generic setter was called with an attribute name that has a dedicated typed setter ([`Error::ReservedAttribute`])
 /// - a non-empty [`PathDef`](crate::PathDef) sequence was supplied that did not begin with a `MoveTo` command ([`Error::InvalidPathData`])
 /// - a `viewBox` was supplied with a non-finite component, or a negative width/height ([`Error::InvalidViewBox`])
+/// - an empty or whitespace-only `<title>`/`<desc>` value was supplied ([`Error::InvalidAccessibleText`])
 /// - Crate-level validation errors for various id strings
 ///   - a bad marker id ([`Error::InvalidMarkerId`])
 ///   - a bad gradient id ([`Error::InvalidGradientId`])
@@ -178,6 +179,21 @@ pub enum Error {
     ///
     /// The inner `&'static str` describes which check failed.
     InvalidViewBox(&'static str),
+
+    /// An empty or whitespace-only value was rejected before reaching the DOM.
+    ///
+    /// SVG 2 explicitly states that authoring tools and generators must not produce an empty or whitespace-only
+    /// `<title>` or `<desc>` element, since either can result in an apparently nameless object being exposed to
+    /// accessibility APIs — an empty `<title>` in particular can *suppress* an otherwise-usable accessible name
+    /// that would have been derived from other content.
+    ///
+    /// Returned by [`SvgNode::set_title`](crate::SvgNode::set_title) and
+    /// [`SvgNode::set_desc`](crate::SvgNode::set_desc) when `text.trim()` is empty — this rejects the call outright
+    /// rather than silently creating (or leaving behind) a blank element or silently reinterpreting it as a
+    /// removal request.
+    ///
+    /// The inner `&'static str` is `"title"` or `"desc"`, naming which one was rejected.
+    InvalidAccessibleText(&'static str),
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -220,6 +236,9 @@ impl std::fmt::Display for Error {
             },
             Error::InvalidPathData(msg) => write!(f, "invalid path data: {msg}"),
             Error::InvalidViewBox(msg) => write!(f, "invalid viewBox: {msg}"),
+            Error::InvalidAccessibleText(tag) => {
+                write!(f, "{tag} value must not be empty or whitespace-only")
+            },
         }
     }
 }

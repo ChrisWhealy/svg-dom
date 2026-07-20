@@ -1,7 +1,10 @@
 mod common;
 
 use common::*;
-use svg_dom::root::utils::{Point, Size};
+use svg_dom::{
+    Error,
+    root::utils::{Point, Size},
+};
 use wasm_bindgen_test::*;
 
 wasm_bindgen_test_configure!(run_in_browser);
@@ -171,4 +174,114 @@ fn should_no_op_remove_desc_when_absent() -> Result<(), String> {
     let rect = svg.rect(Point::origin(), Size::new(20.0, 20.0)).map_err(|e| e.to_string())?;
     rect.remove_desc();
     check_eq(rect.as_element().child_element_count(), 0)
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Empty / whitespace-only rejection (SVG 2 forbids blank <title>/<desc>)
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `set_title("")` is rejected and no `<title>` child is created.
+#[wasm_bindgen_test]
+fn should_reject_empty_title() -> Result<(), String> {
+    let svg = make_svg("a11y-title-empty");
+    let rect = svg.rect(Point::origin(), Size::new(20.0, 20.0)).map_err(|e| e.to_string())?;
+    let result = rect.set_title("");
+    check(
+        matches!(result, Err(Error::InvalidAccessibleText("title"))),
+        "expected InvalidAccessibleText(\"title\") for an empty string",
+    )?;
+    check_eq(rect.as_element().child_element_count(), 0)
+}
+
+/// `set_title(" ")` (spaces only) is rejected.
+#[wasm_bindgen_test]
+fn should_reject_space_only_title() -> Result<(), String> {
+    let svg = make_svg("a11y-title-spaces");
+    let rect = svg.rect(Point::origin(), Size::new(20.0, 20.0)).map_err(|e| e.to_string())?;
+    let result = rect.set_title("   ");
+    check(
+        matches!(result, Err(Error::InvalidAccessibleText("title"))),
+        "expected InvalidAccessibleText(\"title\") for a space-only string",
+    )?;
+    check_eq(rect.as_element().child_element_count(), 0)
+}
+
+/// `set_title("\n\t")` (line-break/tab whitespace only) is rejected.
+#[wasm_bindgen_test]
+fn should_reject_line_break_only_title() -> Result<(), String> {
+    let svg = make_svg("a11y-title-linebreak");
+    let rect = svg.rect(Point::origin(), Size::new(20.0, 20.0)).map_err(|e| e.to_string())?;
+    let result = rect.set_title("\n\t \n");
+    check(
+        matches!(result, Err(Error::InvalidAccessibleText("title"))),
+        "expected InvalidAccessibleText(\"title\") for a line-break/tab-only string",
+    )?;
+    check_eq(rect.as_element().child_element_count(), 0)
+}
+
+/// `set_desc("")` is rejected and no `<desc>` child is created.
+#[wasm_bindgen_test]
+fn should_reject_empty_desc() -> Result<(), String> {
+    let svg = make_svg("a11y-desc-empty");
+    let rect = svg.rect(Point::origin(), Size::new(20.0, 20.0)).map_err(|e| e.to_string())?;
+    let result = rect.set_desc("");
+    check(
+        matches!(result, Err(Error::InvalidAccessibleText("desc"))),
+        "expected InvalidAccessibleText(\"desc\") for an empty string",
+    )?;
+    check_eq(rect.as_element().child_element_count(), 0)
+}
+
+/// `set_desc(" ")` (spaces only) is rejected.
+#[wasm_bindgen_test]
+fn should_reject_space_only_desc() -> Result<(), String> {
+    let svg = make_svg("a11y-desc-spaces");
+    let rect = svg.rect(Point::origin(), Size::new(20.0, 20.0)).map_err(|e| e.to_string())?;
+    let result = rect.set_desc("   ");
+    check(
+        matches!(result, Err(Error::InvalidAccessibleText("desc"))),
+        "expected InvalidAccessibleText(\"desc\") for a space-only string",
+    )?;
+    check_eq(rect.as_element().child_element_count(), 0)
+}
+
+/// `set_desc("\n\t")` (line-break/tab whitespace only) is rejected.
+#[wasm_bindgen_test]
+fn should_reject_line_break_only_desc() -> Result<(), String> {
+    let svg = make_svg("a11y-desc-linebreak");
+    let rect = svg.rect(Point::origin(), Size::new(20.0, 20.0)).map_err(|e| e.to_string())?;
+    let result = rect.set_desc("\n\t \n");
+    check(
+        matches!(result, Err(Error::InvalidAccessibleText("desc"))),
+        "expected InvalidAccessibleText(\"desc\") for a line-break/tab-only string",
+    )?;
+    check_eq(rect.as_element().child_element_count(), 0)
+}
+
+/// Rejecting a blank update leaves a *pre-existing* `<title>` untouched, rather than blanking it out.
+#[wasm_bindgen_test]
+fn should_not_blank_existing_title_on_rejected_update() -> Result<(), String> {
+    let svg = make_svg("a11y-title-reject-preserves");
+    let rect = svg.rect(Point::origin(), Size::new(20.0, 20.0)).map_err(|e| e.to_string())?;
+    rect.set_title("Original").map_err(|e| e.to_string())?;
+    let result = rect.set_title("   ");
+    check(
+        matches!(result, Err(Error::InvalidAccessibleText("title"))),
+        "expected rejection",
+    )?;
+    check_eq(rect.title(), Some("Original".to_owned()))
+}
+
+/// Rejecting a blank update leaves a *pre-existing* `<desc>` untouched, rather than blanking it out.
+#[wasm_bindgen_test]
+fn should_not_blank_existing_desc_on_rejected_update() -> Result<(), String> {
+    let svg = make_svg("a11y-desc-reject-preserves");
+    let rect = svg.rect(Point::origin(), Size::new(20.0, 20.0)).map_err(|e| e.to_string())?;
+    rect.set_desc("Original").map_err(|e| e.to_string())?;
+    let result = rect.set_desc("\n");
+    check(
+        matches!(result, Err(Error::InvalidAccessibleText("desc"))),
+        "expected rejection",
+    )?;
+    check_eq(rect.desc(), Some("Original".to_owned()))
 }

@@ -19,6 +19,9 @@ impl SvgNode {
     ///
     /// # Errors
     ///
+    /// - [`Error::InvalidAccessibleText`] — `text` is empty or contains only whitespace. SVG 2 requires authoring
+    ///   tools not to produce an empty or whitespace-only `<title>`, since it can suppress an otherwise-usable
+    ///   accessible name derived from other content.
     /// - [`Error::Dom`] — the browser refused to create, append, or insert the `<title>` element.
     ///
     /// # Example
@@ -69,6 +72,8 @@ impl SvgNode {
     ///
     /// # Errors
     ///
+    /// - [`Error::InvalidAccessibleText`] — `text` is empty or contains only whitespace. SVG 2 requires authoring
+    ///   tools not to produce an empty or whitespace-only `<desc>`.
     /// - [`Error::Dom`] — the browser refused to create, append, or insert the `<desc>` element.
     ///
     /// # Example
@@ -108,6 +113,14 @@ impl SvgNode {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     fn set_accessible_child(&self, tag: &'static str, text: &str) -> Result<(), Error> {
+        // SVG 2 requires authoring tools not to produce an empty or whitespace-only <title>/<desc>, since either can
+        // expose an apparently nameless object to assistive technology (or, for <title>, suppress an otherwise-usable
+        // accessible name derived from other content). Reject outright rather than silently creating a blank element
+        // or reinterpreting this as a removal request.
+        if text.trim().is_empty() {
+            return Err(Error::InvalidAccessibleText(tag));
+        }
+
         if let Some(existing) = self.accessible_child(tag)? {
             existing.set_text(text);
             return Ok(());
