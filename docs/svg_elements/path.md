@@ -38,7 +38,7 @@ That guarantee is about individual commands, yet it is still possible to create 
 
 | Method | Available on | Effect |
 |---|---|---|
-| `path(d)` | `SvgRoot`, `SvgBatch`, `SvgDefs`, `SvgClipPath`, `SvgMarker`, `SvgPattern`, `SvgSymbol` | Creates a `<path>` from a raw `d` string. |
+| `path(d)` | `SvgRoot`, `SvgBatch`, `SvgDefs`, `SvgClipPath`, `SvgMarker`, `SvgMask`, `SvgPattern`, `SvgSymbol` | Creates a `<path>` from a raw `d` string. |
 | `path_from_defs(&[PathDef])` | Same set of types | Creates a `<path>` from typed segments, writing `d` through the factory's own retained `SvgAttrs` buffer — no extra allocation beyond the first call. |
 | `SvgNode::set_d(d)` | Any `SvgNode` | Updates an existing `<path>`'s `d` string. |
 | `SvgNode::set_d_from_defs(&[PathDef])` | Any `SvgNode` | Updates an existing `<path>`'s `d` from typed segments. Allocates a fresh `String` per call; consequently, this should only be used for occasional updates. See below for the hot-path alternatives. |
