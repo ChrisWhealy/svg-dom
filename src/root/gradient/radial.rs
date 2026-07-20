@@ -8,8 +8,11 @@ use super::*;
 ///
 /// Under the default `gradientUnits="objectBoundingBox"`, all geometry values are fractions of the
 /// painted element's bounding box in [0.0, 1.0].
-/// The SVG defaults — `cx="0.5"`, `cy="0.5"`, `r="0.5"`, `fx`/`fy` matching `cx`/`cy` — produce a
-/// centred circular gradient that fills the element.
+///
+/// The SVG-specified defaults — `cx="50%"`, `cy="50%"`, `r="50%"`, `fx`/`fy` matching `cx`/`cy` — produce a centred
+/// circular gradient that fills the element. These percentages only coincide with the bare numbers `0.5` once resolved
+/// under the default `objectBoundingBox` units; under `userSpaceOnUse` however, a percentage resolves against the
+/// viewport instead, so writing an explicit `0.5` in that mode means "0.5 user units", not "50% of the viewport".
 ///
 /// Apply the gradient to any shape with
 /// [`SvgNode::set_fill_radial_gradient`](crate::SvgNode::set_fill_radial_gradient) (fill) or
@@ -110,9 +113,11 @@ impl SvgRadialGradient {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the `cx` attribute — the x-coordinate of the outer circle's centre.
     ///
-    /// Under the default `gradientUnits="objectBoundingBox"`, this is a fraction in [0.0, 1.0] of the
+    /// Under the default `gradientUnits="objectBoundingBox"`, this is a fraction in the range [0.0, 1.0] of the
     /// element's bounding box width.
-    /// SVG default when absent is `0.5` (horizontal centre of the bounding box).
+    ///
+    /// The SVG-specified default when absent is `50%` (horizontal centre of the bounding box under the default
+    /// `objectBoundingBox` units).
     pub fn set_cx(&self, v: f64) -> Result<(), Error> {
         self.0.attrs.borrow_mut().display_element(self.0.as_element(), "cx", v)
     }
@@ -120,7 +125,11 @@ impl SvgRadialGradient {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the `cy` attribute — the y-coordinate of the outer circle's centre.
     ///
-    /// SVG default when absent is `0.5` (vertical centre of the bounding box).
+    /// Under the default `gradientUnits="objectBoundingBox"`, this is a fraction in the range [0.0, 1.0] of the
+    /// element's bounding box height.
+    ///
+    /// The SVG-specified default when absent is `50%` (vertical centre of the bounding box under the default
+    /// `objectBoundingBox` units).
     pub fn set_cy(&self, v: f64) -> Result<(), Error> {
         self.0.attrs.borrow_mut().display_element(self.0.as_element(), "cy", v)
     }
@@ -130,7 +139,9 @@ impl SvgRadialGradient {
     ///
     /// Under the default `gradientUnits="objectBoundingBox"`, this is a fraction of the element's
     /// bounding box.
-    /// SVG default when absent is `0.5` (half the bounding box size).
+    ///
+    /// The SVG-specified default when absent is `50%` (half the bounding box size under the default `objectBoundingBox`
+    /// units).
     pub fn set_r(&self, v: f64) -> Result<(), Error> {
         self.0.attrs.borrow_mut().display_element(self.0.as_element(), "r", v)
     }
@@ -154,10 +165,15 @@ impl SvgRadialGradient {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Sets the `fr` attribute — the radius of the focal circle (SVG 2).
+    /// Sets the `fr` attribute — the radius of the focal/start circle (SVG 2).
     ///
-    /// Defines a small inner circle around the focal point; the first stop colour fills that circle.
-    /// When omitted, defaults to `0.0` (point focal), which is the usual behaviour.
+    /// The gradient's `0%` stop is mapped to this circle's perimeter, and its interior is painted with the first stop's
+    /// colour.
+    ///
+    /// `fr` does not inherently create a hole. A hollow-looking centre must be created from the stop colours themselves,
+    /// for example by making the first stop transparent.
+    ///
+    /// When omitted, the SVG-specified default is `0%` (point focal), which is the usual behaviour.
     pub fn set_fr(&self, v: f64) -> Result<(), Error> {
         self.0.attrs.borrow_mut().display_element(self.0.as_element(), "fr", v)
     }

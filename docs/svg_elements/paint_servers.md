@@ -21,7 +21,10 @@ This paints a colour transition along a straight line.
 
 - The axis runs along the line from (`x1`, `y1`) to (`x2`, `y2`).
   Under the default `gradientUnits="objectBoundingBox"`, these are fractions in the range `0.0` to `1.0` of the element's bounding box.
-  If omitted, the default is a horizontal left-to-right gradient (SVG defaults: `x1=0`, `y1=0`, `x2=1`, `y2=0`).
+
+  If omitted, the default is a horizontal left-to-right gradient (specification defaults: `x1=0%`, `y1=0%`, `x2=100%`, `y2=0%`).
+  These percentages only coincide with the bare numbers `0`/`1` once resolved under `objectBoundingBox` units.
+  Under `userSpaceOnUse`, a percentage resolves against the viewport instead, so keep the spec's percentage notation in mind rather than assuming it is generally interchangeable with a unitless number.
 
 - Use `set_gradient_transform("rotate(45, 0.5, 0.5)")` for a diagonal gradient without the need to compute trigonometric endpoint coordinates.
 
@@ -31,12 +34,15 @@ This paints a colour transition along a straight line.
 
 This a gradient that radiates outward from the focal point at `fx / fy` towards an outer circle centered at `cx / cy` and having a radius of `r`.
 
-- SVG uses the defaults `cx=0.5`, `cy=0.5`, `r=0.5`.
-  This will position the focal point at the centre of the outer circle.
+- The specification defaults are `cx=50%`, `cy=50%`, `r=50%` (these only coincide with the bare numbers `0.5` once resolved under `objectBoundingBox` units).
+  This positions the focal point at the centre of the outer circle.
 
 - Move the focal point with `set_fx` / `set_fy` to create an asymmetric "hot spot" or spotlight effect.
 
-- `set_fr` sets the focal circle radius (SVG 2) for a hollow centre.
+- `set_fr` sets the radius of the focal/start circle (SVG 2).
+
+  The gradient's `0%` stop is mapped to that circle's perimeter, and its interior is painted with the first stop's colour; however, `fr` does not inherently create a hole.
+  A hollow-looking centre is created from the stop colours themselves, e.g. a transparent first stop.
 
 - Apply with `SvgNode::set_fill_radial_gradient` / `SvgNode::set_stroke_radial_gradient`.
 

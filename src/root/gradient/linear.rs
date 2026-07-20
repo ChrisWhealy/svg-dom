@@ -10,8 +10,12 @@ use super::*;
 /// Under the default `gradientUnits="objectBoundingBox"`, the geometry coordinates are fractions of the painted
 /// element's bounding box: `0.0` means the left/top edge and `1.0` means the right/bottom edge.
 ///
-/// The SVG defaults for the axis endpoints are `x1="0"`, `y1="0"`, `x2="1"`, `y2="0"`, which gives a horizontal
-/// left-to-right gradient.  This is the most common case, so for that you only need to add stops.
+/// The SVG-specified defaults for the axis endpoints are `x1="0%"`, `y1="0%"`, `x2="100%"`, `y2="0%"`, which gives a
+/// horizontal left-to-right gradient. This is the most common case, so for that, you only need to add stops.
+///
+/// These stop percentages only coincide with the bare numbers `0`/`1` once resolved under the default
+/// `gradientUnits="objectBoundingBox"`; under `userSpaceOnUse`, a percentage resolves against the viewport instead,
+/// so writing an explicit `0`/`1` in that mode means "0/1 user units", not "0%/100% of the viewport".
 ///
 /// Apply the gradient to any shape with
 /// [`SvgNode::set_fill_linear_gradient`](crate::SvgNode::set_fill_linear_gradient) (fill) or
@@ -130,7 +134,8 @@ impl SvgLinearGradient {
     ///
     /// If you are using `"userSpaceOnUse"`, it is an absolute coordinate in the user coordinate system.
     ///
-    /// If absent, the SVG default is `0.0` (left edge of the bounding box).
+    /// If absent, the SVG-specified default is `0%` (left edge of the bounding box under the default `objectBoundingBox`
+    /// units).
     pub fn set_x1(&self, v: f64) -> Result<(), Error> {
         self.0.attrs.borrow_mut().display_element(self.0.as_element(), "x1", v)
     }
@@ -138,7 +143,8 @@ impl SvgLinearGradient {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the y-coordinate of the gradient's start point.
     ///
-    /// If absent, the SVG default is `0.0` (top edge of the bounding box).
+    /// If absent, the SVG-specified default is `0%` (top edge of the bounding box under the default `objectBoundingBox`
+    /// units).
     pub fn set_y1(&self, v: f64) -> Result<(), Error> {
         self.0.attrs.borrow_mut().display_element(self.0.as_element(), "y1", v)
     }
@@ -146,8 +152,10 @@ impl SvgLinearGradient {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the x-coordinate of the gradient's end point.
     ///
-    /// If absent, the SVG default is `1.0` (right edge of the bounding box), which together with the `y2` default of
-    /// `0.0` gives the standard horizontal left-to-right gradient.
+    /// If absent, the SVG-specified default is `100%` (right edge of the bounding box under the default
+    /// `objectBoundingBox` units).
+    ///
+    /// Together with the `y2` default of `0%`, this gives the standard horizontal left-to-right gradient.
     pub fn set_x2(&self, v: f64) -> Result<(), Error> {
         self.0.attrs.borrow_mut().display_element(self.0.as_element(), "x2", v)
     }
@@ -155,7 +163,8 @@ impl SvgLinearGradient {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the y-coordinate of the gradient's end point.
     ///
-    /// If absent, the SVG default is `0.0` (top edge of the bounding box).
+    /// If absent, the SVG-specified default is `0%` (top edge of the bounding box under the default
+    /// `objectBoundingBox` units).
     pub fn set_y2(&self, v: f64) -> Result<(), Error> {
         self.0.attrs.borrow_mut().display_element(self.0.as_element(), "y2", v)
     }
