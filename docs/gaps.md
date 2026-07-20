@@ -33,7 +33,6 @@ These elements have no wrapper anywhere in `src/` and, unlike the filter primiti
 
 | Missing element | Cost | Benefit |
 |---|---|---|
-| `<desc>` / `<title>` | Very low — create the element, `set_text_content`, done; smaller than one filter primitive. | Real but narrow — the only accessibility gap on this list; nothing else gives SVG content an accessible name/description. |
 | `<a>` (anchor) | Low — a `<g>`-like wrapper plus `href`/`target`. | Low-moderate — useful for interactive diagrams/maps, rarely essential. |
 | `<switch>` | Low structurally, but `systemLanguage`/`requiredFeatures` are already reachable as plain attributes on a `g()` via `set_attr`. | Low — a dedicated wrapper buys little over what is already reachable. |
 | `<view>` | Low — attribute-only container. | Low — fragment-identifier navigation is a niche use case for a WASM-driven crate that already controls the DOM directly. |
@@ -63,5 +62,3 @@ They have been intentionally excluded:
 
 The cost/benefit favours **`feBlend`** as the next gap worth closing: it is one of the cheapest remaining filter primitives (a single `mode` enum, the same shape as `composite`'s `CompositeOperator`) with moderate-high benefit, since blend modes are common in realistic shadow/lighting effects.
 The best value-per-effort ordering within the filter primitives is `feBlend` → `feComponentTransfer` → `feTurbulence`/`feDisplacementMap`; `feConvolveMatrix` and `feDiffuseLighting`/`feSpecularLighting` are the most expensive items on either list for the narrowest payoff, and are deprioritised accordingly.
-
-`<desc>`/`<title>` remain the cheapest item on this page and are worth picking up opportunistically for their accessibility benefit, even though that benefit is narrower than `feBlend`'s.

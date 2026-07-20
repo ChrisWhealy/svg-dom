@@ -31,6 +31,7 @@
             <button type="button" class="menu-item" data-target="panel-symbol">symbol</button>
             <button type="button" class="menu-item" data-target="panel-view-box">set_view_box</button>
             <button type="button" class="menu-item" data-target="panel-tree-nav">tree navigation</button>
+            <button type="button" class="menu-item" data-target="panel-accessibility">desc / title</button>
             <button type="button" class="menu-item" data-target="panel-linear-gradient">linearGradient</button>
             <button type="button" class="menu-item" data-target="panel-radial-gradient">radialGradient</button>
             <button type="button" class="menu-item" data-target="panel-clip-path">clipPath</button>
@@ -310,6 +311,24 @@
                         <strong>query_selector("[data-role='target']")</strong> and outline the one bar tagged with
                         that attribute in gold.
                         <strong>Reset</strong> walks the bars again to restore them, and rewinds the walk to the start.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- accessibility: desc / title -->
+            <section class="section" id="panel-accessibility">
+                <h2><code>&lt;title&gt;</code> / <code>&lt;desc&gt;</code> — accessible name and description</h2>
+                <figure>
+                    <div class="canvas" id="demo-accessibility"></div>
+                    <figcaption>
+                        Three icons have each been given an accessible name using <code>set_title()</code> and an
+                        accessible description using <code>set_desc()</code>.<br>
+                        Hovering over an icon shows the browser's native tooltip, driven by its <code>&lt;title&gt;</code>
+                        - no extra code is needed for that part.<br>
+                        <code>&lt;desc&gt;</code> has no visible tooltip in any browser; this value is made available to
+                        someone using assistive technology such as a screen reader. The readout below echoes both back
+                        via the <strong>title()</strong> / <strong>desc()</strong> getters so the otherwise invisible
+                        description is visible for this demo.
                     </figcaption>
                 </figure>
             </section>

@@ -17,6 +17,7 @@ The following SVG elements are supported:
 * `circle`
 * `clipPath`
 * `defs`
+* `desc`
 * `ellipse`
 * `filter` (with `feGaussianBlur`, `feOffset`, `feMerge`/`feMergeNode`, `feFlood`, `feComposite`, `feDropShadow`, `feColorMatrix`)
 * `g`
@@ -33,13 +34,14 @@ The following SVG elements are supported:
 * `radialGradient` (with `stop`)
 * `symbol`
 * `text` (with `tspan`, `textPath`)
+* `title`
 * `use`
 
 ## Core Operations
 
-- [Tree operations, events, attribute and geometry helpers](core_operations.md)
+- [Tree operations, events, attribute, geometry, and accessibility helpers](core_operations.md)
 
-  The common set of capabilities that apply to every `SvgNode` regardless of element type: DOM tree navigation, the managed event-listener API, generic transform and text attribute helpers, and read-only geometry queries  such as `bounding_box`, current transformation matrix (`ctm` `screen_ctm`), `total_length` and `point_at_length`.
+  The common set of capabilities that apply to every `SvgNode` regardless of element type: DOM tree navigation, the managed event-listener API, generic transform and text attribute helpers, read-only geometry queries such as `bounding_box`, current transformation matrix (`ctm` `screen_ctm`), `total_length` and `point_at_length`, and accessible name/description via `set_title`/`set_desc`.
 
 ## Clipping and Masking
 

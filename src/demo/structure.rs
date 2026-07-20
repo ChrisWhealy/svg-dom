@@ -567,8 +567,75 @@ pub(super) fn demo_tree_nav() -> Result<(), Error> {
         "Walk steps through first_child → next_sibling one bar per click; Find target runs query_selector",
     )?;
 
+    caption(
+        &svg,
+        W / 2.0,
+        "Walk steps through first_child → next_sibling one bar per click; Find target runs query_selector",
+    )?;
+
     keep_demo_node(walk_btn);
     keep_demo_node(find_btn);
     keep_demo_node(reset_btn);
+    Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// accessibility — set_title / set_desc, native tooltip, and read-back via title() / desc()
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+pub(super) fn demo_accessibility() -> Result<(), Error> {
+    let svg = SvgRoot::create_in("demo-accessibility", Size::new(W, H))?;
+
+    // Three icon-button-style circles, each carrying its own accessible name (<title>, also the native hover
+    // tooltip) and accessible description (<desc>, not shown as a tooltip by any browser — assistive technology
+    // only). The readout below echoes both back via the title()/desc() getters when a pointer enters an icon, so
+    // the invisible <desc> becomes visible for the purposes of this demo.
+    let icons: [(f64, &str, &str, &str, &str); 3] = [
+        (150.0, STEELBLUE, "Save", "Save file", "Writes the current document to disk."),
+        (400.0, ACCENT_AMBER, "Share", "Share", "Opens the share sheet for this item."),
+        (
+            650.0,
+            CRIMSON,
+            "Delete",
+            "Delete item",
+            "Permanently removes the selected item. This cannot be undone.",
+        ),
+    ];
+
+    let icon_y = PAD_Y + 34.0;
+    let readout = svg.text(
+        Point::new(W / 2.0, PAD_Y + 92.0),
+        "hover an icon to read its title and desc back",
+    )?;
+    readout.set_fill(TEXT)?;
+    readout.set_attrs([("font-size", "13"), ("text-anchor", "middle")])?;
+
+    for (cx, fill, label, title, desc) in icons {
+        let icon = svg.circle(Point::new(cx, icon_y), 22.0)?;
+        icon.set_fill(fill)?;
+        icon.set_attr("style", "cursor:pointer")?;
+        icon.set_title(title)?;
+        icon.set_desc(desc)?;
+
+        let icon_label = svg.text(Point::new(cx, icon_y + 40.0), label)?;
+        icon_label.set_fill(TEXT_MUTED)?;
+        icon_label.set_attrs([("font-size", "12"), ("text-anchor", "middle"), ("style", "pointer-events:none")])?;
+
+        let hover_readout = readout.clone();
+        let hover_icon = icon.clone();
+        icon.on_pointerenter(move |_| {
+            let title = hover_icon.title().unwrap_or_default();
+            let desc = hover_icon.desc().unwrap_or_default();
+            hover_readout.set_text(&format!("title: \"{title}\"  ·  desc: \"{desc}\""));
+        })?;
+
+        keep_demo_node(icon);
+    }
+
+    caption(
+        &svg,
+        W / 2.0,
+        "set_title() also drives the browser's native hover tooltip; set_desc() has no visible tooltip",
+    )?;
+
     Ok(())
 }

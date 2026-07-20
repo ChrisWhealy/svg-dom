@@ -50,17 +50,10 @@ That said, all reasonable, conventional steps have been taken to provide a secur
 - [x] Build demo server to illustrate current functionality
 - [x] Schedule `cargo-deny` to run as a weekly `cron` job
 - Implement remaining SVG elements
-  - [x] `<defs>`
-  - [x] `<linearGradient>` / `<radialGradient>`
-  - [x] `<pattern>`
+  - [ ] `<a>` (anchor)
   - [x] `<clipPath>`
-  - [x] `<mask>`
-  - [x] `<marker>`
-  - [x] `<image>`
-  - [x] `<use>`
-  - [x] `<symbol>`
-  - [x] `<tspan>`
-  - [x] `<textPath>`
+  - [x] `<defs>`
+  - [x] `<desc>`
   - [x] `<filter>` and filter effects
     - [ ] `feBlend`
     - [x] `feColorMatrix`
@@ -79,12 +72,21 @@ That said, all reasonable, conventional steps have been taken to provide a secur
     - [ ] `feSpecularLighting`
     - [ ] `feTile`
     - [ ] `feTurbulence`
-  - [ ] `<desc>` / `<title>`
-  - [ ] `<a>` (anchor)
-  - [ ] `<switch>`
-  - [ ] `<view>`
   - [ ] `<foreignObject>`
+  - [x] `<image>`
+  - [x] `<linearGradient>`
+  - [x] `<marker>`
+  - [x] `<mask>`
+  - [x] `<pattern>`
+  - [x] `<radialGradient>`
   - [ ] `<style>`
+  - [ ] `<switch>`
+  - [x] `<symbol>`
+  - [x] `<textPath>`
+  - [x] `<title>`
+  - [x] `<tspan>`
+  - [x] `<use>`
+  - [ ] `<view>`
 - [x] Type-safe `<path>` `d`-attribute builder (`PathDef` / `path_from_defs`) as a typesafe alternative to hand-written `d` strings
 
 ## What This Crate Is
@@ -114,6 +116,7 @@ The `svg-dom` crate acts as a thin wrapper for `web-sys` SVG DOM bindings that a
    - `drag-and-drop`
    - and generic `Event` handlers
 - Drive reactive updates through a `requestAnimationFrame` loop via `AnimationLoop`
+- Give any element an accessible name and description with `set_title` / `set_desc` (and read them back with `title` / `desc`) — `set_title` also drives the browser's native hover tooltip
 
 ## What This Crate Is NOT
 

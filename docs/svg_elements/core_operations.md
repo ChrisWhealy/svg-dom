@@ -8,6 +8,7 @@
 - [Event coverage](#event-coverage)
 - [Implemented Attribute helpers](#implemented-attribute-helpers)
 - [Implemented geometry helpers](#implemented-geometry-helpers)
+- [Implemented accessibility helpers](#implemented-accessibility-helpers)
 
 These capabilities apply to every `SvgNode` regardless of the underlying element type.
 
@@ -137,3 +138,31 @@ Each call crosses into the browser and potentially triggers synchronous style or
 
   **WARNING**<br>
   `total_length()` will return `None`, and `point_at_length()` will return `Err` if called on an element that does not implement `SVGGeometryElement` (such as `<text>`, `<tspan>`, `<textPath>`, `<use>`, `<image>`, `<g>`, the root `<svg>`).
+
+# Implemented accessibility helpers
+
+`<title>` (accessible name) and `<desc>` (accessible description) are supported generically on `SvgNode`, so they work on any element such as a shape, a group, or the root `<svg>` itself.
+
+| Method | Effect |
+|---|---|
+| `set_title(text)` | Creates (or updates) this element's `<title>` child. The *first* `<title>` child provides the accessible name to assistive technology and is what most browsers render as a native hover tooltip. |
+| `title()` | Returns the text content of the first `<title>` child or `None` if there isn't one. |
+| `remove_title()` | Idemopotent removal of the `<title>` child. |
+| `set_desc(text)` | Creates (or updates) this element's `<desc>` child. This is supplementary detail (distinct from its name) exposed to assistive technology as the element's accessible *description*. Browsers do not render `<desc>` as a tooltip. |
+| `desc()` | Returns the text content of the first `<desc>` child or `None` if there isn't one. |
+| `remove_desc()` | Idempotent removal of the `<desc>` child. |
+
+A newly created `<title>` is always inserted as this element's first child.
+
+A newly created `<desc>` is inserted immediately after an existing `<title>` (or as the first child if there is no `<title>` yet) — so `<title>` always precedes `<desc>` once both are set, regardless of which one you call first.
+
+**Example**:
+
+```rust,no_run
+use svg_dom::{SvgRoot, root::utils::{Point, Size}};
+let svg  = SvgRoot::attach("diagram")?;
+let icon = svg.rect(Point::origin(), Size::new(24.0, 24.0))?;
+icon.set_title("Close dialog")?;
+icon.set_desc("Discards unsaved changes and closes this dialog.")?;
+Ok::<(), svg_dom::Error>(())
+```

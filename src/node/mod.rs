@@ -1,3 +1,4 @@
+mod accessibility;
 mod attrs;
 mod cached;
 mod event;
