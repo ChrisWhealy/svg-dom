@@ -23,7 +23,15 @@ impl SvgRoot {
     ///   and `#` that would otherwise break the data URI parser.
     /// * `top_left` — position of the top-left corner of the image rectangle, in user units.
     /// * `size` — width and height of the image rectangle, in user units.
-    ///   Both must be set; omitting either makes the image invisible.
+    ///
+    ///   This factory takes a [`Size`] and therefore always writes both `width` and `height`; a zero value for either
+    ///   dimension prevents rendering; however, this is a constraint only of this convenience constructor, and not one
+    ///   imposed by SVG 2 itself.
+    ///
+    ///   SVG 2 permits `width`/`height` to be omitted (`auto`) and will then derive these dimensions from the
+    ///   referenced resource's own intrinsic size and aspect ratio. Omission does not necessarily mean zero.
+    ///
+    ///   If you need this behaviour, then use [`SvgNode::set_attr`](crate::SvgNode::set_attr) directly.
     ///
     /// # Aspect-ratio control
     ///
