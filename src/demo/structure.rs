@@ -585,23 +585,38 @@ pub(super) fn demo_tree_nav() -> Result<(), Error> {
 pub(super) fn demo_accessibility() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-accessibility", Size::new(W, H))?;
 
-    // Three icon-button-style circles, each carrying its own <title> child (also the native hover tooltip) and
-    // <desc> child (which is visible only to assistive technology).
+    // Three labelled icon circles — non-interactive graphics, not buttons. Each carries its own <title> child (also
+    // the native hover tooltip) and <desc> child (visible only to assistive technology), but deliberately no
+    // role/tabindex/click or keyboard handling: <title>/<desc> make a graphic describable, they do not make it a
+    // control, so this demo does not dress it up as one (no pointer cursor, no button semantics).
     //
     // Neither is used here as a stand-in for real accessible-name/description computation: aria-label/aria-labelledby
     // and aria-describedby would take precedence over these if present, which this demo deliberately doesn't exercise.
     //
     // The readout below echoes both back via the title()/desc() getters when a pointer enters an icon, so the invisible
-    // <desc> becomes visible for the purposes of this demo.
+    // <desc> becomes visible for the purposes of this demo — this hover-to-reveal is the same passive reveal a mouse
+    // user gets from any native title tooltip, not a stand-in for clicking a control.
     let icons: [(f64, &str, &str, &str, &str); 3] = [
-        (150.0, STEELBLUE, "Save", "Save file", "Writes the current document to disk."),
-        (400.0, ACCENT_AMBER, "Share", "Share", "Opens the share sheet for this item."),
+        (
+            150.0,
+            STEELBLUE,
+            "Save",
+            "Save icon",
+            "Represents the save function: writes the current document to disk.",
+        ),
+        (
+            400.0,
+            ACCENT_AMBER,
+            "Share",
+            "Share icon",
+            "Represents the share function: opens the share sheet for this item.",
+        ),
         (
             650.0,
             CRIMSON,
             "Delete",
-            "Delete item",
-            "Permanently removes the selected item. This cannot be undone.",
+            "Delete icon",
+            "Represents the delete function: permanently removes the selected item. This cannot be undone.",
         ),
     ];
 
@@ -616,7 +631,6 @@ pub(super) fn demo_accessibility() -> Result<(), Error> {
     for (cx, fill, label, title, desc) in icons {
         let icon = svg.circle(Point::new(cx, icon_y), 22.0)?;
         icon.set_fill(fill)?;
-        icon.set_attr("style", "cursor:pointer")?;
         icon.set_title(title)?;
         icon.set_desc(desc)?;
 

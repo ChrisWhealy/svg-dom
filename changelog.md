@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Describe Marker applicability in SVG 1.1 and 2 (`2f14fc4`)
 - Implement the \<desc\> and \<title\> accessibility elements (`02204cd`)
 - Enforce title/desc singularity on pre-existing DOM elements (`440dbdf`)
+- Caution against setting titles and descriptions where they are not needed (`dfdceac`)
 
 ### Changed
 

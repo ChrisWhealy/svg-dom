@@ -35,6 +35,11 @@ impl SvgNode {
     /// diagrams, or a `<g>` representing one logical idea — and leave purely decorative geometry (the individual
     /// paths/shapes that only exist to render a larger meaningful group) unnamed, so it is not individually exposed.
     ///
+    /// A `<title>`/`<desc>` also does not, by itself, make an element interactive: it makes a graphic
+    /// *describable*, not a control. If an icon is meant to be operable (clickable, focusable, activatable from the
+    /// keyboard), that behaviour has to be built independently — a suitable `role`, a `tabindex`, and keyboard event
+    /// handling — none of which these two methods provide.
+    ///
     /// # Scope: a first-direct-child convenience, not a language-aware manager
     ///
     /// This method (and [`title`](Self::title)/[`remove_title`](Self::remove_title)) is a simple, single-value

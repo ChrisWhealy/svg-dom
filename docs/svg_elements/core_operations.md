@@ -144,13 +144,16 @@ Each call crosses into the browser and potentially triggers synchronous style or
 `<title>` and `<desc>` child elements are supported generically on `SvgNode`, so they work on any element such as a shape, a group, or the root `<svg>` itself.
 
 ***IMPORTANT***<br>
-Use these methiods judiciously: not every element needs a name or description.
+Use these methods judiciously: not every element needs a name or description.
 
 Adding a non-empty `<title>` or `<desc>` can cause an otherwise purely decorative or presentational element to be exposed to assistive technology as its own separate object in the accessibility tree.
 That is exactly the point for meaningful icons, controls, diagrams, and diagram components — but naming every individual decorative path or primitive produces a noisy, cumbersome accessibility tree that works against the users it is meant to help.
 
 Because `set_title`/`set_desc` are generic on `SvgNode`, they are callable on almost any element this crate hands back, which makes it easy to over-apply them.
 As a rule of thumb: attach `<title>`/`<desc>` to elements that are meaningful on their own — icons, controls, whole diagrams, or a `<g>` representing one logical idea — and leave purely decorative geometry (the individual paths/shapes that only exist to render a larger meaningful group) unnamed, so it is not individually exposed.
+
+A `<title>`/`<desc>` also does not, by itself, make an element interactive: it makes a graphic *describable*, not a control.
+If an icon is meant to be operable (clickable, focusable, activatable from the keyboard), that behaviour has to be built independently — a suitable `role`, a `tabindex`, and keyboard event handling — none of which these two methods provide.
 
 | Method | Effect |
 |---|---|
