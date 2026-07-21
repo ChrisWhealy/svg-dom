@@ -11,56 +11,104 @@
 <body>
     <div id="app">
         <!-- Menu panel  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+        <!--
+            Categorised the same way as docs/svg_elements/README.md (Basic Shapes / Path / Text / Structural &
+            Reusable Elements / Paint Servers / Clipping & Masking / Filters), plus three demo-only categories that
+            have no direct element-doc counterpart: Core Operations (root/node-level operations not specific to any
+            one element), Animation (AnimationLoop is a crate utility, not an SVG element), Event Handling, and
+            Geometry Read-back. Each category is a <details> disclosure widget — an expandable tree node — rather
+            than one long undifferentiated list; see style.css's .menu-group rules.
+        -->
         <nav id="menu">
             <h1 class="brand">svg-dom</h1>
 
-            <div class="menu-group">Shapes</div>
-            <button type="button" class="menu-item" data-target="panel-rect">rect</button>
-            <button type="button" class="menu-item" data-target="panel-circle">circle</button>
-            <button type="button" class="menu-item" data-target="panel-ellipse">ellipse</button>
-            <button type="button" class="menu-item" data-target="panel-line">line</button>
-            <button type="button" class="menu-item" data-target="panel-poly">polygon / polyline</button>
-            <button type="button" class="menu-item" data-target="panel-path">path</button>
-            <button type="button" class="menu-item" data-target="panel-text">text</button>
-            <button type="button" class="menu-item" data-target="panel-group">group</button>
-            <button type="button" class="menu-item" data-target="panel-anim">AnimationLoop</button>
-            <button type="button" class="menu-item" data-target="panel-marker">defs / marker</button>
-            <button type="button" class="menu-item" data-target="panel-marker-view-box">marker set_view_box</button>
-            <button type="button" class="menu-item" data-target="panel-use">use</button>
-            <button type="button" class="menu-item" data-target="panel-image">image</button>
-            <button type="button" class="menu-item" data-target="panel-symbol">symbol</button>
-            <button type="button" class="menu-item" data-target="panel-view-box">set_view_box</button>
-            <button type="button" class="menu-item" data-target="panel-tree-nav">tree navigation</button>
-            <button type="button" class="menu-item" data-target="panel-accessibility">desc / title</button>
-            <button type="button" class="menu-item" data-target="panel-linear-gradient">linearGradient</button>
-            <button type="button" class="menu-item" data-target="panel-radial-gradient">radialGradient</button>
-            <button type="button" class="menu-item" data-target="panel-clip-path">clipPath</button>
-            <button type="button" class="menu-item" data-target="panel-mask">mask</button>
-            <button type="button" class="menu-item" data-target="panel-pattern">pattern</button>
-            <button type="button" class="menu-item" data-target="panel-filter">filter</button>
-            <button type="button" class="menu-item" data-target="panel-color-matrix">feColorMatrix</button>
-            <button type="button" class="menu-item" data-target="panel-blend">feBlend</button>
-            <button type="button" class="menu-item" data-target="panel-component-transfer">feComponentTransfer</button>
-            <button type="button" class="menu-item" data-target="panel-tspan">tspan</button>
-            <button type="button" class="menu-item" data-target="panel-text-path">textPath</button>
+            <details class="menu-group">
+                <summary>Basic Shapes</summary>
+                <button type="button" class="menu-item" data-target="panel-rect">rect</button>
+                <button type="button" class="menu-item" data-target="panel-circle">circle</button>
+                <button type="button" class="menu-item" data-target="panel-ellipse">ellipse</button>
+                <button type="button" class="menu-item" data-target="panel-line">line</button>
+                <button type="button" class="menu-item" data-target="panel-poly">polygon / polyline</button>
+                <button type="button" class="menu-item" data-target="panel-group">group</button>
+            </details>
 
-            <div class="menu-group">Event handling</div>
-            <button type="button" class="menu-item" data-target="panel-events-click">Click counter</button>
-            <button type="button" class="menu-item" data-target="panel-events-colour">Colour wheel</button>
-            <button type="button" class="menu-item" data-target="panel-events-modifiers">Modifier keys</button>
-            <button type="button" class="menu-item" data-target="panel-events-press">Press state</button>
-            <button type="button" class="menu-item" data-target="panel-events-group">Bubbling</button>
-            <button type="button" class="menu-item" data-target="panel-events-pointer">Pointer lifecycle</button>
-            <button type="button" class="menu-item" data-target="panel-events-keyboard-wheel">Keyboard &amp;
-                wheel</button>
-            <button type="button" class="menu-item" data-target="panel-events-drag-drop-touch">Native
-                drag/touch</button>
-            <button type="button" class="menu-item" data-target="panel-events-passive">Passive Event Listeners</button>
-            <button type="button" class="menu-item" data-target="panel-events-classlist">CSS class toggle</button>
+            <details class="menu-group">
+                <summary>Path</summary>
+                <button type="button" class="menu-item" data-target="panel-path">path</button>
+            </details>
 
-            <div class="menu-group">Geometry</div>
-            <button type="button" class="menu-item" data-target="panel-geometry-path-follow">Path follow</button>
-            <button type="button" class="menu-item" data-target="panel-geometry-bbox">Bounding box</button>
+            <details class="menu-group">
+                <summary>Text</summary>
+                <button type="button" class="menu-item" data-target="panel-text">text</button>
+                <button type="button" class="menu-item" data-target="panel-tspan">tspan</button>
+                <button type="button" class="menu-item" data-target="panel-text-path">textPath</button>
+            </details>
+
+            <details class="menu-group">
+                <summary>Structural &amp; Reusable Elements</summary>
+                <button type="button" class="menu-item" data-target="panel-marker">defs / marker</button>
+                <button type="button" class="menu-item" data-target="panel-marker-view-box">marker
+                    set_view_box</button>
+                <button type="button" class="menu-item" data-target="panel-use">use</button>
+                <button type="button" class="menu-item" data-target="panel-image">image</button>
+                <button type="button" class="menu-item" data-target="panel-symbol">symbol</button>
+            </details>
+
+            <details class="menu-group">
+                <summary>Paint Servers</summary>
+                <button type="button" class="menu-item" data-target="panel-linear-gradient">linearGradient</button>
+                <button type="button" class="menu-item" data-target="panel-radial-gradient">radialGradient</button>
+                <button type="button" class="menu-item" data-target="panel-pattern">pattern</button>
+            </details>
+
+            <details class="menu-group">
+                <summary>Clipping &amp; Masking</summary>
+                <button type="button" class="menu-item" data-target="panel-clip-path">clipPath</button>
+                <button type="button" class="menu-item" data-target="panel-mask">mask</button>
+            </details>
+
+            <details class="menu-group">
+                <summary>Filters</summary>
+                <button type="button" class="menu-item" data-target="panel-filter">filter</button>
+                <button type="button" class="menu-item" data-target="panel-color-matrix">feColorMatrix</button>
+                <button type="button" class="menu-item" data-target="panel-blend">feBlend</button>
+                <button type="button" class="menu-item" data-target="panel-component-transfer">feComponentTransfer</button>
+            </details>
+
+            <details class="menu-group">
+                <summary>Core Operations</summary>
+                <button type="button" class="menu-item" data-target="panel-view-box">set_view_box</button>
+                <button type="button" class="menu-item" data-target="panel-tree-nav">tree navigation</button>
+                <button type="button" class="menu-item" data-target="panel-accessibility">desc / title</button>
+            </details>
+
+            <details class="menu-group">
+                <summary>Animation</summary>
+                <button type="button" class="menu-item" data-target="panel-anim">AnimationLoop</button>
+            </details>
+
+            <details class="menu-group">
+                <summary>Event Handling</summary>
+                <button type="button" class="menu-item" data-target="panel-events-click">Click counter</button>
+                <button type="button" class="menu-item" data-target="panel-events-colour">Colour wheel</button>
+                <button type="button" class="menu-item" data-target="panel-events-modifiers">Modifier keys</button>
+                <button type="button" class="menu-item" data-target="panel-events-press">Press state</button>
+                <button type="button" class="menu-item" data-target="panel-events-group">Bubbling</button>
+                <button type="button" class="menu-item" data-target="panel-events-pointer">Pointer lifecycle</button>
+                <button type="button" class="menu-item" data-target="panel-events-keyboard-wheel">Keyboard &amp;
+                    wheel</button>
+                <button type="button" class="menu-item" data-target="panel-events-drag-drop-touch">Native
+                    drag/touch</button>
+                <button type="button" class="menu-item" data-target="panel-events-passive">Passive Event
+                    Listeners</button>
+                <button type="button" class="menu-item" data-target="panel-events-classlist">CSS class toggle</button>
+            </details>
+
+            <details class="menu-group">
+                <summary>Geometry Read-back</summary>
+                <button type="button" class="menu-item" data-target="panel-geometry-path-follow">Path follow</button>
+                <button type="button" class="menu-item" data-target="panel-geometry-bbox">Bounding box</button>
+            </details>
         </nav>
 
         <!-- Title panel  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -79,6 +127,10 @@
 
         <!-- Demo (stage) panel  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
         <main id="stage">
+            <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = -->
+            <!-- Basic Shapes -->
+            <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = -->
+
             <!-- rect -->
             <section class="section" id="panel-rect">
                 <h2><code>&lt;rect&gt;</code></h2>
@@ -141,6 +193,25 @@
                 </figure>
             </section>
 
+            <!-- group -->
+            <section class="section" id="panel-group">
+                <h2><code>&lt;g&gt;</code> — group</h2>
+                <figure>
+                    <div class="canvas" id="demo-group"></div>
+                    <figcaption>
+                        Three groups share the same local element coordinates.
+                        Groups A and B are repositioned as a unit with <code>transform="translate(...)"</code>;
+                        Group C is both positioned and sheared with a single call to <strong>set_matrix</strong> since
+                        a shear is the one transform none of the named translate/rotate/scale helpers can provide.
+                        The dashed connectors are drawn in SVG root space.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = -->
+            <!-- Path -->
+            <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = -->
+
             <!-- path -->
             <section class="section" id="panel-path">
                 <h2><code>&lt;path&gt;</code></h2>
@@ -153,6 +224,10 @@
                     </figcaption>
                 </figure>
             </section>
+
+            <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = -->
+            <!-- Text -->
+            <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = -->
 
             <!-- text -->
             <section class="section" id="panel-text">
@@ -169,34 +244,40 @@
                 </figure>
             </section>
 
-            <!-- group -->
-            <section class="section" id="panel-group">
-                <h2><code>&lt;g&gt;</code> — group</h2>
+            <!-- tspan -->
+            <section class="section" id="panel-tspan">
+                <h2><code>&lt;tspan&gt;</code> — inline text spans within <code>&lt;text&gt;</code></h2>
                 <figure>
-                    <div class="canvas" id="demo-group"></div>
+                    <div class="canvas" id="demo-tspan"></div>
                     <figcaption>
-                        Three groups share the same local element coordinates.
-                        Groups A and B are repositioned as a unit with <code>transform="translate(...)"</code>;
-                        Group C is both positioned and sheared with a single call to <strong>set_matrix</strong> since
-                        a shear is the one transform none of the named translate/rotate/scale helpers can provide.
-                        The dashed connectors are drawn in SVG root space.
+                        <strong>multi-line</strong> — three <code>&lt;tspan&gt;</code> children each advance
+                        22&thinsp;px
+                        via <strong>tspan_dy</strong>, producing line breaks without absolute <code>y</code>
+                        coordinates ·
+                        <strong>inline mixed styles</strong> — three spans inside one <code>&lt;text&gt;</code>,
+                        each overriding <code>fill</code> and <code>font-size</code> independently
                     </figcaption>
                 </figure>
             </section>
 
-            <!-- AnimationLoop -->
-            <section class="section" id="panel-anim">
-                <h2><code>AnimationLoop</code> — requestAnimationFrame</h2>
+            <!-- textPath -->
+            <section class="section" id="panel-text-path">
+                <h2><code>&lt;textPath&gt;</code> — gluing text to a curve</h2>
                 <figure>
-                    <div class="canvas" id="demo-anim"></div>
+                    <div class="canvas" id="demo-text-path"></div>
                     <figcaption>
-                        Three simultaneous animations driven by a single
-                        <code>AnimationLoop::start</code> closure:
-                        <strong>radius pulse</strong> · <strong>horizontal travel</strong> ·
-                        <strong>hue rotation</strong>
+                        <strong>follows a sine wave</strong> — text runs along a sine curve defined (and hidden)
+                        in <code>&lt;defs&gt;</code> ·
+                        <strong>startOffset</strong> — two <code>&lt;textPath&gt;</code> elements share one
+                        visible dashed arc, starting at different distances along it via
+                        <strong>set_start_offset</strong>
                     </figcaption>
                 </figure>
             </section>
+
+            <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = -->
+            <!-- Structural & Reusable Elements -->
+            <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = -->
 
             <!-- defs / marker -->
             <section class="section" id="panel-marker">
@@ -270,87 +351,9 @@
                 </figure>
             </section>
 
-            <!-- SvgRoot::set_view_box -->
-            <section class="section" id="panel-view-box">
-                <h2><code>SvgRoot::set_view_box</code> — the root's internal coordinate system</h2>
-                <figure>
-                    <div class="canvas-row">
-                        <div class="canvas" id="demo-view-box-1"></div>
-                        <div class="canvas" id="demo-view-box-2"></div>
-                        <div class="canvas" id="demo-view-box-3"></div>
-                    </div>
-                    <figcaption>
-                        The identical scene shows four coloured quadrants and a white landmark dot fixed inside the
-                        bottom-right one, all drawn with exactly the same coordinates: 200px &times; 200px canvases;
-                        only the <strong>set_view_box</strong> call differs.<br><br>
-                        <strong>Left:</strong> no <code>viewBox</code>, so 1 drawing unit = 1 pixel making everything
-                        visible.<br>
-                        <strong>Middle:</strong> <code>viewBox(0, 0, 100, 100)</code> magnifies the top-left
-                        quadrant by
-                        a factor of 2. This pushes the landmark dot outside the visible region and is therefore
-                        clipped.<br>
-                        <strong>Right:</strong> <code>viewBox(50, 50, 150, 150)</code> is both panned and slightly
-                        magnified, cropping the outer ring of the other three quadrants while bringing the
-                        bottom-right
-                        one — and the landmark dot — fully back into view.
-                    </figcaption>
-                </figure>
-            </section>
-
-            <!-- tree navigation -->
-            <section class="section" id="panel-tree-nav">
-                <h2>Tree navigation — <code>first_child</code> / <code>next_sibling</code> / <code>query_selector</code>
-                </h2>
-                <figure>
-                    <div class="canvas" id="demo-tree-nav"></div>
-                    <figcaption>
-                        Seven bars built inside one <code>&lt;g&gt;</code> via a single batch, keeping only the group's
-                        own handle — no handle to any individual bar is kept.
-                        Click <strong>Walk →</strong> repeatedly: each click is one <strong>first_child</strong> /
-                        <strong>next_sibling</strong> call, colouring the newly visited bar and reporting which method
-                        it used.
-                        Click <strong>Find target</strong> to run
-                        <strong>query_selector("[data-role='target']")</strong> and outline the one bar tagged with
-                        that attribute in gold.
-                        <strong>Reset</strong> walks the bars again to restore them, and rewinds the walk to the start.
-                    </figcaption>
-                </figure>
-            </section>
-
-            <!-- accessibility: desc / title -->
-            <section class="section" id="panel-accessibility">
-                <h2><code>&lt;title&gt;</code> / <code>&lt;desc&gt;</code> child elements</h2>
-                <figure>
-                    <div class="canvas" id="demo-accessibility"></div>
-                    <figcaption>
-                        Three static, non-interactive icons have each been given a <code>&lt;title&gt;</code> child
-                        using <code>set_title()</code> and a <code>&lt;desc&gt;</code> child using
-                        <code>set_desc()</code>.<br>
-                        Hovering over an icon shows the browser's native tooltip, driven by its
-                        <code>&lt;title&gt;</code>
-                        - no extra code is needed for that part.<br>
-                        <code>&lt;desc&gt;</code> has no visible tooltip in any browser; this value is made available to
-                        someone using assistive technology such as a screen reader. The readout below echoes both back
-                        via the <strong>title()</strong> / <strong>desc()</strong> getters so the otherwise invisible
-                        description is visible for this demo.<br>
-                        <strong>Note:</strong> a <code>&lt;title&gt;</code>/<code>&lt;desc&gt;</code> child feeds into,
-                        but does not unconditionally determine, the element's computed accessible name/description —
-                        When present, <code>aria-label</code>, <code>aria-labelledby</code> and
-                        <code>aria-describedby</code> take
-                        precedence.<br>
-                        <strong>Use judiciously:</strong> these icons are meaningful on their own, which is why each
-                        one earns a name here. Attaching a <code>&lt;title&gt;</code>/<code>&lt;desc&gt;</code> to
-                        every decorative path or primitive instead would just make the accessibility tree noisy and
-                        harder to navigate.<br>
-                        <strong>Not a button:</strong> <code>&lt;title&gt;</code>/<code>&lt;desc&gt;</code> make a
-                        graphic describable, not interactive. On purpose, these icons have no pointer cursor, no
-                        role, no keyboard focus, and no keyboard activation — a genuinely clickable icon would need
-                        all of that added explicitly (e.g. a <code>role="button"</code> attribute, a
-                        <code>tabindex</code>, and keyboard event handling), which this demo deliberately does not
-                        do.
-                    </figcaption>
-                </figure>
-            </section>
+            <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = -->
+            <!-- Paint Servers -->
+            <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = -->
 
             <!-- linearGradient -->
             <section class="section" id="panel-linear-gradient">
@@ -380,6 +383,26 @@
                     </figcaption>
                 </figure>
             </section>
+
+            <!-- pattern -->
+            <section class="section" id="panel-pattern">
+                <h2><code>&lt;pattern&gt;</code> — tiled fill patterns</h2>
+                <figure>
+                    <div class="canvas" id="demo-pattern"></div>
+                    <figcaption>
+                        Four pattern tiles defined in <code>&lt;defs&gt;</code> with
+                        <strong>patternUnits="userSpaceOnUse"</strong> and applied via
+                        <strong>set_fill_pattern</strong>:
+                        <strong>dot grid</strong> · <strong>horizontal stripes</strong> ·
+                        <strong>diagonal stripes</strong> (<code>patternTransform="rotate(45)"</code>) ·
+                        <strong>checkerboard</strong>
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = -->
+            <!-- Clipping & Masking -->
+            <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = -->
 
             <!-- clipPath -->
             <section class="section" id="panel-clip-path">
@@ -411,21 +434,9 @@
                 </figure>
             </section>
 
-            <!-- pattern -->
-            <section class="section" id="panel-pattern">
-                <h2><code>&lt;pattern&gt;</code> — tiled fill patterns</h2>
-                <figure>
-                    <div class="canvas" id="demo-pattern"></div>
-                    <figcaption>
-                        Four pattern tiles defined in <code>&lt;defs&gt;</code> with
-                        <strong>patternUnits="userSpaceOnUse"</strong> and applied via
-                        <strong>set_fill_pattern</strong>:
-                        <strong>dot grid</strong> · <strong>horizontal stripes</strong> ·
-                        <strong>diagonal stripes</strong> (<code>patternTransform="rotate(45)"</code>) ·
-                        <strong>checkerboard</strong>
-                    </figcaption>
-                </figure>
-            </section>
+            <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = -->
+            <!-- Filters -->
+            <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = -->
 
             <!-- filter -->
             <section class="section" id="panel-filter">
@@ -523,36 +534,113 @@
                 </figure>
             </section>
 
-            <!-- tspan -->
-            <section class="section" id="panel-tspan">
-                <h2><code>&lt;tspan&gt;</code> — inline text spans within <code>&lt;text&gt;</code></h2>
+            <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = -->
+            <!-- Core Operations -->
+            <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = -->
+
+            <!-- SvgRoot::set_view_box -->
+            <section class="section" id="panel-view-box">
+                <h2><code>SvgRoot::set_view_box</code> — the root's internal coordinate system</h2>
                 <figure>
-                    <div class="canvas" id="demo-tspan"></div>
+                    <div class="canvas-row">
+                        <div class="canvas" id="demo-view-box-1"></div>
+                        <div class="canvas" id="demo-view-box-2"></div>
+                        <div class="canvas" id="demo-view-box-3"></div>
+                    </div>
                     <figcaption>
-                        <strong>multi-line</strong> — three <code>&lt;tspan&gt;</code> children each advance
-                        22&thinsp;px
-                        via <strong>tspan_dy</strong>, producing line breaks without absolute <code>y</code>
-                        coordinates ·
-                        <strong>inline mixed styles</strong> — three spans inside one <code>&lt;text&gt;</code>,
-                        each overriding <code>fill</code> and <code>font-size</code> independently
+                        The identical scene shows four coloured quadrants and a white landmark dot fixed inside the
+                        bottom-right one, all drawn with exactly the same coordinates: 200px &times; 200px canvases;
+                        only the <strong>set_view_box</strong> call differs.<br><br>
+                        <strong>Left:</strong> no <code>viewBox</code>, so 1 drawing unit = 1 pixel making everything
+                        visible.<br>
+                        <strong>Middle:</strong> <code>viewBox(0, 0, 100, 100)</code> magnifies the top-left
+                        quadrant by
+                        a factor of 2. This pushes the landmark dot outside the visible region and is therefore
+                        clipped.<br>
+                        <strong>Right:</strong> <code>viewBox(50, 50, 150, 150)</code> is both panned and slightly
+                        magnified, cropping the outer ring of the other three quadrants while bringing the
+                        bottom-right
+                        one — and the landmark dot — fully back into view.
                     </figcaption>
                 </figure>
             </section>
 
-            <!-- textPath -->
-            <section class="section" id="panel-text-path">
-                <h2><code>&lt;textPath&gt;</code> — gluing text to a curve</h2>
+            <!-- tree navigation -->
+            <section class="section" id="panel-tree-nav">
+                <h2>Tree navigation — <code>first_child</code> / <code>next_sibling</code> / <code>query_selector</code>
+                </h2>
                 <figure>
-                    <div class="canvas" id="demo-text-path"></div>
+                    <div class="canvas" id="demo-tree-nav"></div>
                     <figcaption>
-                        <strong>follows a sine wave</strong> — text runs along a sine curve defined (and hidden)
-                        in <code>&lt;defs&gt;</code> ·
-                        <strong>startOffset</strong> — two <code>&lt;textPath&gt;</code> elements share one
-                        visible dashed arc, starting at different distances along it via
-                        <strong>set_start_offset</strong>
+                        Seven bars built inside one <code>&lt;g&gt;</code> via a single batch, keeping only the group's
+                        own handle — no handle to any individual bar is kept.
+                        Click <strong>Walk →</strong> repeatedly: each click is one <strong>first_child</strong> /
+                        <strong>next_sibling</strong> call, colouring the newly visited bar and reporting which method
+                        it used.
+                        Click <strong>Find target</strong> to run
+                        <strong>query_selector("[data-role='target']")</strong> and outline the one bar tagged with
+                        that attribute in gold.
+                        <strong>Reset</strong> walks the bars again to restore them, and rewinds the walk to the start.
                     </figcaption>
                 </figure>
             </section>
+
+            <!-- accessibility: desc / title -->
+            <section class="section" id="panel-accessibility">
+                <h2><code>&lt;title&gt;</code> / <code>&lt;desc&gt;</code> child elements</h2>
+                <figure>
+                    <div class="canvas" id="demo-accessibility"></div>
+                    <figcaption>
+                        Three static, non-interactive icons have each been given a <code>&lt;title&gt;</code> child
+                        using <code>set_title()</code> and a <code>&lt;desc&gt;</code> child using
+                        <code>set_desc()</code>.<br>
+                        Hovering over an icon shows the browser's native tooltip, driven by its
+                        <code>&lt;title&gt;</code>
+                        - no extra code is needed for that part.<br>
+                        <code>&lt;desc&gt;</code> has no visible tooltip in any browser; this value is made available to
+                        someone using assistive technology such as a screen reader. The readout below echoes both back
+                        via the <strong>title()</strong> / <strong>desc()</strong> getters so the otherwise invisible
+                        description is visible for this demo.<br>
+                        <strong>Note:</strong> a <code>&lt;title&gt;</code>/<code>&lt;desc&gt;</code> child feeds into,
+                        but does not unconditionally determine, the element's computed accessible name/description —
+                        When present, <code>aria-label</code>, <code>aria-labelledby</code> and
+                        <code>aria-describedby</code> take
+                        precedence.<br>
+                        <strong>Use judiciously:</strong> these icons are meaningful on their own, which is why each
+                        one earns a name here. Attaching a <code>&lt;title&gt;</code>/<code>&lt;desc&gt;</code> to
+                        every decorative path or primitive instead would just make the accessibility tree noisy and
+                        harder to navigate.<br>
+                        <strong>Not a button:</strong> <code>&lt;title&gt;</code>/<code>&lt;desc&gt;</code> make a
+                        graphic describable, not interactive. On purpose, these icons have no pointer cursor, no
+                        role, no keyboard focus, and no keyboard activation — a genuinely clickable icon would need
+                        all of that added explicitly (e.g. a <code>role="button"</code> attribute, a
+                        <code>tabindex</code>, and keyboard event handling), which this demo deliberately does not
+                        do.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = -->
+            <!-- Animation -->
+            <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = -->
+
+            <!-- AnimationLoop -->
+            <section class="section" id="panel-anim">
+                <h2><code>AnimationLoop</code> — requestAnimationFrame</h2>
+                <figure>
+                    <div class="canvas" id="demo-anim"></div>
+                    <figcaption>
+                        Three simultaneous animations driven by a single
+                        <code>AnimationLoop::start</code> closure:
+                        <strong>radius pulse</strong> · <strong>horizontal travel</strong> ·
+                        <strong>hue rotation</strong>
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = -->
+            <!-- Event Handling -->
+            <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = -->
 
             <!-- click -->
             <section class="section" id="panel-events-click">
@@ -618,20 +706,6 @@
                         Each bordered group holds two child shapes and keeps its own fire counter.
                         Both groups use the wrapped <strong>pointerenter</strong> event, so each counter rises only once
                         per boundary crossing; moving between children inside the group does not add extra ticks.
-                    </figcaption>
-                </figure>
-            </section>
-
-            <!-- drag & drop -->
-            <section class="section" id="panel-events-drag">
-                <h2><code>mousedown</code> → <code>mousemove</code> → <code>mouseup</code> — drag &amp; drop</h2>
-                <figure>
-                    <div class="canvas" id="demo-events-drag"></div>
-                    <figcaption>
-                        Press the card and drag it: <strong>mousedown</strong> records the grab offset,
-                        <strong>mousemove</strong> repositions the card (clamped so it stays inside the dashed box),
-                        and <strong>mouseup</strong> drops it. A single transparent surface captures the whole gesture
-                        and hit-tests the card itself, so the pointer can move freely without outrunning it.
                     </figcaption>
                 </figure>
             </section>
@@ -705,6 +779,10 @@
                     </figcaption>
                 </figure>
             </section>
+
+            <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = -->
+            <!-- Geometry Read-back -->
+            <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = -->
 
             <!-- geometry: path follow -->
             <section class="section" id="panel-geometry-path-follow">

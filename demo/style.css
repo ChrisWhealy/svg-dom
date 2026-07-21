@@ -38,12 +38,47 @@ body {
     margin-bottom: 1rem;
 }
 
+/* Each category is a native <details> disclosure widget so the menu reads as an expandable tree instead of one long
+   flat list — see demo/index.html's nav comment for the category list. All groups start collapsed; expanding one is
+   a per-user choice, not required to reach any demo (the first item of the first group is still selected on load —
+   see the script at the bottom of index.html — even though its group starts closed). */
 .menu-group {
+    margin: 1.25rem 0 0.4rem;
+}
+
+.menu-group > summary {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
     color: #6e7681;
     font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    margin: 1.25rem 0 0.4rem;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+}
+
+.menu-group > summary::-webkit-details-marker {
+    display: none;
+}
+
+/* Custom disclosure triangle (the default marker is hidden above) so it can share the group label's muted colour
+   and rotate on open/close instead of switching between the browser's own triangle/pointer glyphs. */
+.menu-group > summary::before {
+    content: "▸";
+    display: inline-block;
+    font-size: 0.65rem;
+    line-height: 1;
+    transition: transform 0.15s ease;
+}
+
+.menu-group[open] > summary::before {
+    transform: rotate(90deg);
+}
+
+.menu-group > summary:hover {
+    color: #8b949e;
 }
 
 .menu-item {

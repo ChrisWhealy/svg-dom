@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Unreleased]
 
+## [0.1.66] - 2026-07-21
+
+### Added
+
+### Changed
+
+- Refactor wasm-pack filter tests (`49729b6`)
+
+### Fixed
+
 # [Released]
 
 ## [0.1.65] - 2026-07-21
@@ -25,7 +35,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Correct docs; alpha fn can create pixels outside original opaque bounding box (`fce1c99`)
 - Reject empty discrete transfer function (`3a3c90e`)
 - Correct Channel::Alpha rustdoc safety advice (`9917cfd`)
-
 
 ## [0.1.64] - 2026-07-21
 
