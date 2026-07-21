@@ -19,15 +19,15 @@ pub enum Channel {
     ///
     /// This could happen for example with:
     ///
-    /// * [`TransferFunction::Linear`](super::TransferFunction::Linear) with a non-zero `intercept`
-    /// * [`TransferFunction::Gamma`](super::TransferFunction::Gamma) with a non-zero `offset`
+    /// * [`TransferFunction::Linear`](super::TransferFunction::Linear) with a positive `intercept`
+    /// * [`TransferFunction::Gamma`](super::TransferFunction::Gamma) with a positive `offset`
     /// * [`TransferFunction::Table`](super::TransferFunction::Table) or
     ///   [`TransferFunction::Discrete`](super::TransferFunction::Discrete) whose first entry is above `0.0`
     ///
     /// When `in` is `SourceGraphic` (the default for the first primitive), the primitive subregion is the whole filter
     /// region, so this shows up as a rectangular halo or background fill across that entire region.
     ///
-    /// Do not give this channel a function with `f(0) == 0` unless a background fill across the whole region is the
+    /// Do not give this channel a function with `f(0) > 0` unless a background fill across the whole region is the
     /// intended effect.
     Alpha,
 }
