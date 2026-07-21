@@ -6,7 +6,7 @@
 //! Accessibility CDP domain, which `wasm-bindgen-test`'s WebDriver-run browser tests have no access to.
 //!
 //! This drives a real Chrome instance via CDP (through the `headless_chrome` crate) and queries
-//! `Accessibility.getPartialAXTree` for five scenarios built by the sibling `a11y-fixture` wasm crate — one
+//! `Accessibility.getPartialAXTree` for six scenarios built by the sibling `a11y-fixture` wasm crate — one
 //! independently reported `#[test]` per scenario, confirming:
 //!
 //! 1. A lone `<title>` supplies the accessible name;
@@ -20,13 +20,13 @@
 //!    `aria-label` in accessible-name computation, not just parity with it, and the API documentation calls this out
 //!    explicitly, so it earns its own scenario rather than being folded into scenario 3.
 //!
-//! # Why five `#[test]` functions share one browser session
+//! # Why six `#[test]` functions share one browser session
 //!
 //! Building the fixture and launching Chrome are expensive actions requiring wasm-pack compile and browser startup, so
-//! all five scenarios share a single fixture build, static server, and Chrome tab via a lazily-initialised `OnceLock`
-//! rather than each test repeating this cost individidually.
+//! all six scenarios share a single fixture build, static server, and Chrome tab via a lazily-initialised `OnceLock`
+//! rather than each test repeating this cost individually.
 //!
-//! Splitting into five functions (rather than one function with five sequential `assert_eq!` calls) matters for two
+//! Splitting into six functions (rather than one function with six sequential `assert_eq!` calls) matters for two
 //! reasons: `cargo test` reports each scenario's pass/fail independently instead of collapsing them into a single
 //! result, and an `assert_eq!` failure in one scenario no longer aborts the others before they get a chance to run.
 //!
@@ -35,7 +35,7 @@
 //! internally), which makes them shareable, but `Tab::find_element`'s `DOM.getDocument`-then-`DOM.querySelector`
 //! sequence is not atomic — two threads racing it against the same tab can interleave and hand one of them a
 //! `nodeId` from the other's `getDocument` call, which then fails to resolve. A `QUERY_LOCK` mutex below serialises
-//! every CDP round trip so the five tests still run concurrently as far as the test harness is concerned, but their
+//! every CDP round trip so the six tests still run concurrently as far as the test harness is concerned, but their
 //! actual browser interactions never overlap.
 //!
 //! Lives in its own on-demand workspace member (excluded from the root package's `default-members`, same as
