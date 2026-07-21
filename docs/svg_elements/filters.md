@@ -28,7 +28,7 @@ Remove the filter with `SvgNode::remove_filter()`.
 | `merge(inputs)` | `<feMerge>` (with `<feMergeNode>` children) | Stacks each `&str` in `inputs` as one `<feMergeNode in="...">` child, in order (later entries painted on top). The standard way to layer a shadow underneath the original graphic. |
 | `flood(color, opacity)` | `<feFlood>` | Fills the filter region with a solid `flood-color`/`flood-opacity`. Combined with `composite`, gives a shadow an independent colour rather than a blurred copy of the source graphic's own fill. |
 | `composite(in2, operator)` | `<feComposite>` | Combines this primitive's `in` input with `in2` using a [Porter-Duff](https://en.wikipedia.org/wiki/Alpha_compositing) `CompositeOperator` (`Over`/`In`/`Out`/`Atop`/`Xor`/`Lighter`/`Arithmetic`). `operator: In` against a blurred alpha mask is the standard way to tint a shadow. **`Arithmetic` needs extra setup — see the warning below before using it.** |
-| `blend(in2, mode)` | `<feBlend>` | Mixes this primitive's `in` input with `in2` using a `BlendMode` — the same sixteen keywords as CSS `mix-blend-mode` (`Normal`, `Multiply`, `Screen`, `Darken`, `Lighten`, `Overlay`, `ColorDodge`, `ColorBurn`, `HardLight`, `SoftLight`, `Difference`, `Exclusion`, `Hue`, `Saturation`, `Color`, `Luminosity`). Unlike `composite`, which combines opaque inputs geometrically, `blend` combines their *colours* photometrically. **IMPORTANT**: Tinting with a flood colour needs a final `composite(In)` step to preserve transparency — see the warning below before using it. |
+| `blend(in2, mode)` | `<feBlend>` | Mixes this primitive's `in` input with `in2` using a `BlendMode` — the sixteen standard `<blend-mode>` keywords shared by CSS compositing and SVG (`Normal`, `Multiply`, `Screen`, `Darken`, `Lighten`, `Overlay`, `ColorDodge`, `ColorBurn`, `HardLight`, `SoftLight`, `Difference`, `Exclusion`, `Hue`, `Saturation`, `Color`, `Luminosity`) — not the full CSS `mix-blend-mode` value set, which also has two CSS-only modes (`plus-lighter`/`plus-darker`) this enum does not offer. Unlike `composite`, which combines opaque inputs geometrically, `blend` combines their *colours* photometrically, by default in `linearRGB` rather than the `sRGB` space CSS and most image editors use — see the warning below. **IMPORTANT**: Tinting with a flood colour needs a final `composite(In)` step to preserve transparency — see the warning below before using it. |
 | `drop_shadow(std_deviation, dx, dy, color, opacity)` | `<feDropShadow>` | Implements the browser-native shorthand for the entire `gaussian_blur` → `flood` → `composite` → `offset` → `merge` chain described below. `std_deviation` and `dx`/`dy` are interpreted in the same `primitiveUnits`-dependent way as their `gaussian_blur`/`offset` counterparts. Its result already has the original graphic merged on top: a `<filter>` containing only `drop_shadow` is a complete effect, so there is no need to call `merge` after it. |
 | `color_matrix(matrix_type)` | `<feColorMatrix>` | Transforms colours via a `ColorMatrixType`: `Saturate(amount)`, `HueRotate(degrees)`, `LuminanceToAlpha`, or a full custom `Matrix([f64; 20])` (the fixed-size array rules out a wrong element count at compile time). Independent of the shadow primitives above — greyscale, saturation, and hue effects, not compositing. |
 
@@ -84,6 +84,16 @@ Blending that flood straight against `SourceGraphic` only changes the *colour*, 
 
 The final `composite(in2: "SourceGraphic", operator: In)` step above clips the blended result back to the source's own alpha coverage, discarding the leaked flood outside it.
 Skipping it is only safe when the source graphic is known to be fully opaque across its entire filter region — a plain rectangle, for instance, which is why this mistake is easy to miss during development.
+
+***⚠️ `BlendMode` is not quite CSS `mix-blend-mode`***
+
+Two qualifications on the "same as CSS" comparison above:
+
+`BlendMode` covers the sixteen *standard* `<blend-mode>` keywords shared by CSS compositing and SVG `feBlend` — `mix-blend-mode` itself also accepts two CSS-only, property-specific modes (`plus-lighter`/`plus-darker`) that have no `feBlend` equivalent and so are not offered here.
+
+SVG filter primitives operate in the `linearRGB` colour space by default, unlike CSS `mix-blend-mode` and most image editors, which operate in `sRGB`.
+The same `BlendMode` can therefore produce a visibly different result here than the "same" mode elsewhere, even given identical input colours.
+Set `color-interpolation-filters="sRGB"` on the `<filter>` element (or on an individual primitive's own `SvgNode` to override it just for that primitive) when an sRGB-space result is required to match CSS or an image editor.
 
 See [`../gaps.md`](../gaps.md) for the primitives (`feComponentTransfer`, `feTile`, and others) still to be added.
 

@@ -481,8 +481,12 @@
                             <li><strong>Screen</strong> (always lightens, or leaves unchanged)</li>
                             <li><strong>Difference</strong> (inverts wherever the tint and the source differ)</li>
                         </ul><br>
-                        <code>BlendMode</code> has twelve further keywords not shown here — the same set as CSS
-                        <code>mix-blend-mode</code>.<br>
+                        <code>BlendMode</code> has twelve further keywords not shown here — the sixteen standard
+                        <code>&lt;blend-mode&gt;</code> keywords shared with CSS compositing, not the full CSS
+                        <code>mix-blend-mode</code> value set (which also has two CSS-only modes this crate does not
+                        offer). SVG filters also blend in <code>linearRGB</code> by default, not the
+                        <code>sRGB</code> space CSS uses, so the same mode can look different here than in CSS —
+                        set <code>color-interpolation-filters="sRGB"</code> to match.<br>
                         <strong>Why a circle, not a rectangle:</strong> <code>flood</code> paints its colour
                         opaquely across the entire filter region, and <code>blend</code> alone only changes colour,
                         not alpha — so without that final <code>composite(In)</code> clipping the result back to

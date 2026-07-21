@@ -67,8 +67,18 @@ impl CompositeOperator {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// The CSS/SVG blend mode for [`SvgFilter::blend`] controls how the `in` and `in2` inputs are blended — the same
-/// sixteen keywords (`normal` plus fifteen separable/non-separable modes) as the CSS `mix-blend-mode` property.
+/// The blend mode for [`SvgFilter::blend`], controlling how the `in` and `in2` inputs blend.
+///
+/// Selects one of the sixteen standard `<blend-mode>` keywords (`normal` plus fifteen separable/non-separable
+/// modes) shared by CSS compositing and SVG `feBlend` — not the full CSS `mix-blend-mode` value set, which also
+/// accepts two CSS-only, property-specific modes (`plus-lighter`/`plus-darker`) this enum does not offer.
+///
+/// ***IMPORTANT*** SVG filter primitives operate in the `linearRGB` colour space by default, unlike CSS
+/// `mix-blend-mode` and most image editors, which operate in `sRGB`. The same [`BlendMode`] can therefore produce a
+/// visibly different result here than the "same" mode elsewhere, even with identical input colours. Set
+/// `color-interpolation-filters="sRGB"` on the `<filter>` element (via [`SvgFilter::set_attr`]) — or on an
+/// individual primitive's own [`SvgNode`] via [`set_attr`](crate::SvgNode::set_attr) to override it for just that
+/// one primitive — when an sRGB-space result is required to match CSS or an image editor.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BlendMode {
     /// `in` painted over `in2` with no blending (SVG default) — identical to [`CompositeOperator::Over`].
@@ -231,8 +241,9 @@ impl FilterUnits {
 /// rotation, or an arbitrary linear colour transform via [`ColorMatrixType`].
 ///
 /// [`blend`](Self::blend) is also independent of the shadow primitives: unlike [`composite`](Self::composite)'s
-/// geometric (Porter-Duff) combination, it mixes two inputs' *colours* using a [`BlendMode`] — the same effect as
-/// CSS `mix-blend-mode`.
+/// geometric (Porter-Duff) combination, it mixes two inputs' *colours* using a [`BlendMode`] — the standard
+/// `<blend-mode>` keywords CSS `mix-blend-mode` also uses (see [`BlendMode`]'s own doc comment for two ways this
+/// is not quite the same thing as CSS `mix-blend-mode` itself).
 ///
 /// The SVG filter specification defines around fifteen effect primitives in total (`feTile`, `feTurbulence`, and
 /// others), each with its own attribute grammar. See `docs/gaps.md` for the primitives still to be added.
@@ -740,7 +751,8 @@ impl SvgFilter {
     ///
     /// Unlike [`composite`](Self::composite), which combines two inputs geometrically (Porter-Duff, based on where each
     /// input is opaque), `blend` combines them photometrically — how their *colours* mix where both are visible, using
-    /// the same blend-mode maths as the CSS `mix-blend-mode` property.
+    /// the standard blend-mode maths CSS `mix-blend-mode` also uses. See [`BlendMode`]'s own doc comment for two ways
+    /// this is not quite identical to CSS `mix-blend-mode` itself (a smaller keyword set, and `linearRGB` by default).
     ///
     /// `in2` is written directly.
     ///
