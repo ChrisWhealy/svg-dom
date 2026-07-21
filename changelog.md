@@ -19,6 +19,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 
+- Doc only: correct description of negative numOctave values (`6efb89e`)
+
 # [Released]
 
 ## [0.1.65] - 2026-07-21
