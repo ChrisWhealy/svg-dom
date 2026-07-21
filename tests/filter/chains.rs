@@ -72,12 +72,17 @@ fn should_build_tinted_drop_shadow_filter_chain() -> Result<(), String> {
 // turbulence + displacement_map — organic-edge distortion chain
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-/// `turbulence` composes with `displacement_map` into a working noise-distortion filter: generate fractal noise,
-/// name it via `result`, then warp `SourceGraphic` using that noise as the displacement field — the standard
+/// `turbulence` composes with `displacement_map` into a well-formed noise-displacement filter: generate fractal
+/// noise, name it via `result`, then warp `SourceGraphic` using that noise as the displacement field — the standard
 /// `feTurbulence` + `feDisplacementMap` pairing, and the example from `SvgFilter::displacement_map`'s doc comment.
 /// Uses `Channel::Red`/`Channel::Green` (rather than `Alpha`/`Alpha`) so the displacement is free to point in any
 /// direction: passing the same channel for both selectors would compute `dx`/`dy` from the identical value at
 /// every pixel, confining every displacement vector to the `y = x` diagonal.
+///
+/// This only proves the DOM is assembled correctly (the right elements, wired together with the right
+/// attributes) — it says nothing about the rendered pixels. `wasm-bindgen-test`'s WebDriver-run tests have no
+/// access to rendered output; see `displacement_map`'s own doc comment for the spec's interoperability caveat
+/// around what those pixels actually look like.
 #[wasm_bindgen_test]
 fn should_build_turbulence_displacement_chain() -> Result<(), String> {
     let svg = make_svg("filter-turbulence-displacement-chain");

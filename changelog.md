@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 
 - Implement filter effects feTurbulence and feDisplacementMap (`27bbc33`)
+- Doc only: add description fractional seed truncation behaviour (`9805315`)
 
 ### Changed
 

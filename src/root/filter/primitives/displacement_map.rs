@@ -40,6 +40,12 @@ impl SvgFilter {
     /// `SourceGraphic`, otherwise use the returned [`SvgNode`]'s [`set_attr`](crate::SvgNode::set_attr) to set `in`
     /// explicitly, the same as every other primitive here.
     ///
+    /// ***⚠️ Cross-browser rendering is not guaranteed to match exactly*** — the Filter Effects specification
+    /// itself notes interoperability differences between implementations of `feDisplacementMap`, including
+    /// disagreement on exactly how the displaced sample is interpolated. This crate's own tests only assert on DOM
+    /// structure and attribute values — none of them render this primitive and inspect pixels — so a filter that
+    /// passes those tests is verified to be *well-formed*, not verified to *look* identical in every browser.
+    ///
     /// # Errors
     ///
     /// Returns [`Error::Dom`] if the browser refuses to create or append the `<feDisplacementMap>` element.
