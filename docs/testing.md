@@ -1,6 +1,6 @@
 # Testing
 
-The test suite has two tiers that use different runners.
+The test suite has three tiers that use different runners.
 
 ## Unit tests — `cargo test`
 
@@ -93,3 +93,41 @@ They verify that those managed wrappers fire synchronously too, so demo or appli
 
 All test functions return `Result<(), String>`.
 If a test fails, `wasm-bindgen-test` displays the `String` message directly without a stack trace, making failures easier to read in the terminal.
+
+## Accessibility-tree integration test — `cargo test -p accessibility-tree-test`
+
+Everything above proves DOM structure: the right element was created, updated, or removed in the right place.
+None of it can see the actual, browser-*computed* accessibility tree — the accessible name/description a screen reader would receive after ARIA precedence, role computation, and pruning are applied — because that lives behind the browser's Accessibility CDP domain, which `wasm-bindgen-test`'s WebDriver-run tests have no access to.
+
+This single test drives a real Chrome instance directly over the Chrome DevTools Protocol (via the [`headless_chrome`](https://docs.rs/headless_chrome) crate) and queries `Accessibility.getPartialAXTree` to confirm:
+
+- a lone `<title>` supplies the accessible name;
+- a `<desc>` supplies the accessible description;
+- `aria-label` overrides a `<title>` in name computation;
+- `aria-describedby` overrides a `<desc>` in description computation;
+- a rejected blank `set_title` leaves the element with no accessible name at all — proving the rejection actually prevents the "apparently nameless object exposed to assistive technology" case SVG 2 warns about, not just the DOM mutation.
+
+### Why this lives outside the main crate
+
+The library's own `cargo test`/`cargo nextest run` stays fast and dependency-light on purpose.
+This test needs a real, local Chrome/Chromium binary and pulls in `headless_chrome` (and its own dependency tree), so — like `demo-server` — it lives in its own workspace member excluded from the root package's `default-members`.
+Plain `cargo build`/`cargo test` at the project root never touch it.
+
+Two supporting crates make this possible:
+
+| Crate | Role |
+|---|---|
+| `a11y-fixture` | A tiny `wasm-bindgen` cdylib that builds five real `svg-dom` elements (via `set_title`/`set_desc`/`set_attr`) covering the five scenarios above, and signals readiness by adding a `#fixture-ready` element |
+| `accessibility-tree-test` | The `#[test]` itself: builds the fixture with `wasm-pack build --target web`, serves it locally over `tiny_http`, launches Chrome via `headless_chrome`, and asserts against the `Accessibility.getPartialAXTree` result for each scenario element |
+
+### Prerequisites
+
+Same `wasm-pack` install as the browser tests, plus a local Chrome or Chromium install (`headless_chrome` auto-discovers it the same way Puppeteer/Playwright do).
+
+### Running
+
+```sh
+cargo test -p accessibility-tree-test
+```
+
+This rebuilds the `a11y-fixture` wasm package, serves it on an OS-assigned local port, and drives a headless Chrome instance against it — no manual server or browser setup needed.
