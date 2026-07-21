@@ -28,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Doc only: correct description of negative numOctave values (`6efb89e`)
 - Doc only: correct description of turbulence (`319d805`)
 - Doc only: correct description of zero-axis behaviour in morphology_xy() (`2df8442`)
+- Doc only: correct description of negative radius behaviour (`623175e`)
 
 # [Released]
 

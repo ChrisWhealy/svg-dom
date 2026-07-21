@@ -86,9 +86,9 @@ mod region;
 /// route to hand-drawn/organic textures; see [`displacement_map`](Self::displacement_map)'s own doc comment for a
 /// worked example.
 ///
-/// [`morphology`](Self::morphology)/[`morphology_xy`](Self::morphology_xy) grow or shrink the input's opaque regions by
-/// a fixed radius via a [`MorphologyOperator`] — thickening or thinning an outline, independent of every other
-/// primitive above.
+/// [`morphology`](Self::morphology)/[`morphology_xy`](Self::morphology_xy) take a component-wise minimum or maximum
+/// (via a [`MorphologyOperator`]) over a fixed radius, across the input's premultiplied R/G/B/A channels — against
+/// `SourceAlpha`, the common case, this thickens or thins an outline; independent of every other primitive above.
 ///
 /// The SVG filter specification defines around fifteen effect primitives in total (`feTile`, `feImage`, and others),
 /// each with its own attribute grammar. See `docs/gaps.md` for the primitives still to be added.

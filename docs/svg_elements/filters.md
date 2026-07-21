@@ -35,7 +35,7 @@ Remove the filter with `SvgNode::remove_filter()`.
 | `turbulence(base_frequency, num_octaves, seed, turbulence_type)` | `<feTurbulence>` | Generates Perlin-noise output — the only primitive here with no meaningful `in`, since it fabricates its own image rather than reading an upstream one. `turbulence_type` is a `TurbulenceType` (`Turbulence`, higher-contrast/marbled; `FractalNoise`, softer/cloud-like). `num_octaves` is a `u32`, ruling out negative values (unsupported by SVG) at compile time. Almost always paired with `displacement_map` — see the warning below. |
 | `turbulence_xy(base_frequency_x, base_frequency_y, num_octaves, seed, turbulence_type)` | `<feTurbulence>` | As `turbulence`, but with independent horizontal/vertical base frequencies, writing the SVG two-number `baseFrequency="x y"` form. Unequal frequencies stretch the noise along whichever axis has the lower one — useful for wood-grain/brushed-metal textures that should read as directional rather than isotropic. |
 | `displacement_map(in2, scale, x_channel_selector, y_channel_selector)` | `<feDisplacementMap>` | Warps this primitive's `in` input using `in2`'s `x_channel_selector`/`y_channel_selector` channel values (each a `Channel`) as a per-pixel displacement field, scaled by `scale`. `in2` is typically `turbulence`/`turbulence_xy`'s `result`. Selecting different channels for `x`/`y` (e.g. `Red`/`Green`) gives free two-dimensional displacement; `Channel::Alpha` for both is the SVG default but constrains displacement to one diagonal — see the warning below. |
-| `morphology(radius, operator)` | `<feMorphology>` | Grows or shrinks the input's opaque regions by `radius` according to a `MorphologyOperator`: `Erode` (SVG default) shrinks/thins, `Dilate` grows/thickens. `radius` is interpreted in the same `primitiveUnits`-dependent way as `gaussian_blur`'s `std_deviation`; `0.0`, or any negative value, disables the effect (`in` passed through unchanged). Independent of every other primitive above — a silhouette-size transform, not a blur, colour, or compositing one. |
+| `morphology(radius, operator)` | `<feMorphology>` | Takes a component-wise minimum (`Erode`, SVG default) or maximum (`Dilate`) over `radius`, across the input's premultiplied R/G/B/A channels — a `MorphologyOperator` selects which. Against `SourceAlpha`, the common case, this shrinks/thins or grows/thickens the source silhouette; against `SourceGraphic` it can also shift or bleed colours at edges, since colour channels are processed the same way. `radius` is interpreted in the same `primitiveUnits`-dependent way as `gaussian_blur`'s `std_deviation`; `0.0`, or any negative value, disables the effect (`in` passed through unchanged). |
 | `morphology_xy(radius_x, radius_y, operator)` | `<feMorphology>` | As `morphology`, but with independent horizontal/vertical radii, writing the SVG two-number `radius="x y"` form. Both values must be positive: unlike `gaussian_blur_xy`, a zero (or negative) component on *either* axis disables the whole primitive rather than giving a one-dimensional effect — see the warning below. |
 
 ***⚠️ `CompositeOperator::Arithmetic` requires `k1`–`k4` to be set manually***
@@ -179,7 +179,8 @@ The example above instead selects two *different* channels — `Channel::Red` fo
 
 This is also the choice the SVG specification's own explanatory `feDisplacementMap` example makes.
 
-`morphology` grows or shrinks a shape's opaque regions by a fixed radius, independently of every other primitive on this page:
+`morphology` takes a component-wise minimum or maximum, over a fixed radius, across the input's premultiplied R/G/B/A channels — independently of every other primitive on this page.
+Against `SourceAlpha`, where alpha is the only channel with anything to shrink or grow, this reads as growing or shrinking a shape's silhouette:
 
 ```rust,no_run
 use svg_dom::{SvgRoot, root::filter::MorphologyOperator};
@@ -197,6 +198,9 @@ Ok::<(), svg_dom::Error>(())
 
 Dilating `SourceAlpha` then merging it underneath the original graphic leaves only the grown-outward fringe visible — a bolder outline without otherwise changing the shape's own fill.
 `Erode` (the SVG default) does the reverse: shrinking a mask inward, useful before reusing it elsewhere (for example, insetting a mask so a subsequent blur does not visibly extend past the original edge).
+
+The example explicitly sets `in` to `SourceAlpha` for exactly this reason: `morphology`'s *implicit* input (when it is the filter's first primitive, as it would be without the explicit `set_attr` above) is `SourceGraphic`, not `SourceAlpha`.
+Against `SourceGraphic`, the same component-wise minimum/maximum applies to the colour channels too, which can shift or bleed colours at edges where they differ between neighbouring pixels — not purely a silhouette-size transform in that case.
 
 ***⚠️ `morphology_xy` with a zero (or negative) component disables the whole primitive, not just that axis***
 

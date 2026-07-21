@@ -570,7 +570,7 @@
 
             <!-- feMorphology -->
             <section class="section" id="panel-morphology">
-                <h2><code>&lt;feMorphology&gt;</code> — grow or shrink a shape's opaque regions</h2>
+                <h2><code>&lt;feMorphology&gt;</code> — component-wise minimum/maximum over a radius</h2>
                 <figure>
                     <div class="canvas" id="demo-morphology"></div>
                     <figcaption>
@@ -586,10 +586,15 @@
                                 colour</li>
                         </ul>
                         <br><br>
-                        Unlike <code>feColorMatrix</code>/<code>feBlend</code>/<code>feComponentTransfer</code>,
-                        <code>feMorphology</code> does not touch colour at all — it is purely a silhouette-size
-                        transform, the standard way to bolden or thin an outline without swapping to a different
-                        font weight or hand-drawing a second copy of the shape.
+                        <code>feMorphology</code> takes a per-pixel minimum (<strong>Erode</strong>) or maximum
+                        (<strong>Dilate</strong>) across the input's premultiplied R/G/B/A channels within
+                        <strong>radius</strong>. Every panel above feeds it <code>SourceAlpha</code>, where alpha is
+                        the only non-degenerate channel — the standard way to bolden or thin an outline without
+                        swapping to a different font weight or hand-drawing a second copy of the shape. Against
+                        <code>SourceGraphic</code> (this primitive's <em>implicit</em> input when it is a filter's
+                        first primitive), the same minimum/maximum applies to the colour channels too, and can shift
+                        or bleed colours at edges — worth knowing before assuming this primitive only ever touches
+                        shape, never colour.
                     </figcaption>
                 </figure>
             </section>

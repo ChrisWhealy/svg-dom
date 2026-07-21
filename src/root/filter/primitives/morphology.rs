@@ -24,13 +24,22 @@ impl SvgFilter {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Appends a `<feMorphology>` primitive to this filter, growing or shrinking its input's opaque regions by
-    /// `radius` according to `operator`.
+    /// Appends a `<feMorphology>` primitive to this filter, applying a rectangular morphological erosion or
+    /// dilation (selected by `operator`) component-wise to the input's premultiplied R/G/B/A values within
+    /// `radius` of each pixel — a per-pixel minimum for [`MorphologyOperator::Erode`], maximum for
+    /// [`MorphologyOperator::Dilate`].
     ///
-    /// [`MorphologyOperator::Erode`] shrinks/thins opaque regions inward; [`MorphologyOperator::Dilate`] grows/
-    /// thickens them outward. Applying `Erode` then `Dilate` with the same `radius` (an "opening") smooths small
-    /// outward bumps off a silhouette without changing its overall size; the reverse order (a "closing") fills in small
-    /// inward notches instead.
+    /// The common case — passing `SourceAlpha` as `in` — shrinks or expands the source *silhouette*, since alpha
+    /// is the only non-degenerate channel there; that is what [`MorphologyOperator::Erode`]/
+    /// [`MorphologyOperator::Dilate`]'s own doc comments describe, and what every example below uses. Against
+    /// `SourceGraphic` (this primitive's implicit input if it is the filter's first, since `in` is not set by this
+    /// method), the same min/max is taken across colour channels too, which can shift or bleed colours at edges
+    /// where they differ between neighbouring pixels — worth knowing before assuming this primitive only ever
+    /// touches shape, never colour.
+    ///
+    /// Applying `Erode` then `Dilate` with the same `radius` (an "opening") smooths small outward bumps off a
+    /// silhouette without changing its overall size; the reverse order (a "closing") fills in small inward
+    /// notches instead.
     ///
     /// `radius` is interpreted in the coordinate system established by
     /// [`primitiveUnits`](Self::set_primitive_units) — user-space units under the default
