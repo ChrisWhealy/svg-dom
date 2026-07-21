@@ -43,12 +43,18 @@ impl SvgFilter {
     /// produce finer, busier detail; smaller values produce broader, smoother blobs. Negative frequencies are
     /// unsupported by SVG and should not be used.
     ///
-    /// `num_octaves` layers that many progressively finer copies of the noise together (each doubling the
-    /// frequency and halving the amplitude of the last) — the standard "octave" technique from Perlin/fractal-noise
-    /// literature generally: more octaves add finer detail at a roughly linear rendering-cost increase. `1` is a
-    /// single smooth noise layer; `4`–`6` is a typical range for visibly detailed texture without excessive cost.
-    /// Negative values are unsupported by SVG; using `u32` rather than a signed integer prevents such values from
-    /// being supplied through this API at all, rather than needing a runtime check at the DOM boundary.
+    /// `num_octaves` layers that many progressively finer copies of the noise together (each doubling the frequency and
+    /// halving the amplitude of the last) — the standard "octave" technique from Perlin/fractal-noise literature
+    /// generally: more octaves add finer detail, at a rendering cost that grows with `num_octaves`, up to a point
+    /// (see below). `1` is a single smooth noise layer; `4`–`6` is a typical range for visibly detailed texture without
+    /// excessive cost. Negative values are unsupported by SVG, hence the use of `u32` rather than a signed integer to
+    /// prevent such values from being supplied through this API at all.
+    ///
+    /// User agents may clamp `num_octaves` once further octave contributions fall below the available colour-channel
+    /// resolution — the SVG spec itself gives nine octaves at eight bits per channel as an example of the point past
+    /// which this becomes likely. Very large values may therefore have no additional visual effect (and not incur the
+    /// rendering cost the "grows with `num_octaves`" description above would otherwise suggest), rather than continuing
+    /// to add ever-finer, imperceptible detail.
     ///
     /// `seed` selects which pseudo-random noise pattern is generated; the same `seed` always reproduces the same
     /// pattern, so vary it to get a visually different result from otherwise identical parameters. SVG truncates
