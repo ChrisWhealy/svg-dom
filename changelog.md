@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Split a11y tests into five seperate functions (`41b5ad4`)
 - Clarify difference between feBlend and CSS mix-blend-mode (`5ced25e`)
+- Refactor defs and svgNode tests (`766cc0e`)
 
 ### Fixed
 
