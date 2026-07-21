@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Unreleased]
 
+# [Released]
+
 ## [0.1.64] - 2026-07-21
 
 ### Added
@@ -18,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 
 - Split a11y tests into five seperate functions (`41b5ad4`)
+- Clarify difference between feBlend and CSS mix-blend-mode (`5ced25e`)
 
 ### Fixed
 
@@ -25,8 +28,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Correct comment error (`b4beede`)
 - Correct comment typos (`201a0a5`)
 - Add missing composite step to source transparency in feBlend demo tinting chain (`a622bef`)
-
-# [Released]
 
 ## [0.1.63] - 2026-07-21
 
