@@ -99,13 +99,13 @@ If a test fails, `wasm-bindgen-test` displays the `String` message directly with
 Everything above proves DOM structure: the right element was created, updated, or removed in the right place.
 None of it can see the actual, browser-*computed* accessibility tree — the accessible name/description a screen reader would receive after ARIA precedence, role computation, and pruning are applied — because that lives behind the browser's Accessibility CDP domain, which `wasm-bindgen-test`'s WebDriver-run tests have no access to.
 
-This single test drives a real Chrome instance directly over the Chrome DevTools Protocol (via the [`headless_chrome`](https://docs.rs/headless_chrome) crate) and queries `Accessibility.getPartialAXTree` to confirm:
+This drives a real Chrome instance directly over the Chrome DevTools Protocol (via the [`headless_chrome`](https://docs.rs/headless_chrome) crate) and queries `Accessibility.getPartialAXTree`, via five independently reported `#[test]` functions confirming:
 
-- a lone `<title>` supplies the accessible name;
-- a `<desc>` supplies the accessible description;
-- `aria-label` overrides a `<title>` in name computation;
-- `aria-describedby` overrides a `<desc>` in description computation;
-- a rejected blank `set_title` leaves the element with no accessible name at all — proving the rejection actually prevents the "apparently nameless object exposed to assistive technology" case SVG 2 warns about, not just the DOM mutation.
+- a lone `<title>` supplies the accessible name (`title_only_supplies_accessible_name`);
+- a `<desc>` supplies the accessible description (`desc_supplies_accessible_description`);
+- `aria-label` overrides a `<title>` in name computation (`aria_label_overrides_title`);
+- `aria-describedby` overrides a `<desc>` in description computation (`aria_describedby_overrides_desc`);
+- a rejected blank `set_title` leaves the element with no accessible name at all (`blank_title_rejection_leaves_no_accessible_name`) — proving the rejection actually prevents the "apparently nameless object exposed to assistive technology" case SVG 2 warns about, not just the DOM mutation.
 
 ### Why this lives outside the main crate
 
@@ -118,7 +118,17 @@ Two supporting crates make this possible:
 | Crate | Role |
 |---|---|
 | `a11y-fixture` | A tiny `wasm-bindgen` cdylib that builds five real `svg-dom` elements (via `set_title`/`set_desc`/`set_attr`) covering the five scenarios above, and signals readiness by adding a `#fixture-ready` element |
-| `accessibility-tree-test` | The `#[test]` itself: builds the fixture with `wasm-pack build --target web`, serves it locally over `tiny_http`, launches Chrome via `headless_chrome`, and asserts against the `Accessibility.getPartialAXTree` result for each scenario element |
+| `accessibility-tree-test` | The five `#[test]` functions: build the fixture with `wasm-pack build --target web`, serve it locally over `tiny_http`, launch Chrome via `headless_chrome`, and assert against the `Accessibility.getPartialAXTree` result for each scenario element |
+
+### One shared browser session, multiple independent results
+
+Building the test fixture and launching Chrome are both expensive actions, so all five tests share the same fixture build, static server, and Chrome tab via a lazily-initialised `OnceLock`, rather than each paying that startup cost independently.
+
+`cargo test` still runs the five test functions in parallel, so actual CDP calls against the shared tab are serialised behind a `Mutex`.
+`find_element`'s underlying `DOM.getDocument`-then-`DOM.querySelector` sequence is not safe under concurrent access to the same session, even though `Browser` and `Tab` implement `Send + Sync` at the type level.
+See the module doc comment in `accessibility-tree-test/tests/accessibility_tree.rs` for the full explanation.
+
+Splitting the original single test (with five sequential `assert_eq!` calls in one function) into five separate `#[test]` functions was a deliberate correction: if they were bundled into a single function, then only the first failing assertion was ever reported and `cargo test` counted the whole scenario suite as a monolithic pass/fail.
 
 ### Prerequisites
 
