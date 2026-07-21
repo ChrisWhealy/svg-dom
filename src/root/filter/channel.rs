@@ -18,7 +18,7 @@ pub enum Channel {
     /// previously-transparent pixel becomes visible too — not just the ones that were already part of the shape.
     ///
     /// This could happen for example with:
-    /// 
+    ///
     /// * [`TransferFunction::Linear`](super::TransferFunction::Linear) with a non-zero `intercept`
     /// * [`TransferFunction::Gamma`](super::TransferFunction::Gamma) with a non-zero `offset`
     /// * [`TransferFunction::Table`](super::TransferFunction::Table) or

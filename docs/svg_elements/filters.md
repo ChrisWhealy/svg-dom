@@ -136,6 +136,13 @@ For a portable constant transfer function, supply the same value twice instead: 
 
 `TransferFunction::Discrete` does not share this restriction — a single value is well-defined by the SVG "discrete" stepping formula (every input maps to that one entry).
 
+***⚠️ Naming the same `Channel` twice in `funcs` does not compose — the last one wins***
+
+`funcs` is not deduplicated, so `component_transfer` will happily create two `<feFuncR>` children if `Channel::Red` appears twice.
+Per the SVG spec, when a `<feComponentTransfer>` has more than one child for the same channel, only the last one has any effect; the earlier ones are created in the DOM but ignored, not chained or applied in sequence.
+
+Avoid supplying the same `Channel` more than once when building `funcs` programmatically.
+
 See [`../gaps.md`](../gaps.md) for the primitives (`feTurbulence`, `feDisplacementMap`, and others) still to be added.
 
 ## Region and Coordinate-Space Attributes

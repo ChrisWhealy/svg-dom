@@ -31,6 +31,13 @@ impl SvgFilter {
     /// giving it an explicit [`TransferFunction::Identity`] — `feComponentTransfer` only touches the channels you
     /// actually mention.
     ///
+    /// `funcs` is not deduplicated: naming the same [`Channel`] twice creates two `<feFuncX>` children of the same tag,
+    /// in the order given. Per the SVG spec, when a `<feComponentTransfer>` has more than one child for the same
+    /// channel, only the *last* one has any effect — the earlier ones are created but ignored, not applied in sequence.
+    ///
+    /// There is no error for this situation; so if you build `funcs` programmatically, you must take care not to supply
+    /// multiple functions for the same `Channel`.
+    ///
     /// If this is the filter's first primitive, its implicit input is `SourceGraphic`, otherwise use the returned
     /// [`SvgNode`]'s [`set_attr`](crate::SvgNode::set_attr) to set `in` explicitly, the same as every other
     /// primitive here. `result` works the same way too.

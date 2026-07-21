@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 
 - Exclude TransferFunction table with only one entry (`ccdc15f`)
+- Correct docs; alpha fn can create pixels outside original opaque bounding box (`fce1c99`)
 
 # [Released]
 

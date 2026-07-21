@@ -731,6 +731,34 @@ fn should_create_one_fe_func_child_per_channel_in_order() -> Result<(), String> 
     check_eq(children.item(3).map(|c| c.tag_name()), Some("feFuncB".to_owned()))
 }
 
+/// Naming the same `Channel` twice in `funcs` is not deduplicated: both `<feFuncX>` children are created, in the
+/// order given. (Per the SVG spec only the last one has any rendered effect, but that is a browser-side rendering
+/// rule, not something this crate enforces or hides — see `Channel::Alpha`'s doc comment for the analogous
+/// f(0) > 0 caveat.)
+#[wasm_bindgen_test]
+fn should_create_both_children_for_a_duplicated_channel_in_order() -> Result<(), String> {
+    let svg = make_svg("filter-component-transfer-duplicate-channel");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("fctdup").map_err(|e| e.to_string())?;
+    let ct = filter
+        .component_transfer(&[
+            (Channel::Red, TransferFunction::Linear { slope: 1.0, intercept: 0.0 }),
+            (Channel::Red, TransferFunction::Linear { slope: 0.5, intercept: 0.1 }),
+        ])
+        .map_err(|e| e.to_string())?;
+    let el = ct.as_element();
+    check_eq(el.child_element_count(), 2)?;
+    let children = el.children();
+    let first = children.item(0).ok_or("expected a first feFuncR child")?;
+    let second = children.item(1).ok_or("expected a second feFuncR child")?;
+    check_eq(first.tag_name(), "feFuncR".to_owned())?;
+    check_eq(second.tag_name(), "feFuncR".to_owned())?;
+    check_eq(first.get_attribute("slope"), Some("1".into()))?;
+    check_eq(first.get_attribute("intercept"), Some("0".into()))?;
+    check_eq(second.get_attribute("slope"), Some("0.5".into()))?;
+    check_eq(second.get_attribute("intercept"), Some("0.1".into()))
+}
+
 /// A channel not named in `funcs` gets no `<feFuncX>` child at all.
 #[wasm_bindgen_test]
 fn should_omit_fe_func_child_for_unmentioned_channel() -> Result<(), String> {
