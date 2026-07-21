@@ -787,6 +787,47 @@ fn should_accept_empty_table_values() -> Result<(), String> {
     check_eq(func.get_attribute("tableValues"), Some("".into()))
 }
 
+/// A `TransferFunction::Table` with exactly one value has no defined SVG semantics (the `n+1`-values-describe-`n`-
+/// regions formula leaves zero regions to interpolate across) and is rejected before reaching the DOM.
+#[wasm_bindgen_test]
+fn should_reject_single_value_table() -> Result<(), String> {
+    let svg = make_svg("filter-component-transfer-table-single");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("fcts1").map_err(|e| e.to_string())?;
+    let result = filter.component_transfer(&[(Channel::Red, TransferFunction::Table(vec![0.5]))]);
+    check(
+        matches!(result, Err(Error::InvalidTransferTable)),
+        "expected InvalidTransferTable error for a single-value Table",
+    )
+}
+
+/// Two equal values is the documented, portable way to write a constant `Table` transfer function.
+#[wasm_bindgen_test]
+fn should_accept_two_equal_table_values_as_constant_workaround() -> Result<(), String> {
+    let svg = make_svg("filter-component-transfer-table-constant");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("fctc").map_err(|e| e.to_string())?;
+    let ct = filter
+        .component_transfer(&[(Channel::Red, TransferFunction::Table(vec![0.5, 0.5]))])
+        .map_err(|e| e.to_string())?;
+    let func = ct.as_element().first_element_child().ok_or("expected a <feFuncR> child")?;
+    check_eq(func.get_attribute("tableValues"), Some("0.5 0.5".into()))
+}
+
+/// Unlike `Table`, `TransferFunction::Discrete` with a single value is well-defined by the SVG "discrete" stepping
+/// formula (every input maps to the one entry), so it is accepted rather than rejected.
+#[wasm_bindgen_test]
+fn should_accept_single_value_discrete() -> Result<(), String> {
+    let svg = make_svg("filter-component-transfer-discrete-single");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("fcds1").map_err(|e| e.to_string())?;
+    let ct = filter
+        .component_transfer(&[(Channel::Red, TransferFunction::Discrete(vec![0.5]))])
+        .map_err(|e| e.to_string())?;
+    let func = ct.as_element().first_element_child().ok_or("expected a <feFuncR> child")?;
+    check_eq(func.get_attribute("tableValues"), Some("0.5".into()))
+}
+
 /// `TransferFunction::Discrete` writes `type="discrete"` and `tableValues` as the space-separated values.
 #[wasm_bindgen_test]
 fn should_set_discrete_type_and_values() -> Result<(), String> {

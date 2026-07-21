@@ -3,7 +3,7 @@
 ///
 /// Every fallible function in this crate returns `Result<_, Error>`.
 ///
-/// The variants cover eight categories, one of which contains seven subtypes:
+/// The variants cover nine categories, one of which contains seven subtypes:
 ///
 /// - you asked for a non-existent element by id ([`Error::ElementNotFound`])
 /// - a `web-sys` call returned a JavaScript error ([`Error::Dom`])
@@ -12,6 +12,7 @@
 /// - a non-empty [`PathDef`](crate::PathDef) sequence was supplied that did not begin with a `MoveTo` command ([`Error::InvalidPathData`])
 /// - a `viewBox` was supplied with a non-finite component, or a negative width/height ([`Error::InvalidViewBox`])
 /// - an empty or whitespace-only `<title>`/`<desc>` value was supplied ([`Error::InvalidAccessibleText`])
+/// - a `TransferFunction::Table` with exactly one value was supplied ([`Error::InvalidTransferTable`])
 /// - Crate-level validation errors for various id strings
 ///   - a bad marker id ([`Error::InvalidMarkerId`])
 ///   - a bad gradient id ([`Error::InvalidGradientId`])
@@ -194,6 +195,21 @@ pub enum Error {
     ///
     /// The inner `&'static str` is `"title"` or `"desc"`, naming which one was rejected.
     InvalidAccessibleText(&'static str),
+
+    /// A [`TransferFunction::Table`](crate::root::filter::TransferFunction::Table) with exactly one value was
+    /// rejected before reaching the DOM.
+    ///
+    /// The SVG spec defines `tableValues` as `n+1` values describing `n` piecewise-linear interpolation regions.
+    /// An empty list (`n = 0`... no regions at all) is explicitly defined as equivalent to `Identity`. A single
+    /// value also leaves `n = 0`, but unlike the empty-list case, the spec does not define what a lone value means —
+    /// the interpolation formula has no region to apply to, so browsers are free to differ (some treat it as a
+    /// constant, some as identity, some reject it outright).
+    ///
+    /// For a portable constant transfer function, supply the same value twice instead:
+    /// `TransferFunction::Table(vec![0.5, 0.5])`.
+    ///
+    /// Returned by [`SvgFilter::component_transfer`](crate::SvgFilter::component_transfer).
+    InvalidTransferTable,
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -238,6 +254,12 @@ impl std::fmt::Display for Error {
             Error::InvalidViewBox(msg) => write!(f, "invalid viewBox: {msg}"),
             Error::InvalidAccessibleText(tag) => {
                 write!(f, "{tag} value must not be empty or whitespace-only")
+            },
+            Error::InvalidTransferTable => {
+                write!(
+                    f,
+                    "TransferFunction::Table must have zero or at least two values; a single value has no defined SVG semantics"
+                )
             },
         }
     }

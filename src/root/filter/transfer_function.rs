@@ -13,8 +13,15 @@ pub enum TransferFunction {
     /// worth passing explicitly if the element itself needs to be present for some other reason.
     Identity,
     /// A piecewise-linear lookup table: the channel's `0.0`–`1.0` value selects between consecutive entries by
-    /// linear interpolation. Per the SVG spec, zero entries is equivalent to [`Identity`](Self::Identity) and one
-    /// entry is a constant function — at least two are needed for the table to actually ramp between values.
+    /// linear interpolation.
+    ///
+    /// The SVG spec defines `n+1` values as `n` interpolation regions; zero entries is explicitly defined as
+    /// equivalent to [`Identity`](Self::Identity), but a *single* entry leaves `n = 0` with no region for the
+    /// interpolation formula to apply to, so its behaviour is unspecified rather than "a constant function" — see
+    /// [`Error::InvalidTransferTable`](crate::Error::InvalidTransferTable), which
+    /// [`component_transfer`](super::SvgFilter::component_transfer) returns for exactly this case.
+    ///
+    /// For a portable constant transfer function, supply the same value twice instead: `Table(vec![0.5, 0.5])`.
     Table(Vec<f64>),
     /// A stepped lookup table: the channel's value selects one entry outright, per the SVG "discrete" stepping
     /// formula, rather than interpolating between two neighbours the way [`Table`](Self::Table) does. Produces a

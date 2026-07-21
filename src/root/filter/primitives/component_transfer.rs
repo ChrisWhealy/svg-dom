@@ -37,8 +37,10 @@ impl SvgFilter {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::Dom`] if the browser refuses to create or append the `<feComponentTransfer>` element or any
-    /// of its `<feFuncX>` children.
+    /// - [`Error::Dom`] — the browser refused to create or append the `<feComponentTransfer>` element or any of its
+    ///   `<feFuncX>` children.
+    /// - [`Error::InvalidTransferTable`] — a [`TransferFunction::Table`] with exactly one value was supplied; see
+    ///   that variant's own doc comment for why a single value has no defined meaning.
     ///
     /// # Example
     ///
@@ -66,7 +68,15 @@ impl SvgFilter {
             child.set_attribute("type", func.type_str()).map_err(dom_err)?;
             match func {
                 TransferFunction::Identity => {},
-                TransferFunction::Table(values) | TransferFunction::Discrete(values) => {
+                TransferFunction::Table(values) => {
+                    if values.len() == 1 {
+                        return Err(Error::InvalidTransferTable);
+                    }
+                    self.attrs
+                        .borrow_mut()
+                        .display_element(&child, "tableValues", SpaceSeparated(values))?;
+                },
+                TransferFunction::Discrete(values) => {
                     self.attrs
                         .borrow_mut()
                         .display_element(&child, "tableValues", SpaceSeparated(values))?;

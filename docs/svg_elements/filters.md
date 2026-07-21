@@ -116,6 +116,18 @@ flt.component_transfer(&[
 Ok::<(), svg_dom::Error>(())
 ```
 
+***⚠️ `TransferFunction::Table` with exactly one value is rejected***
+
+The SVG spec defines `tableValues` as `n+1` values describing `n` interpolation regions.
+
+An empty list (`n = 0`) is explicitly defined as equivalent to `Identity`, but a single value also leaves `n = 0` with no region to which to apply the interpolation formula — the spec does not define what a lone value means, so browsers are free to differ.
+
+`component_transfer` returns `Error::InvalidTransferTable` for this case rather than silently emitting a `tableValues` whose meaning depends on which browser renders it.
+
+For a portable constant transfer function, supply the same value twice instead: `TransferFunction::Table(vec![0.5, 0.5])`.
+
+`TransferFunction::Discrete` does not share this restriction — a single value is well-defined by the SVG "discrete" stepping formula (every input maps to that one entry).
+
 See [`../gaps.md`](../gaps.md) for the primitives (`feTurbulence`, `feDisplacementMap`, and others) still to be added.
 
 ## Region and Coordinate-Space Attributes
