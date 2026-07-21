@@ -36,9 +36,9 @@ impl SvgFilter {
     /// [`primitiveUnits`](Self::set_primitive_units) — user-space units under the default
     /// [`FilterUnits::UserSpaceOnUse`](super::super::FilterUnits::UserSpaceOnUse), or a fraction/percentage of the
     /// referencing element's box under [`FilterUnits::ObjectBoundingBox`](super::super::FilterUnits::ObjectBoundingBox).
-    /// A `radius` of `0.0` (the SVG default if this is never called with a non-zero value) produces no effect at all —
-    /// `in` passes through unchanged. Must be non-negative; the SVG spec does not define a rendering result for a
-    /// negative value, so passing one may produce an unspecified result rather than a runtime error.
+    /// A `radius` of `0.0` (the SVG default if this is never called with a non-zero value) disables the effect
+    /// entirely — `in` passes through unchanged. A negative value is not rejected, but has the identical effect:
+    /// per the SVG spec, "a negative or zero value disables the effect ... the result is the filter input image".
     ///
     /// See [`morphology_xy`](Self::morphology_xy) for a radius with independent horizontal and vertical extent — the
     /// SVG `radius` attribute accepts either one or two numbers, and this method covers only the one-number form.
