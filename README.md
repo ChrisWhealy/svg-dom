@@ -55,7 +55,7 @@ That said, all reasonable, conventional steps have been taken to provide a secur
   - [x] `<defs>`
   - [x] `<desc>`
   - [x] `<filter>` and filter effects
-    - [ ] `feBlend`
+    - [x] `feBlend`
     - [x] `feColorMatrix`
     - [ ] `feComponentTransfer`
     - [x] `feComposite`

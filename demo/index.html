@@ -39,6 +39,7 @@
             <button type="button" class="menu-item" data-target="panel-pattern">pattern</button>
             <button type="button" class="menu-item" data-target="panel-filter">filter</button>
             <button type="button" class="menu-item" data-target="panel-color-matrix">feColorMatrix</button>
+            <button type="button" class="menu-item" data-target="panel-blend">feBlend</button>
             <button type="button" class="menu-item" data-target="panel-tspan">tspan</button>
             <button type="button" class="menu-item" data-target="panel-text-path">textPath</button>
 
@@ -459,6 +460,24 @@
                         <strong>Matrix(sepia)</strong> (a full custom 4×5 transform — the classic sepia-tone
                         coefficients). <code>LuminanceToAlpha</code>, the fourth <code>ColorMatrixType</code>
                         variant, produces an alpha mask rather than a directly visible result, so is not shown here.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- feBlend -->
+            <section class="section" id="panel-blend">
+                <h2><code>&lt;feBlend&gt;</code> — colour blending, independent of the shadow primitives</h2>
+                <figure>
+                    <div class="canvas" id="demo-blend"></div>
+                    <figcaption>
+                        Four copies of the same multi-hue gradient rectangle, each referencing a separate
+                        <code>&lt;filter&gt;</code> built with <strong>flood</strong> (the same orange tint every
+                        time) then <strong>blend</strong>: <strong>original</strong> (no filter) ·
+                        <strong>Multiply</strong> (always darkens, or leaves unchanged) ·
+                        <strong>Screen</strong> (always lightens, or leaves unchanged) ·
+                        <strong>Difference</strong> (inverts wherever the tint and the source differ).
+                        <code>BlendMode</code> has twelve further keywords not shown here — the same set as CSS
+                        <code>mix-blend-mode</code>.
                     </figcaption>
                 </figure>
             </section>

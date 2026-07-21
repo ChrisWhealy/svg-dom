@@ -11,7 +11,6 @@ The following filter effect primitives still need to be implemented, each with i
 
 | Missing Primitive | Cost | Benefit |
 |---|---|---|
-| `<feBlend>` | Low-medium — one `mode` enum (`Normal`/`Multiply`/`Screen`/`Darken`/`Lighten`/…), the same shape as `composite`'s `CompositeOperator`. | Moderate-high — blend modes are common in realistic shadow/lighting effects. |
 | `<feComponentTransfer>` (with `<feFuncR>`/`<feFuncG>`/`<feFuncB>`/`<feFuncA>`) | Medium-high — four child elements, each with `type`/`tableValues`/`slope`/`intercept`/`amplitude`/`exponent`/`offset`; follows the `<feMergeNode>` child-element precedent already established by `merge`. | Moderate — gamma/contrast/duotone adjustments. |
 | `<feTurbulence>` | Medium — `baseFrequency`/`numOctaves`/`seed`/`stitchTiles`/`type`. | Moderate-high — paired with `feDisplacementMap`/`feComposite`, the standard route to noise/hand-drawn/organic textures; genuinely popular in creative SVG work. |
 | `<feDisplacementMap>` | Medium — `in2` + `scale` + two channel-selector enums. | Moderate, mostly as `feTurbulence`'s partner. |
@@ -21,7 +20,9 @@ The following filter effect primitives still need to be implemented, each with i
 | `<feConvolveMatrix>` | High — `order`, `kernelMatrix` (variable-length, needs validation), `divisor`, `bias`, `targetX`/`targetY`, `edgeMode`, `preserveAlpha`. | Low — sharpen/emboss/edge-detect, rare outside specialty tooling. |
 | `<feDiffuseLighting>` / `<feSpecularLighting>` | High — each needs light-source child elements (`<feDistantLight>`/`<fePointLight>`/`<feSpotLight>`), each with its own attribute set, plus `surfaceScale`/`specularExponent`/`lighting-color`. | Low — embossed/3D lighting effects, rarely used on the web. |
 
-Every filter primitive reuses the same `SvgFilter` pattern already proven seven times over (`impl SvgFilter { pub fn x(&self, ...) -> Result<SvgNode, Error> }`), so none of them require a new architectural decision — only attribute-surface work that scales with each primitive's own complexity.
+Every filter primitive reuses the same `SvgFilter` pattern already proven eight times over (`impl SvgFilter { pub fn x(&self, ...) -> Result<SvgNode, Error> }`), so none of them require a new architectural decision — only attribute-surface work that scales with each primitive's own complexity.
+
+`<feBlend>` (`SvgFilter::blend`, with a `BlendMode` enum the same shape as `composite`'s `CompositeOperator`) is now implemented — see [Filters](svg_elements/filters.md#primitive-factories-available-on-svgfilter).
 
 Each individual primitive's own `in`/`result` attributes, and any primitive-specific attribute not yet wrapped by a named parameter, remain reachable only via `SvgNode::set_attr` on the node the primitive method returns.
 
@@ -60,5 +61,6 @@ They have been intentionally excluded:
 
 ### Priority
 
-The cost/benefit favours **`feBlend`** as the next gap worth closing: it is one of the cheapest remaining filter primitives (a single `mode` enum, the same shape as `composite`'s `CompositeOperator`) with moderate-high benefit, since blend modes are common in realistic shadow/lighting effects.
-The best value-per-effort ordering within the filter primitives is `feBlend` → `feComponentTransfer` → `feTurbulence`/`feDisplacementMap`; `feConvolveMatrix` and `feDiffuseLighting`/`feSpecularLighting` are the most expensive items on either list for the narrowest payoff, and are deprioritised accordingly.
+With `feBlend` now implemented, the cost/benefit favours **`feComponentTransfer`** as the next gap worth closing: moderate implementation cost (four child elements following the `<feMergeNode>` precedent `merge` already established) against moderate benefit for gamma/contrast/duotone adjustments.
+
+The best value-per-effort ordering within the remaining filter primitives is `feComponentTransfer` → `feTurbulence`/`feDisplacementMap`; `feConvolveMatrix` and `feDiffuseLighting`/`feSpecularLighting` remain the most expensive items on either list for the narrowest payoff, and are deprioritised accordingly.

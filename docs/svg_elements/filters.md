@@ -28,6 +28,7 @@ Remove the filter with `SvgNode::remove_filter()`.
 | `merge(inputs)` | `<feMerge>` (with `<feMergeNode>` children) | Stacks each `&str` in `inputs` as one `<feMergeNode in="...">` child, in order (later entries painted on top). The standard way to layer a shadow underneath the original graphic. |
 | `flood(color, opacity)` | `<feFlood>` | Fills the filter region with a solid `flood-color`/`flood-opacity`. Combined with `composite`, gives a shadow an independent colour rather than a blurred copy of the source graphic's own fill. |
 | `composite(in2, operator)` | `<feComposite>` | Combines this primitive's `in` input with `in2` using a [Porter-Duff](https://en.wikipedia.org/wiki/Alpha_compositing) `CompositeOperator` (`Over`/`In`/`Out`/`Atop`/`Xor`/`Lighter`/`Arithmetic`). `operator: In` against a blurred alpha mask is the standard way to tint a shadow. **`Arithmetic` needs extra setup — see the warning below before using it.** |
+| `blend(in2, mode)` | `<feBlend>` | Mixes this primitive's `in` input with `in2` using a `BlendMode` — the same sixteen keywords as CSS `mix-blend-mode` (`Normal`, `Multiply`, `Screen`, `Darken`, `Lighten`, `Overlay`, `ColorDodge`, `ColorBurn`, `HardLight`, `SoftLight`, `Difference`, `Exclusion`, `Hue`, `Saturation`, `Color`, `Luminosity`). Unlike `composite`, which combines inputs geometrically (where each is opaque), `blend` combines their *colours* photometrically. |
 | `drop_shadow(std_deviation, dx, dy, color, opacity)` | `<feDropShadow>` | Implements the browser-native shorthand for the entire `gaussian_blur` → `flood` → `composite` → `offset` → `merge` chain described below. `std_deviation` and `dx`/`dy` are interpreted in the same `primitiveUnits`-dependent way as their `gaussian_blur`/`offset` counterparts. Its result already has the original graphic merged on top: a `<filter>` containing only `drop_shadow` is a complete effect, so there is no need to call `merge` after it. |
 | `color_matrix(matrix_type)` | `<feColorMatrix>` | Transforms colours via a `ColorMatrixType`: `Saturate(amount)`, `HueRotate(degrees)`, `LuminanceToAlpha`, or a full custom `Matrix([f64; 20])` (the fixed-size array rules out a wrong element count at compile time). Independent of the shadow primitives above — greyscale, saturation, and hue effects, not compositing. |
 
@@ -60,7 +61,20 @@ The manual chain is only useful in situations where you need to name an intermed
 
 A "poor man's" drop-shadow can be constructed by chaining `gaussian_blur` + `offset` + `merge`; however using these effects alone, you cannot have an independent shadow colour.
 
-See [`../gaps.md`](../gaps.md) for the primitives (`feBlend`, `feTile`, and others) still to be added.
+`blend` tints an entire graphic by mixing its colours with a flood colour, rather than isolating a mask the way `composite`'s `In` operator does against a blurred shadow:
+
+```rust,no_run
+use svg_dom::{SvgRoot, root::filter::BlendMode};
+
+let svg  = SvgRoot::attach("diagram")?;
+let defs = svg.defs()?;
+let tint = defs.filter("tint")?;
+tint.flood("steelblue", 1.0)?.set_attr("result", "colour")?;
+tint.blend("colour", BlendMode::Multiply)?.set_attr("in", "SourceGraphic")?;
+Ok::<(), svg_dom::Error>(())
+```
+
+See [`../gaps.md`](../gaps.md) for the primitives (`feComponentTransfer`, `feTile`, and others) still to be added.
 
 ## Region and Coordinate-Space Attributes
 

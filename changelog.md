@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Correct rustdoc about multilingual title selection (`7a709ea`)
 - Correct comment error (`b4beede`)
+- Correct comment typos (`201a0a5`)
 
 # [Released]
 

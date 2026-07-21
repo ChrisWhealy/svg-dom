@@ -19,7 +19,7 @@ The following SVG elements are supported:
 * `defs`
 * `desc`
 * `ellipse`
-* `filter` (with `feGaussianBlur`, `feOffset`, `feMerge`/`feMergeNode`, `feFlood`, `feComposite`, `feDropShadow`, `feColorMatrix`)
+* `filter` (with `feGaussianBlur`, `feOffset`, `feMerge`/`feMergeNode`, `feFlood`, `feComposite`, `feBlend`, `feDropShadow`, `feColorMatrix`)
 * `g`
 * `image`
 * `line`

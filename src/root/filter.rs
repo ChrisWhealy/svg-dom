@@ -67,6 +67,72 @@ impl CompositeOperator {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// The CSS/SVG blend mode for [`SvgFilter::blend`] controls how the `in` and `in2` inputs are blended — the same
+/// sixteen keywords (`normal` plus fifteen separable/non-separable modes) as the CSS `mix-blend-mode` property.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BlendMode {
+    /// `in` painted over `in2` with no blending (SVG default) — identical to [`CompositeOperator::Over`].
+    Normal,
+    /// Multiplies channel values: black stays black, white leaves the other input unchanged. Always darkens or
+    /// leaves unchanged, never lightens.
+    Multiply,
+    /// Multiplies the inverted channel values, then inverts the result — the inverse of [`Multiply`](Self::Multiply).
+    /// Always lightens or leaves unchanged, never darkens.
+    Screen,
+    /// Keeps the darker of the two colours, per channel.
+    Darken,
+    /// Keeps the lighter of the two colours, per channel.
+    Lighten,
+    /// [`Multiply`](Self::Multiply) or [`Screen`](Self::Screen) depending on `in2`, increasing contrast.
+    Overlay,
+    /// Brightens `in2` to reflect `in`'s colour; has no effect where `in2` is white.
+    ColorDodge,
+    /// Darkens `in2` to reflect `in`'s colour; has no effect where `in2` is black.
+    ColorBurn,
+    /// Like [`Overlay`](Self::Overlay) but with the roles of `in`/`in2` swapped: `Multiply` where `in` is dark,
+    /// `Screen` where `in` is light — the effect of shining a harsh spotlight through `in`.
+    HardLight,
+    /// A softer version of [`HardLight`](Self::HardLight), closer to a diffuse spotlight than a harsh one.
+    SoftLight,
+    /// The per-channel absolute difference between the two colours; identical colours become black.
+    Difference,
+    /// Like [`Difference`](Self::Difference), but lower-contrast — pairing with white inverts, pairing with black
+    /// has no effect.
+    Exclusion,
+    /// Takes the hue of `in`, and the saturation and luminosity of `in2`.
+    Hue,
+    /// Takes the saturation of `in`, and the hue and luminosity of `in2`.
+    Saturation,
+    /// Takes the hue and saturation of `in` (i.e. its colour), and the luminosity of `in2`.
+    Color,
+    /// Takes the luminosity of `in`, and the hue and saturation of `in2`.
+    Luminosity,
+}
+
+impl BlendMode {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Normal => "normal",
+            Self::Multiply => "multiply",
+            Self::Screen => "screen",
+            Self::Darken => "darken",
+            Self::Lighten => "lighten",
+            Self::Overlay => "overlay",
+            Self::ColorDodge => "color-dodge",
+            Self::ColorBurn => "color-burn",
+            Self::HardLight => "hard-light",
+            Self::SoftLight => "soft-light",
+            Self::Difference => "difference",
+            Self::Exclusion => "exclusion",
+            Self::Hue => "hue",
+            Self::Saturation => "saturation",
+            Self::Color => "color",
+            Self::Luminosity => "luminosity",
+        }
+    }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// The colour transform applied by [`SvgFilter::color_matrix`], selecting both the SVG `type` attribute and the
 /// shape of the `values` attribute that goes with it.
 ///
@@ -149,6 +215,7 @@ impl FilterUnits {
 /// - [`merge`](Self::merge) (`<feMerge>`/`<feMergeNode>`),
 /// - [`flood`](Self::flood) (`<feFlood>`),
 /// - [`composite`](Self::composite) (`<feComposite>`),
+/// - [`blend`](Self::blend) (`<feBlend>`),
 /// - [`drop_shadow`](Self::drop_shadow) (`<feDropShadow>`),
 /// - [`color_matrix`](Self::color_matrix) (`<feColorMatrix>`)
 ///
@@ -163,8 +230,12 @@ impl FilterUnits {
 /// [`color_matrix`](Self::color_matrix) is independent of the shadow primitives — greyscale, saturation, hue
 /// rotation, or an arbitrary linear colour transform via [`ColorMatrixType`].
 ///
-/// The SVG filter specification defines around fifteen effect primitives in total (`feBlend`, `feTile`, and others),
-/// each with its own attribute grammar. See `docs/gaps.md` for the primitives still to be added.
+/// [`blend`](Self::blend) is also independent of the shadow primitives: unlike [`composite`](Self::composite)'s
+/// geometric (Porter-Duff) combination, it mixes two inputs' *colours* using a [`BlendMode`] — the same effect as
+/// CSS `mix-blend-mode`.
+///
+/// The SVG filter specification defines around fifteen effect primitives in total (`feTile`, `feTurbulence`, and
+/// others), each with its own attribute grammar. See `docs/gaps.md` for the primitives still to be added.
 ///
 /// The filter region ([`set_x`](Self::set_x), [`set_y`](Self::set_y), [`set_width`](Self::set_width),
 /// [`set_height`](Self::set_height)) and coordinate-space ([`set_filter_units`](Self::set_filter_units),
@@ -659,6 +730,50 @@ impl SvgFilter {
         let el = create_svg_element::<SvgElement>(&self.document, "feComposite", "SvgElement")?;
         el.set_attribute("in2", in2).map_err(dom_err)?;
         el.set_attribute("operator", operator.as_str()).map_err(dom_err)?;
+        self.element.append_child(&el).map_err(dom_err)?;
+        Ok(SvgNode::new(el))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Appends a `<feBlend>` primitive to this filter, blending this primitive's `in` input with `in2` using the
+    /// given [`BlendMode`].
+    ///
+    /// Unlike [`composite`](Self::composite), which combines two inputs geometrically (Porter-Duff, based on where each
+    /// input is opaque), `blend` combines them photometrically — how their *colours* mix where both are visible, using
+    /// the same blend-mode maths as the CSS `mix-blend-mode` property.
+    ///
+    /// `in2` is written directly.
+    ///
+    /// ***IMPORTANT*** The value of `in2` is not validated. It is typically another primitive's `result` name, or
+    /// one of the SVG keyword inputs (`"SourceGraphic"`/`"SourceAlpha"`).
+    ///
+    /// `in` is not set by this method: if this is the filter's first primitive, its implicit input is `SourceGraphic`,
+    /// otherwise use the returned [`SvgNode`]'s [`set_attr`](crate::SvgNode::set_attr) to set `in` explicitly, the same
+    /// as every other primitive here.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Dom`] if the browser refuses to create or append the `<feBlend>` element.
+    ///
+    /// # Example
+    ///
+    /// Multiplying a flood colour over the source graphic — a common way to tint an image without flattening its
+    /// own shading to a single colour, the way [`composite`](Self::composite)'s `In` operator would:
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::filter::BlendMode};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    /// let tint = defs.filter("tint")?;
+    /// tint.flood("steelblue", 1.0)?.set_attr("result", "colour")?;
+    /// tint.blend("colour", BlendMode::Multiply)?.set_attr("in", "SourceGraphic")?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn blend(&self, in2: &str, mode: BlendMode) -> Result<SvgNode, Error> {
+        let el = create_svg_element::<SvgElement>(&self.document, "feBlend", "SvgElement")?;
+        el.set_attribute("in2", in2).map_err(dom_err)?;
+        el.set_attribute("mode", mode.as_str()).map_err(dom_err)?;
         self.element.append_child(&el).map_err(dom_err)?;
         Ok(SvgNode::new(el))
     }

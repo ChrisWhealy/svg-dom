@@ -3,7 +3,7 @@ use super::{BAND, H, PAD_Y, W, caption};
 use crate::{
     Error, PathDef, PathDefAbsolute, SvgFilter, SvgRoot, TextAnchor,
     root::{
-        filter::ColorMatrixType,
+        filter::{BlendMode, ColorMatrixType},
         gradient::SpreadMethod,
         mask::MaskType,
         pattern::PatternUnits,
@@ -599,6 +599,70 @@ pub(super) fn demo_color_matrix() -> Result<(), Error> {
     r4.set_fill_gradient("cm-source")?;
     r4.set_filter("cm-filter-sepia")?;
     caption(&svg, xs[3] + rect_w / 2.0, "Matrix(sepia)")?;
+
+    Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// feBlend — same gradient source, flooded with the same orange tint, across three BlendMode variants
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+pub(super) fn demo_blend() -> Result<(), Error> {
+    let svg = SvgRoot::create_in("demo-blend", Size::new(W, H))?;
+
+    svg.build_defs(|d| {
+        // Same multi-hue gradient technique as the feColorMatrix demo: a flat source colour would make Multiply,
+        // Screen, and Difference each collapse to a single flat result, hiding how differently they actually treat
+        // colour.
+        d.build_linear_gradient("blend-source", |g| {
+            g.add_stop(0.0, STEELBLUE)?;
+            g.add_stop(0.5, GOLD)?;
+            g.add_stop(1.0, CRIMSON)?;
+            Ok(())
+        })?;
+
+        // One filter per mode: flood the same tint colour, then blend it over the source — the exact pattern shown
+        // in SvgFilter::blend's own doc example. Multiply always darkens (or leaves unchanged), Screen always
+        // lightens (or leaves unchanged), and Difference inverts wherever the two inputs differ, so the same flood
+        // colour produces three visibly distinct results against one source.
+        for (id, mode) in [
+            ("blend-filter-multiply", BlendMode::Multiply),
+            ("blend-filter-screen", BlendMode::Screen),
+            ("blend-filter-difference", BlendMode::Difference),
+        ] {
+            d.build_filter(id, |f| {
+                f.flood(LEAF_ORANGE, 1.0)?.set_attr("result", "tint")?;
+                f.blend("tint", mode)?.set_attr("in", "SourceGraphic")?;
+                Ok(())
+            })?;
+        }
+        Ok(())
+    })?;
+
+    // feBlend, like feColorMatrix, transforms colour in place without spreading pixels beyond the source's own
+    // bounding box, so no filter region widening is needed here either.
+    let rect_h = BAND - 30.0;
+    let rect_y = PAD_Y + 10.0;
+    let rect_w = 160.0_f64;
+    let xs: [f64; 4] = [20.0, 210.0, 400.0, 590.0];
+
+    let r1 = svg.rect(Point::new(xs[0], rect_y), Size::new(rect_w, rect_h))?;
+    r1.set_fill_gradient("blend-source")?;
+    caption(&svg, xs[0] + rect_w / 2.0, "original")?;
+
+    let r2 = svg.rect(Point::new(xs[1], rect_y), Size::new(rect_w, rect_h))?;
+    r2.set_fill_gradient("blend-source")?;
+    r2.set_filter("blend-filter-multiply")?;
+    caption(&svg, xs[1] + rect_w / 2.0, "Multiply")?;
+
+    let r3 = svg.rect(Point::new(xs[2], rect_y), Size::new(rect_w, rect_h))?;
+    r3.set_fill_gradient("blend-source")?;
+    r3.set_filter("blend-filter-screen")?;
+    caption(&svg, xs[2] + rect_w / 2.0, "Screen")?;
+
+    let r4 = svg.rect(Point::new(xs[3], rect_y), Size::new(rect_w, rect_h))?;
+    r4.set_fill_gradient("blend-source")?;
+    r4.set_filter("blend-filter-difference")?;
+    caption(&svg, xs[3] + rect_w / 2.0, "Difference")?;
 
     Ok(())
 }
