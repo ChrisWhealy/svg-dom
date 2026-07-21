@@ -1,8 +1,8 @@
 //! Chrome-DevTools-Protocol (CDP) integration test for `SvgFilter::blend`'s alpha-preserving tint chain.
 //!
-//! `tests/filter.rs` (in the main `svg-dom` crate) proves DOM structure for `SvgFilter::blend` and `composite`:
-//! the right elements, with the right attributes, in the right order. It cannot prove what those elements actually
-//! *render* — and the whole point of the `flood` -> `blend` -> `composite(In)` tint chain documented on
+//! `tests/filter/blend.rs` and `chains.rs` (in the main `svg-dom` crate) prove DOM structure for `SvgFilter::blend`
+//! and `composite`: the right elements, with the right attributes, in the right order. It cannot prove what those
+//! elements actually *render* — and the whole point of the `flood` -> `blend` -> `composite(In)` tint chain documented on
 //! `SvgFilter::blend` is a rendering claim: that the chain preserves the source graphic's own transparency instead
 //! of leaking the flood colour into it. A structural test that only counts child elements is satisfied by a chain
 //! that gets this wrong, which is exactly what happened before that final `composite(In)` step was added — see the

@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 
 - Implement filter effect feComponentTransfer (`3d0c95a`)
+- Add doc warning and test about last-channel-function wins (`f06b146`)
 
 ### Changed
 

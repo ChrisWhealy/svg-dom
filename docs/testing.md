@@ -61,17 +61,19 @@ Tests are organised into integration test files under `tests/`:
 | `tests/svg_node/` | `SvgNode` attribute API, clone semantics, `append`, and event handlers — see below |
 | `tests/animation_loop.rs` | `AnimationLoop` lifecycle, `start`/`stop` from within callback, and memory retention bug prevention |
 | `tests/defs/` | `SvgDefs` and `SvgMarker` construction, all factory methods, marker ID validation, `build_defs`/`build_marker` deferred-append, `set_id`, and generic attribute surface — see below |
+| `tests/filter/` | `SvgFilter` construction, every primitive factory method, id validation, region/coordinate-space attributes, and `SvgNode::set_filter`/`set_filter_ref`/`remove_filter` — see below |
 
-Shared DOM helpers (creating fixture `<div>` and `<svg>` containers, assertion functions) live in `tests/common.rs`, included by every test file — a plain `mod common;` for files directly under `tests/`, or `#[path = "../common.rs"] mod common;` for a file one level down inside `tests/svg_node/` or `tests/defs/` (see below).
+Shared DOM helpers (creating fixture `<div>` and `<svg>` containers, assertion functions) live in `tests/common.rs`, included by every test file — a plain `mod common;` for files directly under `tests/`, or `#[path = "../common.rs"] mod common;` for a file one level down inside `tests/svg_node/`, `tests/defs/`, or `tests/filter/` (see below).
 
 ### Promoted-to-folder test files
 
-`tests/svg_node.rs` and `tests/defs.rs` both grew past 1000 lines, so each was promoted to a folder — `tests/svg_node/main.rs` and `tests/defs/main.rs` are the actual Cargo-discovered test binaries (Cargo treats `tests/<name>/main.rs` as equivalent to a bare `tests/<name>.rs`), with the rest of the folder split into one file per concern, indexed in that `main.rs`'s own module doc comment — the same categorisation approach `docs/design_notes/` uses, rather than a `README.md`.
+`tests/svg_node.rs`, `tests/defs.rs`, and `tests/filter.rs` each grew past 1000 lines, so each was promoted to a folder — `tests/svg_node/main.rs`, `tests/defs/main.rs`, and `tests/filter/main.rs` are the actual Cargo-discovered test binaries (Cargo treats `tests/<name>/main.rs` as equivalent to a bare `tests/<name>.rs`), with the rest of the folder split into one file per concern, indexed in that `main.rs`'s own module doc comment — the same categorisation approach `docs/design_notes/` uses, rather than a `README.md`.
 
 | Folder | Files, each named after (and scoped to) the matching `src/` module | Shared setup |
 |---|---|---|
 | `tests/svg_node/` | `attrs`, `cached`, `text`, `transform`, `tree`, `events`, `attr_writer`, `geometry` (mirroring `src/node/attrs.rs`, `cached.rs`, `text.rs`, `transform.rs`, `tree.rs`, `event.rs`+`listeners/`, `src/root/attrs/mod.rs`, `geometry.rs`) | `helpers.rs` — a file-local `make_svg` (200×200 canvas, distinct from `common::make_svg`'s 400×300) and the synthetic-event `dispatch`/`dispatch_element` pair `events.rs` uses |
 | `tests/defs/` | `svg_defs`, `marker_construction`, `marker_children`, `marker_refs`, `deferred_append`, `marker_id_validation` | None beyond `common` — no file-local helpers were needed |
+| `tests/filter/` | `construction`, `apply`, `region`, `gaussian_blur`, `offset`, `merge`, `flood`, `composite`, `blend`, `drop_shadow`, `color_matrix`, `component_transfer`, `chains` (each primitive file mirrors its `src/root/filter/primitives/*.rs` counterpart; `construction`/`region` mirror `src/root/filter/mod.rs`/`attrs.rs`/`region.rs`; `chains` holds cross-primitive integration tests that don't belong to any single primitive) | None beyond `common` — no file-local helpers were needed |
 
 Splitting a large single-function-heavy test file into `main.rs` + siblings (rather than, say, five entirely separate `tests/*.rs` binaries) keeps each concern in its own discoverable file while still reporting as one `cargo test`/`wasm-pack test` target and paying only one fixture-setup cost — the split is organisational, not a change to how the tests run.
 
@@ -136,7 +138,7 @@ Splitting the original single test (with sequential `assert_eq!` calls in one fu
 
 ### `filter_blend_render.rs` — `SvgFilter::blend`'s alpha-preserving tint chain, against real rendered pixels
 
-`svg-dom`'s own `tests/filter.rs` proves DOM structure for `SvgFilter::blend`/`composite`: the right elements, with the right attributes.
+`svg-dom`'s own `tests/filter/blend.rs`/`chains.rs` prove DOM structure for `SvgFilter::blend`/`composite`: the right elements, with the right attributes.
 It cannot prove how those elements are actually *rendered* — and the documented `flood` → `blend` → `composite(In)` tint chain (see `SvgFilter::blend`'s doc comment and [Filters](svg_elements/filters.md)) is fundamentally a rendering claim: that the chain preserves the source graphic's own transparency instead of leaking the flood colour into it.
 
 A structural test that only counts child elements can be satisfied by a chain that gets this wrong — which is exactly what shipped briefly, before a bug report showed a flood-and-blend chain without the final `composite(In)` leaking an opaque flood colour into a circle's transparent bounding-box corners.
