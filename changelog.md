@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 
-- Refactor wasm-pack filter tests (`49729b6`)
+- Refactor categorisation of demo examples (`677c390`)
 
 ### Fixed
 
