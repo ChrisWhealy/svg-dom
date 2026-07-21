@@ -40,15 +40,15 @@ impl SvgFilter {
     /// generator that fabricates its own image from nothing, so there is nothing upstream for it to reference.
     ///
     /// `base_frequency` controls the noise's spatial frequency (how tightly packed the pattern is): larger values
-    /// produce finer, busier detail; smaller values produce broader, smoother blobs. Must be non-negative — the SVG
-    /// spec leaves a negative value unsupported, so the rendered result is unspecified rather than an error.
+    /// produce finer, busier detail; smaller values produce broader, smoother blobs. Negative frequencies are
+    /// unsupported by SVG and should not be used.
     ///
     /// `num_octaves` layers that many progressively finer copies of the noise together (each doubling the
     /// frequency and halving the amplitude of the last) — the standard "octave" technique from Perlin/fractal-noise
     /// literature generally: more octaves add finer detail at a roughly linear rendering-cost increase. `1` is a
     /// single smooth noise layer; `4`–`6` is a typical range for visibly detailed texture without excessive cost.
-    /// Deliberately a `u32` rather than a signed integer: the SVG spec treats a negative value as an error, so this
-    /// rules that out at compile time instead of failing at the DOM boundary.
+    /// Negative values are unsupported by SVG; using `u32` rather than a signed integer prevents such values from
+    /// being supplied through this API at all, rather than needing a runtime check at the DOM boundary.
     ///
     /// `seed` selects which pseudo-random noise pattern is generated; the same `seed` always reproduces the same
     /// pattern, so vary it to get a visually different result from otherwise identical parameters.
