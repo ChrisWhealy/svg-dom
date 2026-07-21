@@ -791,14 +791,17 @@ pub(super) fn demo_turbulence() -> Result<(), Error> {
         })?;
 
         // The main showcase: feTurbulence -> feDisplacementMap warps a circle's edge into a hand-drawn, organic outline
-        // instead of a perfect geometric one — the standard pairing these two primitives exist for. The displaced
-        // sampling can read pixels just outside the circle's own bounding box, so the region is widened the same way
-        // demo_filter widens it for a wide blur.
+        // instead of a perfect geometric one — the standard pairing these two primitives exist for. Red/Green (rather
+        // than Alpha/Alpha) give the displacement two independent axes: feTurbulence generates each colour channel
+        // separately, so dx and dy are no longer forced equal at every pixel the way they would be reading the same
+        // channel for both selectors, which would confine every displacement vector to a single diagonal. The
+        // displaced sampling can read pixels just outside the circle's own bounding box, so the region is widened the
+        // same way demo_filter widens it for a wide blur.
         d.build_filter("turbulence-displace", |f| {
             widen_filter_region(f)?;
             f.turbulence(0.02, 3, 5.0, TurbulenceType::FractalNoise)?
                 .set_attr("result", "noise")?;
-            f.displacement_map("noise", 24.0, Channel::Alpha, Channel::Alpha)?
+            f.displacement_map("noise", 24.0, Channel::Red, Channel::Green)?
                 .set_attr("in", "SourceGraphic")?;
             Ok(())
         })?;

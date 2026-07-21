@@ -75,6 +75,9 @@ fn should_build_tinted_drop_shadow_filter_chain() -> Result<(), String> {
 /// `turbulence` composes with `displacement_map` into a working noise-distortion filter: generate fractal noise,
 /// name it via `result`, then warp `SourceGraphic` using that noise as the displacement field — the standard
 /// `feTurbulence` + `feDisplacementMap` pairing, and the example from `SvgFilter::displacement_map`'s doc comment.
+/// Uses `Channel::Red`/`Channel::Green` (rather than `Alpha`/`Alpha`) so the displacement is free to point in any
+/// direction: passing the same channel for both selectors would compute `dx`/`dy` from the identical value at
+/// every pixel, confining every displacement vector to the `y = x` diagonal.
 #[wasm_bindgen_test]
 fn should_build_turbulence_displacement_chain() -> Result<(), String> {
     let svg = make_svg("filter-turbulence-displacement-chain");
@@ -83,7 +86,7 @@ fn should_build_turbulence_displacement_chain() -> Result<(), String> {
         .build_filter("organic-edge", |f| {
             f.turbulence(0.02, 3, 5.0, TurbulenceType::FractalNoise)?
                 .set_attr("result", "noise")?;
-            f.displacement_map("noise", 24.0, Channel::Alpha, Channel::Alpha)?
+            f.displacement_map("noise", 24.0, Channel::Red, Channel::Green)?
                 .set_attr("in", "SourceGraphic")?;
             Ok(())
         })
@@ -96,5 +99,7 @@ fn should_build_turbulence_displacement_chain() -> Result<(), String> {
     check_eq(turb.get_attribute("result"), Some("noise".into()))?;
     check_eq(disp.tag_name(), "feDisplacementMap".to_owned())?;
     check_eq(disp.get_attribute("in"), Some("SourceGraphic".into()))?;
-    check_eq(disp.get_attribute("in2"), Some("noise".into()))
+    check_eq(disp.get_attribute("in2"), Some("noise".into()))?;
+    check_eq(disp.get_attribute("xChannelSelector"), Some("R".into()))?;
+    check_eq(disp.get_attribute("yChannelSelector"), Some("G".into()))
 }

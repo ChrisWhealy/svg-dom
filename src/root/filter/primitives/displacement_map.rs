@@ -18,10 +18,17 @@ impl SvgFilter {
     /// non-zero value) produces no displacement at all — `in` passes through unchanged.
     ///
     /// `x_channel_selector`/`y_channel_selector` choose which of `in2`'s four channels drives the horizontal/
-    /// vertical displacement respectively. [`Channel::Alpha`] for both is the SVG default and the usual choice
-    /// when `in2` is noise from [`turbulence`](Self::turbulence)/[`turbulence_xy`](Self::turbulence_xy) with
-    /// [`TurbulenceType::FractalNoise`](super::super::TurbulenceType::FractalNoise) — the RGB channels there are just as
-    /// usable, but alpha needs no colour-space reasoning to interpret as a plain displacement magnitude.
+    /// vertical displacement respectively.
+    ///
+    /// ***⚠️ [`Channel::Alpha`] for both selectors constrains every displacement vector to one diagonal*** — it is
+    /// the SVG default, and a valid choice when that constraint is exactly what is wanted, but passing the *same*
+    /// channel for both selectors means `dx` and `dy` are always equal at every pixel (both computed from the same
+    /// `0.0`–`1.0` value), so displacement only ever points along the `y = x` line rather than freely in two
+    /// dimensions. For the general, more natural-looking "organic edge" case, select two *different* channels —
+    /// [`Channel::Red`] for `x_channel_selector` and [`Channel::Green`] for `y_channel_selector`, as in the example
+    /// below — since [`turbulence`](Self::turbulence)/[`turbulence_xy`](Self::turbulence_xy) generate each colour
+    /// channel independently (the same choice the SVG specification's own explanatory `feDisplacementMap` example
+    /// makes).
     ///
     /// `in2` is written directly.
     ///
@@ -39,7 +46,9 @@ impl SvgFilter {
     ///
     /// # Example
     ///
-    /// Distort a shape's edge with fractal noise — the standard `feTurbulence` + `feDisplacementMap` pairing:
+    /// Distort a shape's edge with fractal noise — the standard `feTurbulence` + `feDisplacementMap` pairing.
+    /// `Channel::Red`/`Channel::Green` give the displacement two free, uncorrelated dimensions rather than
+    /// constraining it to a single diagonal (see the warning above):
     ///
     /// ```rust,no_run
     /// use svg_dom::{SvgRoot, root::filter::{Channel, TurbulenceType}};
@@ -48,7 +57,7 @@ impl SvgFilter {
     /// let defs = svg.defs()?;
     /// let flt  = defs.filter("organic-edge")?;
     /// flt.turbulence(0.02, 3, 5.0, TurbulenceType::FractalNoise)?.set_attr("result", "noise")?;
-    /// flt.displacement_map("noise", 24.0, Channel::Alpha, Channel::Alpha)?
+    /// flt.displacement_map("noise", 24.0, Channel::Red, Channel::Green)?
     ///     .set_attr("in", "SourceGraphic")?;
     /// Ok::<(), svg_dom::Error>(())
     /// ```

@@ -34,7 +34,7 @@ Remove the filter with `SvgNode::remove_filter()`.
 | `component_transfer(funcs)` | `<feComponentTransfer>` (with `<feFuncR>`/`<feFuncG>`/`<feFuncB>`/`<feFuncA>` children) | Remaps one or more colour channels independently. `funcs` is a `&[(Channel, TransferFunction)]` slice — one `<feFuncX>` child per entry, in order; a channel not mentioned gets no child at all (the SVG default, equivalent to `TransferFunction::Identity`). `TransferFunction` selects `type`/its attributes: `Table(Vec<f64>)`/`Discrete(Vec<f64>)` write `tableValues` as the space-separated list, `Linear { slope, intercept }` and `Gamma { amplitude, exponent, offset }` write their own named attributes. The standard way to do gamma correction, contrast/levels adjustment, posterisation (`Discrete`), or an alpha fade/clip — none of which `color_matrix`'s whole-pixel linear transform can express. |
 | `turbulence(base_frequency, num_octaves, seed, turbulence_type)` | `<feTurbulence>` | Generates Perlin-noise output — the only primitive here with no meaningful `in`, since it fabricates its own image rather than reading an upstream one. `turbulence_type` is a `TurbulenceType` (`Turbulence`, higher-contrast/marbled; `FractalNoise`, softer/cloud-like). `num_octaves` is a `u32`, ruling out the SVG spec's "negative is an error" case at compile time. Almost always paired with `displacement_map` — see the warning below. |
 | `turbulence_xy(base_frequency_x, base_frequency_y, num_octaves, seed, turbulence_type)` | `<feTurbulence>` | As `turbulence`, but with independent horizontal/vertical base frequencies, writing the SVG two-number `baseFrequency="x y"` form. Unequal frequencies stretch the noise along whichever axis has the lower one — useful for wood-grain/brushed-metal textures that should read as directional rather than isotropic. |
-| `displacement_map(in2, scale, x_channel_selector, y_channel_selector)` | `<feDisplacementMap>` | Warps this primitive's `in` input using `in2`'s `x_channel_selector`/`y_channel_selector` channel values (each a `Channel`) as a per-pixel displacement field, scaled by `scale`. `in2` is typically `turbulence`/`turbulence_xy`'s `result`. `Channel::Alpha` for both selectors is the SVG default and the usual choice when `in2` is noise. |
+| `displacement_map(in2, scale, x_channel_selector, y_channel_selector)` | `<feDisplacementMap>` | Warps this primitive's `in` input using `in2`'s `x_channel_selector`/`y_channel_selector` channel values (each a `Channel`) as a per-pixel displacement field, scaled by `scale`. `in2` is typically `turbulence`/`turbulence_xy`'s `result`. Selecting different channels for `x`/`y` (e.g. `Red`/`Green`) gives free two-dimensional displacement; `Channel::Alpha` for both is the SVG default but constrains displacement to one diagonal — see the warning below. |
 
 ***⚠️ `CompositeOperator::Arithmetic` requires `k1`–`k4` to be set manually***
 
@@ -156,7 +156,7 @@ let defs = svg.defs()?;
 let flt  = defs.filter("organic-edge")?;
 
 flt.turbulence(0.02, 3, 5.0, TurbulenceType::FractalNoise)?.set_attr("result", "noise")?;
-flt.displacement_map("noise", 24.0, Channel::Alpha, Channel::Alpha)?
+flt.displacement_map("noise", 24.0, Channel::Red, Channel::Green)?
     .set_attr("in", "SourceGraphic")?;
 
 Ok::<(), svg_dom::Error>(())
@@ -167,6 +167,15 @@ Ok::<(), svg_dom::Error>(())
 Unlike every other primitive on this page, `turbulence`/`turbulence_xy` create their noise image, so there is no upstream input to chain from.
 Consequently, `in` on the returned node has no effect.
 Name the noise via `result` (as in the example above) so a later primitive's `in`/`in2` (typically `displacement_map`'s `in2`) can reference it.
+
+***⚠️ `displacement_map(Channel::Alpha, Channel::Alpha)` constrains displacement to the `y = x` diagonal***
+
+Passing the *same* channel for both `x_channel_selector` and `y_channel_selector` means `dx` and `dy` are computed from the identical `0.0`–`1.0` value at every pixel, so every displacement vector lands on the `y = x` line rather than pointing freely in two dimensions.
+
+`Alpha`/`Alpha` is the SVG default and can certainly be a valid choice when diagonal displacement is exactly what is wanted, but this is not the general case.
+The example above instead selects two *different* channels — `Channel::Red` for `x_channel_selector`, `Channel::Green` for `y_channel_selector` — since `turbulence`/`turbulence_xy` generate each colour channel independently, giving the displacement two free, uncorrelated dimensions.
+
+This is also the choice the SVG specification's own explanatory `feDisplacementMap` example makes.
 
 See [`../gaps.md`](../gaps.md) for the primitives (`feMorphology`, `feTile`, and others) still to be added.
 
