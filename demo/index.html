@@ -325,7 +325,8 @@
                         Three static, non-interactive icons have each been given a <code>&lt;title&gt;</code> child
                         using <code>set_title()</code> and a <code>&lt;desc&gt;</code> child using
                         <code>set_desc()</code>.<br>
-                        Hovering over an icon shows the browser's native tooltip, driven by its <code>&lt;title&gt;</code>
+                        Hovering over an icon shows the browser's native tooltip, driven by its
+                        <code>&lt;title&gt;</code>
                         - no extra code is needed for that part.<br>
                         <code>&lt;desc&gt;</code> has no visible tooltip in any browser; this value is made available to
                         someone using assistive technology such as a screen reader. The readout below echoes both back
@@ -333,7 +334,8 @@
                         description is visible for this demo.<br>
                         <strong>Note:</strong> a <code>&lt;title&gt;</code>/<code>&lt;desc&gt;</code> child feeds into,
                         but does not unconditionally determine, the element's computed accessible name/description —
-                        When present, <code>aria-label</code>, <code>aria-labelledby</code> and <code>aria-describedby</code> take
+                        When present, <code>aria-label</code>, <code>aria-labelledby</code> and
+                        <code>aria-describedby</code> take
                         precedence.<br>
                         <strong>Use judiciously:</strong> these icons are meaningful on their own, which is why each
                         one earns a name here. Attaching a <code>&lt;title&gt;</code>/<code>&lt;desc&gt;</code> to
@@ -470,14 +472,22 @@
                 <figure>
                     <div class="canvas" id="demo-blend"></div>
                     <figcaption>
-                        Four copies of the same multi-hue gradient rectangle, each referencing a separate
-                        <code>&lt;filter&gt;</code> built with <strong>flood</strong> (the same orange tint every
-                        time) then <strong>blend</strong>: <strong>original</strong> (no filter) ·
-                        <strong>Multiply</strong> (always darkens, or leaves unchanged) ·
-                        <strong>Screen</strong> (always lightens, or leaves unchanged) ·
-                        <strong>Difference</strong> (inverts wherever the tint and the source differ).
+                        Four copies of the same multi-hue gradient <strong>circle</strong>, each referencing a
+                        separate <code>&lt;filter&gt;</code> built with <strong>flood</strong> (the same orange
+                        tint every time), then <strong>blend</strong>, then a final <strong>composite(In)</strong>:
+                        <ul>
+                            <li><strong>original</strong> (no filter)</li>
+                            <li><strong>Multiply</strong> (always darkens, or leaves unchanged)</li>
+                            <li><strong>Screen</strong> (always lightens, or leaves unchanged)</li>
+                            <li><strong>Difference</strong> (inverts wherever the tint and the source differ)</li>
+                        </ul><br>
                         <code>BlendMode</code> has twelve further keywords not shown here — the same set as CSS
-                        <code>mix-blend-mode</code>.
+                        <code>mix-blend-mode</code>.<br>
+                        <strong>Why a circle, not a rectangle:</strong> <code>flood</code> paints its colour
+                        opaquely across the entire filter region, and <code>blend</code> alone only changes colour,
+                        not alpha — so without that final <code>composite(In)</code> clipping the result back to
+                        the circle's own alpha coverage, the flood colour would leak through the fully transparent
+                        corners of its bounding box. A rectangle has no transparency there to reveal the mistake.
                     </figcaption>
                 </figure>
             </section>

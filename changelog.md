@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Add accessibility forwarding methods on SvgRoot (`f665b75`)
 - Add CI accessibility-tree-test and an extra accessibility test (`38ff774`)
+- Implement filter effect feBlend (`5e6fb6f`)
 
 ### Changed
 

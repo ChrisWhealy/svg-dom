@@ -28,7 +28,7 @@ Remove the filter with `SvgNode::remove_filter()`.
 | `merge(inputs)` | `<feMerge>` (with `<feMergeNode>` children) | Stacks each `&str` in `inputs` as one `<feMergeNode in="...">` child, in order (later entries painted on top). The standard way to layer a shadow underneath the original graphic. |
 | `flood(color, opacity)` | `<feFlood>` | Fills the filter region with a solid `flood-color`/`flood-opacity`. Combined with `composite`, gives a shadow an independent colour rather than a blurred copy of the source graphic's own fill. |
 | `composite(in2, operator)` | `<feComposite>` | Combines this primitive's `in` input with `in2` using a [Porter-Duff](https://en.wikipedia.org/wiki/Alpha_compositing) `CompositeOperator` (`Over`/`In`/`Out`/`Atop`/`Xor`/`Lighter`/`Arithmetic`). `operator: In` against a blurred alpha mask is the standard way to tint a shadow. **`Arithmetic` needs extra setup — see the warning below before using it.** |
-| `blend(in2, mode)` | `<feBlend>` | Mixes this primitive's `in` input with `in2` using a `BlendMode` — the same sixteen keywords as CSS `mix-blend-mode` (`Normal`, `Multiply`, `Screen`, `Darken`, `Lighten`, `Overlay`, `ColorDodge`, `ColorBurn`, `HardLight`, `SoftLight`, `Difference`, `Exclusion`, `Hue`, `Saturation`, `Color`, `Luminosity`). Unlike `composite`, which combines inputs geometrically (where each is opaque), `blend` combines their *colours* photometrically. |
+| `blend(in2, mode)` | `<feBlend>` | Mixes this primitive's `in` input with `in2` using a `BlendMode` — the same sixteen keywords as CSS `mix-blend-mode` (`Normal`, `Multiply`, `Screen`, `Darken`, `Lighten`, `Overlay`, `ColorDodge`, `ColorBurn`, `HardLight`, `SoftLight`, `Difference`, `Exclusion`, `Hue`, `Saturation`, `Color`, `Luminosity`). Unlike `composite`, which combines opaque inputs geometrically, `blend` combines their *colours* photometrically. **IMPORTANT**: Tinting with a flood colour needs a final `composite(In)` step to preserve transparency — see the warning below before using it. |
 | `drop_shadow(std_deviation, dx, dy, color, opacity)` | `<feDropShadow>` | Implements the browser-native shorthand for the entire `gaussian_blur` → `flood` → `composite` → `offset` → `merge` chain described below. `std_deviation` and `dx`/`dy` are interpreted in the same `primitiveUnits`-dependent way as their `gaussian_blur`/`offset` counterparts. Its result already has the original graphic merged on top: a `<filter>` containing only `drop_shadow` is a complete effect, so there is no need to call `merge` after it. |
 | `color_matrix(matrix_type)` | `<feColorMatrix>` | Transforms colours via a `ColorMatrixType`: `Saturate(amount)`, `HueRotate(degrees)`, `LuminanceToAlpha`, or a full custom `Matrix([f64; 20])` (the fixed-size array rules out a wrong element count at compile time). Independent of the shadow primitives above — greyscale, saturation, and hue effects, not compositing. |
 
@@ -64,15 +64,26 @@ A "poor man's" drop-shadow can be constructed by chaining `gaussian_blur` + `off
 `blend` tints an entire graphic by mixing its colours with a flood colour, rather than isolating a mask the way `composite`'s `In` operator does against a blurred shadow:
 
 ```rust,no_run
-use svg_dom::{SvgRoot, root::filter::BlendMode};
+use svg_dom::{SvgRoot, root::filter::{BlendMode, CompositeOperator}};
 
 let svg  = SvgRoot::attach("diagram")?;
 let defs = svg.defs()?;
 let tint = defs.filter("tint")?;
 tint.flood("steelblue", 1.0)?.set_attr("result", "colour")?;
-tint.blend("colour", BlendMode::Multiply)?.set_attr("in", "SourceGraphic")?;
+tint.blend("colour", BlendMode::Multiply)?.set_attrs([("in", "SourceGraphic"), ("result", "tinted")])?;
+// Clip back to the source's own alpha coverage — see the warning below.
+tint.composite("SourceGraphic", CompositeOperator::In)?.set_attr("in", "tinted")?;
 Ok::<(), svg_dom::Error>(())
 ```
+
+***⚠️ Tinting with a flood colour needs a final `composite(In)` to preserve transparency***
+
+`flood` paints its colour *opaquely* across the entire filter region — a rectangle, unrelated to whatever shape or transparency the source graphic actually has.
+
+Blending that flood straight against `SourceGraphic` only changes the *colour*, not *alpha*: so `feBlend`'s result alpha is the union of its two inputs' alpha, so the flood's opacity carries straight through and the flood colour shows through wherever the source graphic was itself transparent (the corners of a circle's bounding box, the transparent parts of an image, and so on).
+
+The final `composite(in2: "SourceGraphic", operator: In)` step above clips the blended result back to the source's own alpha coverage, discarding the leaked flood outside it.
+Skipping it is only safe when the source graphic is known to be fully opaque across its entire filter region — a plain rectangle, for instance, which is why this mistake is easy to miss during development.
 
 See [`../gaps.md`](../gaps.md) for the primitives (`feComponentTransfer`, `feTile`, and others) still to be added.
 

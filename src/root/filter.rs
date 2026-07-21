@@ -755,19 +755,36 @@ impl SvgFilter {
     ///
     /// Returns [`Error::Dom`] if the browser refuses to create or append the `<feBlend>` element.
     ///
+    /// # ⚠️ Tinting with a flood colour needs a final `composite(In)` to preserve transparency
+    ///
+    /// [`flood`](Self::flood) paints its colour *opaquely* across the entire filter region — a rectangle, unrelated
+    /// to whatever shape or transparency the source graphic actually has. Blending that flood straight against
+    /// `SourceGraphic` (as in the example below) only changes *colour*; it does not touch *alpha*. Per the SVG
+    /// filter specification, `feBlend`'s result alpha is the union of its two inputs' alpha, so wherever the flood
+    /// is opaque — everywhere in the filter region, including the fully transparent corners of a circle's bounding
+    /// box, or the transparent parts of an image — the blended result stays opaque too, and the flood colour shows
+    /// through where the source graphic had nothing at all.
+    ///
+    /// Composite the blended result back `In` the original `SourceGraphic` afterwards to clip it to the source's
+    /// own alpha coverage, discarding the leaked flood outside it.
+    ///
     /// # Example
     ///
     /// Multiplying a flood colour over the source graphic — a common way to tint an image without flattening its
-    /// own shading to a single colour, the way [`composite`](Self::composite)'s `In` operator would:
+    /// own shading to a single colour, the way [`composite`](Self::composite)'s `In` operator alone would:
     ///
     /// ```rust,no_run
-    /// use svg_dom::{SvgRoot, root::filter::BlendMode};
+    /// use svg_dom::{SvgRoot, root::filter::{BlendMode, CompositeOperator}};
     ///
     /// let svg  = SvgRoot::attach("diagram")?;
     /// let defs = svg.defs()?;
     /// let tint = defs.filter("tint")?;
     /// tint.flood("steelblue", 1.0)?.set_attr("result", "colour")?;
-    /// tint.blend("colour", BlendMode::Multiply)?.set_attr("in", "SourceGraphic")?;
+    /// tint.blend("colour", BlendMode::Multiply)?
+    ///     .set_attrs([("in", "SourceGraphic"), ("result", "tinted")])?;
+    /// // Clip back to the source's own alpha coverage — without this, a non-rectangular or partially transparent
+    /// // source graphic would show the flood colour leaking through wherever it was itself transparent.
+    /// tint.composite("SourceGraphic", CompositeOperator::In)?.set_attr("in", "tinted")?;
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn blend(&self, in2: &str, mode: BlendMode) -> Result<SvgNode, Error> {
