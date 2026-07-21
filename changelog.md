@@ -32,6 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Doc only: correct description of negative radius behaviour (`623175e`)
 - Doc only: correct overgeneralised "opaque regions" claims (`405693b`)
 - Doc only: correct statement about erosion followed dilation (`9ec91a8`)
+- Doc only: correct description how erode and dilation work (`db18d24`)
 
 # [Released]
 

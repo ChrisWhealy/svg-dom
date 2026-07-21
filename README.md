@@ -61,17 +61,17 @@ That said, all reasonable, conventional steps have been taken to provide a secur
     - [x] `feComposite`
     - [ ] `feConvolveMatrix`
     - [ ] `feDiffuseLighting`
-    - [ ] `feDisplacementMap`
+    - [x] `feDisplacementMap`
     - [x] `feDropShadow`
     - [x] `feFlood`
     - [x] `feGaussianBlur`
     - [ ] `feImage`
     - [x] `feMerge`
-    - [ ] `feMorphology`
+    - [x] `feMorphology`
     - [x] `feOffset`
     - [ ] `feSpecularLighting`
     - [ ] `feTile`
-    - [ ] `feTurbulence`
+    - [x] `feTurbulence`
   - [ ] `<foreignObject>`
   - [x] `<image>`
   - [x] `<linearGradient>`
