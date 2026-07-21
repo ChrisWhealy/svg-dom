@@ -190,7 +190,8 @@ Build or manage multilingual `<title>`/`<desc>` sets through the underlying DOM 
 
 Per the accessible-name-and-description computation algorithm, the values held in `aria-labelledby` and `aria-label` take precedence over a `<title>` child for the accessible name, and `aria-describedby` takes precedence over a `<desc>` child for the accessible description.
 
-A `<title>` child only supplies the accessible name (and only then does it also drive the browser's native hover tooltip) when neither ARIA attribute is present on the element; `<desc>` is otherwise never rendered as a tooltip by any browser.
+When neither ARIA attribute is present, the user agent selects an appropriate direct `<title>`and/or `<desc>` child according to the SVG language-selection rules.
+In the common single-child case, that child supplies the accessible name and/or description, and only then does a `<title>` also drive the browser's native hover tooltip; `<desc>` is otherwise never rendered as a tooltip by any browser.
 
 `remove_title()`/`remove_desc()` remove only the first direct child; accessible names are not inherited from an ancestor, so removing a `<title>` does not cause "fallback" to some ancestor's name — the practical effect on the accessibility tree depends on what else, if anything, supplies a name (ARIA attributes, other content, or nothing at all).
 

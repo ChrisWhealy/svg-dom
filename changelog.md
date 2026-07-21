@@ -6,11 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Unreleased]
 
-## [0.1.64] - 2026-07-22
+## [0.1.64] - 2026-07-21
 
 ### Added
 
 - Add accessibility forwarding methods on SvgRoot (`f665b75`)
+- Add CI accessibility-tree-test and an extra accessibility test (`38ff774`)
 
 ### Changed
 
@@ -18,7 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Released]
 
-## [0.1.63] - 2026-07-22
+## [0.1.63] - 2026-07-21
 
 ### Added
 

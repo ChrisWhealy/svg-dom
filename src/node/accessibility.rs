@@ -11,8 +11,11 @@ impl SvgNode {
     /// it: as per the accessible-name-and-description computation algorithm, `aria-labelledby` and `aria-label` — when
     /// present on this element — take precedence over a `<title>` child.
     ///
-    /// When neither ARIA attribute is present, the first `<title>` child (in document order) supplies the accessible
-    /// name. Separately, a `<title>` child is also what most browsers render as a native tooltip on hover.
+    /// When neither ARIA naming attribute is present, the user agent selects an appropriate direct `<title>` child
+    /// according to the SVG language-selection rules — see [`title`](Self::title) and this method's `# Scope`
+    /// section for why that is not simply "the first one" once multilingual siblings are involved. In the common
+    /// single-title case, that child supplies the accessible name. Separately, a `<title>` child is also what most
+    /// browsers render as a native tooltip on hover.
     ///
     /// Calling this again updates the *first* `<title>` child's text (see the scope note below) rather than always
     /// creating a new one, and when there was no `<title>` child at all, the brand-new one is inserted as this
@@ -110,8 +113,10 @@ impl SvgNode {
     /// This `<desc>` participates in the element's accessible-description computation, but does not unconditionally
     /// determine it: if present on the element, `aria-describedby` takes precedence over a `<desc>` child.
     ///
-    /// When `aria-describedby` is not present, the first `<desc>` child (in document order) supplies the accessible
-    /// description. Unlike [`set_title`](Self::set_title), browsers do not render `<desc>` as a tooltip.
+    /// When `aria-describedby` is not present, the user agent selects an appropriate direct `<desc>` child according
+    /// to the same SVG language-selection rules noted on [`set_title`](Self::set_title). In the common single-desc
+    /// case, that child supplies the accessible description. Unlike [`set_title`](Self::set_title), browsers do not
+    /// render `<desc>` as a tooltip.
     ///
     /// Calling this again updates the *first* `<desc>` child's text rather than always creating a new one, and when
     /// there was no `<desc>` child at all, the brand-new one is inserted immediately after an existing `<title>` (or
