@@ -1,5 +1,5 @@
 use crate::common::*;
-use svg_dom::{BlendMode, CompositeOperator};
+use svg_dom::{BlendMode, Channel, CompositeOperator, TurbulenceType};
 use wasm_bindgen_test::*;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -66,4 +66,35 @@ fn should_build_tinted_drop_shadow_filter_chain() -> Result<(), String> {
         })
         .map_err(|e| e.to_string())?;
     check_eq(filter.as_element().child_element_count(), 5)
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// turbulence + displacement_map — organic-edge distortion chain
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `turbulence` composes with `displacement_map` into a working noise-distortion filter: generate fractal noise,
+/// name it via `result`, then warp `SourceGraphic` using that noise as the displacement field — the standard
+/// `feTurbulence` + `feDisplacementMap` pairing, and the example from `SvgFilter::displacement_map`'s doc comment.
+#[wasm_bindgen_test]
+fn should_build_turbulence_displacement_chain() -> Result<(), String> {
+    let svg = make_svg("filter-turbulence-displacement-chain");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs
+        .build_filter("organic-edge", |f| {
+            f.turbulence(0.02, 3, 5.0, TurbulenceType::FractalNoise)?
+                .set_attr("result", "noise")?;
+            f.displacement_map("noise", 24.0, Channel::Alpha, Channel::Alpha)?
+                .set_attr("in", "SourceGraphic")?;
+            Ok(())
+        })
+        .map_err(|e| e.to_string())?;
+    let el = filter.as_element();
+    check_eq(el.child_element_count(), 2)?;
+    let turb = el.first_element_child().ok_or("expected a <feTurbulence> child")?;
+    let disp = turb.next_element_sibling().ok_or("expected a <feDisplacementMap> sibling")?;
+    check_eq(turb.tag_name(), "feTurbulence".to_owned())?;
+    check_eq(turb.get_attribute("result"), Some("noise".into()))?;
+    check_eq(disp.tag_name(), "feDisplacementMap".to_owned())?;
+    check_eq(disp.get_attribute("in"), Some("SourceGraphic".into()))?;
+    check_eq(disp.get_attribute("in2"), Some("noise".into()))
 }

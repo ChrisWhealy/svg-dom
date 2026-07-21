@@ -9,6 +9,7 @@
 - [`flood` and `composite` complete a *true* tinted drop shadow, and `CompositeOperator` follows the existing typed-enum precedent](#flood-and-composite-complete-a-true-tinted-drop-shadow-and-compositeoperator-follows-the-existing-typed-enum-precedent)
 - [`drop_shadow` takes five positional parameters, because these value must be supplied to the underlying SVG primitive](#drop_shadow-takes-five-positional-parameters-because-these-value-must-be-supplied-to-the-underlying-svg-primitive)
 - [`color_matrix` uses a data-carrying enum](#color_matrix-uses-a-data-carrying-enum)
+- [`turbulence`/`turbulence_xy` have no `in`, and `displacement_map` reuses `Channel` rather than a new enum](#turbulenceturbulence_xy-have-no-in-and-displacement_map-reuses-channel-rather-than-a-new-enum)
 - [Filter region and coordinate-space attributes get named setters, `FilterUnits` reuses the `PatternUnits` shape](#filter-region-and-coordinate-space-attributes-get-named-setters-filterunits-reuses-the-patternunits-shape)
 
 `SvgFilter` (`src/root/filter/`) is structurally identical to `SvgClipPath` and `SvgPattern`: that is, it is an id-cached container obtained from `SvgDefs::filter`/`build_filter`, applied to any element via `SvgNode::set_filter_ref`/`set_filter`, with the usual `set_attr`/`set_attrs`/`set_attr_display` escape hatch for attributes not yet wrapped by a named setter.
@@ -116,6 +117,19 @@ Writing the 20-number `values` string still avoids a heap allocation: `format_ar
 A shared "write N space-separated numbers" helper (mirroring `write_points`'s technique for a runtime-length list) was not worth building for this: `feColorMatrix` is the only primitive in the entire SVG filter specification with a fixed 20-number attribute, so there is no second call site to justify factoring the loop out.
 
 See [`docs/gaps.md`](../gaps.md) for the primitives still to be added.
+
+## `turbulence`/`turbulence_xy` have no `in`, and `displacement_map` reuses `Channel` rather than a new enum
+
+`<feTurbulence>` is the first primitive in this crate with no `in` attribute at all — it is a generator, not a filter over an existing input, so the "`in` defers to the generic escape hatch" convention every prior primitive follows has nothing to defer here: there is no `in` to set.
+This is noted explicitly in `turbulence`'s own doc comment (not just here), since every other primitive's doc comment mentions `in` in the same breath as `result`, and a caller skimming past would otherwise reasonably expect the same here.
+
+`turbulence`/`turbulence_xy` follow the same split as `gaussian_blur`/`gaussian_blur_xy`: a private `turbulence_args(&self, base_frequency: fmt::Arguments<'_>, ...)` core shared by both public methods, since `baseFrequency` is another `<number-optional-number>` attribute (see "`gaussian_blur_xy` shares a private `fmt::Arguments` core" above).
+
+`num_octaves` is a `u32` rather than a signed integer: the SVG spec defines a negative value as an error, so `u32` rules that out at compile time instead of needing a runtime check — the same "make the invalid state unrepresentable where it's cheap to do so" judgement `ColorMatrixType::Matrix`'s fixed-size array already makes for a different attribute.
+
+`displacement_map`'s `xChannelSelector`/`yChannelSelector` select one of the same four channels (`R`/`G`/`B`/`A`) `Channel` already names for `component_transfer`'s `<feFuncX>` children — a second, unrelated SVG attribute pair that happens to draw from the identical four-value vocabulary.
+Rather than add a second, word-for-word-duplicate enum, `Channel` gained a second method, `selector_str()` (returning `"R"`/`"G"`/`"B"`/`"A"`, distinct from `tag()`'s `"feFuncR"`/`"feFuncG"`/`"feFuncB"`/`"feFuncA"`), and `displacement_map` takes two plain `Channel` parameters.
+This mirrors the `FilterUnits` decision below (one enum shared by `filterUnits`/`primitiveUnits` rather than two identical enums) more than it resembles anything new: reuse an existing closed vocabulary wherever a new attribute draws from the same one, rather than mechanically minting a new type per attribute name.
 
 ## Filter region and coordinate-space attributes get named setters, `FilterUnits` reuses the `PatternUnits` shape
 

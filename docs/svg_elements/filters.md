@@ -32,6 +32,9 @@ Remove the filter with `SvgNode::remove_filter()`.
 | `drop_shadow(std_deviation, dx, dy, color, opacity)` | `<feDropShadow>` | Implements the browser-native shorthand for the entire `gaussian_blur` → `flood` → `composite` → `offset` → `merge` chain described below. `std_deviation` and `dx`/`dy` are interpreted in the same `primitiveUnits`-dependent way as their `gaussian_blur`/`offset` counterparts. Its result already has the original graphic merged on top: a `<filter>` containing only `drop_shadow` is a complete effect, so there is no need to call `merge` after it. |
 | `color_matrix(matrix_type)` | `<feColorMatrix>` | Transforms colours via a `ColorMatrixType`: `Saturate(amount)`, `HueRotate(degrees)`, `LuminanceToAlpha`, or a full custom `Matrix([f64; 20])` (the fixed-size array rules out a wrong element count at compile time). Independent of the shadow primitives above — greyscale, saturation, and hue effects, not compositing. |
 | `component_transfer(funcs)` | `<feComponentTransfer>` (with `<feFuncR>`/`<feFuncG>`/`<feFuncB>`/`<feFuncA>` children) | Remaps one or more colour channels independently. `funcs` is a `&[(Channel, TransferFunction)]` slice — one `<feFuncX>` child per entry, in order; a channel not mentioned gets no child at all (the SVG default, equivalent to `TransferFunction::Identity`). `TransferFunction` selects `type`/its attributes: `Table(Vec<f64>)`/`Discrete(Vec<f64>)` write `tableValues` as the space-separated list, `Linear { slope, intercept }` and `Gamma { amplitude, exponent, offset }` write their own named attributes. The standard way to do gamma correction, contrast/levels adjustment, posterisation (`Discrete`), or an alpha fade/clip — none of which `color_matrix`'s whole-pixel linear transform can express. |
+| `turbulence(base_frequency, num_octaves, seed, turbulence_type)` | `<feTurbulence>` | Generates Perlin-noise output — the only primitive here with no meaningful `in`, since it fabricates its own image rather than reading an upstream one. `turbulence_type` is a `TurbulenceType` (`Turbulence`, higher-contrast/marbled; `FractalNoise`, softer/cloud-like). `num_octaves` is a `u32`, ruling out the SVG spec's "negative is an error" case at compile time. Almost always paired with `displacement_map` — see the warning below. |
+| `turbulence_xy(base_frequency_x, base_frequency_y, num_octaves, seed, turbulence_type)` | `<feTurbulence>` | As `turbulence`, but with independent horizontal/vertical base frequencies, writing the SVG two-number `baseFrequency="x y"` form. Unequal frequencies stretch the noise along whichever axis has the lower one — useful for wood-grain/brushed-metal textures that should read as directional rather than isotropic. |
+| `displacement_map(in2, scale, x_channel_selector, y_channel_selector)` | `<feDisplacementMap>` | Warps this primitive's `in` input using `in2`'s `x_channel_selector`/`y_channel_selector` channel values (each a `Channel`) as a per-pixel displacement field, scaled by `scale`. `in2` is typically `turbulence`/`turbulence_xy`'s `result`. `Channel::Alpha` for both selectors is the SVG default and the usual choice when `in2` is noise. |
 
 ***⚠️ `CompositeOperator::Arithmetic` requires `k1`–`k4` to be set manually***
 
@@ -143,7 +146,29 @@ Per the SVG spec, when a `<feComponentTransfer>` has more than one child for the
 
 Avoid supplying the same `Channel` more than once when building `funcs` programmatically.
 
-See [`../gaps.md`](../gaps.md) for the primitives (`feTurbulence`, `feDisplacementMap`, and others) still to be added.
+`turbulence`/`turbulence_xy` and `displacement_map` together distort a shape's edge with noise — the standard route to hand-drawn/organic textures:
+
+```rust,no_run
+use svg_dom::{SvgRoot, root::filter::{Channel, TurbulenceType}};
+
+let svg  = SvgRoot::attach("diagram")?;
+let defs = svg.defs()?;
+let flt  = defs.filter("organic-edge")?;
+
+flt.turbulence(0.02, 3, 5.0, TurbulenceType::FractalNoise)?.set_attr("result", "noise")?;
+flt.displacement_map("noise", 24.0, Channel::Alpha, Channel::Alpha)?
+    .set_attr("in", "SourceGraphic")?;
+
+Ok::<(), svg_dom::Error>(())
+```
+
+***⚠️ `<feTurbulence>` reads no `in` at all***
+
+Unlike every other primitive on this page, `turbulence`/`turbulence_xy` create their noise image, so there is no upstream input to chain from.
+Consequently, `in` on the returned node has no effect.
+Name the noise via `result` (as in the example above) so a later primitive's `in`/`in2` (typically `displacement_map`'s `in2`) can reference it.
+
+See [`../gaps.md`](../gaps.md) for the primitives (`feMorphology`, `feTile`, and others) still to be added.
 
 ## Region and Coordinate-Space Attributes
 

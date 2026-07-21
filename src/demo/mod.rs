@@ -112,6 +112,7 @@ pub fn run_demo() -> Result<(), JsValue> {
     paint::demo_color_matrix().map_err(e)?;
     paint::demo_blend().map_err(e)?;
     paint::demo_component_transfer().map_err(e)?;
+    paint::demo_turbulence().map_err(e)?;
     texts::demo_tspan().map_err(e)?;
     texts::demo_text_path().map_err(e)?;
 
@@ -186,6 +187,7 @@ const DEMO_SOURCES: &[(&str, &str)] = &[
     ("panel-color-matrix", "demo_color_matrix"),
     ("panel-blend", "demo_blend"),
     ("panel-component-transfer", "demo_component_transfer"),
+    ("panel-turbulence", "demo_turbulence"),
     ("panel-tspan", "demo_tspan"),
     ("panel-text-path", "demo_text_path"),
     ("panel-events-click", "demo_events_click"),

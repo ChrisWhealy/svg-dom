@@ -11,6 +11,7 @@ mod color_matrix_type;
 mod composite_operator;
 mod filter_units;
 mod transfer_function;
+mod turbulence_type;
 
 pub use blend_mode::BlendMode;
 pub use channel::Channel;
@@ -18,6 +19,7 @@ pub use color_matrix_type::ColorMatrixType;
 pub use composite_operator::CompositeOperator;
 pub use filter_units::FilterUnits;
 pub use transfer_function::TransferFunction;
+pub use turbulence_type::TurbulenceType;
 
 mod attrs;
 mod primitives;
@@ -49,6 +51,9 @@ mod region;
 /// - [`color_matrix`](Self::color_matrix) (`<feColorMatrix>`)
 /// - [`component_transfer`](Self::component_transfer) (`<feComponentTransfer>` with `<feFuncR>`/`<feFuncG>`/
 ///   `<feFuncB>`/`<feFuncA>`)
+/// - [`turbulence`](Self::turbulence)
+/// - [`turbulence_xy`](Self::turbulence_xy) (`<feTurbulence>`)
+/// - [`displacement_map`](Self::displacement_map) (`<feDisplacementMap>`)
 ///
 /// The first five, taken together, can be used to build a *true* tinted, opacity-controlled drop shadow (blur the
 /// source alpha, composite a flood colour into the blurred mask, offset it, then merge it underneath the original
@@ -71,7 +76,13 @@ mod region;
 /// correction, contrast/levels adjustment, posterisation ([`TransferFunction::Discrete`]), or an alpha fade/clip,
 /// none of which [`color_matrix`](Self::color_matrix)'s whole-pixel linear transform can express.
 ///
-/// The SVG filter specification defines around fifteen effect primitives in total (`feTile`, `feTurbulence`, and
+/// [`turbulence`](Self::turbulence)/[`turbulence_xy`](Self::turbulence_xy) generate Perlin noise from nothing — the
+/// only primitive here with no meaningful `in` — and [`displacement_map`](Self::displacement_map) uses another
+/// input's channel values (typically that noise) to warp a second input pixel-by-pixel. Paired together they are
+/// the standard route to hand-drawn/organic textures; see [`displacement_map`](Self::displacement_map)'s own doc
+/// comment for a worked example.
+///
+/// The SVG filter specification defines around fifteen effect primitives in total (`feTile`, `feMorphology`, and
 /// others), each with its own attribute grammar. See `docs/gaps.md` for the primitives still to be added.
 ///
 /// The filter region ([`set_x`](Self::set_x), [`set_y`](Self::set_y), [`set_width`](Self::set_width),

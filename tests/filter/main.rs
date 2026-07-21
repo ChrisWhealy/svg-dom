@@ -23,9 +23,14 @@
 //! - [`component_transfer`] — `component_transfer`, every `TransferFunction` variant, the `Table`/`Discrete`
 //!   single-value edge cases, and duplicate-`Channel` last-wins ordering — mirrors
 //!   `src/root/filter/primitives/component_transfer.rs`.
+//! - [`turbulence`] — `turbulence`/`turbulence_xy` and every `TurbulenceType` keyword — mirrors
+//!   `src/root/filter/primitives/turbulence.rs`.
+//! - [`displacement_map`] — `displacement_map` and every `Channel` selector keyword — mirrors
+//!   `src/root/filter/primitives/displacement_map.rs`.
 //! - [`chains`] — cross-primitive integration tests (the manual blur+offset+merge and blur+flood+composite+
-//!   offset+merge drop-shadow chains, and the flood+blend+composite tint chain) — these compose several
-//!   primitives together, so they don't belong to any single primitive's own file.
+//!   offset+merge drop-shadow chains, the flood+blend+composite tint chain, and the turbulence+displacement_map
+//!   noise-distortion chain) — these compose several primitives together, so they don't belong to any single
+//!   primitive's own file.
 //!
 //! `tests/common.rs` is one directory up (shared with every other integration test file), hence the `#[path]`
 //! override below rather than a plain `mod common;`.
@@ -40,12 +45,14 @@ mod color_matrix;
 mod component_transfer;
 mod composite;
 mod construction;
+mod displacement_map;
 mod drop_shadow;
 mod flood;
 mod gaussian_blur;
 mod merge;
 mod offset;
 mod region;
+mod turbulence;
 
 use wasm_bindgen_test::wasm_bindgen_test_configure;
 

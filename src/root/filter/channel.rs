@@ -1,6 +1,8 @@
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Which colour channel a `<feFuncX>` child (built via
-/// [`SvgFilter::component_transfer`](super::SvgFilter::component_transfer)) applies to.
+/// A colour channel, used both by a `<feFuncX>` child (built via
+/// [`SvgFilter::component_transfer`](super::SvgFilter::component_transfer)) and by `<feDisplacementMap>`'s
+/// `xChannelSelector`/`yChannelSelector` attributes (see
+/// [`SvgFilter::displacement_map`](super::SvgFilter::displacement_map)).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Channel {
     /// `<feFuncR>` — the red channel.
@@ -39,6 +41,18 @@ impl Channel {
             Self::Green => "feFuncG",
             Self::Blue => "feFuncB",
             Self::Alpha => "feFuncA",
+        }
+    }
+
+    /// The single-letter SVG keyword used by `<feDisplacementMap>`'s `xChannelSelector`/`yChannelSelector`
+    /// attributes (see [`SvgFilter::displacement_map`](super::SvgFilter::displacement_map)) — the same four
+    /// channels [`tag`](Self::tag) names, just written as a bare letter rather than an element tag.
+    pub(super) fn selector_str(self) -> &'static str {
+        match self {
+            Self::Red => "R",
+            Self::Green => "G",
+            Self::Blue => "B",
+            Self::Alpha => "A",
         }
     }
 }
