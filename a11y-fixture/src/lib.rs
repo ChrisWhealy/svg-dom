@@ -1,14 +1,23 @@
-//! WASM fixture for the `tests/accessibility_tree.rs` Chrome-DevTools-Protocol integration test.
+//! WASM fixture for `accessibility-tree-test`'s Chrome-DevTools-Protocol integration tests
+//! (`tests/accessibility_tree.rs` and `tests/filter_blend_render.rs`).
 //!
-//! Builds a handful of SVG elements exercising `set_title`/`set_desc` against real accessible-name/description
-//! computation rules (ARIA precedence, blank-value rejection) so the test can inspect the actual browser-computed
-//! accessibility tree via CDP, not just the resulting DOM shape.
+//! Builds a handful of SVG elements exercising real `svg-dom` API calls whose correctness cannot be verified from
+//! the DOM alone: `set_title`/`set_desc` against real accessible-name/description computation rules (ARIA
+//! precedence, blank-value rejection), and `SvgFilter::blend`'s alpha-preserving tint chain against real rendered
+//! pixels. Both need a real Chrome instance to observe — one via the Accessibility CDP domain, the other via actual
+//! rasterised output — neither of which `wasm-bindgen-test`'s WebDriver-run browser tests have access to.
 //!
-//! Every element gets an explicit `role="img"` so Chrome always creates an accessibility-tree node for it,
-//! regardless of any SVG-specific pruning heuristics that might otherwise apply to a plain, otherwise-unremarkable
-//! shape.
+//! Every accessibility-scenario element gets an explicit `role="img"` so Chrome always creates an
+//! accessibility-tree node for it, regardless of any SVG-specific pruning heuristics that might otherwise apply to
+//! a plain, otherwise-unremarkable shape.
 
-use svg_dom::{Error, SvgRoot, root::utils::Point};
+use svg_dom::{
+    Error, SvgRoot,
+    root::{
+        filter::{BlendMode, CompositeOperator},
+        utils::Point,
+    },
+};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(start)]
@@ -17,7 +26,7 @@ pub fn run() -> Result<(), JsValue> {
 }
 
 fn build() -> Result<(), Error> {
-    let svg = SvgRoot::create_in("stage", svg_dom::root::utils::Size::new(200.0, 200.0))?;
+    let svg = SvgRoot::create_in("stage", svg_dom::root::utils::Size::new(300.0, 200.0))?;
 
     // 1. title-only naming: no ARIA attributes, so the <title> child supplies the accessible name.
     let s1 = svg.circle(Point::new(10.0, 10.0), 5.0)?;
@@ -79,6 +88,27 @@ fn build() -> Result<(), Error> {
         .map_err(js_to_dom_err)?;
     let s6_label_source = svg.text(Point::new(110.0, 30.0), "Labelledby override name")?;
     s6_label_source.as_element().set_id("s6-label");
+
+    // blend-circle: the real alpha-preserving tint chain from `SvgFilter::blend`'s own doc example
+    // (flood -> blend -> composite(In)), applied to a circle rather than a rectangle so its bounding box has
+    // genuinely transparent corners for `tests/filter_blend_render.rs` to sample. A solid white fill is
+    // deliberate: white is Multiply's identity element, so a correctly alpha-preserving chain paints the flood
+    // colour into the circle completely unchanged, giving that test an *exact* expected RGB inside the circle
+    // rather than an approximate one, while the corner of the bounding box must stay fully transparent
+    // (alpha 0) — that second assertion is what the pre-fix flood+blend chain (without the final composite)
+    // would fail, since the opaque flood used to leak straight through it.
+    let defs = svg.defs()?;
+    let blend_filter = defs.build_filter("blend-tint", |f| {
+        f.flood("#f0883e", 1.0)?.set_attr("result", "tint")?;
+        f.blend("tint", BlendMode::Multiply)?
+            .set_attrs([("in", "SourceGraphic"), ("result", "tinted")])?;
+        f.composite("SourceGraphic", CompositeOperator::In)?.set_attr("in", "tinted")?;
+        Ok(())
+    })?;
+    let blend_circle = svg.circle(Point::new(150.0, 120.0), 50.0)?;
+    blend_circle.as_element().set_id("blend-circle");
+    blend_circle.set_fill("white")?;
+    blend_circle.set_filter_ref(&blend_filter)?;
 
     // Signals to the driving test (polling via `wait_for_element`) that the fixture has finished building.
     let ready = svg.rect(Point::new(0.0, 0.0), svg_dom::root::utils::Size::new(1.0, 1.0))?;

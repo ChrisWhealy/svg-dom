@@ -41,7 +41,10 @@
 //! Lives in its own on-demand workspace member (excluded from the root package's `default-members`, same as
 //! `demo-server`) because it pulls in `headless_chrome` and requires a local Chrome/Chromium binary — neither of
 //! which the ordinary `cargo test`/`cargo nextest run` workflow should have to pay for. Run explicitly with:
-//! `cargo test -p accessibility-tree-test`.
+//! `cargo test -p accessibility-tree-test`. That command also runs the sibling `filter_blend_render.rs`, a second,
+//! unrelated CDP integration test for `SvgFilter::blend` sharing this crate's `fixture_dir`/`build_fixture`/`serve`/
+//! `launch_browser` setup helpers (in `src/lib.rs`) but not its running `Browser`/`Tab` instance or `#[test]`s —
+//! see that file's own module doc comment for what it verifies.
 //!
 //! Run in CI by its own job in `.github/workflows/ci.yml` (`accessibility-tree-test`), using the Chrome installation
 //! already present on GitHub's `ubuntu-latest` runner image — being a separate job, its failure does not block the
@@ -58,14 +61,12 @@
 //! than only in CI — keeping local and CI runs on the same code path.
 
 use std::{
-    path::PathBuf,
-    process::Command,
     sync::{Arc, Mutex, OnceLock},
-    thread,
     time::Duration,
 };
 
-use headless_chrome::{Browser, LaunchOptions, Tab, browser::default_executable, protocol::cdp::Accessibility};
+use accessibility_tree_test::{build_fixture, fixture_dir, launch_browser, serve};
+use headless_chrome::{Browser, Tab, protocol::cdp::Accessibility};
 use serde_json::Value;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -99,66 +100,6 @@ fn fixture() -> &'static Fixture {
 
         Fixture { _browser: browser, tab }
     })
-}
-
-/// See the module doc comment's `# Why the browser is launched with sandbox(false)` section.
-fn launch_browser() -> Result<Browser, Box<dyn std::error::Error>> {
-    let path = default_executable().map_err(|e| format!("could not locate a Chrome/Chromium binary: {e}"))?;
-    let launch_options = LaunchOptions::default_builder().path(Some(path)).sandbox(false).build()?;
-    Ok(Browser::new(launch_options)?)
-}
-
-fn fixture_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .expect("accessibility-tree-test must live inside the svg-dom workspace")
-        .join("a11y-fixture")
-}
-
-fn build_fixture(dir: &PathBuf) {
-    let status = Command::new("wasm-pack")
-        .current_dir(dir)
-        .args(["build", "--target", "web"])
-        .status()
-        .expect("could not run wasm-pack — is it installed and on PATH?");
-    assert!(status.success(), "wasm-pack build failed for a11y-fixture");
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Serves `dir` on an OS-assigned local port and returns that port. The server runs for the lifetime of the test
-/// process on a background thread; there is no shutdown hook, but the process exits when the test does.
-fn serve(dir: PathBuf) -> u16 {
-    let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("failed to bind ephemeral port");
-    let port = listener.local_addr().expect("no local addr").port();
-    let server = tiny_http::Server::from_listener(listener, None).expect("failed to start static file server");
-
-    thread::spawn(move || {
-        for request in server.incoming_requests() {
-            let mut path = request.url().trim_start_matches('/').to_owned();
-            if path.is_empty() {
-                path = "index.html".to_owned();
-            }
-            let file_path = dir.join(&path);
-            let response_result = match std::fs::read(&file_path) {
-                Ok(bytes) => {
-                    let content_type = if path.ends_with(".wasm") {
-                        "application/wasm"
-                    } else if path.ends_with(".js") {
-                        "text/javascript"
-                    } else {
-                        "text/html"
-                    };
-                    let header = tiny_http::Header::from_bytes(b"Content-Type".as_slice(), content_type.as_bytes())
-                        .expect("valid header");
-                    request.respond(tiny_http::Response::from_data(bytes).with_header(header))
-                },
-                Err(_) => request.respond(tiny_http::Response::from_string("not found").with_status_code(404)),
-            };
-            let _ = response_result;
-        }
-    });
-
-    port
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
