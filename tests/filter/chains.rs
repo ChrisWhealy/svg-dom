@@ -1,5 +1,5 @@
 use crate::common::*;
-use svg_dom::{BlendMode, Channel, CompositeOperator, TurbulenceType};
+use svg_dom::{BlendMode, Channel, CompositeOperator, MorphologyOperator, TurbulenceType};
 use wasm_bindgen_test::*;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -107,4 +107,35 @@ fn should_build_turbulence_displacement_chain() -> Result<(), String> {
     check_eq(disp.get_attribute("in2"), Some("noise".into()))?;
     check_eq(disp.get_attribute("xChannelSelector"), Some("R".into()))?;
     check_eq(disp.get_attribute("yChannelSelector"), Some("G".into()))
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// morphology + merge — bold-outline chain
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `morphology` composes with `merge` into a well-formed bold-outline filter: dilate the source alpha, then merge
+/// it underneath the original graphic so only the grown-outward fringe shows — the example from
+/// `SvgFilter::morphology`'s doc comment. As with the turbulence+displacement_map chain above, this only proves
+/// the DOM is assembled correctly; it does not capture or inspect rendered output.
+#[wasm_bindgen_test]
+fn should_build_bold_outline_filter_chain() -> Result<(), String> {
+    let svg = make_svg("filter-morphology-outline-chain");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs
+        .build_filter("bold-outline", |f| {
+            f.morphology(2.5, MorphologyOperator::Dilate)?
+                .set_attrs([("in", "SourceAlpha"), ("result", "thickened")])?;
+            f.merge(&["thickened", "SourceGraphic"])?;
+            Ok(())
+        })
+        .map_err(|e| e.to_string())?;
+    let el = filter.as_element();
+    check_eq(el.child_element_count(), 2)?;
+    let morph = el.first_element_child().ok_or("expected a <feMorphology> child")?;
+    let merge = morph.next_element_sibling().ok_or("expected a <feMerge> sibling")?;
+    check_eq(morph.tag_name(), "feMorphology".to_owned())?;
+    check_eq(morph.get_attribute("in"), Some("SourceAlpha".into()))?;
+    check_eq(morph.get_attribute("result"), Some("thickened".into()))?;
+    check_eq(merge.tag_name(), "feMerge".to_owned())?;
+    check_eq(merge.child_element_count(), 2)
 }

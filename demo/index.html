@@ -76,6 +76,7 @@
                     data-target="panel-component-transfer">feComponentTransfer</button>
                 <button type="button" class="menu-item" data-target="panel-turbulence">feTurbulence /
                     feDisplacementMap</button>
+                <button type="button" class="menu-item" data-target="panel-morphology">feMorphology</button>
             </details>
 
             <details class="menu-group">
@@ -563,6 +564,32 @@
                         reads no <code>in</code> at all, so its output covers the entire (rectangular) filter region,
                         not just the referencing element's own shape — applying it to a circle would visibly replace
                         the circle with a square patch of noise.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- feMorphology -->
+            <section class="section" id="panel-morphology">
+                <h2><code>&lt;feMorphology&gt;</code> — grow or shrink a shape's opaque regions</h2>
+                <figure>
+                    <div class="canvas" id="demo-morphology"></div>
+                    <figcaption>
+                        <ul>
+                            <li><strong>original</strong> — bold text, no filter</li>
+                            <li><strong>Erode(1.2)</strong> — shrinks the glyphs' strokes inward, thinning them</li>
+                            <li><strong>Dilate(1.2)</strong> — grows the glyphs' strokes outward, thickening them
+                                (and fusing tightly-spaced letters slightly at this radius)</li>
+                            <li><strong>bold outline</strong> — <code>morphology</code> dilates
+                                <code>SourceAlpha</code>, named via <code>result</code>, then <code>merge</code>
+                                stacks it underneath the original text — only the grown-outward fringe shows
+                                through, giving a bolder outline without changing the glyphs' own weight or
+                                colour</li>
+                        </ul>
+                        <br><br>
+                        Unlike <code>feColorMatrix</code>/<code>feBlend</code>/<code>feComponentTransfer</code>,
+                        <code>feMorphology</code> does not touch colour at all — it is purely a silhouette-size
+                        transform, the standard way to bolden or thin an outline without swapping to a different
+                        font weight or hand-drawing a second copy of the shape.
                     </figcaption>
                 </figure>
             </section>

@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Refactor categorisation of demo examples (`677c390`)
 - Do not use SVG default of alpha/alpha channel selector in displacement_map() (`0c317ae`)
 - Doc only: adjust description of displacement_map() channel behaviour (`0774bc1`)
+- Adjust statement about wasm-bindgen testing (`9017703`)
 
 ### Fixed
 

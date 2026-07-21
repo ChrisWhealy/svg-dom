@@ -7,5 +7,6 @@ mod drop_shadow;
 mod flood;
 mod gaussian_blur;
 mod merge;
+mod morphology;
 mod offset;
 mod turbulence;

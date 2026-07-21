@@ -10,6 +10,7 @@
 - [`drop_shadow` takes five positional parameters, because these value must be supplied to the underlying SVG primitive](#drop_shadow-takes-five-positional-parameters-because-these-value-must-be-supplied-to-the-underlying-svg-primitive)
 - [`color_matrix` uses a data-carrying enum](#color_matrix-uses-a-data-carrying-enum)
 - [`turbulence`/`turbulence_xy` have no `in`, and `displacement_map` reuses `Channel` rather than a new enum](#turbulenceturbulence_xy-have-no-in-and-displacement_map-reuses-channel-rather-than-a-new-enum)
+- [`morphology`/`morphology_xy` are the third `fmt::Arguments`-core primitive pair, and `MorphologyOperator` orders `Erode` first to match the SVG default](#morphologymorphology_xy-are-the-third-fmtarguments-core-primitive-pair-and-morphologyoperator-orders-erode-first-to-match-the-svg-default)
 - [Filter region and coordinate-space attributes get named setters, `FilterUnits` reuses the `PatternUnits` shape](#filter-region-and-coordinate-space-attributes-get-named-setters-filterunits-reuses-the-patternunits-shape)
 
 `SvgFilter` (`src/root/filter/`) is structurally identical to `SvgClipPath` and `SvgPattern`: that is, it is an id-cached container obtained from `SvgDefs::filter`/`build_filter`, applied to any element via `SvgNode::set_filter_ref`/`set_filter`, with the usual `set_attr`/`set_attrs`/`set_attr_display` escape hatch for attributes not yet wrapped by a named setter.
@@ -130,6 +131,19 @@ This is noted explicitly in `turbulence`'s own doc comment (not just here), sinc
 `displacement_map`'s `xChannelSelector`/`yChannelSelector` select one of the same four channels (`R`/`G`/`B`/`A`) `Channel` already names for `component_transfer`'s `<feFuncX>` children — a second, unrelated SVG attribute pair that happens to draw from the identical four-value vocabulary.
 Rather than add a second, word-for-word-duplicate enum, `Channel` gained a second method, `selector_str()` (returning `"R"`/`"G"`/`"B"`/`"A"`, distinct from `tag()`'s `"feFuncR"`/`"feFuncG"`/`"feFuncB"`/`"feFuncA"`), and `displacement_map` takes two plain `Channel` parameters.
 This mirrors the `FilterUnits` decision below (one enum shared by `filterUnits`/`primitiveUnits` rather than two identical enums) more than it resembles anything new: reuse an existing closed vocabulary wherever a new attribute draws from the same one, rather than mechanically minting a new type per attribute name.
+
+## `morphology`/`morphology_xy` are the third `fmt::Arguments`-core primitive pair, and `MorphologyOperator` orders `Erode` first to match the SVG default
+
+`<feMorphology>`'s `radius` is a third `<number-optional-number>` attribute (after `stdDeviation` and `baseFrequency`), so `morphology`/`morphology_xy` follow the identical private-core split already used twice: `morphology_args(&self, radius: fmt::Arguments<'_>, operator: MorphologyOperator)` does the actual element creation and attribute writes, with `morphology` calling it via `format_args!("{radius}")` and `morphology_xy` via `format_args!("{radius_x} {radius_y}")` (see "`gaussian_blur_xy` shares a private `fmt::Arguments` core" above).
+
+Unlike `CompositeOperator` (`Over` first) and `BlendMode` (`Normal` first), `MorphologyOperator` is a plain two-variant enum with no data — the same shape as `FilterUnits`.
+`Erode` is listed first because it is the SVG default for `operator` (mirroring the crate-wide convention of ordering a keyword enum's variants with the spec default first, already followed by every other filter enum here), not because it is expected to be reached for more often than `Dilate`; the two are equally common in practice, growing and shrinking a silhouette being symmetric operations.
+
+`radius`'s negative-value behaviour is documented without asserting a specific spec classification ("error" vs "unsupported"): unlike `feTurbulence`'s `baseFrequency`/`numOctaves`, which the Filter Effects specification explicitly and consistently calls out as "unsupported" (see the section above), the exact wording the specification uses for a negative `feMorphology` `radius` was not confirmed before writing this primitive's doc comment.
+
+Rather than guess and risk stating a stronger or different guarantee than the specification actually makes — the exact mistake corrected for `numOctaves` above — `radius`'s doc comment uses the same deliberately hedged phrasing this crate already uses for `flood`'s `opacity` ("may well produce an unspecified rendering result"), which is accurate regardless of the precise term the specification turns out to use.
+
+See [`docs/gaps.md`](../gaps.md) for the primitives still to be added.
 
 ## Filter region and coordinate-space attributes get named setters, `FilterUnits` reuses the `PatternUnits` shape
 

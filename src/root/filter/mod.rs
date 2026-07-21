@@ -10,6 +10,7 @@ mod channel;
 mod color_matrix_type;
 mod composite_operator;
 mod filter_units;
+mod morphology_operator;
 mod transfer_function;
 mod turbulence_type;
 
@@ -18,6 +19,7 @@ pub use channel::Channel;
 pub use color_matrix_type::ColorMatrixType;
 pub use composite_operator::CompositeOperator;
 pub use filter_units::FilterUnits;
+pub use morphology_operator::MorphologyOperator;
 pub use transfer_function::TransferFunction;
 pub use turbulence_type::TurbulenceType;
 
@@ -54,6 +56,8 @@ mod region;
 /// - [`turbulence`](Self::turbulence)
 /// - [`turbulence_xy`](Self::turbulence_xy) (`<feTurbulence>`)
 /// - [`displacement_map`](Self::displacement_map) (`<feDisplacementMap>`)
+/// - [`morphology`](Self::morphology)
+/// - [`morphology_xy`](Self::morphology_xy) (`<feMorphology>`)
 ///
 /// The first five, taken together, can be used to build a *true* tinted, opacity-controlled drop shadow (blur the
 /// source alpha, composite a flood colour into the blurred mask, offset it, then merge it underneath the original
@@ -63,8 +67,8 @@ mod region;
 /// [`drop_shadow`](Self::drop_shadow) achieves the same effect using a single primitive, since the SVG specification
 /// defines it as a browser-native shorthand for exactly that chain.
 ///
-/// [`color_matrix`](Self::color_matrix) is independent of the shadow primitives — greyscale, saturation, hue
-/// rotation, or an arbitrary linear colour transform via [`ColorMatrixType`].
+/// [`color_matrix`](Self::color_matrix) is independent of the shadow primitives — greyscale, saturation, hue rotation,
+/// or an arbitrary linear colour transform via [`ColorMatrixType`].
 ///
 /// [`blend`](Self::blend) is also independent of the shadow primitives: unlike [`composite`](Self::composite)'s
 /// geometric (Porter-Duff) combination, it mixes two inputs' *colours* using a [`BlendMode`] — the standard
@@ -72,18 +76,22 @@ mod region;
 /// is not quite the same thing as CSS `mix-blend-mode` itself).
 ///
 /// [`component_transfer`](Self::component_transfer) is likewise independent of the shadow primitives: a per-channel
-/// remap ([`TransferFunction`]) applied to red/green/blue/alpha individually, the standard way to do gamma
-/// correction, contrast/levels adjustment, posterisation ([`TransferFunction::Discrete`]), or an alpha fade/clip,
-/// none of which [`color_matrix`](Self::color_matrix)'s whole-pixel linear transform can express.
+/// remap ([`TransferFunction`]) applied to red/green/blue/alpha individually, the standard way to do gamma correction,
+/// contrast/levels adjustment, posterisation ([`TransferFunction::Discrete`]), or an alpha fade/clip, none of which
+/// [`color_matrix`](Self::color_matrix)'s whole-pixel linear transform can express.
 ///
 /// [`turbulence`](Self::turbulence)/[`turbulence_xy`](Self::turbulence_xy) generate Perlin noise from nothing — the
-/// only primitive here with no meaningful `in` — and [`displacement_map`](Self::displacement_map) uses another
-/// input's channel values (typically that noise) to warp a second input pixel-by-pixel. Paired together they are
-/// the standard route to hand-drawn/organic textures; see [`displacement_map`](Self::displacement_map)'s own doc
-/// comment for a worked example.
+/// only primitive here with no meaningful `in` — and [`displacement_map`](Self::displacement_map) uses another input's
+/// channel values (typically that noise) to warp a second input pixel-by-pixel. Paired together they are the standard
+/// route to hand-drawn/organic textures; see [`displacement_map`](Self::displacement_map)'s own doc comment for a
+/// worked example.
 ///
-/// The SVG filter specification defines around fifteen effect primitives in total (`feTile`, `feMorphology`, and
-/// others), each with its own attribute grammar. See `docs/gaps.md` for the primitives still to be added.
+/// [`morphology`](Self::morphology)/[`morphology_xy`](Self::morphology_xy) grow or shrink the input's opaque regions by
+/// a fixed radius via a [`MorphologyOperator`] — thickening or thinning an outline, independent of every other
+/// primitive above.
+///
+/// The SVG filter specification defines around fifteen effect primitives in total (`feTile`, `feImage`, and others),
+/// each with its own attribute grammar. See `docs/gaps.md` for the primitives still to be added.
 ///
 /// The filter region ([`set_x`](Self::set_x), [`set_y`](Self::set_y), [`set_width`](Self::set_width),
 /// [`set_height`](Self::set_height)) and coordinate-space ([`set_filter_units`](Self::set_filter_units),

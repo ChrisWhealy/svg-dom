@@ -11,7 +11,6 @@ The following filter effect primitives still need to be implemented, each with i
 
 | Missing Primitive | Cost | Benefit |
 |---|---|---|
-| `<feMorphology>` | Low-medium — single `radius` plus an `operator: erode/dilate` enum. | Moderate — outline thickening/thinning. |
 | `<feTile>` | Low — no meaningful attributes beyond `in`. | Low — rarely used standalone. |
 | `<feImage>` | Medium — `href` + `preserveAspectRatio`, but reuses patterns already built for `image()`. | Low-moderate, niche. |
 | `<feConvolveMatrix>` | High — `order`, `kernelMatrix` (variable-length, needs validation), `divisor`, `bias`, `targetX`/`targetY`, `edgeMode`, `preserveAlpha`. | Low — sharpen/emboss/edge-detect, rare outside specialty tooling. |
@@ -56,6 +55,6 @@ They have been intentionally excluded:
 
 ### Priority
 
-The cost/benefit analysis next favours the implementation of `feMorphology` as the next gap worth closing: low-medium implementation cost (a single `radius` plus an `erode`/`dilate` operator) against moderate benefit (outline thickening/thinning).
+The cost/benefit analysis next favours `feImage`: medium implementation cost (`href` + `preserveAspectRatio`, reusing patterns already built for `image()`) against low-moderate benefit — a better return than `feTile`'s low cost for essentially no benefit (rarely used standalone).
 
 `feConvolveMatrix` and `feDiffuseLighting`/`feSpecularLighting` remain the most expensive items on either list for the narrowest payoff, and are deprioritised accordingly.

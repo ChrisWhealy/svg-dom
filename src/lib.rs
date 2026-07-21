@@ -87,8 +87,8 @@ pub use root::{
     clip_path::{ClipPathUnits, SvgClipPath},
     defs::SvgDefs,
     filter::{
-        BlendMode, Channel, ColorMatrixType, CompositeOperator, FilterUnits, SvgFilter, TransferFunction,
-        TurbulenceType,
+        BlendMode, Channel, ColorMatrixType, CompositeOperator, FilterUnits, MorphologyOperator, SvgFilter,
+        TransferFunction, TurbulenceType,
     },
     gradient::{GradientUnits, SpreadMethod, linear::SvgLinearGradient, radial::SvgRadialGradient},
     marker::{MarkerUnits, SvgMarker},
