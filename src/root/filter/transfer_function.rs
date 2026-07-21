@@ -18,7 +18,7 @@ pub enum TransferFunction {
     /// The SVG spec defines `n+1` values as `n` interpolation regions; zero entries is explicitly defined as
     /// equivalent to [`Identity`](Self::Identity), but a *single* entry leaves `n = 0` with no region for the
     /// interpolation formula to apply to, so its behaviour is unspecified rather than "a constant function" — see
-    /// [`Error::InvalidTransferTable`](crate::Error::InvalidTransferTable), which
+    /// [`Error::InvalidTransferFunction`](crate::Error::InvalidTransferFunction), which
     /// [`component_transfer`](super::SvgFilter::component_transfer) returns for exactly this case.
     ///
     /// For a portable constant transfer function, supply the same value twice instead: `Table(vec![0.5, 0.5])`.
@@ -26,6 +26,13 @@ pub enum TransferFunction {
     /// A stepped lookup table: the channel's value selects one entry outright, per the SVG "discrete" stepping
     /// formula, rather than interpolating between two neighbours the way [`Table`](Self::Table) does. Produces a
     /// posterised/quantised look.
+    ///
+    /// Unlike [`Table`](Self::Table), a *single* value here is well-defined (every input maps to that one entry —
+    /// a constant function), but an *empty* list is not: the stepping formula divides by the value count and
+    /// indexes into the list with the result, both of which are undefined for zero values, and the spec gives the
+    /// empty list no identity fallback the way it does for `Table`. At least one value is required, or
+    /// [`component_transfer`](super::SvgFilter::component_transfer) returns
+    /// [`Error::InvalidTransferFunction`](crate::Error::InvalidTransferFunction).
     Discrete(Vec<f64>),
     /// A linear remap: `slope * C + intercept`, applied to the channel's `0.0`–`1.0` value `C`.
     Linear {

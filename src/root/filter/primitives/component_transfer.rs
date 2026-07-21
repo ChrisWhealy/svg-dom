@@ -46,8 +46,9 @@ impl SvgFilter {
     ///
     /// - [`Error::Dom`] — the browser refused to create or append the `<feComponentTransfer>` element or any of its
     ///   `<feFuncX>` children.
-    /// - [`Error::InvalidTransferTable`] — a [`TransferFunction::Table`] with exactly one value was supplied; see
-    ///   that variant's own doc comment for why a single value has no defined meaning.
+    /// - [`Error::InvalidTransferFunction`] — a [`TransferFunction::Table`] with exactly one value, or a
+    ///   [`TransferFunction::Discrete`] with zero values, was supplied; see that variant's own doc comment for why
+    ///   neither has a defined SVG meaning.
     ///
     /// # Example
     ///
@@ -77,13 +78,20 @@ impl SvgFilter {
                 TransferFunction::Identity => {},
                 TransferFunction::Table(values) => {
                     if values.len() == 1 {
-                        return Err(Error::InvalidTransferTable);
+                        return Err(Error::InvalidTransferFunction(
+                            "Table must have zero or at least two values; a single value has no defined SVG semantics",
+                        ));
                     }
                     self.attrs
                         .borrow_mut()
                         .display_element(&child, "tableValues", SpaceSeparated(values))?;
                 },
                 TransferFunction::Discrete(values) => {
+                    if values.is_empty() {
+                        return Err(Error::InvalidTransferFunction(
+                            "Discrete must have at least one value; an empty list has no defined SVG semantics",
+                        ));
+                    }
                     self.attrs
                         .borrow_mut()
                         .display_element(&child, "tableValues", SpaceSeparated(values))?;

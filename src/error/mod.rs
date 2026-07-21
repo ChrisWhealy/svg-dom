@@ -12,7 +12,8 @@
 /// - a non-empty [`PathDef`](crate::PathDef) sequence was supplied that did not begin with a `MoveTo` command ([`Error::InvalidPathData`])
 /// - a `viewBox` was supplied with a non-finite component, or a negative width/height ([`Error::InvalidViewBox`])
 /// - an empty or whitespace-only `<title>`/`<desc>` value was supplied ([`Error::InvalidAccessibleText`])
-/// - a `TransferFunction::Table` with exactly one value was supplied ([`Error::InvalidTransferTable`])
+/// - a `TransferFunction::Table`/`Discrete` value list had a length with no defined SVG semantics
+///   ([`Error::InvalidTransferFunction`])
 /// - Crate-level validation errors for various id strings
 ///   - a bad marker id ([`Error::InvalidMarkerId`])
 ///   - a bad gradient id ([`Error::InvalidGradientId`])
@@ -196,20 +197,31 @@ pub enum Error {
     /// The inner `&'static str` is `"title"` or `"desc"`, naming which one was rejected.
     InvalidAccessibleText(&'static str),
 
-    /// A [`TransferFunction::Table`](crate::root::filter::TransferFunction::Table) with exactly one value was
-    /// rejected before reaching the DOM.
+    /// A [`TransferFunction::Table`](crate::root::filter::TransferFunction::Table) or
+    /// [`TransferFunction::Discrete`](crate::root::filter::TransferFunction::Discrete) value list was rejected
+    /// before reaching the DOM because its length has no defined SVG semantics.
     ///
-    /// The SVG spec defines `tableValues` as `n+1` values describing `n` piecewise-linear interpolation regions.
-    /// An empty list (`n = 0`... no regions at all) is explicitly defined as equivalent to `Identity`. A single
-    /// value also leaves `n = 0`, but unlike the empty-list case, the spec does not define what a lone value means —
-    /// the interpolation formula has no region to apply to, so browsers are free to differ (some treat it as a
-    /// constant, some as identity, some reject it outright).
+    /// Two distinct checks share this variant:
     ///
-    /// For a portable constant transfer function, supply the same value twice instead:
-    /// `TransferFunction::Table(vec![0.5, 0.5])`.
+    /// - **`Table` with exactly one value.**
+    ///
+    ///   The SVG spec defines `tableValues` as `n+1` values describing `n` piecewise-linear interpolation regions. An
+    ///   empty list (`n = 0`, no regions at all) is explicitly definedas equivalent to `Identity`. A single value also
+    ///   leaves `n = 0`, but unlike the empty-list case, the spec does not define what a lone value means — the
+    ///   interpolation formula has no region to apply to, so browsers are free to differ. For a portable constant
+    ///   transfer function, supply the same value twice instead: `TransferFunction::Table(vec![0.5, 0.5])`.
+
+    /// - **`Discrete` with zero values.**
+    ///
+    ///   The SVG "discrete" stepping formula divides the `0.0`–`1.0` input by `n` (the value count) and indexes into
+    ///   the list with the result, using `v[n-1]` at the `C = 1.0` boundary. With `n = 0` both operations are undefined
+    ///   — division by zero and an out-of-bounds index — and, unlike `Table`, the spec gives the empty list no special
+    ///   identity meaning here. At least one value is required.
+    ///
+    /// The inner `&'static str` describes which of the two checks failed.
     ///
     /// Returned by [`SvgFilter::component_transfer`](crate::SvgFilter::component_transfer).
-    InvalidTransferTable,
+    InvalidTransferFunction(&'static str),
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -255,12 +267,7 @@ impl std::fmt::Display for Error {
             Error::InvalidAccessibleText(tag) => {
                 write!(f, "{tag} value must not be empty or whitespace-only")
             },
-            Error::InvalidTransferTable => {
-                write!(
-                    f,
-                    "TransferFunction::Table must have zero or at least two values; a single value has no defined SVG semantics"
-                )
-            },
+            Error::InvalidTransferFunction(msg) => write!(f, "invalid transfer function values: {msg}"),
         }
     }
 }

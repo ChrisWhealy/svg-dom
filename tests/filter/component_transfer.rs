@@ -140,6 +140,9 @@ fn should_accept_empty_table_values() -> Result<(), String> {
 
 /// A `TransferFunction::Table` with exactly one value has no defined SVG semantics (the `n+1`-values-describe-`n`-
 /// regions formula leaves zero regions to interpolate across) and is rejected before reaching the DOM.
+///
+/// The rejection is also transactional: the `<feComponentTransfer>` element being built is never appended to the
+/// `<filter>`, so a failed call leaves no partial DOM state behind.
 #[wasm_bindgen_test]
 fn should_reject_single_value_table() -> Result<(), String> {
     let svg = make_svg("filter-component-transfer-table-single");
@@ -147,9 +150,29 @@ fn should_reject_single_value_table() -> Result<(), String> {
     let filter = defs.filter("fcts1").map_err(|e| e.to_string())?;
     let result = filter.component_transfer(&[(Channel::Red, TransferFunction::Table(vec![0.5]))]);
     check(
-        matches!(result, Err(Error::InvalidTransferTable)),
-        "expected InvalidTransferTable error for a single-value Table",
-    )
+        matches!(result, Err(Error::InvalidTransferFunction(_))),
+        "expected InvalidTransferFunction error for a single-value Table",
+    )?;
+    check_eq(filter.as_element().child_element_count(), 0)
+}
+
+/// A `TransferFunction::Discrete` with zero values has no defined SVG semantics (the stepping formula divides by
+/// the value count and indexes into the list with the result, both undefined for zero values) and is rejected
+/// before reaching the DOM — unlike `Table`, the spec gives the empty list no identity fallback here.
+///
+/// The rejection is also transactional: the `<feComponentTransfer>` element being built is never appended to the
+/// `<filter>`, so a failed call leaves no partial DOM state behind.
+#[wasm_bindgen_test]
+fn should_reject_empty_discrete_values() -> Result<(), String> {
+    let svg = make_svg("filter-component-transfer-discrete-empty");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("fcde").map_err(|e| e.to_string())?;
+    let result = filter.component_transfer(&[(Channel::Red, TransferFunction::Discrete(vec![]))]);
+    check(
+        matches!(result, Err(Error::InvalidTransferFunction(_))),
+        "expected InvalidTransferFunction error for an empty Discrete list",
+    )?;
+    check_eq(filter.as_element().child_element_count(), 0)
 }
 
 /// Two equal values is the documented, portable way to write a constant `Table` transfer function.

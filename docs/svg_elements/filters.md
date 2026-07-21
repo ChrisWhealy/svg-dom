@@ -124,17 +124,17 @@ When `in` is `SourceGraphic` (the default for the first primitive), the primitiv
 The example above avoids this: its `Linear { slope: 0.6, intercept: 0.0 }` alpha function has `f(0) == 0`, so fully transparent pixels stay fully transparent.
 Only give `Channel::Alpha` a function with `f(0) == 0` unless a background fill across the whole region is the intended effect.
 
-***⚠️ `TransferFunction::Table` with exactly one value is rejected***
+***⚠️ `TransferFunction::Table` with exactly one value, or `Discrete` with zero values, is rejected***
 
-The SVG spec defines `tableValues` as `n+1` values describing `n` interpolation regions.
+The SVG spec defines `tableValues` for `Table` as `n+1` values describing `n` interpolation regions.
 
 An empty list (`n = 0`) is explicitly defined as equivalent to `Identity`, but a single value also leaves `n = 0` with no region to which to apply the interpolation formula — the spec does not define what a lone value means, so browsers are free to differ.
 
-`component_transfer` returns `Error::InvalidTransferTable` for this case rather than silently emitting a `tableValues` whose meaning depends on which browser renders it.
+For a portable constant `Table` transfer function, supply the same value twice instead: `TransferFunction::Table(vec![0.5, 0.5])`.
 
-For a portable constant transfer function, supply the same value twice instead: `TransferFunction::Table(vec![0.5, 0.5])`.
+`Discrete` has the opposite asymmetry: a *single* value is well-defined by the SVG "discrete" stepping formula (every input maps to that one entry), but an *empty* list is not — the formula divides the input by the value count and indexes into the list with the result, both undefined for zero values, and the spec gives the empty list no identity fallback the way it does for `Table`.
 
-`TransferFunction::Discrete` does not share this restriction — a single value is well-defined by the SVG "discrete" stepping formula (every input maps to that one entry).
+`component_transfer` returns `Error::InvalidTransferFunction` for either case rather than silently emitting a `tableValues` whose meaning depends on which browser renders it.
 
 ***⚠️ Naming the same `Channel` twice in `funcs` does not compose — the last one wins***
 
