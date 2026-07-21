@@ -116,6 +116,14 @@ flt.component_transfer(&[
 Ok::<(), svg_dom::Error>(())
 ```
 
+***⚠️ An `Alpha` transfer function with `f(0) > 0` can paint a background across the whole filter region***
+
+`feComponentTransfer` runs on every pixel of its input using non-premultiplied values, including pixels that started fully transparent.
+If the `Channel::Alpha` function maps `0.0` to something above `0.0` — for example `Linear { intercept: 0.2, .. }`, `Gamma { offset: 0.2, .. }`, or a `Table`/`Discrete` list whose first entry is above `0.0` — every previously-transparent pixel becomes visible too, not just the ones that were already part of the shape.
+When `in` is `SourceGraphic` (the default for the first primitive), the primitive subregion is the whole filter region, so the result is a rectangular halo or background fill across that entire region, not a subtler change confined to the original silhouette.
+The example above avoids this: its `Linear { slope: 0.6, intercept: 0.0 }` alpha function has `f(0) == 0`, so fully transparent pixels stay fully transparent.
+Only give `Channel::Alpha` a function with `f(0) == 0` unless a background fill across the whole region is the intended effect.
+
 ***⚠️ `TransferFunction::Table` with exactly one value is rejected***
 
 The SVG spec defines `tableValues` as `n+1` values describing `n` interpolation regions.

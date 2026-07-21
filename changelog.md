@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 
+- Exclude TransferFunction table with only one entry (`ccdc15f`)
+
 # [Released]
 
 ## [0.1.64] - 2026-07-21

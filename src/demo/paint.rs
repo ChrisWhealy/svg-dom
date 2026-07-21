@@ -731,8 +731,14 @@ pub(super) fn demo_component_transfer() -> Result<(), Error> {
         Ok(())
     })?;
 
-    // feComponentTransfer, like feColorMatrix, transforms colour (and here, alpha) in place without spreading
-    // pixels beyond the source's own bounding box, so no filter region widening is needed here either.
+    // No filter region widening is needed here, but that is a property of the specific functions used above, not of
+    // feComponentTransfer in general: the gamma/posterize filters only touch RGB, leaving alpha (and so the
+    // transparent-vs-opaque silhouette) untouched and the alpha filter's Linear { slope: 0.4, intercept: 0.0 } maps
+    // 0.0 to 0.0.
+    //
+    // A transfer function with f(0) > 0 on Channel::Alpha (e.g. a non-zero intercept/offset, or a Table/Discrete list
+    // starting above 0.0) would instead paint every fully-transparent pixel in the primitive subregion — the whole
+    // filter region here, since `in` is SourceGraphic — turning it into a rectangular halo.
     let rect_h = BAND - 30.0;
     let rect_y = PAD_Y + 10.0;
     let rect_w = 160.0_f64;

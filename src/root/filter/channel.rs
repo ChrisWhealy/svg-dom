@@ -11,6 +11,24 @@ pub enum Channel {
     Blue,
     /// `<feFuncA>` — the alpha channel. Remapping this alone is the standard way to fade or clip transparency
     /// without touching colour at all.
+    ///
+    /// ***⚠️ A function with `f(0) > 0` can paint a background across the whole filter region*** —
+    /// [`component_transfer`](super::SvgFilter::component_transfer) runs on every pixel, including ones that
+    /// started fully transparent. If the function mapped to this channel gives `0.0` an output above `0.0` every
+    /// previously-transparent pixel becomes visible too — not just the ones that were already part of the shape.
+    ///
+    /// This could happen for example with:
+    /// 
+    /// * [`TransferFunction::Linear`](super::TransferFunction::Linear) with a non-zero `intercept`
+    /// * [`TransferFunction::Gamma`](super::TransferFunction::Gamma) with a non-zero `offset`
+    /// * [`TransferFunction::Table`](super::TransferFunction::Table) or
+    ///   [`TransferFunction::Discrete`](super::TransferFunction::Discrete) whose first entry is above `0.0`
+    ///
+    /// When `in` is `SourceGraphic` (the default for the first primitive), the primitive subregion is the whole filter
+    /// region, so this shows up as a rectangular halo or background fill across that entire region.
+    ///
+    /// Do not give this channel a function with `f(0) == 0` unless a background fill across the whole region is the
+    /// intended effect.
     Alpha,
 }
 
