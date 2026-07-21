@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Exclude TransferFunction table with only one entry (`ccdc15f`)
 - Correct docs; alpha fn can create pixels outside original opaque bounding box (`fce1c99`)
 - Reject empty discrete transfer function (`3a3c90e`)
+- Correct Channel::Alpha rustdoc safety advice (`9917cfd`)
 
 # [Released]
 
