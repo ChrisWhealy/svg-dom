@@ -31,7 +31,7 @@ impl SvgFilter {
     ///
     /// The common case — passing `SourceAlpha` as `in` — shrinks or expands the source *silhouette*, since alpha
     /// is the only non-degenerate channel there; that is what [`MorphologyOperator::Erode`]/
-    /// [`MorphologyOperator::Dilate`]'s own doc comments describe, and what every example below uses. Against
+    /// [`MorphologyOperator::Dilate`]'s own doc comments describe, and what the outline example below uses. Against
     /// `SourceGraphic` (this primitive's implicit input if it is the filter's first, since `in` is not set by this
     /// method), the same min/max is taken across colour channels too, which can shift or bleed colours at edges
     /// where they differ between neighbouring pixels — worth knowing before assuming this primitive only ever
