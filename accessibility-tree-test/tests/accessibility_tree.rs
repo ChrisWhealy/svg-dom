@@ -15,7 +15,10 @@
 //! 4. A value in `aria-describedby` overrides a `<desc>` in description computation;
 //! 5. A rejected blank `set_title` leaves the element with no accessible name at all — i.e. the rejection actually
 //!    prevents the "apparently nameless object exposed to assistive technology" case SVG 2 warns about, not just
-//!    the DOM mutation.
+//!    the DOM mutation;
+//! 6. A value in `aria-labelledby` overrides *both* `aria-label` and `<title>` — it has higher precedence than
+//!    `aria-label` in accessible-name computation, not just parity with it, and the API documentation calls this out
+//!    explicitly, so it earns its own scenario rather than being folded into scenario 3.
 //!
 //! # Why five `#[test]` functions share one browser session
 //!
@@ -39,6 +42,20 @@
 //! `demo-server`) because it pulls in `headless_chrome` and requires a local Chrome/Chromium binary — neither of
 //! which the ordinary `cargo test`/`cargo nextest run` workflow should have to pay for. Run explicitly with:
 //! `cargo test -p accessibility-tree-test`.
+//!
+//! Run in CI by its own job in `.github/workflows/ci.yml` (`accessibility-tree-test`), using the Chrome installation
+//! already present on GitHub's `ubuntu-latest` runner image — being a separate job, its failure does not block the
+//! other, unrelated CI jobs from reporting their own results, but it still gates the merge like any other required
+//! check.
+//!
+//! # Why the browser is launched with `sandbox(false)`
+//!
+//! `Browser::default()` launches with Chrome's own sandbox enabled, which is the right default for browsing untrusted
+//! content — but `ubuntu-latest` now resolves to Ubuntu 24.04+, which restricts unprivileged user namespaces via
+//! AppArmor, which is what Chrome's sandbox relies on. That makes Chrome's sandbox initialisation fail even for a
+//! non-root CI user, unless `--no-sandbox` is passed. Since this test only ever loads a local fixture page this crate
+//! builds itself, there is no untrusted content for the sandbox to matter for, so it is disabled unconditionally rather
+//! than only in CI — keeping local and CI runs on the same code path.
 
 use std::{
     path::PathBuf,
@@ -48,7 +65,7 @@ use std::{
     time::Duration,
 };
 
-use headless_chrome::{Browser, Tab, protocol::cdp::Accessibility};
+use headless_chrome::{Browser, LaunchOptions, Tab, browser::default_executable, protocol::cdp::Accessibility};
 use serde_json::Value;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -71,7 +88,7 @@ fn fixture() -> &'static Fixture {
         build_fixture(&dir);
         let port = serve(dir);
 
-        let browser = Browser::default().expect("failed to launch Chrome — is it installed locally?");
+        let browser = launch_browser().expect("failed to launch Chrome — is it installed locally?");
         let tab = browser.new_tab().expect("failed to open a new tab");
         tab.navigate_to(&format!("http://127.0.0.1:{port}/index.html"))
             .expect("failed to navigate to fixture page");
@@ -82,6 +99,13 @@ fn fixture() -> &'static Fixture {
 
         Fixture { _browser: browser, tab }
     })
+}
+
+/// See the module doc comment's `# Why the browser is launched with sandbox(false)` section.
+fn launch_browser() -> Result<Browser, Box<dyn std::error::Error>> {
+    let path = default_executable().map_err(|e| format!("could not locate a Chrome/Chromium binary: {e}"))?;
+    let launch_options = LaunchOptions::default_builder().path(Some(path)).sandbox(false).build()?;
+    Ok(Browser::new(launch_options)?)
 }
 
 fn fixture_dir() -> PathBuf {
@@ -226,5 +250,16 @@ fn blank_title_rejection_leaves_no_accessible_name() {
     assert!(
         name.is_none_or(|n| n.is_empty()),
         "an element whose blank set_title was rejected must not have gained an accessible name"
+    );
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#[test]
+fn aria_labelledby_overrides_title_and_aria_label() {
+    let (name, _) = computed_name_and_description(&fixture().tab, "#s6");
+    assert_eq!(
+        name.as_deref(),
+        Some("Labelledby override name"),
+        "aria-labelledby must take precedence over both aria-label and a <title> child for the accessible name"
     );
 }

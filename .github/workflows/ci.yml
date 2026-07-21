@@ -82,6 +82,29 @@ jobs:
       - name: Run the browser integration tests
         run: wasm-pack test --headless --${{ matrix.browser }}
 
+  accessibility-tree-test:
+    name: accessibility tree (CDP · Chrome)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+
+      - name: Chrome version (diagnostic — the runner image ships one, nothing to install)
+        run: google-chrome --version || google-chrome-stable --version || chromium-browser --version
+
+      # Builds the a11y-fixture wasm package, serves it locally, and drives the runner's own Chrome over
+      # the DevTools Protocol — see the module doc comment in accessibility-tree-test/tests/accessibility_tree.rs
+      # for what this verifies and why it is a separate job rather than folded into `browser-tests`: it needs
+      # headless_chrome and a real local Chrome binary, neither of which the wasm-bindgen-test-based browser tests
+      # require, and keeping it isolated means a failure here doesn't obscure results from the other jobs.
+      - name: Run the accessibility-tree CDP integration test
+        run: cargo test -p accessibility-tree-test
+
   coverage:
     name: coverage (host tests)
     runs-on: ubuntu-latest

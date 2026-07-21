@@ -64,6 +64,22 @@ fn build() -> Result<(), Error> {
         return Err(Error::Dom("fixture invariant violated: blank <title> was accepted".into()));
     }
 
+    // 6. aria-labelledby has higher precedence than aria-label, which in turn has higher precedence than <title> —
+    // give this element all three, plus an aria-label, so the test proves aria-labelledby wins over *both* of the
+    // others, not just over <title> the way scenario 3 does.
+    let s6 = svg.circle(Point::new(110.0, 10.0), 5.0)?;
+    s6.as_element().set_id("s6");
+    s6.as_element().set_attribute("role", "img").map_err(js_to_dom_err)?;
+    s6.set_title("Should be overridden by aria-labelledby")?;
+    s6.as_element()
+        .set_attribute("aria-label", "Should also be overridden by aria-labelledby")
+        .map_err(js_to_dom_err)?;
+    s6.as_element()
+        .set_attribute("aria-labelledby", "s6-label")
+        .map_err(js_to_dom_err)?;
+    let s6_label_source = svg.text(Point::new(110.0, 30.0), "Labelledby override name")?;
+    s6_label_source.as_element().set_id("s6-label");
+
     // Signals to the driving test (polling via `wait_for_element`) that the fixture has finished building.
     let ready = svg.rect(Point::new(0.0, 0.0), svg_dom::root::utils::Size::new(1.0, 1.0))?;
     ready.as_element().set_id("fixture-ready");
