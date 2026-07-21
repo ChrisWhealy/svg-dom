@@ -40,6 +40,7 @@
             <button type="button" class="menu-item" data-target="panel-filter">filter</button>
             <button type="button" class="menu-item" data-target="panel-color-matrix">feColorMatrix</button>
             <button type="button" class="menu-item" data-target="panel-blend">feBlend</button>
+            <button type="button" class="menu-item" data-target="panel-component-transfer">feComponentTransfer</button>
             <button type="button" class="menu-item" data-target="panel-tspan">tspan</button>
             <button type="button" class="menu-item" data-target="panel-text-path">textPath</button>
 
@@ -492,6 +493,32 @@
                         not alpha — so without that final <code>composite(In)</code> clipping the result back to
                         the circle's own alpha coverage, the flood colour would leak through the fully transparent
                         corners of its bounding box. A rectangle has no transparency there to reveal the mistake.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- feComponentTransfer -->
+            <section class="section" id="panel-component-transfer">
+                <h2><code>&lt;feComponentTransfer&gt;</code> — per-channel remap, independent of the shadow
+                    primitives</h2>
+                <figure>
+                    <div class="canvas" id="demo-component-transfer"></div>
+                    <figcaption>
+                        Four copies of the same multi-hue gradient rectangle, each referencing a separate
+                        <code>&lt;filter&gt;</code> built with <strong>component_transfer</strong>:
+                        <ul>
+                            <li><strong>original</strong> (no filter)</li>
+                            <li><strong>Gamma(2.2)</strong> — applied identically to red/green/blue, darkens
+                                midtones</li>
+                            <li><strong>Discrete(4-step)</strong> — applied identically to red/green/blue,
+                                posterises the smooth gradient into hard colour bands</li>
+                            <li><strong>Alpha Linear(0.4)</strong> — applied only to alpha, fading the rectangle
+                                toward the dark canvas background without touching its colour at all</li>
+                        </ul><br>
+                        Each channel is independent: a <code>(Channel, TransferFunction)</code> pair not
+                        mentioned gets no <code>&lt;feFuncX&gt;</code> child at all (the SVG default —
+                        equivalent to <code>TransferFunction::Identity</code>), which is why the alpha-only
+                        example above leaves colour completely untouched.
                     </figcaption>
                 </figure>
             </section>

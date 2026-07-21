@@ -31,6 +31,7 @@ Remove the filter with `SvgNode::remove_filter()`.
 | `blend(in2, mode)` | `<feBlend>` | Mixes this primitive's `in` input with `in2` using a `BlendMode` — the sixteen standard `<blend-mode>` keywords shared by CSS compositing and SVG (`Normal`, `Multiply`, `Screen`, `Darken`, `Lighten`, `Overlay`, `ColorDodge`, `ColorBurn`, `HardLight`, `SoftLight`, `Difference`, `Exclusion`, `Hue`, `Saturation`, `Color`, `Luminosity`) — not the full CSS `mix-blend-mode` value set, which also has two CSS-only modes (`plus-lighter`/`plus-darker`) this enum does not offer. Unlike `composite`, which combines opaque inputs geometrically, `blend` combines their *colours* photometrically, by default in `linearRGB` rather than the `sRGB` space CSS and most image editors use — see the warning below. **IMPORTANT**: Tinting with a flood colour needs a final `composite(In)` step to preserve transparency — see the warning below before using it. |
 | `drop_shadow(std_deviation, dx, dy, color, opacity)` | `<feDropShadow>` | Implements the browser-native shorthand for the entire `gaussian_blur` → `flood` → `composite` → `offset` → `merge` chain described below. `std_deviation` and `dx`/`dy` are interpreted in the same `primitiveUnits`-dependent way as their `gaussian_blur`/`offset` counterparts. Its result already has the original graphic merged on top: a `<filter>` containing only `drop_shadow` is a complete effect, so there is no need to call `merge` after it. |
 | `color_matrix(matrix_type)` | `<feColorMatrix>` | Transforms colours via a `ColorMatrixType`: `Saturate(amount)`, `HueRotate(degrees)`, `LuminanceToAlpha`, or a full custom `Matrix([f64; 20])` (the fixed-size array rules out a wrong element count at compile time). Independent of the shadow primitives above — greyscale, saturation, and hue effects, not compositing. |
+| `component_transfer(funcs)` | `<feComponentTransfer>` (with `<feFuncR>`/`<feFuncG>`/`<feFuncB>`/`<feFuncA>` children) | Remaps one or more colour channels independently. `funcs` is a `&[(Channel, TransferFunction)]` slice — one `<feFuncX>` child per entry, in order; a channel not mentioned gets no child at all (the SVG default, equivalent to `TransferFunction::Identity`). `TransferFunction` selects `type`/its attributes: `Table(Vec<f64>)`/`Discrete(Vec<f64>)` write `tableValues` as the space-separated list, `Linear { slope, intercept }` and `Gamma { amplitude, exponent, offset }` write their own named attributes. The standard way to do gamma correction, contrast/levels adjustment, posterisation (`Discrete`), or an alpha fade/clip — none of which `color_matrix`'s whole-pixel linear transform can express. |
 
 ***⚠️ `CompositeOperator::Arithmetic` requires `k1`–`k4` to be set manually***
 
@@ -95,7 +96,27 @@ SVG filter primitives operate in the `linearRGB` colour space by default, unlike
 The same `BlendMode` can therefore produce a visibly different result here than the "same" mode elsewhere, even given identical input colours.
 Set `color-interpolation-filters="sRGB"` on the `<filter>` element (or on an individual primitive's own `SvgNode` to override it just for that primitive) when an sRGB-space result is required to match CSS or an image editor.
 
-See [`../gaps.md`](../gaps.md) for the primitives (`feComponentTransfer`, `feTile`, and others) still to be added.
+`component_transfer` gamma-corrects all three colour channels identically, and fades alpha via a linear remap:
+
+```rust,no_run
+use svg_dom::{SvgRoot, root::filter::{Channel, TransferFunction}};
+
+let svg  = SvgRoot::attach("diagram")?;
+let defs = svg.defs()?;
+let flt  = defs.filter("gamma-fade")?;
+let gamma = TransferFunction::Gamma { amplitude: 1.0, exponent: 0.45, offset: 0.0 };
+
+flt.component_transfer(&[
+    (Channel::Red, gamma.clone()),
+    (Channel::Green, gamma.clone()),
+    (Channel::Blue, gamma),
+    (Channel::Alpha, TransferFunction::Linear { slope: 0.6, intercept: 0.0 }),
+])?;
+
+Ok::<(), svg_dom::Error>(())
+```
+
+See [`../gaps.md`](../gaps.md) for the primitives (`feTurbulence`, `feDisplacementMap`, and others) still to be added.
 
 ## Region and Coordinate-Space Attributes
 

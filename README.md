@@ -57,7 +57,7 @@ That said, all reasonable, conventional steps have been taken to provide a secur
   - [x] `<filter>` and filter effects
     - [x] `feBlend`
     - [x] `feColorMatrix`
-    - [ ] `feComponentTransfer`
+    - [x] `feComponentTransfer`
     - [x] `feComposite`
     - [ ] `feConvolveMatrix`
     - [ ] `feDiffuseLighting`

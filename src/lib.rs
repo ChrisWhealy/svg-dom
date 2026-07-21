@@ -86,7 +86,7 @@ pub use root::{
     batch::SvgBatch,
     clip_path::{ClipPathUnits, SvgClipPath},
     defs::SvgDefs,
-    filter::{BlendMode, ColorMatrixType, CompositeOperator, FilterUnits, SvgFilter},
+    filter::{BlendMode, Channel, ColorMatrixType, CompositeOperator, FilterUnits, SvgFilter, TransferFunction},
     gradient::{GradientUnits, SpreadMethod, linear::SvgLinearGradient, radial::SvgRadialGradient},
     marker::{MarkerUnits, SvgMarker},
     mask::{MaskType, MaskUnits, SvgMask},
