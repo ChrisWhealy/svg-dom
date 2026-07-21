@@ -45,8 +45,11 @@ impl SvgFilter {
     ///
     /// `radius` is interpreted in the coordinate system established by
     /// [`primitiveUnits`](Self::set_primitive_units) — user-space units under the default
-    /// [`FilterUnits::UserSpaceOnUse`](super::super::FilterUnits::UserSpaceOnUse), or a fraction/percentage of the
-    /// referencing element's box under [`FilterUnits::ObjectBoundingBox`](super::super::FilterUnits::ObjectBoundingBox).
+    /// [`FilterUnits::UserSpaceOnUse`](super::super::FilterUnits::UserSpaceOnUse), or a fraction of the referencing
+    /// element's bounding box under
+    /// [`FilterUnits::ObjectBoundingBox`](super::super::FilterUnits::ObjectBoundingBox) — for example, `0.1`
+    /// represents 10% of the relevant dimension. (The SVG `radius` grammar is one or two plain `<number>` values;
+    /// there is no percentage token to write here, just a fraction expressed as a plain `f64`.)
     /// A `radius` of `0.0` (the SVG default if this is never called with a non-zero value) disables the effect
     /// entirely — `in` passes through unchanged. A negative value is not rejected, but has the identical effect:
     /// per the SVG spec, "a negative or zero value disables the effect ... the result is the filter input image".

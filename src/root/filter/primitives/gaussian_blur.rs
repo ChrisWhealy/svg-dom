@@ -28,8 +28,10 @@ impl SvgFilter {
     /// `std_deviation` is the standard deviation of the Gaussian blur kernel where larger values blur more and is
     /// interpreted in the coordinate system established by [`primitiveUnits`](Self::set_primitive_units) — user-space
     /// units under the default [`FilterUnits::UserSpaceOnUse`](super::super::FilterUnits::UserSpaceOnUse), or a
-    /// fraction/percentage of the referencing element's box under
-    /// [`FilterUnits::ObjectBoundingBox`](super::super::FilterUnits::ObjectBoundingBox).
+    /// fraction of the referencing element's bounding box under
+    /// [`FilterUnits::ObjectBoundingBox`](super::super::FilterUnits::ObjectBoundingBox) — for example, `0.1`
+    /// represents 10% of the relevant dimension. (The SVG `stdDeviation` grammar is one or two plain `<number>`
+    /// values; there is no percentage token to write here, just a fraction expressed as a plain `f64`.)
     ///
     /// A `std_deviation` of `0.0` produces no blur (the input passes through unchanged).
     ///
