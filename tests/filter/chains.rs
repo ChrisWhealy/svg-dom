@@ -80,9 +80,9 @@ fn should_build_tinted_drop_shadow_filter_chain() -> Result<(), String> {
 /// every pixel, confining every displacement vector to the `y = x` diagonal.
 ///
 /// This only proves the DOM is assembled correctly (the right elements, wired together with the right
-/// attributes) — it says nothing about the rendered pixels. `wasm-bindgen-test`'s WebDriver-run tests have no
-/// access to rendered output; see `displacement_map`'s own doc comment for the spec's interoperability caveat
-/// around what those pixels actually look like.
+/// attributes) — it says nothing about the rendered pixels. These tests do not capture or inspect rendered
+/// output; see `displacement_map`'s own doc comment for the spec's interoperability caveat around what those
+/// pixels actually look like.
 #[wasm_bindgen_test]
 fn should_build_turbulence_displacement_chain() -> Result<(), String> {
     let svg = make_svg("filter-turbulence-displacement-chain");
