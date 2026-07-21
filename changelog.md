@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Implement filter effects feTurbulence and feDisplacementMap (`27bbc33`)
 - Doc only: add description fractional seed truncation behaviour (`9805315`)
+- Doc warning: testing cannot acounnt for turbulence effect looking different in different browsers (`4a107ff`)
 
 ### Changed
 
