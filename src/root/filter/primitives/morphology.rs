@@ -37,9 +37,11 @@ impl SvgFilter {
     /// where they differ between neighbouring pixels — worth knowing before assuming this primitive only ever
     /// touches shape, never colour.
     ///
-    /// Applying `Erode` then `Dilate` with the same `radius` (an "opening") smooths small outward bumps off a
-    /// silhouette without changing its overall size; the reverse order (a "closing") fills in small inward
-    /// notches instead.
+    /// Applying `Erode` then `Dilate` with the same `radius` forms an "opening", which removes small protrusions
+    /// and narrow features (a thin bridge or spike can vanish in the `Erode` pass and, unlike a solid region,
+    /// cannot be reconstructed by the `Dilate` pass that follows). The reverse order forms a "closing", which
+    /// fills small gaps and notches instead. Neither reconstructs the geometry the first pass removed or added,
+    /// so either operation may alter the resulting silhouette rather than merely smoothing it.
     ///
     /// `radius` is interpreted in the coordinate system established by
     /// [`primitiveUnits`](Self::set_primitive_units) — user-space units under the default
