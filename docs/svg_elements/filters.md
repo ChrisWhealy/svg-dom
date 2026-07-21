@@ -36,7 +36,7 @@ Remove the filter with `SvgNode::remove_filter()`.
 | `turbulence_xy(base_frequency_x, base_frequency_y, num_octaves, seed, turbulence_type)` | `<feTurbulence>` | As `turbulence`, but with independent horizontal/vertical base frequencies, writing the SVG two-number `baseFrequency="x y"` form. Unequal frequencies stretch the noise along whichever axis has the lower one — useful for wood-grain/brushed-metal textures that should read as directional rather than isotropic. |
 | `displacement_map(in2, scale, x_channel_selector, y_channel_selector)` | `<feDisplacementMap>` | Warps this primitive's `in` input using `in2`'s `x_channel_selector`/`y_channel_selector` channel values (each a `Channel`) as a per-pixel displacement field, scaled by `scale`. `in2` is typically `turbulence`/`turbulence_xy`'s `result`. Selecting different channels for `x`/`y` (e.g. `Red`/`Green`) gives free two-dimensional displacement; `Channel::Alpha` for both is the SVG default but constrains displacement to one diagonal — see the warning below. |
 | `morphology(radius, operator)` | `<feMorphology>` | Grows or shrinks the input's opaque regions by `radius` according to a `MorphologyOperator`: `Erode` (SVG default) shrinks/thins, `Dilate` grows/thickens. `radius` is interpreted in the same `primitiveUnits`-dependent way as `gaussian_blur`'s `std_deviation`; `0.0` produces no effect. Independent of every other primitive above — a silhouette-size transform, not a blur, colour, or compositing one. |
-| `morphology_xy(radius_x, radius_y, operator)` | `<feMorphology>` | As `morphology`, but with independent horizontal/vertical radii, writing the SVG two-number `radius="x y"` form. Pass `0.0` for one axis to grow/shrink only along the other. |
+| `morphology_xy(radius_x, radius_y, operator)` | `<feMorphology>` | As `morphology`, but with independent horizontal/vertical radii, writing the SVG two-number `radius="x y"` form. Both values must be positive: unlike `gaussian_blur_xy`, a zero (or negative) component on *either* axis disables the whole primitive rather than giving a one-dimensional effect — see the warning below. |
 
 ***⚠️ `CompositeOperator::Arithmetic` requires `k1`–`k4` to be set manually***
 
@@ -197,6 +197,12 @@ Ok::<(), svg_dom::Error>(())
 
 Dilating `SourceAlpha` then merging it underneath the original graphic leaves only the grown-outward fringe visible — a bolder outline without otherwise changing the shape's own fill.
 `Erode` (the SVG default) does the reverse: shrinking a mask inward, useful before reusing it elsewhere (for example, insetting a mask so a subsequent blur does not visibly extend past the original edge).
+
+***⚠️ `morphology_xy` with a zero (or negative) component disables the whole primitive, not just that axis***
+
+Unlike `gaussian_blur_xy`, where `gaussian_blur_xy(0.0, 6.0)` is an explicitly supported one-dimensional blur, the SVG spec defines `feMorphology` differently: a `radius` component that is zero or negative disables the *entire* primitive and causes `in` to be passed through completely unchanged.
+
+`morphology_xy(3.0, 0.0, MorphologyOperator::Dilate)` is therefore a no-op, not a horizontal-only dilation — both `radius_x` and `radius_y` must be positive for this primitive to have any effect.
 
 See [`../gaps.md`](../gaps.md) for the primitives (`feTile`, `feImage`, and others) still to be added.
 

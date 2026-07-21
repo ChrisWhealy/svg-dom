@@ -77,9 +77,13 @@ impl SvgFilter {
     /// Both values are interpreted in the same [`primitiveUnits`](Self::set_primitive_units)-dependent coordinate
     /// system as [`morphology`](Self::morphology)'s `radius`.
     ///
-    /// Pass `0.0` for one axis to grow/shrink only along the other: for example:
-    /// `morphology_xy(3.0, 0.0, MorphologyOperator::Dilate)` thickens a shape horizontally only, useful for widening a
-    /// vertical divider without also lengthening it.
+    /// ***⚠️ Unlike [`gaussian_blur_xy`](Self::gaussian_blur_xy), `0.0` on one axis does not give a one-dimensional
+    /// effect***.  Instead, as per the SVG spec, a zero (or negative) `radius` component entirley disables the
+    /// primitive, not just that axis.  Consequently, `in` is passed through completely unchanged, regardless of what
+    /// the other axis's value is.
+    ///
+    /// `morphology_xy(3.0, 0.0, ...)` is therefore a no-op, not a horizontal-only dilation.
+    /// Both `radius_x` and `radius_y` must be positive for this primitive to have any effect at all.
     ///
     /// See [`morphology`](Self::morphology) for `operator`, the `in`/`result` attributes, and the negative-radius
     /// caveat, all of which apply identically here.
@@ -96,7 +100,7 @@ impl SvgFilter {
     /// let svg  = SvgRoot::attach("diagram")?;
     /// let defs = svg.defs()?;
     /// let flt  = defs.filter("widen")?;
-    /// flt.morphology_xy(4.0, 0.0, MorphologyOperator::Dilate)?;
+    /// flt.morphology_xy(4.0, 1.0, MorphologyOperator::Dilate)?;
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn morphology_xy(&self, radius_x: f64, radius_y: f64, operator: MorphologyOperator) -> Result<SvgNode, Error> {

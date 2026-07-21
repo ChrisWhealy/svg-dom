@@ -105,10 +105,15 @@ fn should_set_radius_as_two_numbers() -> Result<(), String> {
     check_eq(morph.as_element().get_attribute("radius"), Some("4 1".into()))
 }
 
-/// Passing `0.0` for one axis grows/shrinks only along the other.
+/// A zero component is written verbatim, unvalidated: `morphology_xy` is a pure serializer, so it has no reason to
+/// reject or special-case `0.0`. This does *not* mean a zero component gives a one-dimensional effect the way it
+/// does for `gaussian_blur_xy` — per the SVG spec, a zero (or negative) `radius` component disables the whole
+/// `<feMorphology>` primitive, so the element this test builds is a well-formed but inert one (`in` passed through
+/// unchanged). That rendering behaviour belongs to the browser, not to this crate, so it is not asserted here;
+/// see `morphology_xy`'s own doc comment for the full explanation.
 #[wasm_bindgen_test]
-fn should_allow_zero_on_one_axis() -> Result<(), String> {
-    let svg = make_svg("filter-morphology-xy-zero-axis");
+fn should_serialize_zero_radius_component() -> Result<(), String> {
+    let svg = make_svg("filter-morphology-xy-zero-component");
     let defs = svg.defs().map_err(|e| e.to_string())?;
     let filter = defs.filter("fmoxyz").map_err(|e| e.to_string())?;
     let morph = filter

@@ -136,6 +136,12 @@ This mirrors the `FilterUnits` decision below (one enum shared by `filterUnits`/
 
 `<feMorphology>`'s `radius` is a third `<number-optional-number>` attribute (after `stdDeviation` and `baseFrequency`), so `morphology`/`morphology_xy` follow the identical private-core split already used twice: `morphology_args(&self, radius: fmt::Arguments<'_>, operator: MorphologyOperator)` does the actual element creation and attribute writes, with `morphology` calling it via `format_args!("{radius}")` and `morphology_xy` via `format_args!("{radius_x} {radius_y}")` (see "`gaussian_blur_xy` shares a private `fmt::Arguments` core" above).
 
+The shared *code* shape does not mean shared *semantics*, though, and an early draft of `morphology_xy`'s doc comment wrongly assumed it did: it claimed `morphology_xy(3.0, 0.0, Dilate)` performs a horizontal-only dilation, by analogy with `gaussian_blur_xy(0.0, 6.0)`'s genuinely-supported one-axis blur.
+
+The SVG spec defines `feMorphology` differently from `feGaussianBlur` — a `radius` component that is zero (or negative) disables the *entire* primitive, not just that axis, so the example above was actually documenting a no-op.
+
+This is now corrected in `morphology_xy`'s own doc comment (with a `⚠️` specifically contrasting it against `gaussian_blur_xy`'s different behaviour) and in the guide; the lesson generalises past this one primitive: two primitives sharing an implementation pattern for encoding a `<number-optional-number>` attribute does not guarantee they share the same interpretation of a zero component, and each still needs checking against its own section of the specification rather than assumed by analogy.
+
 Unlike `CompositeOperator` (`Over` first) and `BlendMode` (`Normal` first), `MorphologyOperator` is a plain two-variant enum with no data — the same shape as `FilterUnits`.
 `Erode` is listed first because it is the SVG default for `operator` (mirroring the crate-wide convention of ordering a keyword enum's variants with the spec default first, already followed by every other filter enum here), not because it is expected to be reached for more often than `Dilate`; the two are equally common in practice, growing and shrinking a silhouette being symmetric operations.
 
