@@ -53,7 +53,7 @@ impl SvgFilter {
     /// # Example
     ///
     /// Distort a shape's edge with fractal noise — the standard `feTurbulence` + `feDisplacementMap` pairing.
-    /// `Channel::Red`/`Channel::Green` give the displacement two free, uncorrelated dimensions rather than
+    /// `Channel::Red`/`Channel::Green` give the displacement two separately generated dimensions rather than
     /// constraining it to a single diagonal (see the warning above):
     ///
     /// ```rust,no_run

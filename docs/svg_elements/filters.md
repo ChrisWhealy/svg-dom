@@ -173,7 +173,7 @@ Name the noise via `result` (as in the example above) so a later primitive's `in
 Passing the *same* channel for both `x_channel_selector` and `y_channel_selector` means `dx` and `dy` are computed from the identical `0.0`–`1.0` value at every pixel, so every displacement vector lands on the `y = x` line rather than pointing freely in two dimensions.
 
 `Alpha`/`Alpha` is the SVG default and can certainly be a valid choice when diagonal displacement is exactly what is wanted, but this is not the general case.
-The example above instead selects two *different* channels — `Channel::Red` for `x_channel_selector`, `Channel::Green` for `y_channel_selector` — since `turbulence`/`turbulence_xy` generate each colour channel independently, giving the displacement two free, uncorrelated dimensions.
+The example above instead selects two *different* channels — `Channel::Red` for `x_channel_selector`, `Channel::Green` for `y_channel_selector` — since `turbulence` and `turbulence_xy` generate each colour channel separately, giving the displacement two distinct dimensions.
 
 This is also the choice the SVG specification's own explanatory `feDisplacementMap` example makes.
 
