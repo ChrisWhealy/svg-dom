@@ -77,6 +77,13 @@ impl SvgFilter {
     /// flt.merge(&["thickened", "SourceGraphic"])?;
     /// Ok::<(), svg_dom::Error>(())
     /// ```
+    ///
+    /// ***⚠️ [`Dilate`](MorphologyOperator::Dilate) expands the rendered area, and may be clipped by the filter
+    /// region*** — the filter region is a hard clipping rectangle, and the SVG default (`-10% -10% 120% 120%` of
+    /// the referencing element's bounding box) only allows for a modest 10% margin on each side. A large enough
+    /// `radius` can therefore produce a visibly clipped edge on the dilated result. Increase the filter's
+    /// [`x`](Self::set_x)/[`y`](Self::set_y)/[`width`](Self::set_width)/[`height`](Self::set_height) where
+    /// necessary — see [`set_width`](Self::set_width)'s own doc comment for how and why.
     pub fn morphology(&self, radius: f64, operator: MorphologyOperator) -> Result<SvgNode, Error> {
         self.morphology_args(format_args!("{radius}"), operator)
     }
@@ -89,15 +96,16 @@ impl SvgFilter {
     /// system as [`morphology`](Self::morphology)'s `radius`.
     ///
     /// ***⚠️ Unlike [`gaussian_blur_xy`](Self::gaussian_blur_xy), `0.0` on one axis does not give a one-dimensional
-    /// effect***.  Instead, as per the SVG spec, a zero (or negative) `radius` component entirley disables the
+    /// effect***.  Instead, as per the SVG spec, a zero (or negative) `radius` component entirely disables the
     /// primitive, not just that axis.  Consequently, `in` is passed through completely unchanged, regardless of what
     /// the other axis's value is.
     ///
     /// `morphology_xy(3.0, 0.0, ...)` is therefore a no-op, not a horizontal-only dilation.
     /// Both `radius_x` and `radius_y` must be positive for this primitive to have any effect at all.
     ///
-    /// See [`morphology`](Self::morphology) for `operator`, the `in`/`result` attributes, and the negative-radius
-    /// caveat, all of which apply identically here.
+    /// See [`morphology`](Self::morphology) for `operator`, the `in`/`result` attributes, the negative-radius
+    /// caveat, and the filter-region clipping warning for [`Dilate`](MorphologyOperator::Dilate), all of which
+    /// apply identically here.
     ///
     /// # Errors
     ///

@@ -24,8 +24,9 @@ impl SvgFilter {
     /// Sets the width of the filter region.
     ///
     /// The SVG default filter region is `-10% -10% 120% 120%` of the referencing element's bounding box, which can clip
-    /// a wide blur; widen `width`/`height` explicitly for large [`gaussian_blur`](Self::gaussian_blur) `std_deviation`
-    /// values.
+    /// a wide blur or a large [`morphology`](Self::morphology) [`Dilate`](super::MorphologyOperator::Dilate) radius;
+    /// widen `width`/`height` explicitly for large [`gaussian_blur`](Self::gaussian_blur) `std_deviation` or
+    /// `morphology`/[`morphology_xy`](Self::morphology_xy) `radius` values.
     ///
     /// ⚠️ Performance ⚠️
     ///
