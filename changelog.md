@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 
 - Doc only: correct description of negative numOctave values (`6efb89e`)
+- Doc only: correct description of turbulence (`319d805`)
 
 # [Released]
 

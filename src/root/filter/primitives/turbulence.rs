@@ -51,7 +51,9 @@ impl SvgFilter {
     /// being supplied through this API at all, rather than needing a runtime check at the DOM boundary.
     ///
     /// `seed` selects which pseudo-random noise pattern is generated; the same `seed` always reproduces the same
-    /// pattern, so vary it to get a visually different result from otherwise identical parameters.
+    /// pattern, so vary it to get a visually different result from otherwise identical parameters. SVG truncates
+    /// the seed towards zero before generating the noise pattern; fractional values with the same integer part
+    /// therefore produce the same effective seed (`2.1`, `2.5`, and `2.9` are all equivalent to `2.0`).
     ///
     /// `turbulence_type` selects between [`TurbulenceType::Turbulence`] (higher-contrast, marbled noise) and
     /// [`TurbulenceType::FractalNoise`] (softer, cloud-like noise).
