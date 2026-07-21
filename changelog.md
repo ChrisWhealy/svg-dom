@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Doc warning: testing cannot acounnt for turbulence effect looking different in different browsers (`4a107ff`)
 - Doc only: clarify that user agents might clamp the numOctaves value (`8cc123a`)
 - Implement the filter effect feMorphology (`fba2622`)
+- Doc only: warn about filter-region clipping (`d173ea5`)
 
 ### Changed
 
