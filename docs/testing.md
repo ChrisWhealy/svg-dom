@@ -58,11 +58,22 @@ Tests are organised into integration test files under `tests/`:
 | File | What it covers |
 |---|---|
 | `tests/svg_root.rs` | `SvgRoot` constructors, viewport, and all element factories |
-| `tests/svg_node.rs` | `SvgNode` attribute API, clone semantics, `append`, and event handlers |
+| `tests/svg_node/` | `SvgNode` attribute API, clone semantics, `append`, and event handlers — see below |
 | `tests/animation_loop.rs` | `AnimationLoop` lifecycle, `start`/`stop` from within callback, and memory retention bug prevention |
-| `tests/defs.rs` | `SvgDefs` and `SvgMarker` construction, all factory methods, marker ID validation, `build_defs`/`build_marker` deferred-append, `set_id`, and generic attribute surface |
+| `tests/defs/` | `SvgDefs` and `SvgMarker` construction, all factory methods, marker ID validation, `build_defs`/`build_marker` deferred-append, `set_id`, and generic attribute surface — see below |
 
-Shared DOM helpers (creating fixture `<div>` and `<svg>` containers, assertion functions) live in `tests/common.rs` which is included as `mod common` by each test file.
+Shared DOM helpers (creating fixture `<div>` and `<svg>` containers, assertion functions) live in `tests/common.rs`, included by every test file — a plain `mod common;` for files directly under `tests/`, or `#[path = "../common.rs"] mod common;` for a file one level down inside `tests/svg_node/` or `tests/defs/` (see below).
+
+### Promoted-to-folder test files
+
+`tests/svg_node.rs` and `tests/defs.rs` both grew past 1000 lines, so each was promoted to a folder — `tests/svg_node/main.rs` and `tests/defs/main.rs` are the actual Cargo-discovered test binaries (Cargo treats `tests/<name>/main.rs` as equivalent to a bare `tests/<name>.rs`), with the rest of the folder split into one file per concern, indexed in that `main.rs`'s own module doc comment — the same categorisation approach `docs/design_notes/` uses, rather than a `README.md`.
+
+| Folder | Files, each named after (and scoped to) the matching `src/` module | Shared setup |
+|---|---|---|
+| `tests/svg_node/` | `attrs`, `cached`, `text`, `transform`, `tree`, `events`, `attr_writer`, `geometry` (mirroring `src/node/attrs.rs`, `cached.rs`, `text.rs`, `transform.rs`, `tree.rs`, `event.rs`+`listeners/`, `src/root/attrs/mod.rs`, `geometry.rs`) | `helpers.rs` — a file-local `make_svg` (200×200 canvas, distinct from `common::make_svg`'s 400×300) and the synthetic-event `dispatch`/`dispatch_element` pair `events.rs` uses |
+| `tests/defs/` | `svg_defs`, `marker_construction`, `marker_children`, `marker_refs`, `deferred_append`, `marker_id_validation` | None beyond `common` — no file-local helpers were needed |
+
+Splitting a large single-function-heavy test file into `main.rs` + siblings (rather than, say, five entirely separate `tests/*.rs` binaries) keeps each concern in its own discoverable file while still reporting as one `cargo test`/`wasm-pack test` target and paying only one fixture-setup cost — the split is organisational, not a change to how the tests run.
 
 ### DOM fixture strategy
 
