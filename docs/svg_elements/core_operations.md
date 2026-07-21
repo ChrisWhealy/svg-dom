@@ -141,7 +141,18 @@ Each call crosses into the browser and potentially triggers synchronous style or
 
 # Implemented accessibility helpers
 
-`<title>` and `<desc>` child elements are supported generically on `SvgNode`, so they work on any element such as a shape, a group, or the root `<svg>` itself.
+`<title>` and `<desc>` child elements are supported generically on `SvgNode`, so they work on any element such as a shape or a group.
+
+The root `<svg>` element itself is not an `SvgNode`, it is wrapped by the separate `SvgRoot` type.
+So `SvgRoot` forwards the same six methods (`set_title`, `title`, `remove_title`, `set_desc`, `desc`, `remove_desc`) directly onto the root element, since naming the whole document/diagram is one of the principal use cases for this API, not an edge case:
+
+```rust,no_run
+use svg_dom::SvgRoot;
+let svg = SvgRoot::attach("diagram")?;
+svg.set_title("Quarterly sales chart")?;
+svg.set_desc("A bar chart comparing sales across four regions")?;
+Ok::<(), svg_dom::Error>(())
+```
 
 ***IMPORTANT***<br>
 Use these methods judiciously: not every element needs a name or description.

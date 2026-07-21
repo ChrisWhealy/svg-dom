@@ -34,6 +34,8 @@ pub mod svg_root;
 /// Geometry helper types [`Point`](utils::Point) and [`Size`](utils::Size).
 pub mod utils;
 
+/// Forwards `<title>`/`<desc>` accessibility helpers from [`SvgNode`](crate::SvgNode) onto [`SvgRoot`](crate::SvgRoot).
+mod accessibility;
 /// The [`SvgRoot::circle`](crate::SvgRoot::circle) factory.
 mod circle;
 /// The [`SvgRoot::ellipse`](crate::SvgRoot::ellipse) factory.

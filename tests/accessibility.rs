@@ -346,3 +346,71 @@ fn should_leave_other_desc_siblings_untouched() -> Result<(), String> {
     check_eq(fr_desc.text_content(), Some("Description française".to_owned()))?;
     check_eq(rect.desc(), Some("Description française".to_owned()))
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Root <svg> forwarding: SvgRoot::set_title/title/remove_title/set_desc/desc/remove_desc forward to the same
+// SvgNode implementation on the root <svg> element itself, since the root is the natural place to give a whole
+// document/diagram its accessible name and is not otherwise reachable as an SvgNode.
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `SvgRoot::set_title` creates a `<title>` child directly on the root `<svg>` element, and `SvgRoot::title` reads
+/// it back.
+#[wasm_bindgen_test]
+fn should_set_and_read_back_title_on_root() -> Result<(), String> {
+    let svg = make_svg("a11y-root-title");
+    svg.set_title("Quarterly sales chart").map_err(|e| e.to_string())?;
+    let title = svg
+        .root
+        .first_element_child()
+        .ok_or("expected a <title> child on the root <svg>")?;
+    check_eq(title.tag_name(), "title".to_owned())?;
+    check_eq(svg.title(), Some("Quarterly sales chart".to_owned()))
+}
+
+/// `SvgRoot::set_desc` creates a `<desc>` child directly on the root `<svg>` element, and `SvgRoot::desc` reads it
+/// back.
+#[wasm_bindgen_test]
+fn should_set_and_read_back_desc_on_root() -> Result<(), String> {
+    let svg = make_svg("a11y-root-desc");
+    svg.set_desc("A bar chart comparing sales across four regions")
+        .map_err(|e| e.to_string())?;
+    let desc = svg
+        .root
+        .first_element_child()
+        .ok_or("expected a <desc> child on the root <svg>")?;
+    check_eq(desc.tag_name(), "desc".to_owned())?;
+    check_eq(svg.desc(), Some("A bar chart comparing sales across four regions".to_owned()))
+}
+
+/// `SvgRoot::remove_title`/`remove_desc` remove the corresponding child from the root `<svg>` element.
+#[wasm_bindgen_test]
+fn should_remove_title_and_desc_from_root() -> Result<(), String> {
+    let svg = make_svg("a11y-root-remove");
+    svg.set_title("Quarterly sales chart").map_err(|e| e.to_string())?;
+    svg.set_desc("A bar chart comparing sales across four regions")
+        .map_err(|e| e.to_string())?;
+    check_eq(svg.root.child_element_count(), 2)?;
+
+    svg.remove_title();
+    check_eq(svg.title(), None)?;
+    svg.remove_desc();
+    check_eq(svg.desc(), None)?;
+    check_eq(svg.root.child_element_count(), 0)
+}
+
+/// `SvgRoot::set_title`/`set_desc` reject blank values on the root `<svg>` exactly as they do on any other element.
+#[wasm_bindgen_test]
+fn should_reject_blank_title_and_desc_on_root() -> Result<(), String> {
+    let svg = make_svg("a11y-root-reject-blank");
+    let title_result = svg.set_title("   ");
+    check(
+        matches!(title_result, Err(Error::InvalidAccessibleText("title"))),
+        "expected InvalidAccessibleText(\"title\") for a space-only string",
+    )?;
+    let desc_result = svg.set_desc("");
+    check(
+        matches!(desc_result, Err(Error::InvalidAccessibleText("desc"))),
+        "expected InvalidAccessibleText(\"desc\") for an empty string",
+    )?;
+    check_eq(svg.root.child_element_count(), 0)
+}

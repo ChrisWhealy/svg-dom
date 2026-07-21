@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Unreleased]
 
+## [0.1.64] - 2026-07-22
+
+### Changed
+
+- Split a11y tests into five seperate functions (`41b5ad4`)
+
+# [Released]
+
 ## [0.1.63] - 2026-07-22
 
 ### Added
@@ -33,7 +41,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Distinguish values set by set_title from ARIA values in accessible name calculation (`3ba62eb`)
 - Adjust title/desc demo so it does not imply button behaviour (`d51e114`)
 
-# [Released]
 
 ## [0.1.62] - 2026-07-20
 
