@@ -206,9 +206,9 @@ impl SvgNode {
         let node = SvgNode::new(el);
         node.set_text(text);
 
-        // <title> always becomes this element's first child, so it is unambiguously the one title()/accessible-name
-        // computation finds (when not superseded by aria-label/aria-labelledby), regardless of what content this
-        // element already has.
+        // <title> always becomes this element's first child, so it is unambiguously the one title() finds.
+        // Accessible-name computation may instead select another language-tagged sibling according to the SVG
+        // language-selection rules, regardless of what content this element already has.
         //
         // <desc> is inserted immediately after an existing <title> when there is one — matching the SVG
         // specification's own examples, and keeping the two in the conventional order when both are set, whichever

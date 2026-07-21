@@ -17,6 +17,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Split a11y tests into five seperate functions (`41b5ad4`)
 
+### Fixed
+
+- Correct rustdoc about multilingual title selection (`7a709ea`)
+
 # [Released]
 
 ## [0.1.63] - 2026-07-21
