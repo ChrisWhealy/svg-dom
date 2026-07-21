@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Unreleased]
 
-## [0.1.63] - 2026-07-21
+## [0.1.63] - 2026-07-22
 
 ### Added
 
@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Implement the \<desc\> and \<title\> accessibility elements (`02204cd`)
 - Enforce title/desc singularity on pre-existing DOM elements (`440dbdf`)
 - Caution against setting titles and descriptions where they are not needed (`dfdceac`)
+- Add a11y tests (`3b6ebcd`)
 
 ### Changed
 
