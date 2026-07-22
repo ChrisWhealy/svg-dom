@@ -147,8 +147,9 @@ fn should_build_bold_outline_filter_chain() -> Result<(), String> {
 /// `image` composes with `color_matrix` into a well-formed filtered-image chain: import external image content
 /// via `href`, then greyscale it — the example from `SvgFilter::image`'s doc comment. Since `image` reads no `in`
 /// at all, `color_matrix`'s implicit input (being the filter's second primitive) is `image`'s own output, not
-/// `SourceGraphic` — the whole point of bringing image content into a filter graph rather than filtering a plain
-/// `<image>` element on its own.
+/// `SourceGraphic`. A filtered plain `<image>` element could be greyscaled the same way (it becomes `SourceGraphic`
+/// on its own); what this chain actually demonstrates is only that `image`'s output composes with a later primitive
+/// like any other primitive's output does.
 #[wasm_bindgen_test]
 fn should_build_filtered_image_chain() -> Result<(), String> {
     let svg = make_svg("filter-image-color-matrix-chain");
@@ -168,4 +169,46 @@ fn should_build_filtered_image_chain() -> Result<(), String> {
     check_eq(img.get_attribute("href"), Some("photo.jpg".into()))?;
     check_eq(cm.tag_name(), "feColorMatrix".to_owned())?;
     check_eq(cm.get_attribute("type"), Some("saturate".into()))
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// image + composite + blend — texture-on-object chain
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `image` composes with `composite` and `blend` into the chain that actually distinguishes `<feImage>` from
+/// filtering a plain `<image>` element: `composite(SourceAlpha, In)` clips the imported texture to the filtered
+/// element's own silhouette, then `blend(SourceGraphic, Multiply)` composes it back over the element's own fill.
+/// Unlike `should_build_filtered_image_chain` above, this reads the filtered element's own `SourceGraphic`/
+/// `SourceAlpha` — something a filtered plain `<image>` cannot do, since it has no second, independent source to
+/// combine with.
+#[wasm_bindgen_test]
+fn should_build_textured_object_chain() -> Result<(), String> {
+    let svg = make_svg("filter-image-composite-blend-chain");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs
+        .build_filter("textured-object", |f| {
+            f.image("texture.jpg")?.set_attr("result", "texture")?;
+            f.composite("SourceAlpha", CompositeOperator::In)?
+                .set_attrs([("in", "texture"), ("result", "clipped-texture")])?;
+            f.blend("clipped-texture", BlendMode::Multiply)?
+                .set_attr("in", "SourceGraphic")?;
+            Ok(())
+        })
+        .map_err(|e| e.to_string())?;
+    let el = filter.as_element();
+    check_eq(el.child_element_count(), 3)?;
+    let img = el.first_element_child().ok_or("expected a <feImage> child")?;
+    let comp = img.next_element_sibling().ok_or("expected a <feComposite> sibling")?;
+    let blend = comp.next_element_sibling().ok_or("expected a <feBlend> sibling")?;
+    check_eq(img.tag_name(), "feImage".to_owned())?;
+    check_eq(img.get_attribute("result"), Some("texture".into()))?;
+    check_eq(comp.tag_name(), "feComposite".to_owned())?;
+    check_eq(comp.get_attribute("in"), Some("texture".into()))?;
+    check_eq(comp.get_attribute("in2"), Some("SourceAlpha".into()))?;
+    check_eq(comp.get_attribute("operator"), Some("in".into()))?;
+    check_eq(comp.get_attribute("result"), Some("clipped-texture".into()))?;
+    check_eq(blend.tag_name(), "feBlend".to_owned())?;
+    check_eq(blend.get_attribute("in"), Some("SourceGraphic".into()))?;
+    check_eq(blend.get_attribute("in2"), Some("clipped-texture".into()))?;
+    check_eq(blend.get_attribute("mode"), Some("multiply".into()))
 }

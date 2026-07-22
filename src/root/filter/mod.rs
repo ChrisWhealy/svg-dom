@@ -92,10 +92,13 @@ mod region;
 /// `SourceAlpha`, the common case, this thickens or thins an outline; independent of every other primitive above.
 ///
 /// Alongside [`turbulence`](Self::turbulence) and [`turbulence_xy`](Self::turbulence_xy), [`image`](Self::image) is the
-/// third generator that does not read from an upstream primitive, a: its content comes from an `href` rather than an
-/// upstream primitive, letting external image content be pulled into a filter graph and combined with every other
-/// primitive above (colour-transformed, blended, composited, ...) — something a plain
-/// [`SvgRoot::image`](crate::SvgRoot::image) element, filtered on its own, cannot do without a second layered element.
+/// third generator that does not read from an upstream primitive: its content comes from resolving an `href` link.
+///
+/// A plain [`SvgRoot::image`](crate::SvgRoot::image) element, filtered on its own, already becomes that filter's
+/// `SourceGraphic` and can be colour-transformed or blended just like any other filtered element —
+/// [`image`](Self::image) is not needed for that. Its value is supplying a *second*, independent source, unrelated to
+/// whatever element the filter is applied to, that can be combined with the filtered element's own `SourceGraphic` or
+/// `SourceAlpha` within the same filter graph, without a second layered display element.
 ///
 /// The SVG filter specification defines around fifteen effect primitives in total, each with its own attribute grammar.
 ///

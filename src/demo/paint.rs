@@ -928,7 +928,10 @@ pub(super) fn demo_morphology() -> Result<(), Error> {
 // feImage — brings external image content into a filter graph, then combines it with feColorMatrix/feBlend
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 pub(super) fn demo_fe_image() -> Result<(), Error> {
-    let svg = SvgRoot::create_in("demo-fe-image", Size::new(W, H))?;
+    // Wider than the shared W: five panels, and two of their captions ("feImage + color_matrix",
+    // "feImage + composite + blend") are long enough to collide at the shared layout's usual spacing.
+    const FE_IMAGE_W: f64 = 900.0;
+    let svg = SvgRoot::create_in("demo-fe-image", Size::new(FE_IMAGE_W, H))?;
 
     // Same 60×40 four-quadrant colour grid used by the plain <image> demo, so the "original" panel here is
     // recognisably the same source, just routed through a filter graph instead of placed directly.
@@ -948,9 +951,11 @@ pub(super) fn demo_fe_image() -> Result<(), Error> {
             Ok(())
         })?;
 
-        // The main showcase: import the image via feImage, then greyscale it with color_matrix — the exact chain
-        // from SvgFilter::image's doc comment. Since feImage reads no `in` at all, color_matrix's implicit input
-        // (being the filter's second primitive) is feImage's own output, not SourceGraphic.
+        // Import the image via feImage, then greyscale it with color_matrix — the exact chain from
+        // SvgFilter::image's doc comment. Since feImage reads no `in` at all, color_matrix's implicit input
+        // (being the filter's second primitive) is feImage's own output, not SourceGraphic. A filtered plain
+        // <image> could be greyscaled the same way (it becomes SourceGraphic on its own); this panel only shows
+        // that feImage's output composes with a later primitive like any other primitive's output does.
         d.build_filter("fe-image-greyscale", |f| {
             exact_filter_region(f)?;
             f.image(SRC)?;
@@ -958,15 +963,35 @@ pub(super) fn demo_fe_image() -> Result<(), Error> {
             Ok(())
         })?;
 
-        // A second combination: tint the imported image by blending a flood colour over it — something a plain
-        // <image>, filtered on its own, cannot express without a second layered element, since blend needs a
-        // second *input* to mix colours with, and that second input can itself be another primitive's output
-        // (here, the flood) rather than SourceGraphic/SourceAlpha.
+        // Tint the imported image by blending a flood colour over it. As with the greyscale panel above, a
+        // filtered plain <image> could be tinted the same way — feFlood supplies its own second input, so this
+        // does not need feImage either; it is still just feImage's output composing with two more primitives.
         d.build_filter("fe-image-tinted", |f| {
             exact_filter_region(f)?;
             f.image(SRC)?.set_attr("result", "photo")?;
             f.flood(GOLDENROD, 1.0)?.set_attr("result", "colour")?;
             f.blend("photo", BlendMode::Multiply)?.set_attr("in", "colour")?;
+            Ok(())
+        })?;
+
+        // The genuine distinguishing case: combine feImage's output with the *filtered element's own* SourceAlpha
+        // and SourceGraphic — something a filtered plain <image> cannot do, since it has no second, independent
+        // source to combine with. composite(SourceAlpha, In) clips the imported texture to the filtered text's own
+        // glyph shapes; blend(SourceGraphic, Multiply) then composes it back over the text's own fill. The text
+        // below is filled white, multiplication's identity colour, so the result is exactly the clipped texture
+        // with no tint from the glyphs' own fill.
+        d.build_filter("fe-image-texture", |f| {
+            // The text's own bounding box is much wider and shorter than the 3:2 source image, so the default
+            // preserveAspectRatio ("xMidYMid meet") would letterbox it, leaving most of the glyphs' width
+            // uncovered. "none" disables uniform scaling and stretches the image independently on each axis so it
+            // exactly fills the region feImage is placed in, which — being at least as large as the text's own
+            // bounding box — guarantees every glyph is covered before composite(SourceAlpha, In) clips it back.
+            f.image(SRC)?
+                .set_attrs([("result", "texture"), ("preserveAspectRatio", "none")])?;
+            f.composite("SourceAlpha", CompositeOperator::In)?
+                .set_attrs([("in", "texture"), ("result", "clipped-texture")])?;
+            f.blend("clipped-texture", BlendMode::Multiply)?
+                .set_attr("in", "SourceGraphic")?;
             Ok(())
         })?;
 
@@ -978,7 +1003,7 @@ pub(super) fn demo_fe_image() -> Result<(), Error> {
     let img_w = 120.0_f64;
     let img_h = 80.0_f64;
     let y0 = PAD_Y + (BAND - img_h) / 2.0;
-    let xs: [f64; 4] = [40.0, 250.0, 450.0, 650.0];
+    let xs: [f64; 5] = [40.0, 215.0, 390.0, 565.0, 740.0];
 
     svg.image(SRC, Point::new(xs[0], y0), Size::new(img_w, img_h))?;
     caption(&svg, xs[0] + img_w / 2.0, "original <image>")?;
@@ -994,6 +1019,14 @@ pub(super) fn demo_fe_image() -> Result<(), Error> {
     let tinted = svg.rect(Point::new(xs[3], y0), Size::new(img_w, img_h))?;
     tinted.set_filter("fe-image-tinted")?;
     caption(&svg, xs[3] + img_w / 2.0, "feImage + flood + blend")?;
+
+    let textured = svg.text(Point::new(xs[4] + img_w / 2.0, y0 + img_h / 2.0 + 14.0), "feImage")?;
+    textured.set_fill("white")?;
+    textured.set_font_size(32.0)?;
+    textured.set_text_anchor(TextAnchor::Middle)?;
+    textured.set_attr("font-weight", "bold")?;
+    textured.set_filter("fe-image-texture")?;
+    caption(&svg, xs[4] + img_w / 2.0, "feImage + composite + blend")?;
 
     Ok(())
 }

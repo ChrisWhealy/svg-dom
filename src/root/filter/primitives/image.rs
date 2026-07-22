@@ -9,10 +9,15 @@ impl SvgFilter {
     ///
     /// Like [`turbulence`](Self::turbulence)/[`turbulence_xy`](Self::turbulence_xy), `<feImage>` does not read from `in`
     /// at all — the SVG spec defines it as a generator whose content comes from `href`, not from an upstream
-    /// primitive's result. The standard use is bringing external image content into a filter graph so it can be
-    /// combined with other primitives (colour-transformed, blended, composited, ...) the same way generated or vector
-    /// content already can be — something a plain [`SvgRoot::image`](crate::SvgRoot::image) element, filtered on its
-    /// own, cannot do without a second layered element.
+    /// primitive's result.
+    ///
+    /// Filtering a plain [`SvgRoot::image`](crate::SvgRoot::image) element allows that image to be colour-transformed,
+    /// blended, or composited on its own: the image becomes the filter's `SourceGraphic`, and any primitive that reads
+    /// `SourceGraphic` (the implicit input of a filter's first primitive) operates on it directly.
+    ///
+    /// What `<feImage>` adds is a *second*, independent source, provifing content unrelated to the element the filter
+    /// is applied to. So a texture, logo, or displacement map can be combined with the filtered element's own
+    /// `SourceGraphic` or `SourceAlpha` within the same filter graph, without a second layered display element.
     ///
     /// `preserveAspectRatio` is not wrapped by a named parameter, the same choice already made for
     /// [`SvgRoot::image`](crate::SvgRoot::image): use the returned [`SvgNode`]'s
@@ -32,8 +37,8 @@ impl SvgFilter {
     ///
     /// # Example
     ///
-    /// Import an image into the filter graph, then greyscale it with [`color_matrix`](Self::color_matrix) — a
-    /// combination a bare `<image>` element cannot express on its own:
+    /// Import an image into the filter graph, then greyscale it with [`color_matrix`](Self::color_matrix) — chaining
+    /// `<feImage>`'s own output into another primitive, the same way any other primitive's output can be chained:
     ///
     /// ```rust,no_run
     /// use svg_dom::{SvgRoot, root::filter::ColorMatrixType};

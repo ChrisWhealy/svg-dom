@@ -624,15 +624,28 @@
                                 <code>result</code>, then <code>blend(Multiply)</code> mixes it with a
                                 <code>flood</code> colour to tint it
                             </li>
+                            <li><strong>feImage + composite + blend</strong> — the genuine distinguishing case:
+                                <code>composite(SourceAlpha, In)</code> clips the imported texture to the filtered
+                                text's own glyph shapes, then <code>blend(SourceGraphic, Multiply)</code> composes it
+                                back over the text's own fill
+                            </li>
                         </ul>
                         <br><br>
                         <code>feImage</code> does not obtain its input from the <code>in</code> argument (the same as
                         <code>feTurbulence</code>). Instead, its content comes from <code>href</code>, not an upstream
                         primitive's result.<br>
-                        Since the image content is inside a filter graph, it can be combined with any other primitives
-                        (colour-transformed, blended, composited, ...) the same way generated or vector content already
-                        can be — something a plain <code>&lt;image&gt;</code> element, filtered on its own, cannot do
-                        without a second layered element.
+                        A filtered plain <code>&lt;image&gt;</code> element becomes that filter's
+                        <code>SourceGraphic</code>,
+                        and can be colour-transformed or blended on its own just like any other filtered element — the
+                        first three filtered panels above could equally be reproduced by filtering a plain
+                        <code>&lt;image&gt;</code> directly.<br>
+                        What <code>feImage</code> actually adds is a <em>second</em>, independent source (content
+                        unrelated to whatever element the filter is applied to) that can be combined with the
+                        filtered element's own <code>SourceGraphic</code>/<code>SourceAlpha</code>, without a second
+                        layered display element.<br>
+                        The last panel demonstrates this: the imported colour-grid texture is confined to the filtered
+                        text's own glyph shapes, something a filtered plain <code>&lt;image&gt;</code> cannot do, since
+                        it has no second, independent source to combine with.
                     </figcaption>
                 </figure>
             </section>

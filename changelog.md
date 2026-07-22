@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Unreleased]
 
+## [0.1.67] - 2026-07-22
+
+### Added
+
+- Implement the filter effect feImage (`2c25218`)
+
 # [Released]
 
 ## [0.1.66] - 2026-07-21
