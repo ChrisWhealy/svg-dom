@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Unreleased]
 
+## [0.1.68] - 2026-07-22
+
+### Added
+
+- Implement the filter effect feTile (`419e55d`)
+
 # [Released]
 
 ## [0.1.67] - 2026-07-22

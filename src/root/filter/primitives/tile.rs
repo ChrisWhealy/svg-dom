@@ -7,8 +7,9 @@ impl SvgFilter {
     /// Appends a `<feTile>` primitive to this filter, replicating its input across the whole of this primitive's own
     /// subregion.
     ///
-    /// `<feTile>` has no attributes of its own; only the standard `in`, `result`, `x`, `y`, `width`, and `height`
-    /// that every primitive accepts. None of them are wrapped by a named parameter here, so the returned [`SvgNode`]'s
+    /// `<feTile>` has no numeric or enum-valued attributes needing a typed parameter. It accepts the optional input
+    /// selector `in`, together with the common filter-primitive attributes `x`, `y`, `width`, `height`, and `result`
+    /// — none of them wrapped by a named parameter here, so the returned [`SvgNode`]'s
     /// [`set_attr`](crate::SvgNode::set_attr) and [`set_attrs`](crate::SvgNode::set_attrs) covers all of them.
     ///
     /// ***⚠️ The tile is the input's own primitive subregion — narrow it, or tiling has no visible effect***

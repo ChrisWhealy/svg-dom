@@ -187,8 +187,8 @@ Note the two attributes default to *different* variants (`filterUnits` defaults 
 
 ## `tile` is the first primitive with zero parameters
 
-`<feTile>` has no attributes of its own beyond the standard `in`, `result`, `x`, `y`, `width`, and `height` accepted by every primitive generically.
-There are no `<number>`, `<number-optional-number>`, or enum-typed attributes to wrap here.
+`<feTile>` has no numeric or enum-valued attributes needing a typed parameter: no `<number>`, `<number-optional-number>`, or enum-typed attribute to wrap here.
+It accepts the optional input selector `in` (unlike the generators — `turbulence`, `turbulence_xy`, `image` or `flood` — which do not consume one, as their own doc comments already explain), together with the common filter-primitive attributes `x`, `y`, `width`, `height`, and `result`.
 `tile(&self) -> Result<SvgNode, Error>` is accordingly the simplest possible instance of the crate-wide primitive pattern: create the element, append it, return the node, with no attribute-writing step in between.
 
 The interesting design question was not the method signature but where the explanation of *how tiling actually works* belongs.
