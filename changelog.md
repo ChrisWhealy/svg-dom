@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Implement the filter effect feImage (`2c25218`)
 - Add extra test for CORS check and update docs (`3787f30`)
+- Add extra test to cover feImage href pointing to an internal reference (`f7a6218`)
 
 ### Fixed
 

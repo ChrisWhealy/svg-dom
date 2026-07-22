@@ -69,8 +69,8 @@ impl SvgFilter {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::Dom`] if the browser refuses to create or append the `<feImage>` element. This is unrelated to
-    /// whether `href` itself loads successfully — see "Loading is asynchronous" above.
+    /// Returns [`Error::Dom`] if the browser refuses to create the element, set its `href`, or append it to the
+    /// filter. This is unrelated to whether `href` itself loads successfully — see "Loading is asynchronous" above.
     ///
     /// # Example
     ///

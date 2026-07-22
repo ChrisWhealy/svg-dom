@@ -1008,7 +1008,7 @@ pub(super) fn demo_fe_image() -> Result<(), Error> {
             // (see the comment above the group's definition), so this panel goes back to the data-URI source. The text's
             // own bounding box is much wider and shorter than the 3:2 source image, so the default preserveAspectRatio
             // ("xMidYMid meet") would letterbox it, leaving most of the glyphs' width uncovered.
-            // 
+            //
             // The use of "none" disables uniform scaling and stretches the image independently on each axis so it
             // exactly fills the region in which it is placed, and, being at least as large as the text's own bounding
             // box, guarantees every glyph is covered before `composite(SourceAlpha, In)` clips it back.
