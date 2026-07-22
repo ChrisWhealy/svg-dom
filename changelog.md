@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Doc only: correct description of `<switch>` rendering (`88fac96`)
 - Correct switch condition in demo and doc comments (`52357db`)
 - Doc only: explain that `<switch>` `requiredFeatures` has been deprecated in SVG 2 (`1ab61c1`)
+- Doc only: correct documentation accuracy (`ebded47`)
 
 # [Released]
 
