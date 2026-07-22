@@ -38,7 +38,7 @@ Remove the filter with `SvgNode::remove_filter()`.
 | `morphology(radius, operator)` | `<feMorphology>` | Takes a component-wise minimum (`Erode`, SVG default) or maximum (`Dilate`) over `radius`, across the input's premultiplied R/G/B/A channels — a `MorphologyOperator` selects which. Against `SourceAlpha`, the common case, this shrinks/thins or grows/thickens the source silhouette; against `SourceGraphic` it can also shift or bleed colours at edges, since colour channels are processed the same way. `radius` is interpreted in the same `primitiveUnits`-dependent way as `gaussian_blur`'s `std_deviation`; `0.0`, or any negative value, disables the effect (`in` passed through unchanged). |
 | `morphology_xy(radius_x, radius_y, operator)` | `<feMorphology>` | As `morphology`, but with independent horizontal/vertical radii, writing the SVG two-number `radius="x y"` form. Both values must be positive: unlike `gaussian_blur_xy`, a zero (or negative) component on *either* axis disables the whole primitive rather than giving a one-dimensional effect — see the warning below. |
 | `image(href)` | `<feImage>` | Uses the image or SVG content at `href` as this primitive's own generated output — like `turbulence`/`turbulence_xy`, a generator with no meaningful `in`. `preserveAspectRatio` is not wrapped by a named parameter, the same choice already made for `SvgRoot::image`. Supplies a *second*, independent image source that can be combined with the filtered element's own `SourceGraphic`/`SourceAlpha` — a plain filtered `<image>` already becomes its own `SourceGraphic` and can be colour-transformed or blended on its own, but combining it with unrelated content needs either `image` or a second layered element. `href` accepts a same-document `"#id"` reference as well as an external/`data:` URL, and is written verbatim; do not pass a `javascript:` URL or other attacker-controlled string without validation. Loading is asynchronous: a successful return means only that the DOM node was constructed, not that `href` has loaded; a missing/unsupported/zero-sized/failed resource renders as transparent black. A *tainted* result (an SVG element reference, or an image fetched in no-CORS mode) consumed as `displacement_map`'s `in2` makes that displacement silently become a pass-through — see the warning below. |
-| `tile()` | `<feTile>` | Repeats its input across this primitive's own subregion. Has no numeric or enum-valued attributes needing a typed parameter — the optional `in`, and the common `result`, `x`, `y`, `width` and `height` are all reachable via `set_attr`/`set_attrs` on the returned `SvgNode`. The repeated rectangle is the *input* primitive's own subregion, not anything `tile` itself chooses — see the warning below, since leaving the input at its default (unnarrowed) subregion makes `tile` a no-op. |
+| `tile()` | `<feTile>` | Repeats its input across this primitive's own subregion. Has no numeric or enum-valued attributes needing a typed parameter — the optional `in`, and the common `result`, `x`, `y`, `width` and `height` are all reachable via `set_attr`/`set_attrs` on the returned `SvgNode`. The repeated rectangle is the selected input's *effective* subregion, not anything `tile` itself chooses — see the warning below, since that subregion must be smaller than `tile`'s own output subregion or tiling has no visible effect. |
 
 ***⚠️ `CompositeOperator::Arithmetic` requires `k1`–`k4` to be set manually***
 
@@ -285,7 +285,7 @@ Ok::<(), svg_dom::Error>(())
 `crossorigin` has no effect on a same-document element reference (such as `"#texture"` — see above) — those are unconditionally tainted by definition, so they remain unusable as a displacement map regardless.
 They are perfectly usable everywhere else (as input to `color_matrix`, `blend`, `composite`, and so on) — taint only forecloses the `displacement_map` case.
 
-`tile` repeats its input across this primitive's own subregion, behaving as the filter-graph counterpart to `SvgDefs::pattern` and`SvgDefs::build_pattern`, which repeats a paint server (applied via `fill` or `stroke`) rather than a filter-generated tile:
+`tile` repeats its input across this primitive's own subregion, behaving as the filter-graph counterpart to `SvgDefs::pattern` and `SvgDefs::build_pattern`, which repeats a paint server (applied via `fill` or `stroke`) rather than a filter-generated tile:
 
 ```rust,no_run
 use svg_dom::{SvgRoot, root::filter::TurbulenceType};
@@ -301,14 +301,15 @@ flt.tile()?;
 Ok::<(), svg_dom::Error>(())
 ```
 
-***⚠️ The tile is the input's own primitive subregion — narrow it, or tiling has no visible effect***
+***⚠️ The reference tile must be smaller than `tile`'s own output subregion, or tiling has no visible effect***
 
-Two rectangles are in play: the *input* primitive's own subregion is the reference tile that gets repeated; `tile`'s own subregion is the *destination* rectangle the repetitions fill, which the specification defaults to the whole filter region (unlike an ordinary primitive) when left unset, as in the example above.
+Two rectangles are in play: the selected input's *effective* subregion is the reference tile that gets repeated; `tile`'s own subregion is the *destination* rectangle the repetitions fill, which the specification defaults to the whole filter region (unlike an ordinary primitive) when left unset, as in the example above.
 
-`tile` does not choose the reference tile itself: it is whatever `x`, `y`, `width` and `height` the *input* primitive's own subregion was given.
-An ordinary primitive's default subregion is generally the union of its own referenced inputs' subregions — but a generator with no referenced input, such as `feTurbulence` in the example above, defaults instead to the whole filter region.
+`tile` does not choose the reference tile itself: it is whatever the selected input's effective subregion resolves to.
+An ordinary primitive's default subregion is the union of its own referenced inputs' subregions — so the immediate input to `tile` need not itself carry explicit `x`/`y`/`width`/`height`; it inherits a narrower default from an earlier primitive in the chain that was itself explicitly narrowed.
+A generator with no referenced input, such as `feTurbulence` in the example above, has no earlier primitive to inherit from, so its own default subregion is the whole filter region instead, which is why the example narrows it directly.
 
-Unlike the example above, if that turbulence were left unnarrowed, there would be nothing smaller than the full region to repeat, and `tile`'s output would be indistinguishable from its input passed through unchanged.
+Whichever primitive in the chain actually needs narrowing, its effective subregion must be smaller than `tile`'s own output subregion, or there is nothing smaller than the destination rectangle to repeat, and `tile`'s output is indistinguishable from its input passed through unchanged.
 
 See [`../gaps.md`](../gaps.md) for the primitives (`feConvolveMatrix`, and others) still to be added.
 
