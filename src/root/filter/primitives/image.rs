@@ -44,15 +44,16 @@ impl SvgFilter {
     /// across the primitive's subregion, as per the SVG specification.  The API will not report any error, resulting in
     /// a broken `href` that has failed silently in the rendered output.
     ///
-    /// # Cross-origin images and `feDisplacementMap`
+    /// # Taint and `feDisplacementMap`
     ///
-    /// Any attempt to load a resource that fails the browser's CORS check will taint the filter graph. Used directly
-    /// as `SourceGraphic`-adjacent output this is often invisible, but a tainted image consumed as `in2` by
-    /// [`displacement_map`](Self::displacement_map) makes that displacement a pass-through: `in` is returned
-    /// unmodified, with no error to signal the mistake.
+    /// Per the Filter Effects specification, an `<feImage>` result is *tainted* when `href` references an SVG
+    /// element (a same-document `"#id"` reference — see the example below) or when an image resource is fetched in
+    /// no-CORS mode. A tainted result used as `in2` for [`displacement_map`](Self::displacement_map) makes that
+    /// displacement a pass-through: `in` is returned unmodified, with no error to signal the mistake.
     ///
-    /// For a cross-origin displacement map, set `crossorigin` (which has not beed wrapped as a named parameter) —
-    /// typically `"anonymous"` — and ensure the server hosting `href` sends matching CORS headers:
+    /// For a *fetched image resource* used as a displacement map, set `crossorigin` (not wrapped as a named
+    /// parameter) — typically `"anonymous"` — and ensure the server hosting `href` sends matching CORS headers, so
+    /// the fetch succeeds in CORS mode rather than no-CORS mode:
     ///
     /// ```rust,no_run
     /// use svg_dom::SvgRoot;
@@ -66,6 +67,11 @@ impl SvgFilter {
     ///
     /// Ok::<(), svg_dom::Error>(())
     /// ```
+    ///
+    /// `crossorigin` has no effect on a same-document element reference — those are unconditionally tainted by
+    /// definition, so they remain unusable as a displacement map regardless. They are perfectly usable everywhere
+    /// else (as input to [`color_matrix`](Self::color_matrix), [`blend`](Self::blend),
+    /// [`composite`](Self::composite), and so on) — taint only forecloses the `feDisplacementMap` case.
     ///
     /// # Errors
     ///

@@ -64,8 +64,9 @@ fn should_set_result_and_preserve_aspect_ratio_via_generic_escape_hatch() -> Res
 }
 
 /// `crossorigin` (not wrapped by a named parameter either) is likewise reachable via the generic escape hatch —
-/// needed for a cross-origin image consumed as `in2` by `displacement_map`, since an untainted CORS check is what
-/// keeps that displacement from silently becoming a pass-through.
+/// needed when a fetched (non-same-document) image resource is consumed as `in2` by `displacement_map`, so the
+/// fetch succeeds in CORS mode rather than no-CORS mode. A no-CORS fetch taints the `feImage` result, which
+/// silently turns that displacement into a pass-through.
 #[wasm_bindgen_test]
 fn should_set_crossorigin_via_generic_escape_hatch() -> Result<(), String> {
     let svg = make_svg("filter-image-crossorigin");
