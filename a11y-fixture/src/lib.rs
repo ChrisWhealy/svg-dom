@@ -7,9 +7,10 @@
 //! pixels. Both need a real Chrome instance to observe — one via the Accessibility CDP domain, the other via actual
 //! rasterised output — neither of which `wasm-bindgen-test`'s WebDriver-run browser tests have access to.
 //!
-//! Every accessibility-scenario element gets an explicit `role="img"` so Chrome always creates an
+//! Every shape-based accessibility scenario receives an explicit `role="img"` so Chrome always creates an
 //! accessibility-tree node for it, regardless of any SVG-specific pruning heuristics that might otherwise apply to
-//! a plain, otherwise-unremarkable shape.
+//! a plain, otherwise-unremarkable shape. The `<a>` scenario is the exception: it deliberately relies on its native
+//! link semantics rather than this workaround — see its own comment below.
 
 use svg_dom::{
     Error, SvgRoot,

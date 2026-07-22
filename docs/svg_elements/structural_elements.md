@@ -153,7 +153,8 @@ link.append(&label)?;
 
 ***⚠️ Links cannot be nested*** — an `<a>` appended somewhere inside another `<a>` has its own `href` ignored and is inactive, the same as in HTML. `SvgNode::append` does not check for this, so avoid appending the result of one `anchor` call inside another.
 
-***⚠️ The clickable region is each child's own hit region, not the wrapper's bounding box*** — unlike wrapping children in a `<g>` purely for a shared transform, `<a>` does not make the whole rectangular area spanning its children clickable. Only pixels actually covered by a rendered child (per that child's own `pointer-events` value) respond as part of the link; empty space between or around the children does not.
+***⚠️ The clickable region is each child's own hit region, not the wrapper's bounding box*** — unlike wrapping children in a `<g>` purely for a shared transform, `<a>` does not make the whole rectangular area spanning its children clickable.
+Only points within each rendered child's `pointer-events`-defined hit region are clickable — not necessarily identical to its visibly painted pixels, since `fill`, `stroke`, `visibility`, and `pointer-events` itself all influence what that region actually covers; empty space between or around the children does not automatically become part of the link.
 
 ---
 

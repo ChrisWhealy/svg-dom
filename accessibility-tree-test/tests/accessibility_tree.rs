@@ -25,13 +25,13 @@
 //!    and computes its name from the linked text content, the same way it would for an HTML `<a>` — only the
 //!    Accessibility CDP domain this file already drives can.
 //!
-//! # Why six `#[test]` functions share one browser session
+//! # Why seven `#[test]` functions share one browser session
 //!
 //! Building the fixture and launching Chrome are expensive actions requiring wasm-pack compile and browser startup, so
-//! all six scenarios share a single fixture build, static server, and Chrome tab via a lazily-initialised `OnceLock`
+//! all seven scenarios share a single fixture build, static server, and Chrome tab via a lazily-initialised `OnceLock`
 //! rather than each test repeating this cost individually.
 //!
-//! Splitting into six functions (rather than one function with six sequential `assert_eq!` calls) matters for two
+//! Splitting into seven functions (rather than one function with seven sequential `assert_eq!` calls) matters for two
 //! reasons: `cargo test` reports each scenario's pass/fail independently instead of collapsing them into a single
 //! result, and an `assert_eq!` failure in one scenario no longer aborts the others before they get a chance to run.
 //!
@@ -40,7 +40,7 @@
 //! internally), which makes them shareable, but `Tab::find_element`'s `DOM.getDocument`-then-`DOM.querySelector`
 //! sequence is not atomic — two threads racing it against the same tab can interleave and hand one of them a
 //! `nodeId` from the other's `getDocument` call, which then fails to resolve. A `QUERY_LOCK` mutex below serialises
-//! every CDP round trip so the six tests still run concurrently as far as the test harness is concerned, but their
+//! every CDP round trip so the seven tests still run concurrently as far as the test harness is concerned, but their
 //! actual browser interactions never overlap.
 //!
 //! Lives in its own on-demand workspace member (excluded from the root package's `default-members`, same as
@@ -230,7 +230,8 @@ fn aria_labelledby_overrides_title_and_aria_label() {
 /// Proves `SvgRoot::anchor` produces something a real browser actually treats as a link, not just an `<a>` tag in
 /// the DOM: `svg-dom`'s own tests can see the tag name and the `href` attribute, but only the Accessibility CDP
 /// domain can see whether Chrome assigns it the "link" role and computes an accessible name from its linked text
-/// content — the two properties assistive technology and keyboard navigation actually rely on.
+/// content — the two properties exposed to assistive technology. This does not exercise keyboard focus or
+/// activation (SVG 2 separately defines valid SVG links as focusable); it only proves the accessibility-tree side.
 #[test]
 fn anchor_with_visible_text_is_a_named_link() {
     let (name, role) = computed_name_and_role(&fixture().tab, "#s7");

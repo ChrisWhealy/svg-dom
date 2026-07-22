@@ -26,9 +26,11 @@ impl SvgRoot {
     /// ***⚠️ The clickable region is each child's own hit region, not the wrapper's bounding box***
     ///
     /// Unlike wrapping children in a `<g>` purely for a shared transform, `<a>` does not make the whole rectangular
-    /// area spanning its children clickable. Only pixels actually covered by a rendered child (per that child's own
-    /// `pointer-events` value) respond as part of the link; empty space between or around the children — inside what
-    /// looks like the group's bounding box — does not.
+    /// area spanning its children clickable. Only points within each rendered child's `pointer-events`-defined hit
+    /// region are clickable — not necessarily identical to its visibly painted pixels, since `fill`, `stroke`,
+    /// `visibility`, and `pointer-events` itself all influence what that region actually covers; empty space
+    /// between or around the children — inside what looks like the group's bounding box — does not automatically
+    /// become part of the link.
     ///
     /// # Security
     ///
