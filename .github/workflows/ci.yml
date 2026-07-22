@@ -77,6 +77,13 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
+      # `ubuntu-latest` runners default to Ubuntu 24.04, which enables AppArmor's unprivileged-user-namespace
+      # restriction by default. Firefox's (and Chromium's) content sandbox needs one, so headless launch fails with
+      # "Exiting due to channel error" and the browser process gets SIGKILLed before geckodriver/chromedriver can
+      # talk to it — a CI/kernel-policy issue, not a test or crate bug. AppArmor causing this class of runner-image
+      # breakage is tracked upstream at https://github.com/actions/runner-images/issues/10015.
+      - name: Allow unprivileged user namespaces (Firefox/Chromium sandbox needs this on Ubuntu 24.04 runners)
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Install wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
       - name: Run the browser integration tests
@@ -91,6 +98,10 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
+      # Same Ubuntu 24.04 AppArmor/unprivileged-userns restriction worked around in `browser-tests` — this job also
+      # launches a real, sandboxed Chrome (via `headless_chrome`/CDP), so it needs the identical fix.
+      - name: Allow unprivileged user namespaces (Chrome sandbox needs this on Ubuntu 24.04 runners)
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Install wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
 
