@@ -8,9 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [0.1.69] - 2026-07-22
 
-## Fixed
+### Added 
+
+- Implement the SVG elements <a> and <switch> (`66bc9f2`)
+
+### Fixed
 
 - Fix CI error caused by AppArmor's new default that blocks access to browser sandbox (`4797789`)
+- Doc only: correct description of `<switch>` rendering (`88fac96`)
 
 # [Released]
 

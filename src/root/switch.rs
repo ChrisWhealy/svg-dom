@@ -5,11 +5,10 @@ impl SvgRoot {
     ///
     /// `<switch>` renders at most one of its direct children: the first one, in document order, whose conditional
     /// processing attributes all evaluate to true, rather than rendering every child as `<g>` would.
-    /// 
+    ///
     /// As per the SVG 2 specification, if none match, it renders **nothing**. A child with none of those attributes set
     /// always passes, so by appending an attribute-free element last (in document order), you create a fallback that
     /// guarantees something renders even when every other conditional child fails.
-
     ///
     /// Add children with [`SvgNode::append`], the same way as [`group`](Self::group). The conditional attributes
     /// themselves — `systemLanguage`, `requiredExtensions` (`requiredFeatures` is deprecated in SVG 2, since feature

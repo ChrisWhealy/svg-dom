@@ -703,13 +703,14 @@ pub(super) fn demo_switch() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-switch", Size::new(W, H))?;
     let cy = PAD_Y + BAND / 2.0;
 
-    // Panel 1: the only conditional child carries a systemLanguage no browser ever reports, so it never matches —
-    // <switch> falls through to the attribute-free fallback. This is deterministic in every browser/locale, unlike
-    // testing a real systemLanguage match against whichever locale happens to be running the demo.
+    // Panel 1: SVG 2 defines an empty systemLanguage value as always false — unlike a made-up language code, which
+    // is not guaranteed never to match (it would match a browser actually configured with that exact preference).
+    // So the only conditional child here is guaranteed to fail, and <switch> falls through to the attribute-free
+    // fallback, deterministically in every browser/locale.
     let switch1 = svg.switch()?;
     let never_matches = svg.circle(Point::new(150.0, cy), 40.0)?;
     never_matches.set_fill(CORAL)?;
-    never_matches.set_attr("systemLanguage", "xx")?;
+    never_matches.set_attr("systemLanguage", "")?;
     switch1.append(&never_matches)?;
     let fallback = svg.circle(Point::new(150.0, cy), 40.0)?;
     fallback.set_fill(STEELBLUE)?;

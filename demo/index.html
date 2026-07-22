@@ -381,9 +381,9 @@
                 <figure>
                     <div class="canvas" id="demo-switch"></div>
                     <figcaption>
-                        <strong>no child matches → fallback renders</strong> — the first child's
-                        <code>systemLanguage="xx"</code> never matches any browser, so <code>&lt;switch&gt;</code>
-                        falls through to the attribute-free fallback (steelblue).<br>
+                        <strong>no child matches → fallback renders</strong> — SVG 2 defines an empty
+                        <code>systemLanguage=""</code> as always false, so the first child is guaranteed to fail and
+                        <code>&lt;switch&gt;</code> falls through to the attribute-free fallback (steelblue).<br>
                         <strong>attribute-free first child always matches</strong> — a child with no conditional
                         attributes at all always passes, so it renders immediately and the second child (darkorange)
                         is never reached.<br>
