@@ -28,8 +28,10 @@ impl SvgFilter {
     /// ⚠️ The `href` value is written verbatim to the DOM via `setAttribute`!
     /// Do not pass a `javascript:` URL or any other attacker-controlled string without validation.
     ///
-    /// Use the returned [`SvgNode`]'s [`set_attr`](crate::SvgNode::set_attr) to set `result` — the usual way to
-    /// consume this primitive's output, since there is no `in` to chain from.
+    /// Use the returned [`SvgNode`]'s [`set_attr`](crate::SvgNode::set_attr) to set `result` when this primitive's
+    /// output must be referenced explicitly by a later primitive that is not immediately downstream, or when the filter
+    /// graph branches. For a simple linear chain, such as the example below, the next primitive can consume
+    /// `<feImage>`'s output implicitly by omitting its own `in`.
     ///
     /// # Errors
     ///

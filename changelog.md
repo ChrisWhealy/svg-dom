@@ -12,6 +12,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Implement the filter effect feImage (`2c25218`)
 
+### Fixed
+
+- Correct distinction between \<image\> and feImage (`fd4aaa2`)
+
 # [Released]
 
 ## [0.1.66] - 2026-07-21

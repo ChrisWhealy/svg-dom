@@ -36,8 +36,9 @@ fn should_set_href() -> Result<(), String> {
 }
 
 /// The generic `SvgNode::set_attr` escape hatch on the returned primitive node covers attributes not yet wrapped by
-/// a named parameter, such as `result` (the usual way to consume this primitive's output, since there is no `in`
-/// to chain from) and `preserveAspectRatio`.
+/// a named parameter, such as `result` (needed when this primitive's output must be referenced explicitly — as
+/// `in2`, by a primitive that is not immediately downstream, or in a branched filter graph; a simple linear chain
+/// can consume it implicitly instead) and `preserveAspectRatio`.
 #[wasm_bindgen_test]
 fn should_set_result_and_preserve_aspect_ratio_via_generic_escape_hatch() -> Result<(), String> {
     let svg = make_svg("filter-image-result");

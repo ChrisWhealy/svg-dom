@@ -57,9 +57,9 @@ impl SvgFilter {
     /// to add ever-finer, imperceptible detail.
     ///
     /// `seed` selects which pseudo-random noise pattern is generated; the same `seed` always reproduces the same
-    /// pattern, so vary it to get a visually different result from otherwise identical parameters. SVG truncates
-    /// the seed towards zero before generating the noise pattern; fractional values with the same integer part
-    /// therefore produce the same effective seed (`2.1`, `2.5`, and `2.9` are all equivalent to `2.0`).
+    /// pattern, so vary it to get a visually different result from otherwise identical parameters. SVG truncates the
+    /// seed towards zero before generating the noise pattern; fractional values with the same integer part therefore
+    /// produce the same effective seed (`2.1`, `2.5`, and `2.9` are all equivalent to `2.0`).
     ///
     /// `turbulence_type` selects between [`TurbulenceType::Turbulence`] (higher-contrast, marbled noise) and
     /// [`TurbulenceType::FractalNoise`] (softer, cloud-like noise).
@@ -67,10 +67,15 @@ impl SvgFilter {
     /// See [`turbulence_xy`](Self::turbulence_xy) for independent horizontal/vertical frequencies, and
     /// [`displacement_map`](Self::displacement_map) for the primitive this one is most often paired with.
     ///
-    /// Use the returned [`SvgNode`]'s [`set_attr`](crate::SvgNode::set_attr) to set `result` — the usual way to
-    /// consume noise, since there is no `in` to chain from — or `stitchTiles` (not wrapped by a named parameter;
-    /// `"stitch"` avoids a visible seam when the filter region is meant to tile seamlessly, at the cost of subtly
-    /// adjusting `baseFrequency` to fit exactly).
+    /// Use the returned [`SvgNode`]'s [`set_attr`](crate::SvgNode::set_attr) to set `result`. For instance, when noise
+    /// is consumed as `in2` rather than as a subsequent primitive's implicit `in`, which is its usual role, say, when
+    /// feeding a [`displacement_map`](Self::displacement_map) (the primitive this filter is almost always paired with).
+    ///
+    /// The same applies to referencing a non-sequential primitive or a branched filter graph — `result` is needed
+    /// because of *how* the output is consumed, not because `<feTurbulence>` itself has no `in` argument.
+    ///
+    /// Also use `set_attr` for `stitchTiles` (not wrapped by a named parameter; `"stitch"` avoids a visible seam when
+    /// the filter region is meant to tile seamlessly, at the cost of subtly adjusting `baseFrequency` to fit exactly).
     ///
     /// # Errors
     ///

@@ -64,7 +64,9 @@ fn should_write_every_turbulence_type_keyword() -> Result<(), String> {
 }
 
 /// The generic `SvgNode::set_attr` escape hatch on the returned primitive node covers attributes not yet wrapped by
-/// a named parameter, such as `result` — the usual way to consume noise, since `<feTurbulence>` has no `in`.
+/// a named parameter, such as `result` — needed when the noise is consumed as `in2` (its usual role, feeding
+/// `displacement_map`) or referenced by a non-immediately-downstream primitive, not simply because `<feTurbulence>`
+/// has no `in`.
 #[wasm_bindgen_test]
 fn should_set_result_via_generic_escape_hatch() -> Result<(), String> {
     let svg = make_svg("filter-turbulence-result");
