@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 
 - Doc only: clarify the circumstances under which feImage returns an Error (`4b0bb13`)
+- Refactor src/root/utils by type + impl (`306c0d9`)
 
 ### Fixed
 
