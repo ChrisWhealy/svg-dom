@@ -8,8 +8,8 @@
 //! - [`construction`] — `SvgDefs::filter`/`build_filter`, the cached id (`id`/`set_id`), and `set_attr("id", ...)`
 //!   rejection — mirrors `src/root/filter/mod.rs` and the id-guard part of `src/root/filter/attrs.rs`.
 //! - [`apply`] — `SvgNode::set_filter`/`set_filter_ref`/`remove_filter`.
-//! - [`region`] — `set_x`/`set_y`/`set_width`/`set_height`/`set_filter_units`/`set_primitive_units`, and the
-//!   generic escape hatch for filter-region attributes — mirrors `src/root/filter/region.rs`.
+//! - [`region`] — `set_x`/`set_y`/`set_width`/`set_height`/`set_filter_units`/`set_primitive_units`, and the generic
+//!   escape hatch for filter-region attributes — mirrors `src/root/filter/region.rs`.
 //! - [`gaussian_blur`] — `gaussian_blur`/`gaussian_blur_xy` — mirrors `src/root/filter/primitives/gaussian_blur.rs`.
 //! - [`offset`] — `offset` — mirrors `src/root/filter/primitives/offset.rs`.
 //! - [`merge`] — `merge` — mirrors `src/root/filter/primitives/merge.rs`.
@@ -30,10 +30,11 @@
 //! - [`morphology`] — `morphology`/`morphology_xy` and every `MorphologyOperator` keyword — mirrors
 //!   `src/root/filter/primitives/morphology.rs`.
 //! - [`image`] — `image` — mirrors `src/root/filter/primitives/image.rs`.
-//! - [`chains`] — cross-primitive integration tests (the manual blur+offset+merge and blur+flood+composite+
-//!   offset+merge drop-shadow chains, the flood+blend+composite tint chain, the turbulence+displacement_map
-//!   noise-distortion chain, the morphology+merge bold-outline chain, and the image+color_matrix filtered-image
-//!   chain) — these compose several primitives together, so they don't belong to any single primitive's own file.
+//! - [`chains`] — cross-primitive integration tests (the manual blur+offset+merge and blur+flood+composite+offset+merge
+//!   drop-shadow chains, the flood+blend+composite tint chain, the turbulence+displacement_map noise-distortion chain,
+//!   the morphology+merge bold-outline chain, the image+color_matrix filtered-image chain, and the image+composite+blend
+//!   textured-object chain) — these compose several primitives together, so they don't belong to any single primitive's
+//!   own file.
 //!
 //! `tests/common.rs` is one directory up (shared with every other integration test file), hence the `#[path]`
 //! override below rather than a plain `mod common;`.

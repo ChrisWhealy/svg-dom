@@ -81,10 +81,10 @@ mod region;
 /// contrast/levels adjustment, posterisation ([`TransferFunction::Discrete`]), or an alpha fade/clip, none of which
 /// [`color_matrix`](Self::color_matrix)'s whole-pixel linear transform can express.
 ///
-/// [`turbulence`](Self::turbulence)/[`turbulence_xy`](Self::turbulence_xy) generate Perlin noise from nothing — the
-/// only primitive here with no meaningful `in` — and [`displacement_map`](Self::displacement_map) uses another input's
-/// channel values (typically that noise) to warp a second input pixel-by-pixel. Paired together they are the standard
-/// route to hand-drawn/organic textures; see [`displacement_map`](Self::displacement_map)'s own doc comment for a
+/// [`turbulence`](Self::turbulence)/[`turbulence_xy`](Self::turbulence_xy) generate Perlin noise from nothing — a
+/// primitive that does not read from the `in` parameter — and [`displacement_map`](Self::displacement_map) uses another
+/// input's channel values (typically that noise) to warp a second input pixel-by-pixel. Paired together they are the
+/// standard route to hand-drawn/organic textures; see [`displacement_map`](Self::displacement_map)'s own doc comment for a
 /// worked example.
 ///
 /// [`morphology`](Self::morphology)/[`morphology_xy`](Self::morphology_xy) take a component-wise minimum or maximum
