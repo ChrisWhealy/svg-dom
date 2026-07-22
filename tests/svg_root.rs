@@ -543,6 +543,42 @@ fn should_append_children_to_switch_in_order() -> Result<(), String> {
     common::check_eq(second.get_attribute("systemLanguage"), None)
 }
 
+/// The tests above only check DOM structure and attributes; this one verifies what the browser actually rendered.
+/// `systemLanguage=""` is guaranteed false by the SVG 2 spec (see `SvgRoot::switch`'s own doc comment), so the
+/// first child is never selected and the browser does not render it at all — its `bounding_client_rect` collapses
+/// to zero — while the unconditional fallback renders normally with a real, positive size. This deliberately does
+/// not attempt to re-test the browser's own language-matching algorithm; it only proves the crate wires up a
+/// `<switch>` that the browser resolves the way the spec describes.
+#[wasm_bindgen_test]
+fn should_render_only_the_selected_switch_child() -> Result<(), String> {
+    common::div("switch-render");
+    let svg = SvgRoot::create_in("switch-render", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let switch = svg.switch().map_err(|e| e.to_string())?;
+
+    let never_matches = svg.circle(Point::new(50.0, 50.0), 30.0).map_err(|e| e.to_string())?;
+    never_matches.set_attr("systemLanguage", "").map_err(|e| e.to_string())?;
+    switch.append(&never_matches).map_err(|e| e.to_string())?;
+
+    let fallback = svg.circle(Point::new(50.0, 50.0), 30.0).map_err(|e| e.to_string())?;
+    switch.append(&fallback).map_err(|e| e.to_string())?;
+
+    let never_matches_rect = never_matches.bounding_client_rect();
+    common::check(
+        never_matches_rect.size.width == 0.0 && never_matches_rect.size.height == 0.0,
+        "expected the never-matching child to be unrendered (zero-size bounding_client_rect)",
+    )?;
+
+    let fallback_rect = fallback.bounding_client_rect();
+    common::check(
+        fallback_rect.size.width > 0.0,
+        "expected the rendered fallback to have a positive width",
+    )?;
+    common::check(
+        fallback_rect.size.height > 0.0,
+        "expected the rendered fallback to have a positive height",
+    )
+}
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Batching (build_batch / build_batch_into)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -6,7 +6,7 @@
 //! Accessibility CDP domain, which `wasm-bindgen-test`'s WebDriver-run browser tests have no access to.
 //!
 //! This drives a real Chrome instance via CDP (through the `headless_chrome` crate) and queries
-//! `Accessibility.getPartialAXTree` for six scenarios built by the sibling `a11y-fixture` wasm crate — one
+//! `Accessibility.getPartialAXTree` for seven scenarios built by the sibling `a11y-fixture` wasm crate — one
 //! independently reported `#[test]` per scenario, confirming:
 //!
 //! 1. A lone `<title>` supplies the accessible name;
@@ -19,6 +19,11 @@
 //! 6. A value in `aria-labelledby` overrides *both* `aria-label` and `<title>` — it has higher precedence than
 //!    `aria-label` in accessible-name computation, not just parity with it, and the API documentation calls this out
 //!    explicitly, so it earns its own scenario rather than being folded into scenario 3.
+//! 7. An `<a>` wrapping visible text is exposed as a named link — `SvgRoot::anchor`'s rendered-region and
+//!    nested-link caveats describe the DOM/paint side of `<a>`, but neither `svg-dom`'s own DOM-structure tests nor
+//!    the WebDriver-run browser tests can see whether a real browser actually assigns it the accessible "link" role
+//!    and computes its name from the linked text content, the same way it would for an HTML `<a>` — only the
+//!    Accessibility CDP domain this file already drives can.
 //!
 //! # Why six `#[test]` functions share one browser session
 //!
@@ -103,10 +108,10 @@ fn fixture() -> &'static Fixture {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Fetches the computed accessible name/description for the element matching `selector`, via
-/// `Accessibility.getPartialAXTree`. Returns `(name, description)`, either of which is `None` when that property
-/// is absent from the accessibility tree (e.g. an element with no accessible name at all).
-fn computed_name_and_description(tab: &Tab, selector: &str) -> (Option<String>, Option<String>) {
+/// Fetches the full computed `AXNode` for the element matching `selector`, via `Accessibility.getPartialAXTree`.
+/// Shared by every `computed_*` helper below so the CDP round trip (and its locking) exists in one place, whichever
+/// of the node's fields a given test actually needs.
+fn ax_node(tab: &Tab, selector: &str) -> Accessibility::AXNode {
     // Held for the whole function, not just find_element: GetPartialAXTree also talks to the same session, and a
     // concurrent DOM.getDocument from another test's find_element could otherwise land between these two calls.
     let _guard = QUERY_LOCK.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
@@ -122,19 +127,35 @@ fn computed_name_and_description(tab: &Tab, selector: &str) -> (Option<String>, 
             fetch_relatives: Some(false),
         })
         .unwrap_or_else(|e| panic!("GetPartialAXTree failed for {selector}: {e}"));
-    let node = result
+    result
         .nodes
-        .first()
-        .unwrap_or_else(|| panic!("no AX node returned for {selector}"));
+        .into_iter()
+        .next()
+        .unwrap_or_else(|| panic!("no AX node returned for {selector}"))
+}
 
-    let extract = |ax_value: &Option<Accessibility::AXValue>| -> Option<String> {
-        ax_value
-            .as_ref()
-            .and_then(|v| v.value.as_ref())
-            .and_then(|v: &Value| v.as_str().map(str::to_owned))
-    };
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+fn ax_value_str(ax_value: &Option<Accessibility::AXValue>) -> Option<String> {
+    ax_value
+        .as_ref()
+        .and_then(|v| v.value.as_ref())
+        .and_then(|v: &Value| v.as_str().map(str::to_owned))
+}
 
-    (extract(&node.name), extract(&node.description))
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Fetches the computed accessible name/description for the element matching `selector`. Returns `(name,
+/// description)`, either of which is `None` when that property is absent from the accessibility tree (e.g. an
+/// element with no accessible name at all).
+fn computed_name_and_description(tab: &Tab, selector: &str) -> (Option<String>, Option<String>) {
+    let node = ax_node(tab, selector);
+    (ax_value_str(&node.name), ax_value_str(&node.description))
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Fetches the computed accessible name/role for the element matching `selector`. Returns `(name, role)`.
+fn computed_name_and_role(tab: &Tab, selector: &str) -> (Option<String>, Option<String>) {
+    let node = ax_node(tab, selector);
+    (ax_value_str(&node.name), ax_value_str(&node.role))
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -202,5 +223,25 @@ fn aria_labelledby_overrides_title_and_aria_label() {
         name.as_deref(),
         Some("Labelledby override name"),
         "aria-labelledby must take precedence over both aria-label and a <title> child for the accessible name"
+    );
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Proves `SvgRoot::anchor` produces something a real browser actually treats as a link, not just an `<a>` tag in
+/// the DOM: `svg-dom`'s own tests can see the tag name and the `href` attribute, but only the Accessibility CDP
+/// domain can see whether Chrome assigns it the "link" role and computes an accessible name from its linked text
+/// content — the two properties assistive technology and keyboard navigation actually rely on.
+#[test]
+fn anchor_with_visible_text_is_a_named_link() {
+    let (name, role) = computed_name_and_role(&fixture().tab, "#s7");
+    assert_eq!(
+        role.as_deref(),
+        Some("link"),
+        "an <a> wrapping visible text must be exposed with the accessible \"link\" role"
+    );
+    assert_eq!(
+        name.as_deref(),
+        Some("Read the docs"),
+        "the accessible name must come from the linked text content, the same way it would for an HTML <a>"
     );
 }

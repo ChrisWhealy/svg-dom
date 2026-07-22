@@ -89,6 +89,15 @@ fn build() -> Result<(), Error> {
     let s6_label_source = svg.text(Point::new(110.0, 30.0), "Labelledby override name")?;
     s6_label_source.as_element().set_id("s6-label");
 
+    // 7. `<a>` around visible text is exposed as a named, accessible link — SVG maps `<a>` to the ARIA "link" role
+    // automatically, unlike the plain shapes above, which need the explicit role="img" workaround to force a node
+    // to exist at all. No aria-label here: the accessible name must come from the linked text content itself, the
+    // same way it would for an HTML <a>.
+    let s7 = svg.anchor("https://example.com")?;
+    s7.as_element().set_id("s7");
+    let s7_label = svg.text(Point::new(130.0, 10.0), "Read the docs")?;
+    s7.append(&s7_label)?;
+
     // blend-circle: the real alpha-preserving tint chain from `SvgFilter::blend`'s own doc example
     // (flood -> blend -> composite(In)), applied to a circle rather than a rectangle so its bounding box has
     // genuinely transparent corners for `tests/filter_blend_render.rs` to sample. A solid white fill is

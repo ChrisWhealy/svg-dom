@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added 
 
 - Implement the SVG elements <a> and <switch> (`66bc9f2`)
+- Doc only: Qualify anchor tag analogy with <g> (`fe7c729`)
 
 ### Fixed
 
