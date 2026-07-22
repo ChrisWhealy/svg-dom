@@ -38,10 +38,11 @@ fn should_set_no_attributes_by_default() -> Result<(), String> {
     check_eq(tile.as_element().get_attribute("x"), None)
 }
 
-/// The generic `SvgNode::set_attr`/`set_attrs` escape hatch covers `in`, `result`, and the primitive's own
-/// `x`/`y`/`width`/`height` subregion — the narrowed rectangle that becomes the repeated tile.
+/// The generic `SvgNode::set_attr`/`set_attrs` escape hatch covers `in`, `result`, and `<feTile>`'s own output
+/// subregion (`x`, `y`, `width`, `height`) — the target rectangle filled by repetitions of the input primitive's own
+/// subregion, not the repeated rectangle itself.
 #[wasm_bindgen_test]
-fn should_set_subregion_via_generic_escape_hatch() -> Result<(), String> {
+fn should_set_output_subregion_via_generic_escape_hatch() -> Result<(), String> {
     let svg = make_svg("filter-tile-subregion");
     let defs = svg.defs().map_err(|e| e.to_string())?;
     let filter = defs.filter("fts").map_err(|e| e.to_string())?;

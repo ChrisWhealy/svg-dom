@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 
 - Doc only: not all primitives accept the "in" parameter (`48e1ee6`)
+- Doc only: correct description of feTile's default subregion (`4ee684b`)
 
 # [Released]
 
