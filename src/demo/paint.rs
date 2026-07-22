@@ -947,10 +947,17 @@ pub(super) fn demo_fe_image() -> Result<(), Error> {
     // feImage can pull in any SVG element already in the document, such as vector content built or modified at runtime,
     // not just an external/data-URI image resource — which a base64-encoded raster or SVG snapshot cannot show.
     //
-    // Unlike an image resource, a referenced SVG element does not scale to fill feImage's primitive subregion because
-    // `preserveAspectRatio` has no effect on it, and its content renders at its own native geometry, positioned
-    // relative to the subregion's own origin. So this group is built directly at 120×80 — the exact size of the three
-    // `<rect>` panels below — rather than relying on any scaling to make it fit.
+    // Per the Filter Effects spec, a stand-alone resource (raster or data-URI SVG) renders <image>-style that is scaled
+    // to fill feImage's primitive subregion via `preserveAspectRatio`, while a same-document element references the
+    // <use>-style instead.
+    //
+    // A `<g>`, like the one referenced here, has no viewport of its own to resize: `preserveAspectRatio` has no effect
+    // on it, and its content renders at its own native geometry, positioned relative to the subregion's own origin.
+    // (A referenced `<svg>` or `<symbol>` would establish a viewport and scale like an image resource instead. This is
+    // specific to referencing a `<g>`.)
+    //
+    // So this group is built directly at 120×80 — the exact size of the three `<rect>` panels below — rather than
+    // relying on any scaling to make it fit.
     svg.build_defs(|d| {
         let quadrants = d.group()?;
         quadrants.set_attr("id", "fe-image-quadrants")?;

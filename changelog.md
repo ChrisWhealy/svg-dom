@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Correct distinction between \<image\> and feImage (`fd4aaa2`)
 - Doc only: correct explanation of feImage result attribute (`0abd111`)
+- Correct description of taint (`a9438df`)
 
 # [Released]
 

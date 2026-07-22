@@ -15,7 +15,7 @@ impl SvgFilter {
     /// blended, or composited on its own: the image becomes the filter's `SourceGraphic`, and any primitive that reads
     /// `SourceGraphic` (the implicit input of a filter's first primitive) operates on it directly.
     ///
-    /// What `<feImage>` adds is a *second*, independent source, provifing content unrelated to the element the filter
+    /// What `<feImage>` adds is a *second*, independent source, providing content unrelated to the element the filter
     /// is applied to. So a texture, logo, or displacement map can be combined with the filtered element's own
     /// `SourceGraphic` or `SourceAlpha` within the same filter graph, without a second layered display element.
     ///
