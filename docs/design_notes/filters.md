@@ -193,7 +193,9 @@ It accepts the optional input selector `in` (unlike the generators — `turbulen
 
 The interesting design question was not the method signature but where the explanation of *how tiling actually works* belongs.
 `feTile` does not choose what gets repeated — that is entirely a function of the *input* primitive's own subregion (defined by `x`, `y`, `width`, `height`), which every primitive already has via the generic `set_attr` and `set_attrs` escape hatch.
-However, no earlier primitive's doc comment had a reason focus on this aspect, since none of them changed behaviour based on whether their own subregion was left at the default (the whole filter region) or narrowed.
+However, no earlier primitive's doc comment had a reason to focus on this aspect, since none of them changed behaviour based on whether their own subregion was left at its default or narrowed.
+That default is not uniformly "the whole filter region".
+An ordinary primitive's default subregion is generally the union of its own referenced inputs' subregions — but a generator with no referenced input, such as `feTurbulence` in its own example, defaults instead to the whole filter region.
 
 `tile` is the first primitive whose entire visible effect depends on a *different* primitive's subregion being deliberately narrowed first, so its doc comment states this as a `⚠️` warning rather than folding it into ordinary prose — the same treatment already given to other easy-to-miss no-op conditions (`morphology_xy`'s zero-or-negative-component case, `gaussian_blur`'s wide-blur clipping).
 

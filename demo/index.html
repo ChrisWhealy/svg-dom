@@ -675,8 +675,11 @@
                         attributes <code>x</code>, <code>y</code>, <code>width</code>, <code>height</code>, and
                         <code>result</code>.<br>
                         It does not choose what gets repeated: that is entirely the <em>input</em> primitive's own
-                        subregion, which defaults to the whole filter region if never narrowed — in which case there is
-                        nothing smaller to repeat, and <code>tile</code>'s output is indistinguishable from its input.<br>
+                        subregion — here, <code>turbulence</code>, a generator with no referenced input, whose
+                        default subregion is therefore the whole filter region rather than the union of a
+                        referenced input's subregion the way an ordinary primitive's default would be. Left
+                        unnarrowed, there would be nothing smaller than that to repeat, and <code>tile</code>'s
+                        output would be indistinguishable from its input.<br>
                         This is the filter-graph counterpart to <code>SvgDefs::pattern</code>: a
                         <code>&lt;pattern&gt;</code> is a paint server applied via
                         <code>fill</code>/<code>stroke</code>,

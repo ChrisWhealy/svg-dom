@@ -12,6 +12,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Implement the filter effect feTile (`419e55d`)
 
+### Fixed
+
+- Doc only: not all primitives accept the "in" parameter (`48e1ee6`)
+
 # [Released]
 
 ## [0.1.67] - 2026-07-22

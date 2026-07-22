@@ -14,11 +14,18 @@ impl SvgFilter {
     ///
     /// ***⚠️ The tile is the input's own primitive subregion — narrow it, or tiling has no visible effect***
     ///
-    /// The rectangle that gets repeated is not chosen by `tile` itself: it is whatever the `x`, `y`, `width`, and
-    /// `height` of the *input* primitive's own subregion was given. A primitive's default subregion (when its `x`, `y`,
-    /// `width`, and `height` are left unset) is the whole filter region. So if the input was never narrowed, there is
-    /// nothing smaller than the full region to repeat and `tile`'s output is indistinguishable from its unchanged
-    /// input.
+    /// Two different rectangles are in play here: the *input* primitive's own subregion is the reference tile that
+    /// gets repeated; `tile`'s own subregion (its `x`/`y`/`width`/`height`, left at their default in the example
+    /// below) is the *destination* rectangle the repetitions fill — specified by the spec to default to the whole
+    /// filter region, unlike an ordinary primitive.
+    ///
+    /// `tile` does not choose the reference tile itself: it is whatever `x`, `y`, `width`, and `height` the *input*
+    /// primitive's own subregion was given. An ordinary primitive's default subregion, left unspecified, is
+    /// generally the union of its own referenced inputs' subregions — but a generator with no referenced input, such
+    /// as [`turbulence`](Self::turbulence) (used below) or [`image`](Self::image), defaults instead to the whole
+    /// filter region, the same as when a referenced input is a standard input like `SourceGraphic`. So if the
+    /// turbulence in the example below were left unnarrowed, there would be nothing smaller than the full region to
+    /// repeat, and `tile`'s output would be indistinguishable from its unchanged input.
     ///
     /// To get a visible tiling effect, explicitly set a smaller `x`, `y`, `width`, and `height` on the *input*
     /// primitive (via its own returned [`SvgNode`]'s `set_attr`/`set_attrs`) before reading it here — see the example

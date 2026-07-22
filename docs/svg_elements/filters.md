@@ -303,8 +303,12 @@ Ok::<(), svg_dom::Error>(())
 
 ***⚠️ The tile is the input's own primitive subregion — narrow it, or tiling has no visible effect***
 
-`tile` does not choose the repeated rectangle itself: it is whatever `x`/`y`/`width`/`height` the *input* primitive's own subregion was given.
-A primitive's default subregion (when its `x`/`y`/`width`/`height` are left unset) is the whole filter region — so if the input was never narrowed, as in the example above, there is nothing smaller than the full region to repeat, and `tile`'s output is indistinguishable from its input passed through unchanged.
+Two rectangles are in play: the *input* primitive's own subregion is the reference tile that gets repeated; `tile`'s own subregion is the *destination* rectangle the repetitions fill, which the specification defaults to the whole filter region (unlike an ordinary primitive) when left unset, as in the example above.
+
+`tile` does not choose the reference tile itself: it is whatever `x`, `y`, `width` and `height` the *input* primitive's own subregion was given.
+An ordinary primitive's default subregion is generally the union of its own referenced inputs' subregions — but a generator with no referenced input, such as `feTurbulence` in the example above, defaults instead to the whole filter region.
+
+Unlike the example above, if that turbulence were left unnarrowed, there would be nothing smaller than the full region to repeat, and `tile`'s output would be indistinguishable from its input passed through unchanged.
 
 See [`../gaps.md`](../gaps.md) for the primitives (`feConvolveMatrix`, and others) still to be added.
 
