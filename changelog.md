@@ -14,6 +14,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add extra test for CORS check and update docs (`3787f30`)
 - Add extra test to cover feImage href pointing to an internal reference (`f7a6218`)
 
+### Changed
+
+- Doc only: clarify the circumstances under which feImage returns an Error (`4b0bb13`)
+
 ### Fixed
 
 - Correct distinction between \<image\> and feImage (`fd4aaa2`)
