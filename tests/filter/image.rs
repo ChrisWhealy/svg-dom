@@ -50,3 +50,18 @@ fn should_set_result_and_preserve_aspect_ratio_via_generic_escape_hatch() -> Res
     check_eq(img.as_element().get_attribute("result"), Some("imported".into()))?;
     check_eq(img.as_element().get_attribute("preserveAspectRatio"), Some("none".into()))
 }
+
+/// `crossorigin` (not wrapped by a named parameter either) is likewise reachable via the generic escape hatch —
+/// needed for a cross-origin image consumed as `in2` by `displacement_map`, since an untainted CORS check is what
+/// keeps that displacement from silently becoming a pass-through.
+#[wasm_bindgen_test]
+fn should_set_crossorigin_via_generic_escape_hatch() -> Result<(), String> {
+    let svg = make_svg("filter-image-crossorigin");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("fimc").map_err(|e| e.to_string())?;
+    let img = filter.image("https://example.com/map.png").map_err(|e| e.to_string())?;
+    img.set_attrs([("crossorigin", "anonymous"), ("result", "displacement-map")])
+        .map_err(|e| e.to_string())?;
+    check_eq(img.as_element().get_attribute("crossorigin"), Some("anonymous".into()))?;
+    check_eq(img.as_element().get_attribute("result"), Some("displacement-map".into()))
+}

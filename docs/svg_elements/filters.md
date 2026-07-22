@@ -37,7 +37,7 @@ Remove the filter with `SvgNode::remove_filter()`.
 | `displacement_map(in2, scale, x_channel_selector, y_channel_selector)` | `<feDisplacementMap>` | Warps this primitive's `in` input using `in2`'s `x_channel_selector`/`y_channel_selector` channel values (each a `Channel`) as a per-pixel displacement field, scaled by `scale`. `in2` is typically `turbulence`/`turbulence_xy`'s `result`. Selecting different channels for `x`/`y` (e.g. `Red`/`Green`) gives free two-dimensional displacement; `Channel::Alpha` for both is the SVG default but constrains displacement to one diagonal — see the warning below. |
 | `morphology(radius, operator)` | `<feMorphology>` | Takes a component-wise minimum (`Erode`, SVG default) or maximum (`Dilate`) over `radius`, across the input's premultiplied R/G/B/A channels — a `MorphologyOperator` selects which. Against `SourceAlpha`, the common case, this shrinks/thins or grows/thickens the source silhouette; against `SourceGraphic` it can also shift or bleed colours at edges, since colour channels are processed the same way. `radius` is interpreted in the same `primitiveUnits`-dependent way as `gaussian_blur`'s `std_deviation`; `0.0`, or any negative value, disables the effect (`in` passed through unchanged). |
 | `morphology_xy(radius_x, radius_y, operator)` | `<feMorphology>` | As `morphology`, but with independent horizontal/vertical radii, writing the SVG two-number `radius="x y"` form. Both values must be positive: unlike `gaussian_blur_xy`, a zero (or negative) component on *either* axis disables the whole primitive rather than giving a one-dimensional effect — see the warning below. |
-| `image(href)` | `<feImage>` | Uses the image or SVG content at `href` as this primitive's own generated output — like `turbulence`/`turbulence_xy`, a generator with no meaningful `in`. `preserveAspectRatio` is not wrapped by a named parameter, the same choice already made for `SvgRoot::image`. Supplies a *second*, independent image source that can be combined with the filtered element's own `SourceGraphic`/`SourceAlpha` — a plain filtered `<image>` already becomes its own `SourceGraphic` and can be colour-transformed or blended on its own, but combining it with unrelated content needs either `image` or a second layered element. `href` is written verbatim; do not pass a `javascript:` URL or other attacker-controlled string without validation. |
+| `image(href)` | `<feImage>` | Uses the image or SVG content at `href` as this primitive's own generated output — like `turbulence`/`turbulence_xy`, a generator with no meaningful `in`. `preserveAspectRatio` is not wrapped by a named parameter, the same choice already made for `SvgRoot::image`. Supplies a *second*, independent image source that can be combined with the filtered element's own `SourceGraphic`/`SourceAlpha` — a plain filtered `<image>` already becomes its own `SourceGraphic` and can be colour-transformed or blended on its own, but combining it with unrelated content needs either `image` or a second layered element. `href` is written verbatim; do not pass a `javascript:` URL or other attacker-controlled string without validation. Loading is asynchronous: a successful return means only that the DOM node was constructed, not that `href` has loaded; a missing/unsupported/zero-sized/failed resource renders as transparent black. A cross-origin image consumed as `displacement_map`'s `in2` needs a satisfied CORS check (`crossorigin`, also reachable via `set_attr`, plus matching server headers) or the displacement silently becomes a pass-through — see the warning below. |
 
 ***⚠️ `CompositeOperator::Arithmetic` requires `k1`–`k4` to be set manually***
 
@@ -255,6 +255,28 @@ Ok::<(), svg_dom::Error>(())
 ***⚠️ `href` is written verbatim, with no validation***
 
 As with `SvgRoot::image`, do not pass a `javascript:` URL or any other attacker-controlled string as `href` without validating it first.
+
+***⚠️ `href` loads asynchronously, and a failed resource fails silently***
+
+A successful `image(href)` return means only that the `<feImage>` DOM node was constructed — it says nothing about whether the resource identified by `href` has finished loading, or ever will.
+A resource that is either missing, unsupported, zero-sized, or fails to download will be rendered as transparent black across the primitive's subregion, per the SVG specification - without any error being reported through the API.
+
+Any attempt to load a resource that fails the browser's CORS check will taint the filter graph. Used directly this is often invisible, but a tainted image consumed as `in2` by `displacement_map` makes that displacement a silent pass-through (`in` is returned unmodified, with no error to signal the mistake) rather than an actual displacement.
+
+For a cross-origin displacement map, set `crossorigin` (not wrapped by a named parameter, so use `set_attr`) — typically `"anonymous"` — and ensure the server hosting `href` sends matching CORS headers:
+
+```rust,no_run
+use svg_dom::SvgRoot;
+
+let svg  = SvgRoot::attach("diagram")?;
+let defs = svg.defs()?;
+let flt  = defs.filter("cross-origin-displacement")?;
+
+flt.image("https://example.com/map.png")?
+    .set_attrs([("crossorigin", "anonymous"), ("result", "displacement-map")])?;
+
+Ok::<(), svg_dom::Error>(())
+```
 
 See [`../gaps.md`](../gaps.md) for the primitives (`feTile`, `feConvolveMatrix`, and others) still to be added.
 

@@ -33,9 +33,44 @@ impl SvgFilter {
     /// graph branches. For a simple linear chain, such as the example below, the next primitive can consume
     /// `<feImage>`'s output implicitly by omitting its own `in`.
     ///
+    /// # Loading is asynchronous
+    ///
+    /// `href` is fetched the same way a plain [`SvgRoot::image`](crate::SvgRoot::image) element's is: asynchronously,
+    /// after this method returns. A successful [`Ok`] here means nothing more than the fact that the `<feImage>` DOM
+    /// node was constructed — it says nothing about whether the resource identified by the `href` has finished loading,
+    /// or ever will.
+    ///
+    /// A resource that is missing, unsupported, zero-sized, or fails to download will be rendered as transparent black
+    /// across the primitive's subregion, as per the SVG specification.  The API will not report any error, resulting in
+    /// a broken `href` that has failed silently in the rendered output.
+    ///
+    /// # Cross-origin images and `feDisplacementMap`
+    ///
+    /// Any attempt to load a resource that fails the browser's CORS check will taint the filter graph. Used directly
+    /// as `SourceGraphic`-adjacent output this is often invisible, but a tainted image consumed as `in2` by
+    /// [`displacement_map`](Self::displacement_map) makes that displacement a pass-through: `in` is returned
+    /// unmodified, with no error to signal the mistake.
+    ///
+    /// For a cross-origin displacement map, set `crossorigin` (which has not beed wrapped as a named parameter) —
+    /// typically `"anonymous"` — and ensure the server hosting `href` sends matching CORS headers:
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::SvgRoot;
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    /// let flt  = defs.filter("cross-origin-displacement")?;
+    ///
+    /// flt.image("https://example.com/map.png")?
+    ///     .set_attrs([("crossorigin", "anonymous"), ("result", "displacement-map")])?;
+    ///
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    ///
     /// # Errors
     ///
-    /// Returns [`Error::Dom`] if the browser refuses to create or append the `<feImage>` element.
+    /// Returns [`Error::Dom`] if the browser refuses to create or append the `<feImage>` element. This is unrelated to
+    /// whether `href` itself loads successfully — see "Loading is asynchronous" above.
     ///
     /// # Example
     ///
