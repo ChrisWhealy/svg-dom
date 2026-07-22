@@ -155,8 +155,9 @@ link.append(&label)?;
 
 ## `<switch>`
 
-`<switch>` renders exactly one of its direct children — the first, in document order, whose conditional processing attributes all evaluate to true — rather than every child the way `<g>` renders all of them.
-A child with none of those attributes set always passes, so appending one last, attribute-free fallback child guarantees something renders even when every conditional child fails.
+`<switch>` renders at most one of its direct children: the first one, in document order, whose conditional  processing attributes all evaluate to true, rather than rendering every child as `<g>` would.
+As per the SVG 2 specification, if none match, it renders **nothing**.
+A child with none of those attributes set always passes, so by appending an attribute-free element last (in document order), you create a fallback that guarantees something renders even when every other conditional child fails.
 
 Obtain a handle via `SvgRoot::switch()` or `SvgBatch::switch()`, then add children with `SvgNode::append`, exactly as with `group`.
 

@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [0.1.69] - 2026-07-22
 
+## Fixed
+
+- Fix CI error caused by AppArmor's new default that blocks access to browser sandbox (`4797789`)
+
 # [Released]
 
 ## [0.1.68] - 2026-07-22

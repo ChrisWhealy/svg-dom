@@ -3,10 +3,13 @@ use crate::{SvgRoot, error::Error, node::SvgNode, root::factory::SvgFactory};
 impl SvgRoot {
     /// Creates a `<switch>` element, appends it to the root, and returns its [`SvgNode`] handle.
     ///
-    /// `<switch>` renders exactly one of its direct children — the first one, in document order, whose conditional
-    /// processing attributes all evaluate to true — rather than every child the way `<g>` renders all of them. A
-    /// child with none of those attributes set always passes, so appending one last, attribute-free fallback child
-    /// guarantees something renders even when every conditional child fails.
+    /// `<switch>` renders at most one of its direct children: the first one, in document order, whose conditional
+    /// processing attributes all evaluate to true, rather than rendering every child as `<g>` would.
+    /// 
+    /// As per the SVG 2 specification, if none match, it renders **nothing**. A child with none of those attributes set
+    /// always passes, so by appending an attribute-free element last (in document order), you create a fallback that
+    /// guarantees something renders even when every other conditional child fails.
+
     ///
     /// Add children with [`SvgNode::append`], the same way as [`group`](Self::group). The conditional attributes
     /// themselves — `systemLanguage`, `requiredExtensions` (`requiredFeatures` is deprecated in SVG 2, since feature

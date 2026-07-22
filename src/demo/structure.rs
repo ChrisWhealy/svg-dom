@@ -697,7 +697,7 @@ pub(super) fn demo_anchor() -> Result<(), Error> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// switch — renders exactly one direct child, chosen by conditional-processing attributes
+// switch — renders at most one direct child, chosen by conditional-processing attributes
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 pub(super) fn demo_switch() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-switch", Size::new(W, H))?;
