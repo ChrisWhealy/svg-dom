@@ -9,6 +9,8 @@
 - [`<image>`](#image)
 - [`<symbol>`](#symbol)
 - [`<use>`](#use)
+- [`<a>`](#a)
+- [`<switch>`](#switch)
 
 ## `<defs>`
 
@@ -126,3 +128,51 @@ Obtain a handle via `SvgRoot::use_node(href, at)` or `SvgBatch::use_node(href, a
 
 Any change to the original definition is immediately visible in all copies.
 A `<use>` element can reference any element by id, including a `<symbol>` (see the [`<symbol>`](#symbol) section above).
+
+---
+
+## `<a>`
+
+`<a>` is a `<g>`-like wrapper: it has no visual appearance of its own, but turns every child appended to it into a hyperlink.
+
+Obtain a handle via `SvgRoot::anchor(href)` or `SvgBatch::anchor(href)`, then add children with `SvgNode::append`, exactly as with `group`.
+
+- `href` accepts anything a browser can navigate to: a relative path, an absolute URL, or a same-document fragment (`"#section"`).
+- `target` (`"_blank"`, `"_self"`, `"_parent"`, `"_top"`, or a named frame — the same vocabulary as HTML `<a target>`) is not wrapped by a named parameter; set it via `set_attr("target", value)`, alongside any other attribute (`download`, `rel`, ...) not covered here.
+- `href` is written verbatim; do not pass a `javascript:` URL or other attacker-controlled string without validation.
+
+```rust,no_run
+let link = svg.anchor("https://example.com")?;
+link.set_attr("target", "_blank")?;
+
+let icon = svg.circle(Point::new(30.0, 30.0), 18.0)?;
+let label = svg.text(Point::new(56.0, 35.0), "Learn more")?;
+link.append(&icon)?;
+link.append(&label)?;
+```
+
+---
+
+## `<switch>`
+
+`<switch>` renders exactly one of its direct children — the first, in document order, whose conditional processing attributes all evaluate to true — rather than every child the way `<g>` renders all of them.
+A child with none of those attributes set always passes, so appending one last, attribute-free fallback child guarantees something renders even when every conditional child fails.
+
+Obtain a handle via `SvgRoot::switch()` or `SvgBatch::switch()`, then add children with `SvgNode::append`, exactly as with `group`.
+
+The conditional attributes themselves — `systemLanguage`, `requiredExtensions` (`requiredFeatures` is deprecated in SVG 2, since feature support is now assumed universal) — are not wrapped by named parameters; set them directly on each child via `set_attr`/`set_attrs`.
+This crate performs no validation or selection of its own: the browser evaluates each child's test attributes and picks the first match at render time.
+
+```rust,no_run
+let switch = svg.switch()?;
+
+let french = svg.text(Point::new(10.0, 30.0), "Bonjour")?;
+french.set_attr("systemLanguage", "fr")?;
+let german = svg.text(Point::new(10.0, 30.0), "Hallo")?;
+german.set_attr("systemLanguage", "de")?;
+let fallback = svg.text(Point::new(10.0, 30.0), "Hello")?;
+
+switch.append(&french)?;
+switch.append(&german)?;
+switch.append(&fallback)?;
+```

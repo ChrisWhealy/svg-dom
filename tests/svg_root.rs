@@ -487,6 +487,62 @@ fn should_create_g_element() -> Result<(), String> {
     common::check_eq(group.as_element().tag_name(), "g".to_string())
 }
 
+/// `anchor` creates an `<a>` child element and writes `href`.
+#[wasm_bindgen_test]
+fn should_create_a_element() -> Result<(), String> {
+    common::div("anchor-factory");
+    let svg = SvgRoot::create_in("anchor-factory", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let link = svg.anchor("https://example.com").map_err(|e| e.to_string())?;
+    common::check_eq(link.as_element().tag_name(), "a".to_string())?;
+    common::check_eq(link.attr("href"), Some("https://example.com".into()))
+}
+
+/// Children appended to an `<a>` become part of the hyperlink, the same way as `group`.
+#[wasm_bindgen_test]
+fn should_append_children_to_anchor() -> Result<(), String> {
+    common::div("anchor-children");
+    let svg = SvgRoot::create_in("anchor-children", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let link = svg.anchor("https://example.com").map_err(|e| e.to_string())?;
+    let icon = svg.circle(Point::new(30.0, 30.0), 18.0).map_err(|e| e.to_string())?;
+    link.append(&icon).map_err(|e| e.to_string())?;
+    common::check_eq(link.as_element().child_element_count(), 1)?;
+    common::check_eq(
+        link.as_element().first_element_child().map(|c| c.tag_name()),
+        Some("circle".to_string()),
+    )
+}
+
+/// `switch` creates a `<switch>` child element.
+#[wasm_bindgen_test]
+fn should_create_switch_element() -> Result<(), String> {
+    common::div("switch-factory");
+    let svg = SvgRoot::create_in("switch-factory", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let switch = svg.switch().map_err(|e| e.to_string())?;
+    common::check_eq(switch.as_element().tag_name(), "switch".to_string())
+}
+
+/// Children appended to `switch` keep their own conditional-processing attributes and document order — this crate
+/// performs no validation or selection of its own; the browser evaluates them at render time.
+#[wasm_bindgen_test]
+fn should_append_children_to_switch_in_order() -> Result<(), String> {
+    common::div("switch-children");
+    let svg = SvgRoot::create_in("switch-children", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let switch = svg.switch().map_err(|e| e.to_string())?;
+
+    let french = svg.text(Point::new(10.0, 30.0), "Bonjour").map_err(|e| e.to_string())?;
+    french.set_attr("systemLanguage", "fr").map_err(|e| e.to_string())?;
+    let fallback = svg.text(Point::new(10.0, 30.0), "Hello").map_err(|e| e.to_string())?;
+
+    switch.append(&french).map_err(|e| e.to_string())?;
+    switch.append(&fallback).map_err(|e| e.to_string())?;
+
+    common::check_eq(switch.as_element().child_element_count(), 2)?;
+    let first = switch.as_element().first_element_child().ok_or("expected a first child")?;
+    common::check_eq(first.get_attribute("systemLanguage"), Some("fr".into()))?;
+    let second = first.next_element_sibling().ok_or("expected a second child")?;
+    common::check_eq(second.get_attribute("systemLanguage"), None)
+}
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Batching (build_batch / build_batch_into)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -606,6 +662,13 @@ fn should_create_equivalent_elements_via_root_and_batch() -> Result<(), String> 
     assert_parity("polyline", svg.polyline(&pts), batch.polyline(&pts), &["points"])?;
     assert_parity("polygon", svg.polygon(&pts), batch.polygon(&pts), &["points"])?;
     assert_parity("group", svg.group(), batch.group(), &[])?;
+    assert_parity(
+        "anchor",
+        svg.anchor("https://example.com"),
+        batch.anchor("https://example.com"),
+        &["href"],
+    )?;
+    assert_parity("switch", svg.switch(), batch.switch(), &[])?;
 
     // text also carries text content, which the attribute comparison above does not cover.
     let r_text = svg.text(p, "parity").map_err(|e| e.to_string())?;

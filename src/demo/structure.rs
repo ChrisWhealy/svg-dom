@@ -657,3 +657,75 @@ pub(super) fn demo_accessibility() -> Result<(), Error> {
 
     Ok(())
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// a — <g>-like wrapper that turns its children into one hyperlink
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+pub(super) fn demo_anchor() -> Result<(), Error> {
+    let svg = SvgRoot::create_in("demo-anchor", Size::new(W, H))?;
+    let cy = PAD_Y + BAND / 2.0;
+
+    // Fragment hrefs are used here purely so clicking inside this demo does not navigate away from the gallery; a
+    // real application would pass whatever URL it actually wants to link to.
+    //
+    // Both the circle and its label become part of the same hyperlink, the same way an HTML <a> around several
+    // elements would — clicking either one navigates.
+    let link1 = svg.anchor("#demo-anchor")?;
+    let icon1 = svg.circle(Point::new(150.0, cy), 40.0)?;
+    icon1.set_fill(ACCENT_BLUE)?;
+    let label1 = svg.text(Point::new(150.0, cy + 5.0), "A")?;
+    label1.set_fill(WHITE)?;
+    label1.set_attrs([("text-anchor", "middle"), ("font-size", "20"), ("font-weight", "bold")])?;
+    link1.append(&icon1)?;
+    link1.append(&label1)?;
+    caption(&svg, 150.0, "<a>: one href wraps both children")?;
+
+    // `target` is not wrapped by a named parameter — every meaningful use of <a> supplies href, but target is only
+    // occasionally needed — so it goes through the generic set_attr escape hatch instead.
+    let link2 = svg.anchor("#demo-anchor")?;
+    link2.set_attr("target", "_blank")?;
+    let icon2 = svg.circle(Point::new(450.0, cy), 40.0)?;
+    icon2.set_fill(DARK_ORANGE)?;
+    let label2 = svg.text(Point::new(450.0, cy + 5.0), "B")?;
+    label2.set_fill(WHITE)?;
+    label2.set_attrs([("text-anchor", "middle"), ("font-size", "20"), ("font-weight", "bold")])?;
+    link2.append(&icon2)?;
+    link2.append(&label2)?;
+    caption(&svg, 450.0, "target=\"_blank\" set via set_attr")?;
+
+    Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// switch — renders exactly one direct child, chosen by conditional-processing attributes
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+pub(super) fn demo_switch() -> Result<(), Error> {
+    let svg = SvgRoot::create_in("demo-switch", Size::new(W, H))?;
+    let cy = PAD_Y + BAND / 2.0;
+
+    // Panel 1: the only conditional child carries a systemLanguage no browser ever reports, so it never matches —
+    // <switch> falls through to the attribute-free fallback. This is deterministic in every browser/locale, unlike
+    // testing a real systemLanguage match against whichever locale happens to be running the demo.
+    let switch1 = svg.switch()?;
+    let never_matches = svg.circle(Point::new(150.0, cy), 40.0)?;
+    never_matches.set_fill(CORAL)?;
+    never_matches.set_attr("systemLanguage", "xx")?;
+    switch1.append(&never_matches)?;
+    let fallback = svg.circle(Point::new(150.0, cy), 40.0)?;
+    fallback.set_fill(STEELBLUE)?;
+    switch1.append(&fallback)?;
+    caption(&svg, 150.0, "no child matches -> fallback renders")?;
+
+    // Panel 2: the first child has no test attributes at all, so it always matches and renders immediately — the
+    // second child is never reached, even though it would otherwise be a perfectly valid alternative.
+    let switch2 = svg.switch()?;
+    let first_match = svg.circle(Point::new(450.0, cy), 40.0)?;
+    first_match.set_fill(MEDIUM_SEA_GREEN)?;
+    switch2.append(&first_match)?;
+    let never_reached = svg.circle(Point::new(450.0, cy), 40.0)?;
+    never_reached.set_fill(DARK_ORANGE)?;
+    switch2.append(&never_reached)?;
+    caption(&svg, 450.0, "attribute-free first child always matches")?;
+
+    Ok(())
+}

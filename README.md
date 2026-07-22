@@ -50,7 +50,7 @@ That said, all reasonable, conventional steps have been taken to provide a secur
 - [x] Build demo server to illustrate current functionality
 - [x] Schedule `cargo-deny` to run as a weekly `cron` job
 - Implement remaining SVG elements
-  - [ ] `<a>` (anchor)
+  - [x] `<a>` (anchor)
   - [x] `<clipPath>`
   - [x] `<defs>`
   - [x] `<desc>`
@@ -80,7 +80,7 @@ That said, all reasonable, conventional steps have been taken to provide a secur
   - [x] `<pattern>`
   - [x] `<radialGradient>`
   - [ ] `<style>`
-  - [ ] `<switch>`
+  - [x] `<switch>`
   - [x] `<symbol>`
   - [x] `<textPath>`
   - [x] `<title>`

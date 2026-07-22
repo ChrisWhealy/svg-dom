@@ -26,8 +26,6 @@ These elements have no wrapper anywhere in `src/` and, unlike the filter primiti
 
 | Missing element | Cost | Benefit |
 |---|---|---|
-| `<a>` (anchor) | Low — a `<g>`-like wrapper plus `href`/`target`. | Low-moderate — useful for interactive diagrams/maps, rarely essential. |
-| `<switch>` | Low structurally, but `systemLanguage`/`requiredFeatures` are already reachable as plain attributes on a `g()` via `set_attr`. | Low — a dedicated wrapper buys little over what is already reachable. |
 | `<view>` | Low — attribute-only container. | Low — fragment-identifier navigation is a niche use case for a WASM-driven crate that already controls the DOM directly. |
 | `<foreignObject>` | Low to build (`x`/`y`/`width`/`height` + the existing `set_inner_html`), but the crate's query methods (`first_child`, `query_selector`, etc.) already deliberately treat its contents as opaque — a constructor would be inconsistent with that stance unless the read side is revisited too. | Low-moderate, and narrow to HTML-interop scenarios. |
 | `<style>` | Low to build. | Low — styling already goes through `set_attr`/CSS classes set from Rust; injecting a `<style>` text block doesn't fit how this crate expects callers to work. |

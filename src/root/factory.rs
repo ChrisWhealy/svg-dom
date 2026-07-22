@@ -169,4 +169,19 @@ pub(crate) trait SvgFactory {
         self.append_node(&node)?;
         Ok(node)
     }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    fn create_anchor(&self, href: &str) -> Result<SvgNode, Error> {
+        let node = self.make_node("a")?;
+        node.set_attr("href", href)?;
+        self.append_node(&node)?;
+        Ok(node)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    fn create_switch(&self) -> Result<SvgNode, Error> {
+        let node = self.make_node("switch")?;
+        self.append_node(&node)?;
+        Ok(node)
+    }
 }

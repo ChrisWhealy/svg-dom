@@ -52,6 +52,8 @@
                 <button type="button" class="menu-item" data-target="panel-use">use</button>
                 <button type="button" class="menu-item" data-target="panel-image">image</button>
                 <button type="button" class="menu-item" data-target="panel-symbol">symbol</button>
+                <button type="button" class="menu-item" data-target="panel-anchor">a</button>
+                <button type="button" class="menu-item" data-target="panel-switch">switch</button>
             </details>
 
             <details class="menu-group">
@@ -353,6 +355,40 @@
                         and stamped five times at increasing sizes via <strong>use_node</strong>.
                         The <code>viewBox</code> scales the content automatically to fit each <code>&lt;use&gt;</code>
                         element's <code>width</code> and <code>height</code> — no manual rescaling needed.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- a -->
+            <section class="section" id="panel-anchor">
+                <h2><code>&lt;a&gt;</code> — a <code>&lt;g&gt;</code>-like wrapper that turns its children into a hyperlink</h2>
+                <figure>
+                    <div class="canvas" id="demo-anchor"></div>
+                    <figcaption>
+                        <strong>Link A</strong> — a circle and its label appended to one <code>&lt;a&gt;</code>; both
+                        become part of the same hyperlink, so clicking either one navigates.<br>
+                        <strong>Link B</strong> — the same wrapping, plus <code>target="_blank"</code> set via the
+                        generic <code>set_attr</code> escape hatch (not wrapped by a named parameter).<br>
+                        Both links use a same-document fragment <code>href</code> here purely so clicking inside this
+                        demo does not navigate away from the gallery.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- switch -->
+            <section class="section" id="panel-switch">
+                <h2><code>&lt;switch&gt;</code> — renders exactly one direct child</h2>
+                <figure>
+                    <div class="canvas" id="demo-switch"></div>
+                    <figcaption>
+                        <strong>no child matches → fallback renders</strong> — the first child's
+                        <code>systemLanguage="xx"</code> never matches any browser, so <code>&lt;switch&gt;</code>
+                        falls through to the attribute-free fallback (steelblue).<br>
+                        <strong>attribute-free first child always matches</strong> — a child with no conditional
+                        attributes at all always passes, so it renders immediately and the second child (darkorange)
+                        is never reached.<br>
+                        Both outcomes are deterministic in every browser/locale — unlike testing a real
+                        <code>systemLanguage</code> match against whatever locale happens to be running the demo.
                     </figcaption>
                 </figure>
             </section>

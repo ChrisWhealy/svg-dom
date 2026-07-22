@@ -14,6 +14,7 @@ For known gaps, see [Gap Analysis](../gaps.md).
 
 The following SVG elements are supported:
 
+* `a`
 * `circle`
 * `clipPath`
 * `defs`
@@ -46,6 +47,7 @@ The following SVG elements are supported:
 * `polygon`
 * `polyline`
 * `radialGradient` (with `stop`)
+* `switch`
 * `symbol`
 * `text` (with `tspan`, `textPath`)
 * `title`
@@ -77,9 +79,9 @@ The following SVG elements are supported:
 
 ## Structural and Reusable elements
 
-- [`<defs>`, `<marker>`, `<image>`, `<symbol>` and `<use>`](structural_elements.md)
+- [`<defs>`, `<marker>`, `<image>`, `<symbol>`, `<use>`, `<a>` and `<switch>`](structural_elements.md)
 
-  A set of reusable SVG asset containers such as path-decoration markers, raster/SVG embedding, reusable scaled viewports and element instancing without the need for DOM duplication.
+  A set of reusable SVG asset containers such as path-decoration markers, raster/SVG embedding, reusable scaled viewports and element instancing without the need for DOM duplication, plus the hyperlink and conditional-rendering wrappers.
 
 ## Text
 

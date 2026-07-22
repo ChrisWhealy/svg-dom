@@ -47,6 +47,12 @@ Internally, those factories delegate to a shared `SvgFactory` implementation, so
 
 The only difference between the two paths is the append target: `SvgRoot` appends directly to the live `<svg>`, while `SvgBatch` appends to its `DocumentFragment` until `commit()` is called.
 
+`anchor` (`<a>`) and `switch` (`<switch>`) were added to `SvgFactory` the same way: `create_anchor` and `create_switch` follow `create_group`'s exact shape (a bare `create_svg_element` + optional attribute write + `append_node`, no geometry).
+`SvgRoot::anchor`/`switch` and `SvgBatch::anchor`/`switch` are thin public wrappers, covered by the same `assert_parity` structural guard `tests/svg_root.rs` already runs across every other paired factory method.
+
+Unlike `group`, which is also exposed on every other `SvgFactory` implementer (`SvgDefs`, `SvgSymbol`, `SvgPattern`, `SvgMask`, `SvgMarker`, `SvgClipPath`), `anchor` and `switch` are scoped to `SvgRoot`/`SvgBatch` only, matching `image`/`use_node`'s narrower precedent rather than `group`'s broader one.
+A hyperlink or a language-conditional fallback is a main-document, user-facing construct; neither has an obvious use inside a non-rendered `<defs>` entry or a `<mask>`, `<clipPath>` or `<pattern>` tile, so the trait method exists (any future container can adopt it cheaply) without every container exposing it speculatively ahead of a real need.
+
 ## Downward tree navigation and query-by-selector reuse `parent`'s independent-handle pattern, not a new type
 
 `SvgNode::parent` (`src/node/tree.rs`) already had to solve the problem this section is about: how to hand back a live `SvgNode` for a DOM element the crate did not create through one of its own factory methods.

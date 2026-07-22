@@ -126,6 +126,22 @@ impl SvgBatch {
     pub fn use_node(&self, href: &str, at: Point) -> Result<SvgNode, Error> {
         self.create_use(href, at)
     }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Creates a detached `<a>` element in this batch and returns its [`SvgNode`] handle.
+    ///
+    /// See [`SvgRoot::anchor`](crate::SvgRoot::anchor) for full documentation.
+    pub fn anchor(&self, href: &str) -> Result<SvgNode, Error> {
+        self.create_anchor(href)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Creates a detached `<switch>` element in this batch and returns its [`SvgNode`] handle.
+    ///
+    /// See [`SvgRoot::switch`](crate::SvgRoot::switch) for full documentation.
+    pub fn switch(&self) -> Result<SvgNode, Error> {
+        self.create_switch()
+    }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

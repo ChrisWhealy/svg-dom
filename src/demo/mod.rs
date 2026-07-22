@@ -100,6 +100,8 @@ pub fn run_demo() -> Result<(), JsValue> {
     structure::demo_use().map_err(e)?;
     structure::demo_image().map_err(e)?;
     structure::demo_symbol().map_err(e)?;
+    structure::demo_anchor().map_err(e)?;
+    structure::demo_switch().map_err(e)?;
     structure::demo_view_box().map_err(e)?;
     structure::demo_tree_nav().map_err(e)?;
     structure::demo_accessibility().map_err(e)?;
@@ -178,6 +180,8 @@ const DEMO_SOURCES: &[(&str, &str)] = &[
     ("panel-use", "demo_use"),
     ("panel-image", "demo_image"),
     ("panel-symbol", "demo_symbol"),
+    ("panel-anchor", "demo_anchor"),
+    ("panel-switch", "demo_switch"),
     ("panel-view-box", "demo_view_box"),
     ("panel-tree-nav", "demo_tree_nav"),
     ("panel-accessibility", "demo_accessibility"),

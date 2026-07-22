@@ -36,6 +36,8 @@ pub mod utils;
 
 /// Forwards `<title>`/`<desc>` accessibility helpers from [`SvgNode`](crate::SvgNode) onto [`SvgRoot`](crate::SvgRoot).
 mod accessibility;
+/// The [`SvgRoot::anchor`](crate::SvgRoot::anchor) factory.
+mod anchor;
 /// The [`SvgRoot::circle`](crate::SvgRoot::circle) factory.
 mod circle;
 /// The [`SvgRoot::ellipse`](crate::SvgRoot::ellipse) factory.
@@ -52,6 +54,8 @@ mod polygon;
 mod polyline;
 /// The [`SvgRoot::rect`](crate::SvgRoot::rect) factory.
 mod rect;
+/// The [`SvgRoot::switch`](crate::SvgRoot::switch) factory.
+mod switch;
 /// The [`SvgRoot::text`](crate::SvgRoot::text) factory.
 mod text;
 /// The [`SvgRoot::use_node`](crate::SvgRoot::use_node) factory.
