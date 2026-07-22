@@ -35,6 +35,18 @@ fn should_set_href() -> Result<(), String> {
     check_eq(img.as_element().get_attribute("href"), Some("assets/photo.jpg".into()))
 }
 
+/// `href` accepts a same-document fragment reference (`"#id"`), not just an external image URL or a `data:` URI.
+/// This is a deliberate, important use case: `<feImage>` can pull in any SVG element already in the document — a
+/// `<g>` built or modified at runtime, not only a raster or pre-encoded resource.
+#[wasm_bindgen_test]
+fn should_accept_internal_reference_as_href() -> Result<(), String> {
+    let svg = make_svg("filter-image-internal-ref");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("fimi").map_err(|e| e.to_string())?;
+    let img = filter.image("#texture").map_err(|e| e.to_string())?;
+    check_eq(img.as_element().get_attribute("href"), Some("#texture".into()))
+}
+
 /// The generic `SvgNode::set_attr` escape hatch on the returned primitive node covers attributes not yet wrapped by
 /// a named parameter, such as `result` (needed when this primitive's output must be referenced explicitly — as
 /// `in2`, by a primitive that is not immediately downstream, or in a branched filter graph; a simple linear chain
