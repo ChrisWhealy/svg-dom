@@ -6,6 +6,7 @@ mod displacement_map;
 mod drop_shadow;
 mod flood;
 mod gaussian_blur;
+mod image;
 mod merge;
 mod morphology;
 mod offset;

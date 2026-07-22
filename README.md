@@ -65,7 +65,7 @@ That said, all reasonable, conventional steps have been taken to provide a secur
     - [x] `feDropShadow`
     - [x] `feFlood`
     - [x] `feGaussianBlur`
-    - [ ] `feImage`
+    - [x] `feImage`
     - [x] `feMerge`
     - [x] `feMorphology`
     - [x] `feOffset`

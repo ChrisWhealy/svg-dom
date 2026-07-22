@@ -29,10 +29,11 @@
 //!   `src/root/filter/primitives/displacement_map.rs`.
 //! - [`morphology`] — `morphology`/`morphology_xy` and every `MorphologyOperator` keyword — mirrors
 //!   `src/root/filter/primitives/morphology.rs`.
+//! - [`image`] — `image` — mirrors `src/root/filter/primitives/image.rs`.
 //! - [`chains`] — cross-primitive integration tests (the manual blur+offset+merge and blur+flood+composite+
 //!   offset+merge drop-shadow chains, the flood+blend+composite tint chain, the turbulence+displacement_map
-//!   noise-distortion chain, and the morphology+merge bold-outline chain) — these compose several primitives
-//!   together, so they don't belong to any single primitive's own file.
+//!   noise-distortion chain, the morphology+merge bold-outline chain, and the image+color_matrix filtered-image
+//!   chain) — these compose several primitives together, so they don't belong to any single primitive's own file.
 //!
 //! `tests/common.rs` is one directory up (shared with every other integration test file), hence the `#[path]`
 //! override below rather than a plain `mod common;`.
@@ -51,6 +52,7 @@ mod displacement_map;
 mod drop_shadow;
 mod flood;
 mod gaussian_blur;
+mod image;
 mod merge;
 mod morphology;
 mod offset;

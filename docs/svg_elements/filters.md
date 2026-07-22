@@ -37,6 +37,7 @@ Remove the filter with `SvgNode::remove_filter()`.
 | `displacement_map(in2, scale, x_channel_selector, y_channel_selector)` | `<feDisplacementMap>` | Warps this primitive's `in` input using `in2`'s `x_channel_selector`/`y_channel_selector` channel values (each a `Channel`) as a per-pixel displacement field, scaled by `scale`. `in2` is typically `turbulence`/`turbulence_xy`'s `result`. Selecting different channels for `x`/`y` (e.g. `Red`/`Green`) gives free two-dimensional displacement; `Channel::Alpha` for both is the SVG default but constrains displacement to one diagonal — see the warning below. |
 | `morphology(radius, operator)` | `<feMorphology>` | Takes a component-wise minimum (`Erode`, SVG default) or maximum (`Dilate`) over `radius`, across the input's premultiplied R/G/B/A channels — a `MorphologyOperator` selects which. Against `SourceAlpha`, the common case, this shrinks/thins or grows/thickens the source silhouette; against `SourceGraphic` it can also shift or bleed colours at edges, since colour channels are processed the same way. `radius` is interpreted in the same `primitiveUnits`-dependent way as `gaussian_blur`'s `std_deviation`; `0.0`, or any negative value, disables the effect (`in` passed through unchanged). |
 | `morphology_xy(radius_x, radius_y, operator)` | `<feMorphology>` | As `morphology`, but with independent horizontal/vertical radii, writing the SVG two-number `radius="x y"` form. Both values must be positive: unlike `gaussian_blur_xy`, a zero (or negative) component on *either* axis disables the whole primitive rather than giving a one-dimensional effect — see the warning below. |
+| `image(href)` | `<feImage>` | Uses the image or SVG content at `href` as this primitive's own generated output — like `turbulence`/`turbulence_xy`, a generator with no meaningful `in`. `preserveAspectRatio` is not wrapped by a named parameter, the same choice already made for `SvgRoot::image`. Lets external image content be pulled into a filter graph and combined with any other primitive above — something a plain `<image>` element, filtered on its own, cannot do without a second layered element. `href` is written verbatim; do not pass a `javascript:` URL or other attacker-controlled string without validation. |
 
 ***⚠️ `CompositeOperator::Arithmetic` requires `k1`–`k4` to be set manually***
 
@@ -208,7 +209,30 @@ Unlike `gaussian_blur_xy`, where `gaussian_blur_xy(0.0, 6.0)` is an explicitly s
 
 `morphology_xy(3.0, 0.0, MorphologyOperator::Dilate)` is therefore a no-op, not a horizontal-only dilation — both `radius_x` and `radius_y` must be positive for this primitive to have any effect.
 
-See [`../gaps.md`](../gaps.md) for the primitives (`feTile`, `feImage`, and others) still to be added.
+`image` brings external image content into a filter graph, where it can be combined with any other primitive on this page.
+This is distinct from using a plain `<image>` element, which, if filtered on its own, cannot do without a second layered element:
+
+```rust,no_run
+use svg_dom::{SvgRoot, root::filter::ColorMatrixType};
+
+let svg  = SvgRoot::attach("diagram")?;
+let defs = svg.defs()?;
+let flt  = defs.filter("greyscale-image")?;
+
+flt.image("photo.jpg")?;
+flt.color_matrix(ColorMatrixType::Saturate(0.0))?;
+
+Ok::<(), svg_dom::Error>(())
+```
+
+Like `turbulence`/`turbulence_xy`, `image` does not read from `in` at all.
+Its content comes from `href`, not from an upstream primitive's result, so `color_matrix`'s implicit input above (being the filter's second primitive) is `image`'s own output, not `SourceGraphic`.
+
+***⚠️ `href` is written verbatim, with no validation***
+
+As with `SvgRoot::image`, do not pass a `javascript:` URL or any other attacker-controlled string as `href` without validating it first.
+
+See [`../gaps.md`](../gaps.md) for the primitives (`feTile`, `feConvolveMatrix`, and others) still to be added.
 
 ## Region and Coordinate-Space Attributes
 

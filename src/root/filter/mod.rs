@@ -58,6 +58,7 @@ mod region;
 /// - [`displacement_map`](Self::displacement_map) (`<feDisplacementMap>`)
 /// - [`morphology`](Self::morphology)
 /// - [`morphology_xy`](Self::morphology_xy) (`<feMorphology>`)
+/// - [`image`](Self::image) (`<feImage>`)
 ///
 /// The first five, taken together, can be used to build a *true* tinted, opacity-controlled drop shadow (blur the
 /// source alpha, composite a flood colour into the blurred mask, offset it, then merge it underneath the original
@@ -90,8 +91,15 @@ mod region;
 /// (via a [`MorphologyOperator`]) over a fixed radius, across the input's premultiplied R/G/B/A channels — against
 /// `SourceAlpha`, the common case, this thickens or thins an outline; independent of every other primitive above.
 ///
-/// The SVG filter specification defines around fifteen effect primitives in total (`feTile`, `feImage`, and others),
-/// each with its own attribute grammar. See `docs/gaps.md` for the primitives still to be added.
+/// Alongside [`turbulence`](Self::turbulence) and [`turbulence_xy`](Self::turbulence_xy), [`image`](Self::image) is the
+/// third generator that does not read from an upstream primitive, a: its content comes from an `href` rather than an
+/// upstream primitive, letting external image content be pulled into a filter graph and combined with every other
+/// primitive above (colour-transformed, blended, composited, ...) — something a plain
+/// [`SvgRoot::image`](crate::SvgRoot::image) element, filtered on its own, cannot do without a second layered element.
+///
+/// The SVG filter specification defines around fifteen effect primitives in total, each with its own attribute grammar.
+///
+/// See `docs/gaps.md` for the primitives still to be added.
 ///
 /// The filter region ([`set_x`](Self::set_x), [`set_y`](Self::set_y), [`set_width`](Self::set_width),
 /// [`set_height`](Self::set_height)) and coordinate-space ([`set_filter_units`](Self::set_filter_units),

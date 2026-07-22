@@ -1,5 +1,5 @@
 use crate::common::*;
-use svg_dom::{BlendMode, Channel, CompositeOperator, MorphologyOperator, TurbulenceType};
+use svg_dom::{BlendMode, Channel, ColorMatrixType, CompositeOperator, MorphologyOperator, TurbulenceType};
 use wasm_bindgen_test::*;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -138,4 +138,34 @@ fn should_build_bold_outline_filter_chain() -> Result<(), String> {
     check_eq(morph.get_attribute("result"), Some("thickened".into()))?;
     check_eq(merge.tag_name(), "feMerge".to_owned())?;
     check_eq(merge.child_element_count(), 2)
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// image + color_matrix — filtered-image chain
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `image` composes with `color_matrix` into a well-formed filtered-image chain: import external image content
+/// via `href`, then greyscale it — the example from `SvgFilter::image`'s doc comment. Since `image` reads no `in`
+/// at all, `color_matrix`'s implicit input (being the filter's second primitive) is `image`'s own output, not
+/// `SourceGraphic` — the whole point of bringing image content into a filter graph rather than filtering a plain
+/// `<image>` element on its own.
+#[wasm_bindgen_test]
+fn should_build_filtered_image_chain() -> Result<(), String> {
+    let svg = make_svg("filter-image-color-matrix-chain");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs
+        .build_filter("greyscale-image", |f| {
+            f.image("photo.jpg")?;
+            f.color_matrix(ColorMatrixType::Saturate(0.0))?;
+            Ok(())
+        })
+        .map_err(|e| e.to_string())?;
+    let el = filter.as_element();
+    check_eq(el.child_element_count(), 2)?;
+    let img = el.first_element_child().ok_or("expected a <feImage> child")?;
+    let cm = img.next_element_sibling().ok_or("expected a <feColorMatrix> sibling")?;
+    check_eq(img.tag_name(), "feImage".to_owned())?;
+    check_eq(img.get_attribute("href"), Some("photo.jpg".into()))?;
+    check_eq(cm.tag_name(), "feColorMatrix".to_owned())?;
+    check_eq(cm.get_attribute("type"), Some("saturate".into()))
 }

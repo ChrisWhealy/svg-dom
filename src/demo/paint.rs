@@ -443,6 +443,20 @@ fn widen_filter_region(f: &SvgFilter) -> Result<(), Error> {
     Ok(())
 }
 
+// Narrows a filter's region from the SVG default (-10%/-10%/120%/120% of the referencing element's bounding box)
+// down to exactly 0%/0%/100%/100% — i.e. the referencing element's own bounding box, with no margin. feImage's
+// content fills its primitive subregion, which defaults to the *filter region* rather than the referencing
+// element's box, so the default 120% padding makes an imported image render visibly larger than the same image
+// placed directly via a plain <image> element. Unlike widen_filter_region's blur/offset use case, feImage has
+// nothing that spills past its own source image's edges, so it needs no such margin.
+fn exact_filter_region(f: &SvgFilter) -> Result<(), Error> {
+    f.set_x(0.0)?;
+    f.set_y(0.0)?;
+    f.set_width(1.0)?;
+    f.set_height(1.0)?;
+    Ok(())
+}
+
 pub(super) fn demo_filter() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-filter", Size::new(W, H))?;
 
@@ -906,6 +920,80 @@ pub(super) fn demo_morphology() -> Result<(), Error> {
     outlined.set_attr("font-weight", "bold")?;
     outlined.set_filter("morphology-outline")?;
     caption(&svg, xs[3] + rect_w / 2.0, "bold outline (dilate + merge)")?;
+
+    Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// feImage — brings external image content into a filter graph, then combines it with feColorMatrix/feBlend
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+pub(super) fn demo_fe_image() -> Result<(), Error> {
+    let svg = SvgRoot::create_in("demo-fe-image", Size::new(W, H))?;
+
+    // Same 60×40 four-quadrant colour grid used by the plain <image> demo, so the "original" panel here is
+    // recognisably the same source, just routed through a filter graph instead of placed directly.
+    const SRC: &str = "data:image/svg+xml;base64,\
+        PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc2MCcgaGVpZ2h0\
+        PSc0MCc+PHJlY3Qgd2lkdGg9JzMwJyBoZWlnaHQ9JzIwJyBmaWxsPSdzdGVlbGJsdWUnLz48cmVj\
+        dCB4PSczMCcgd2lkdGg9JzMwJyBoZWlnaHQ9JzIwJyBmaWxsPSdjb3JhbCcvPjxyZWN0IHk9JzIw\
+        JyB3aWR0aD0nMzAnIGhlaWdodD0nMjAnIGZpbGw9J2dvbGQnLz48cmVjdCB4PSczMCcgeT0nMjAn\
+        IHdpZHRoPSczMCcgaGVpZ2h0PScyMCcgZmlsbD0nbWVkaXVtc2VhZ3JlZW4nLz48L3N2Zz4=";
+
+    svg.build_defs(|d| {
+        // feImage alone: the image becomes this filter's entire output, unmodified — no other primitive reads it,
+        // so nothing here is any different from placing the same source via a plain <image> element.
+        d.build_filter("fe-image-plain", |f| {
+            exact_filter_region(f)?;
+            f.image(SRC)?;
+            Ok(())
+        })?;
+
+        // The main showcase: import the image via feImage, then greyscale it with color_matrix — the exact chain
+        // from SvgFilter::image's doc comment. Since feImage reads no `in` at all, color_matrix's implicit input
+        // (being the filter's second primitive) is feImage's own output, not SourceGraphic.
+        d.build_filter("fe-image-greyscale", |f| {
+            exact_filter_region(f)?;
+            f.image(SRC)?;
+            f.color_matrix(ColorMatrixType::Saturate(0.0))?;
+            Ok(())
+        })?;
+
+        // A second combination: tint the imported image by blending a flood colour over it — something a plain
+        // <image>, filtered on its own, cannot express without a second layered element, since blend needs a
+        // second *input* to mix colours with, and that second input can itself be another primitive's output
+        // (here, the flood) rather than SourceGraphic/SourceAlpha.
+        d.build_filter("fe-image-tinted", |f| {
+            exact_filter_region(f)?;
+            f.image(SRC)?.set_attr("result", "photo")?;
+            f.flood(GOLDENROD, 1.0)?.set_attr("result", "colour")?;
+            f.blend("photo", BlendMode::Multiply)?.set_attr("in", "colour")?;
+            Ok(())
+        })?;
+
+        Ok(())
+    })?;
+
+    // 60×40 is a 3:2 source aspect ratio; sizing each box 120×80 keeps that ratio exactly, so the default
+    // preserveAspectRatio ("xMidYMid meet") neither letterboxes nor crops any panel.
+    let img_w = 120.0_f64;
+    let img_h = 80.0_f64;
+    let y0 = PAD_Y + (BAND - img_h) / 2.0;
+    let xs: [f64; 4] = [40.0, 250.0, 450.0, 650.0];
+
+    svg.image(SRC, Point::new(xs[0], y0), Size::new(img_w, img_h))?;
+    caption(&svg, xs[0] + img_w / 2.0, "original <image>")?;
+
+    let plain = svg.rect(Point::new(xs[1], y0), Size::new(img_w, img_h))?;
+    plain.set_filter("fe-image-plain")?;
+    caption(&svg, xs[1] + img_w / 2.0, "feImage")?;
+
+    let greyscale = svg.rect(Point::new(xs[2], y0), Size::new(img_w, img_h))?;
+    greyscale.set_filter("fe-image-greyscale")?;
+    caption(&svg, xs[2] + img_w / 2.0, "feImage + color_matrix")?;
+
+    let tinted = svg.rect(Point::new(xs[3], y0), Size::new(img_w, img_h))?;
+    tinted.set_filter("fe-image-tinted")?;
+    caption(&svg, xs[3] + img_w / 2.0, "feImage + flood + blend")?;
 
     Ok(())
 }

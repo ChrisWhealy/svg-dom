@@ -11,6 +11,7 @@
 - [`color_matrix` uses a data-carrying enum](#color_matrix-uses-a-data-carrying-enum)
 - [`turbulence`/`turbulence_xy` have no `in`, and `displacement_map` reuses `Channel` rather than a new enum](#turbulenceturbulence_xy-have-no-in-and-displacement_map-reuses-channel-rather-than-a-new-enum)
 - [`morphology`/`morphology_xy` are the third `fmt::Arguments`-core primitive pair, and `MorphologyOperator` orders `Erode` first to match the SVG default](#morphologymorphology_xy-are-the-third-fmtarguments-core-primitive-pair-and-morphologyoperator-orders-erode-first-to-match-the-svg-default)
+- [`image` takes `href` positionally and adds no `PreserveAspectRatio` type, both by analogy with `SvgRoot::image`](#image-takes-href-positionally-and-adds-no-preserveaspectratio-type-both-by-analogy-with-svgrootimage)
 - [Filter region and coordinate-space attributes get named setters, `FilterUnits` reuses the `PatternUnits` shape](#filter-region-and-coordinate-space-attributes-get-named-setters-filterunits-reuses-the-patternunits-shape)
 
 `SvgFilter` (`src/root/filter/`) is structurally identical to `SvgClipPath` and `SvgPattern`: that is, it is an id-cached container obtained from `SvgDefs::filter`/`build_filter`, applied to any element via `SvgNode::set_filter_ref`/`set_filter`, with the usual `set_attr`/`set_attrs`/`set_attr_display` escape hatch for attributes not yet wrapped by a named setter.
@@ -150,6 +151,23 @@ Unlike `CompositeOperator` (`Over` first) and `BlendMode` (`Normal` first), `Mor
 The specification does in fact define it, and plainly: "a negative or zero value disables the effect ... the result is the filter input image."
 That is, a negative `radius` behaves identically to `0.0`, not merely "unsupported" or "unspecified" — both disable the primitive outright, with `in` passed through unchanged.
 `morphology`'s doc comment now states this directly instead of hedging, and there is accordingly no reason for `morphology`/`morphology_xy` to reject or clamp a negative value in Rust: the SVG-defined pass-through behaviour is already the correct, useful result, so preserving it (rather than adding a redundant `Error` variant purely to special-case a value the renderer already handles safely) is the simpler and equally correct choice.
+
+See [`docs/gaps.md`](../gaps.md) for the primitives still to be added.
+
+## `image` takes `href` positionally and adds no `PreserveAspectRatio` type, both by analogy with `SvgRoot::image`
+
+Alongside `turbulence` and `turbulence_xy`, `<feImage>` takes its content from resolving an `href`, rather than an `in` generator.
+So `image`'s doc comment carries the same explicit callout `turbulence`'s does rather than leaving a reader to assume every primitive reads `in`.
+
+`href` is `image`'s one positional parameter — the same "cover what's common, defer what's rare" judgement already applied to `flood`'s `color`/`opacity` and `offset`'s `dx`/`dy`: every meaningful use of `feImage` supplies it, so it does not belong behind the generic `set_attr` escape hatch the way `result` (and here, `preserveAspectRatio`) does.
+
+`preserveAspectRatio` is deliberately *not* given a named parameter or a new typed enum, even though `<feImage>` shares this attribute with `<image>`/`<symbol>`/`<marker>`.
+Checking those three first found no existing `PreserveAspectRatio` type anywhere in the crate: `SvgRoot::image` has no dedicated setter for it at all (its own doc comment just points at using `set_attr`), `SvgMarker` explicitly documents the same gap, and only `SvgSymbol::set_preserve_aspect_ratio` exists, taking a plain `&str`, not an enum.
+
+`image` follows the majority convention (no dedicated setter), the same way `MorphologyOperator` above chose to reuse `Channel` rather than create a single-use type.
+Here, we reached for a typed enum when a closed vocabulary is already established crate-wide, not merely because an attribute recurs.
+
+`href` is written verbatim with no validation, under a `# Security` doc section that is close to word-for-word the one on `SvgRoot::image`/`SvgNode::set_href` — the risk (an attacker-controlled `javascript:` URL reaching `setAttribute`) and the crate's stance on it (document, don't silently sanitise) are unchanged by which element carries the attribute.
 
 See [`docs/gaps.md`](../gaps.md) for the primitives still to be added.
 
