@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Fix CI error caused by AppArmor's new default that blocks access to browser sandbox (`4797789`)
 - Doc only: correct description of `<switch>` rendering (`88fac96`)
+- Correct switch condition in demo and doc comments (`52357db`)
 
 # [Released]
 

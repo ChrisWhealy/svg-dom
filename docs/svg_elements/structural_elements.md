@@ -161,7 +161,7 @@ A child with none of those attributes set always passes, so by appending an attr
 
 Obtain a handle via `SvgRoot::switch()` or `SvgBatch::switch()`, then add children with `SvgNode::append`, exactly as with `group`.
 
-The conditional attributes themselves — `systemLanguage`, `requiredExtensions` (`requiredFeatures` is deprecated in SVG 2, since feature support is now assumed universal) — are not wrapped by named parameters; set them directly on each child via `set_attr`/`set_attrs`.
+The conditional attributes themselves — `systemLanguage`, `requiredExtensions` (`requiredFeatures` existed in earlier SVG versions but was removed from SVG 2 because it proved unreliable as a feature-support test) — are not wrapped by named parameters; set them directly on each child via `set_attr`/`set_attrs`.
 This crate performs no validation or selection of its own: the browser evaluates each child's test attributes and picks the first match at render time.
 
 ```rust,no_run

@@ -11,8 +11,9 @@ impl SvgRoot {
     /// guarantees something renders even when every other conditional child fails.
     ///
     /// Add children with [`SvgNode::append`], the same way as [`group`](Self::group). The conditional attributes
-    /// themselves — `systemLanguage`, `requiredExtensions` (`requiredFeatures` is deprecated in SVG 2, since feature
-    /// support is now assumed universal) — are not wrapped by named parameters; set them directly on each child via
+    /// themselves — `systemLanguage`, `requiredExtensions` (`requiredFeatures` existed in earlier SVG versions but
+    /// was removed from SVG 2 because it proved unreliable as a feature-support test) — are not wrapped by named
+    /// parameters; set them directly on each child via
     /// [`SvgNode::set_attr`](crate::SvgNode::set_attr)/[`set_attrs`](crate::SvgNode::set_attrs). This crate performs
     /// no validation of its own on them: the browser evaluates each child's test attributes and picks the first
     /// match at render time.
