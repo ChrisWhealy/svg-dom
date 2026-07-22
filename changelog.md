@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Unreleased]
 
+# [Released]
+
 ## [0.1.67] - 2026-07-22
 
 ### Added
@@ -25,8 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Correct distinction between \<image\> and feImage (`fd4aaa2`)
 - Doc only: correct explanation of feImage result attribute (`0abd111`)
 - Correct description of taint (`a9438df`)
-
-# [Released]
+- Minor doc corrections (`2d5cc21`)
 
 ## [0.1.66] - 2026-07-21
 
