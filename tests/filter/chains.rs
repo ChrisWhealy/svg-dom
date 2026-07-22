@@ -212,3 +212,40 @@ fn should_build_textured_object_chain() -> Result<(), String> {
     check_eq(blend.get_attribute("in2"), Some("clipped-texture".into()))?;
     check_eq(blend.get_attribute("mode"), Some("multiply".into()))
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// turbulence + tile — tiled-noise chain
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `turbulence` composes with `tile` into a well-formed tiled-noise filter: generate noise, narrow it to a small
+/// subregion, then repeat that subregion across the whole filter region — the example from `SvgFilter::tile`'s doc
+/// comment. Narrowing the turbulence primitive's own `x`/`y`/`width`/`height` (rather than leaving them at the
+/// default full-filter-region subregion) is not cosmetic: without it, `tile` would have nothing smaller than the
+/// full region to repeat, and its output would be indistinguishable from the noise passed through unchanged.
+#[wasm_bindgen_test]
+fn should_build_tiled_noise_chain() -> Result<(), String> {
+    let svg = make_svg("filter-turbulence-tile-chain");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs
+        .build_filter("tiled-noise", |f| {
+            f.turbulence(0.2, 2, 4.0, TurbulenceType::FractalNoise)?.set_attrs([
+                ("x", "0"),
+                ("y", "0"),
+                ("width", "20"),
+                ("height", "20"),
+            ])?;
+            f.tile()?;
+            Ok(())
+        })
+        .map_err(|e| e.to_string())?;
+    let el = filter.as_element();
+    check_eq(el.child_element_count(), 2)?;
+    let turb = el.first_element_child().ok_or("expected a <feTurbulence> child")?;
+    let tile = turb.next_element_sibling().ok_or("expected a <feTile> sibling")?;
+    check_eq(turb.tag_name(), "feTurbulence".to_owned())?;
+    check_eq(turb.get_attribute("x"), Some("0".into()))?;
+    check_eq(turb.get_attribute("y"), Some("0".into()))?;
+    check_eq(turb.get_attribute("width"), Some("20".into()))?;
+    check_eq(turb.get_attribute("height"), Some("20".into()))?;
+    check_eq(tile.tag_name(), "feTile".to_owned())
+}

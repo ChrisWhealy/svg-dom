@@ -11,7 +11,6 @@ The following filter effect primitives still need to be implemented, each with i
 
 | Missing Primitive | Cost | Benefit |
 |---|---|---|
-| `<feTile>` | Low — no meaningful attributes beyond `in`. | Low — rarely used standalone. |
 | `<feConvolveMatrix>` | High — `order`, `kernelMatrix` (variable-length, needs validation), `divisor`, `bias`, `targetX`/`targetY`, `edgeMode`, `preserveAlpha`. | Low — sharpen/emboss/edge-detect, rare outside specialty tooling. |
 | `<feDiffuseLighting>` / `<feSpecularLighting>` | High — each needs light-source child elements (`<feDistantLight>`/`<fePointLight>`/`<feSpotLight>`), each with its own attribute set, plus `surfaceScale`/`specularExponent`/`lighting-color`. | Low — embossed/3D lighting effects, rarely used on the web. |
 
@@ -54,8 +53,4 @@ They have been intentionally excluded:
 
 ### Priority
 
-`feTile` is the only remaining low-cost primitive to implement.
-That said, its implementation also brings the lowest-benefit; that is, it is rarely used standalone.
-So its implementation would be for the purpose of completeness, not for filling a known functional requirement.
-
-`feConvolveMatrix` and `feDiffuseLighting`/`feSpecularLighting` remain the most expensive items on either list for the narrowest payoff, and are deprioritised accordingly.
+`feConvolveMatrix` and `feDiffuseLighting`/`feSpecularLighting` remain the most expensive items on either list for the narrowest payoff, and not considered a high priority.

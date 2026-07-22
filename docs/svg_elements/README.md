@@ -33,6 +33,7 @@ The following SVG elements are supported:
   * `feDisplacementMap`
   * `feMorphology`
   * `feImage`
+  * `feTile`
 * `g`
 * `image`
 * `line`

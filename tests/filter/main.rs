@@ -30,11 +30,12 @@
 //! - [`morphology`] — `morphology`/`morphology_xy` and every `MorphologyOperator` keyword — mirrors
 //!   `src/root/filter/primitives/morphology.rs`.
 //! - [`image`] — `image` — mirrors `src/root/filter/primitives/image.rs`.
+//! - [`tile`] — `tile` — mirrors `src/root/filter/primitives/tile.rs`.
 //! - [`chains`] — cross-primitive integration tests (the manual blur+offset+merge and blur+flood+composite+offset+merge
 //!   drop-shadow chains, the flood+blend+composite tint chain, the turbulence+displacement_map noise-distortion chain,
-//!   the morphology+merge bold-outline chain, the image+color_matrix filtered-image chain, and the image+composite+blend
-//!   textured-object chain) — these compose several primitives together, so they don't belong to any single primitive's
-//!   own file.
+//!   the morphology+merge bold-outline chain, the image+color_matrix filtered-image chain, the image+composite+blend
+//!   textured-object chain, and the turbulence+tile tiled-noise chain) — these compose several primitives together, so
+//!   they don't belong to any single primitive's own file.
 //!
 //! `tests/common.rs` is one directory up (shared with every other integration test file), hence the `#[path]`
 //! override below rather than a plain `mod common;`.
@@ -58,6 +59,7 @@ mod merge;
 mod morphology;
 mod offset;
 mod region;
+mod tile;
 mod turbulence;
 
 use wasm_bindgen_test::wasm_bindgen_test_configure;

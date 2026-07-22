@@ -70,7 +70,7 @@ That said, all reasonable, conventional steps have been taken to provide a secur
     - [x] `feMorphology`
     - [x] `feOffset`
     - [ ] `feSpecularLighting`
-    - [ ] `feTile`
+    - [x] `feTile`
     - [x] `feTurbulence`
   - [ ] `<foreignObject>`
   - [x] `<image>`

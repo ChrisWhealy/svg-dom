@@ -59,6 +59,7 @@ mod region;
 /// - [`morphology`](Self::morphology)
 /// - [`morphology_xy`](Self::morphology_xy) (`<feMorphology>`)
 /// - [`image`](Self::image) (`<feImage>`)
+/// - [`tile`](Self::tile) (`<feTile>`)
 ///
 /// The first five, taken together, can be used to build a *true* tinted, opacity-controlled drop shadow (blur the
 /// source alpha, composite a flood colour into the blurred mask, offset it, then merge it underneath the original
@@ -99,6 +100,11 @@ mod region;
 /// [`image`](Self::image) is not needed for that. Its value is supplying a *second*, independent source, unrelated to
 /// whatever element the filter is applied to, that can be combined with the filtered element's own `SourceGraphic` or
 /// `SourceAlpha` within the same filter graph, without a second layered display element.
+///
+/// [`tile`](Self::tile) repeats its input's own primitive subregion across this primitive's subregion (behaving as the
+/// filter-graph counterpart to [`SvgDefs::pattern`](crate::SvgDefs::pattern)), which repeats a paint server instead of
+/// a filter-generated tile; see [`tile`](Self::tile)'s own doc comment for the narrowed-subregion step this needs to
+/// have any visible effect.
 ///
 /// The SVG filter specification defines around fifteen effect primitives in total, each with its own attribute grammar.
 ///

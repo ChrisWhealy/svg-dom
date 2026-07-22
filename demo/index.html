@@ -78,6 +78,7 @@
                     feDisplacementMap</button>
                 <button type="button" class="menu-item" data-target="panel-morphology">feMorphology</button>
                 <button type="button" class="menu-item" data-target="panel-fe-image">feImage</button>
+                <button type="button" class="menu-item" data-target="panel-fe-tile">feTile</button>
             </details>
 
             <details class="menu-group">
@@ -646,6 +647,40 @@
                         The last panel demonstrates this: the imported colour-grid texture is confined to the filtered
                         text's own glyph shapes, something a filtered plain <code>&lt;image&gt;</code> cannot do, since
                         it has no second, independent source to combine with.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- feTile -->
+            <section class="section" id="panel-fe-tile">
+                <h2><code>&lt;feTile&gt;</code> — repeat a filter-generated tile across the filter region</h2>
+                <figure>
+                    <div class="canvas" id="demo-fe-tile"></div>
+                    <figcaption>
+                        <ul>
+                            <li><strong>narrow tile (unrepeated)</strong> — <code>turbulence</code> narrowed to a
+                                20&times;20 subregion; everything outside that corner stays transparent, showing
+                                exactly the rectangle <code>tile</code> would otherwise repeat</li>
+                            <li><strong>feTile (visible seams)</strong> — the same narrowed noise repeated by
+                                <code>tile</code> across the whole filter region; plain noise is not periodic at an
+                                arbitrary width/height, so the seams between copies are visible
+                            </li>
+                            <li><strong>feTile + stitchTiles</strong> — <code>stitchTiles="stitch"</code> makes the
+                                noise exactly periodic across its own subregion first, so the seams disappear
+                            </li>
+                        </ul>
+                        <br><br>
+                        <code>feTile</code> has no attributes of its own — only the standard <code>in</code>,
+                        <code>result</code>, <code>x</code>, <code>y</code>, <code>width</code>, <code>height</code>
+                        every primitive accepts. It does not choose what gets repeated: that is entirely the
+                        <em>input</em> primitive's own subregion, which defaults to the whole filter region if never
+                        narrowed — in which case there is nothing smaller to repeat, and <code>tile</code>'s output is
+                        indistinguishable from its input passed through unchanged.<br>
+                        This is the filter-graph counterpart to <code>SvgDefs::pattern</code>: a
+                        <code>&lt;pattern&gt;</code> is a paint server applied via
+                        <code>fill</code>/<code>stroke</code>,
+                        while <code>feTile</code> repeats a filter-generated tile as one step inside a filter graph, so
+                        its output can feed further primitives the same way any other primitive's output can.
                     </figcaption>
                 </figure>
             </section>

@@ -10,4 +10,5 @@ mod image;
 mod merge;
 mod morphology;
 mod offset;
+mod tile;
 mod turbulence;

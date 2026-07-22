@@ -13,6 +13,7 @@
 - [`morphology`/`morphology_xy` are the third `fmt::Arguments`-core primitive pair, and `MorphologyOperator` orders `Erode` first to match the SVG default](#morphologymorphology_xy-are-the-third-fmtarguments-core-primitive-pair-and-morphologyoperator-orders-erode-first-to-match-the-svg-default)
 - [`image` takes `href` positionally and adds no `PreserveAspectRatio` type, both by analogy with `SvgRoot::image`](#image-takes-href-positionally-and-adds-no-preserveaspectratio-type-both-by-analogy-with-svgrootimage)
 - [Filter region and coordinate-space attributes get named setters, `FilterUnits` reuses the `PatternUnits` shape](#filter-region-and-coordinate-space-attributes-get-named-setters-filterunits-reuses-the-patternunits-shape)
+- [`tile` is the first primitive with zero parameters](#tile-is-the-first-primitive-with-zero-parameters)
 
 `SvgFilter` (`src/root/filter/`) is structurally identical to `SvgClipPath` and `SvgPattern`: that is, it is an id-cached container obtained from `SvgDefs::filter`/`build_filter`, applied to any element via `SvgNode::set_filter_ref`/`set_filter`, with the usual `set_attr`/`set_attrs`/`set_attr_display` escape hatch for attributes not yet wrapped by a named setter.
 That much follows established precedent directly; the one new decision is what a filter-primitive *builder method* — `gaussian_blur`, and whatever `fe*` methods follow it — should hand back.
@@ -183,3 +184,22 @@ They are common enough to need their own typed setters now: `set_width`/`set_hei
 This is the same choice `PatternUnits` already made for `patternUnits`/`patternContentUnits`: both attributes draw from the same two-value SVG vocabulary, so a second enum only duplicates `as_str()` with no type-safety benefit.
 
 Note the two attributes default to *different* variants (`filterUnits` defaults to `ObjectBoundingBox`, `primitiveUnits` to `UserSpaceOnUse`) — `FilterUnits` only fixes which values are legal, not which one a bare `<filter>` starts with; each setter's own doc comment states its attribute's default explicitly so callers do not have to guess or check the SVG specification.
+
+## `tile` is the first primitive with zero parameters
+
+`<feTile>` has no attributes of its own beyond the standard `in`, `result`, `x`, `y`, `width`, and `height` accepted by every primitive generically.
+There are no `<number>`, `<number-optional-number>`, or enum-typed attributes to wrap here.
+`tile(&self) -> Result<SvgNode, Error>` is accordingly the simplest possible instance of the crate-wide primitive pattern: create the element, append it, return the node, with no attribute-writing step in between.
+
+The interesting design question was not the method signature but where the explanation of *how tiling actually works* belongs.
+`feTile` does not choose what gets repeated — that is entirely a function of the *input* primitive's own subregion (defined by `x`, `y`, `width`, `height`), which every primitive already has via the generic `set_attr` and `set_attrs` escape hatch.
+However, no earlier primitive's doc comment had a reason focus on this aspect, since none of them changed behaviour based on whether their own subregion was left at the default (the whole filter region) or narrowed.
+
+`tile` is the first primitive whose entire visible effect depends on a *different* primitive's subregion being deliberately narrowed first, so its doc comment states this as a `⚠️` warning rather than folding it into ordinary prose — the same treatment already given to other easy-to-miss no-op conditions (`morphology_xy`'s zero-or-negative-component case, `gaussian_blur`'s wide-blur clipping).
+
+`tile` is documented as the filter-graph counterpart to `SvgDefs::pattern` and `SvgDefs::build_pattern`, cross-referenced in both directions: a `<pattern>` is a paint server, applied via `fill` or `stroke`, and cannot appear inside a `<filter>`.
+
+`feTile` repeats a filter-generated tile as one step inside a filter graph instead, so its output can feed further primitives (colour-transformed, blended, composited, ...) the same way any other primitive's output can.
+Neither replaces the other; they solve the same "repeat this pattern" problem in two different parts of the SVG rendering model.
+
+See [`docs/gaps.md`](../gaps.md) for the primitives still to be added.
