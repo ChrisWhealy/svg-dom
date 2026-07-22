@@ -17,6 +17,19 @@ impl SvgRoot {
     /// is only occasionally needed, so it is left to [`SvgNode::set_attr`](crate::SvgNode::set_attr) alongside any
     /// other attribute (`download`, `rel`, ...) not covered here.
     ///
+    /// ***⚠️ Links cannot be nested***
+    ///
+    /// Just as in HTML, nested links are invalid — an `<a>` appended somewhere inside another `<a>` has its own `href`
+    /// ignored and is inactive. [`SvgNode::append`] does not check for this, so avoid appending the result of one
+    /// [`anchor`](Self::anchor) call inside another.
+    ///
+    /// ***⚠️ The clickable region is each child's own hit region, not the wrapper's bounding box***
+    ///
+    /// Unlike wrapping children in a `<g>` purely for a shared transform, `<a>` does not make the whole rectangular
+    /// area spanning its children clickable. Only pixels actually covered by a rendered child (per that child's own
+    /// `pointer-events` value) respond as part of the link; empty space between or around the children — inside what
+    /// looks like the group's bounding box — does not.
+    ///
     /// # Security
     ///
     /// ⚠️ The `href` value is written verbatim to the DOM via `setAttribute`!
