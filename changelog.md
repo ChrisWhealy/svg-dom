@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Implement the SVG element `<foreignObject>` (`566c5b4`)
 - Add tests for foreign content rendering (`3a3919d`)
+- Doc only: improve error description (`7e3132c`)
 
 ### Fixed
 
