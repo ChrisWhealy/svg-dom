@@ -150,6 +150,14 @@ impl SvgBatch {
     pub fn style(&self, css: &str) -> Result<SvgNode, Error> {
         self.create_style(css)
     }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Creates a detached `<metadata>` element in this batch and returns its [`SvgNode`] handle.
+    ///
+    /// See [`SvgRoot::metadata`](crate::SvgRoot::metadata) for full documentation.
+    pub fn metadata(&self, content: &str) -> Result<SvgNode, Error> {
+        self.create_metadata(content)
+    }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

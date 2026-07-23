@@ -41,6 +41,7 @@ The following SVG elements are supported:
 * `linearGradient` (with `stop`)
 * `marker`
 * `mask`
+* `metadata`
 * `pattern`
 * `rect`
 * `path` (with a type-safe `PathDef` builder as an alternative to hand-written `d` strings)

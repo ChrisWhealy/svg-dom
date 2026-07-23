@@ -50,6 +50,8 @@ mod group;
 mod image;
 /// The [`SvgRoot::line`](crate::SvgRoot::line) factory.
 mod line;
+/// The [`SvgRoot::metadata`](crate::SvgRoot::metadata) factory.
+mod metadata;
 /// The [`SvgRoot::polygon`](crate::SvgRoot::polygon) factory.
 mod polygon;
 /// The [`SvgRoot::polyline`](crate::SvgRoot::polyline) factory.

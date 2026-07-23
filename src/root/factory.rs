@@ -192,4 +192,12 @@ pub(crate) trait SvgFactory {
         self.append_node(&node)?;
         Ok(node)
     }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    fn create_metadata(&self, content: &str) -> Result<SvgNode, Error> {
+        let node = self.make_node("metadata")?;
+        node.set_text(content);
+        self.append_node(&node)?;
+        Ok(node)
+    }
 }

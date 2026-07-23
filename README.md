@@ -76,7 +76,7 @@ That said, all reasonable, conventional steps have been taken to provide a secur
   - [x] `<image>`
   - [x] `<linearGradient>`
   - [x] `<marker>`
-  - [ ] `<metadata>`
+  - [x] `<metadata>`
   - [x] `<mask>`
   - [x] `<pattern>`
   - [x] `<radialGradient>`

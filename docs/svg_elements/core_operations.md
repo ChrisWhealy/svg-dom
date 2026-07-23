@@ -222,3 +222,30 @@ icon.set_title("Close dialog")?;
 icon.set_desc("Discards unsaved changes and closes this dialog.")?;
 Ok::<(), svg_dom::Error>(())
 ```
+
+# `<metadata>`
+
+`<metadata>` holds machine-readable information about the document (conventionally an RDF/Dublin Core description); however, SVG permits any content here.
+
+`SvgRoot::metadata(content)`, `SvgBatch::metadata(content)`, and `SvgDefs::metadata(content)` add a `<metadata>` element containing `content`.
+
+Unlike `<title>`/`<desc>` above, `<metadata>` has **no accessibility role at all**: it is never rendered and nothing in the browser session reads it.
+It exists purely for external tooling that later inspects the exported document.
+
+`content` is written as the element's text content via `SvgNode::set_text` — a genuine DOM text node, not parsed markup, so no HTML entity-escaping is needed for `<`/`>`/`&`.
+This is a deliberate scope limit: `content` cannot itself contain structured child elements the way a real RDF graph conventionally would.
+A string that looks like XML is stored and later serialized as literal escaped text, not parsed into child nodes.
+This crate offers no API for building nested markup inside `<metadata>`; plain text (a description, a JSON blob, ...) is only the supported use case.
+
+***Security***<br>
+Writing `content` as a text node means it cannot execute script or affect rendering in this browser session — unlike `<style>`'s `css`, nothing here interprets it live.
+
+There is a potential residual risk for downstream tools: if the SVG is later exported and opened by a different tool (another renderer, an RDF processor, a search indexer, ...), that tool may parse and act on `<metadata>` content in ways this crate cannot anticipate.
+Do not embed attacker-controlled content without considering how it might be interpreted wherever the exported file ends up.
+
+```rust,no_run
+use svg_dom::SvgRoot;
+let svg = SvgRoot::attach("diagram")?;
+svg.metadata(r#"{"source": "quarterly-sales.csv", "generated": "2026-07-23"}"#)?;
+Ok::<(), svg_dom::Error>(())
+```

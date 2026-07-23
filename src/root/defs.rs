@@ -963,6 +963,15 @@ impl SvgDefs {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Creates a `<metadata>` child inside `<defs>` — a conventional placement, though it applies the same wherever
+    /// it sits in the tree.
+    ///
+    /// See [`SvgRoot::metadata`](crate::SvgRoot::metadata) for full documentation.
+    pub fn metadata(&self, content: &str) -> Result<SvgNode, Error> {
+        self.create_metadata(content)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates a `<linearGradient>` child element with the given `id`, appends it to `<defs>` immediately and returns
     /// its handle.
     ///

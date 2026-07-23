@@ -649,6 +649,52 @@ fn should_apply_style_rule_from_defs() -> Result<(), String> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// SvgRoot::metadata / SvgDefs::metadata
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `metadata` creates an element with tag name `"metadata"`.
+#[wasm_bindgen_test]
+fn should_create_metadata_element() -> Result<(), String> {
+    common::div("metadata-tag");
+    let svg = SvgRoot::create_in("metadata-tag", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let metadata = svg.metadata("some description").map_err(|e| e.to_string())?;
+    common::check_eq(metadata.as_element().tag_name(), "metadata".to_owned())
+}
+
+/// `content` is written as the element's text content, not an attribute.
+#[wasm_bindgen_test]
+fn should_write_content_as_text_content() -> Result<(), String> {
+    common::div("metadata-text");
+    let svg = SvgRoot::create_in("metadata-text", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let metadata = svg.metadata("quarterly sales data").map_err(|e| e.to_string())?;
+    common::check_eq(metadata.as_element().text_content(), Some("quarterly sales data".into()))
+}
+
+/// Content shaped like markup is stored as literal escaped text, not parsed into child elements — `<metadata>` has
+/// no child-construction API in this crate, and `set_text` writes a genuine DOM text node, not `innerHTML`.
+#[wasm_bindgen_test]
+fn should_not_parse_markup_like_content_as_child_elements() -> Result<(), String> {
+    common::div("metadata-no-markup");
+    let svg = SvgRoot::create_in("metadata-no-markup", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let metadata = svg
+        .metadata(r#"<dc:title xmlns:dc="http://purl.org/dc/elements/1.1/">Quarterly sales</dc:title>"#)
+        .map_err(|e| e.to_string())?;
+    common::check_eq(metadata.as_element().child_element_count(), 0)
+}
+
+/// `SvgDefs::metadata` places the element inside `<defs>` — a conventional location, though `<metadata>` is never
+/// rendered regardless of where it sits in the tree.
+#[wasm_bindgen_test]
+fn should_append_metadata_to_defs() -> Result<(), String> {
+    common::div("metadata-defs");
+    let svg = SvgRoot::create_in("metadata-defs", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let metadata = defs.metadata("from defs").map_err(|e| e.to_string())?;
+    let parent = metadata.as_element().parent_element().ok_or("metadata has no parent")?;
+    common::check_eq(parent.tag_name(), "defs".to_owned())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Batching (build_batch / build_batch_into)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -786,5 +832,11 @@ fn should_create_equivalent_elements_via_root_and_batch() -> Result<(), String> 
     let r_style = svg.style(".parity {}").map_err(|e| e.to_string())?;
     let b_style = batch.style(".parity {}").map_err(|e| e.to_string())?;
     common::check_eq(r_style.as_element().tag_name(), b_style.as_element().tag_name())?;
-    common::check_eq(r_style.as_element().text_content(), b_style.as_element().text_content())
+    common::check_eq(r_style.as_element().text_content(), b_style.as_element().text_content())?;
+
+    // metadata also carries text content (not an attribute) — same comparison shape as style above.
+    let r_metadata = svg.metadata("parity").map_err(|e| e.to_string())?;
+    let b_metadata = batch.metadata("parity").map_err(|e| e.to_string())?;
+    common::check_eq(r_metadata.as_element().tag_name(), b_metadata.as_element().tag_name())?;
+    common::check_eq(r_metadata.as_element().text_content(), b_metadata.as_element().text_content())
 }
