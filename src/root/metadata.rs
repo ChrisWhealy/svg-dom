@@ -19,9 +19,10 @@ impl SvgRoot {
     /// as literal escaped text, not parsed into child nodes. This crate offers no API for building nested markup
     /// inside `<metadata>`; plain text (a description, a JSON blob, ...) is the supported use case.
     ///
-    /// SVG 2's own normative example for `<metadata>` is an actual RDF graph built from namespaced `<rdf:RDF>`/
-    /// Dublin Core child elements — narrower still, this method cannot author that conventional, maximally
-    /// interoperable form. If you need it, reach for the raw DOM via
+    /// SVG 2 illustrates structured metadata using an RDF/Dublin Core graph built from namespaced `<rdf:RDF>`/
+    /// Dublin Core child elements. This is one common foreign-namespace representation, but SVG 2 does not
+    /// prescribe any particular metadata vocabulary or structure — and either way, this method cannot author it: it
+    /// only ever writes plain text. If you need structured child markup, reach for the raw DOM via
     /// [`SvgNode::as_element`](crate::SvgNode::as_element) — already a first-class, intentional escape hatch in this
     /// crate, not a fallback of last resort:
     ///
