@@ -7,8 +7,10 @@ impl SvgRoot {
     /// `<metadata>` holds machine-readable information about the document — conventionally an RDF/Dublin Core
     /// description, though SVG permits any content there. It is never rendered: browsers skip it entirely when
     /// painting, and unlike [`SvgRoot::set_title`](crate::SvgRoot::set_title)/
-    /// [`SvgRoot::set_desc`](crate::SvgRoot::set_desc), it has no accessibility role either — nothing in this browser
-    /// session reads it.
+    /// [`SvgRoot::set_desc`](crate::SvgRoot::set_desc), it has no accessibility role either. It is not consumed
+    /// automatically by the browser's rendering or accessibility pipelines, but it remains an ordinary part of the
+    /// DOM — reachable via `textContent`, selectors, or tree traversal like any other element — and stays present in
+    /// the serialized document for external tooling to read.
     ///
     /// `content` is written as the element's text content via [`SvgNode::set_text`](crate::SvgNode::set_text) — a
     /// genuine DOM text node, not parsed markup, so no HTML entity-escaping is needed for `<`/`>`/`&`. This is a

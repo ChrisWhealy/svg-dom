@@ -229,8 +229,8 @@ Ok::<(), svg_dom::Error>(())
 
 `SvgRoot::metadata(content)`, `SvgBatch::metadata(content)`, and `SvgDefs::metadata(content)` add a `<metadata>` element containing `content`.
 
-Unlike `<title>`/`<desc>` above, `<metadata>` has **no accessibility role at all**: it is never rendered and nothing in the browser session reads it.
-It exists purely for external tooling that later inspects the exported document.
+Unlike `<title>`/`<desc>` above, `<metadata>` has **no accessibility role at all**: it is never rendered, and it is not consumed automatically by the browser's rendering or accessibility pipelines.
+It remains an ordinary part of the DOM, though — reachable via `textContent`, selectors, or tree traversal like any other element (the crate's own tests read it this way) — and stays present in the serialized document for external tooling to read too.
 
 `content` is written as the element's text content via `SvgNode::set_text` — a genuine DOM text node, not parsed markup, so no HTML entity-escaping is needed for `<`/`>`/`&`.
 This is a deliberate scope limit: `content` cannot itself contain structured child elements the way a real RDF graph conventionally would.
