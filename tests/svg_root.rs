@@ -682,6 +682,36 @@ fn should_not_parse_markup_like_content_as_child_elements() -> Result<(), String
     common::check_eq(metadata.as_element().child_element_count(), 0)
 }
 
+/// Regression test for the specific promise the docs make about `metadata()`: `content` is stored as literal text
+/// and safely escaped on serialization, never interpreted as markup. `<`, `>`, `&`, JSON-style quotes and non-ASCII
+/// text are covered together, since a partial escape (`&` escaped but not `<`, say) or lossy Unicode handling would
+/// each be a real correctness bug that the markup-shaped-input test above, which only checks for an absence of
+/// child elements, would not catch.
+#[wasm_bindgen_test]
+fn should_round_trip_special_characters_through_serialization() -> Result<(), String> {
+    common::div("metadata-round-trip");
+    let svg = SvgRoot::create_in("metadata-round-trip", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    const CONTENT: &str = r#"<tag> & "quoted" ünïcödé 日本語"#;
+    let metadata = svg.metadata(CONTENT).map_err(|e| e.to_string())?;
+
+    // text_content() recovers the original string exactly — no lossy re-encoding on the way in.
+    common::check_eq(metadata.as_element().text_content(), Some(CONTENT.to_owned()))?;
+
+    // Serialized markup escapes the characters that would otherwise be read back as markup delimiters, and leaves
+    // Unicode content untouched. Quotes are not escaped, since they only require escaping inside an attribute value,
+    // not text content — this is text content.
+    let serialized = metadata.as_element().outer_html();
+    common::check(
+        serialized.contains("&lt;tag&gt;"),
+        "expected '<'/'>' to be escaped in serialized output",
+    )?;
+    common::check(serialized.contains("&amp;"), "expected '&' to be escaped in serialized output")?;
+    common::check(
+        serialized.contains(r#""quoted" ünïcödé 日本語"#),
+        "expected quotes and Unicode content to survive serialization unescaped",
+    )
+}
+
 /// `SvgDefs::metadata` places the element inside `<defs>`.  Whilst this is syntactically valid, it is not the
 /// conventional placement for `<metadata>`.  That said, its meaning is unaffected by where this element sits in the
 /// tree.
