@@ -229,36 +229,18 @@ fn sample_pixel(image: &web_sys::SvgImageElement, x: f64, y: f64) -> [u8; 4] {
     [data[0], data[1], data[2], data[3]]
 }
 
-/// Fragment navigation to `#viewId` is the entire reason `<view>` exists: it swaps the referenced resource's
-/// effective `viewBox`, changing what is actually rendered — not just a DOM attribute somewhere.
+/// Loads `data_uri` into a fresh `<image>` hosted under a `<div id="host_id">`, first without and then with a
+/// `#detail` fragment, and asserts that the *rendered* viewport actually changes: the unnavigated baseline must show
+/// two different quadrant colours, and after navigating to `#detail` both sample points must land in the same
+/// (bottom-right) quadrant. `data_uri` must reference a 200×200 `viewBox="0 0 200 200"` SVG document with a
+/// `<view id="detail" viewBox="100 100 100 100"/>` and four distinctly-coloured 100×100 quadrant rects — the shape
+/// both fragment-navigation tests below build, one by hand and one through `svg-dom`'s own API.
 ///
-/// SVG 2 activates this behaviour only when the SVG resource itself is the document being navigated — a standalone
-/// SVG document opened directly, or a genuinely external reference into one (`<img src="...#viewId">`, an SVG
-/// `<image>`, a hyperlink). It does *not* extend to an inline `<svg>` embedded in an HTML page responding to a
-/// same-page anchor click (confirmed by hand while building `demo/view-demo.svg`) — which rules out a same-document
-/// link here too, since every test in this suite (this one included) hosts its `SvgRoot` inside an HTML test page,
-/// not a standalone SVG document. A self-contained `data:image/svg+xml;base64,...` URI is a genuine external
-/// reference as far as the browser's resource-loading and fragment-navigation machinery is concerned, so it
-/// exercises the real mechanism without needing a static test fixture, a standalone top-level SVG document, or
-/// test-server support.
-#[wasm_bindgen_test]
-async fn should_switch_rendered_viewport_when_navigating_to_view_fragment() -> Result<(), String> {
-    // Hand-written markup, not built through svg-dom's own factories: it stands in for an already-exported SVG
-    // file (xmlns and all) — one of the two cases <view>'s fragment effect actually applies to (see the doc comment
-    // above); the other, a standalone top-level SVG document, isn't reachable from this HTML-hosted test harness.
-    const FIXTURE: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
-        <view id="detail" viewBox="100 100 100 100"/>
-        <rect width="100" height="100" fill="rgb(10,20,220)"/>
-        <rect x="100" width="100" height="100" fill="rgb(230,90,10)"/>
-        <rect y="100" width="100" height="100" fill="rgb(230,210,10)"/>
-        <rect x="100" y="100" width="100" height="100" fill="rgb(10,200,60)"/>
-    </svg>"#;
-
-    let window = web_sys::window().unwrap();
-    let encoded = window.btoa(FIXTURE).map_err(|_| "btoa failed".to_string())?;
-    let data_uri = format!("data:image/svg+xml;base64,{encoded}");
-
-    let svg = make_svg("view-fragment-nav");
+/// `host_id` must be unique per caller: `wasm-bindgen-test` runs every test in a file against the same page, so a
+/// shared id would make a second call's `SvgRoot::create_in` attach to the first call's leftover `<div>` instead of
+/// its own.
+async fn assert_view_fragment_switches_viewport(host_id: &str, data_uri: &str) -> Result<(), String> {
+    let svg = make_svg(host_id);
     // Created with an empty `href` (no request, no load/error event) so the very first real load — like the second
     // one below — has its listener registered before the `href` that triggers it is set.
     let img_node = svg
@@ -271,7 +253,7 @@ async fn should_switch_rendered_viewport_when_navigating_to_view_fragment() -> R
         .clone();
 
     let load = next_load_event(&img_element);
-    img_node.set_href(&data_uri).map_err(|e| e.to_string())?;
+    img_node.set_href(data_uri).map_err(|e| e.to_string())?;
     load.await.map_err(|e| format!("image failed to load: {e:?}"))?;
 
     // Baseline: the whole 2x2 grid is visible, so opposite corners land in different quadrants.
@@ -294,4 +276,86 @@ async fn should_switch_rendered_viewport_when_navigating_to_view_fragment() -> R
     let after_bottom_right = sample_pixel(&img_element, 180.0, 180.0);
     check_eq(after_top_left, after_bottom_right)?;
     check_eq(after_top_left, before_bottom_right)
+}
+
+/// Fragment navigation to `#viewId` is the entire reason `<view>` exists: it swaps the referenced resource's
+/// effective `viewBox`, changing what is actually rendered — not just a DOM attribute somewhere.
+///
+/// SVG 2 activates this behaviour only when the SVG resource itself is the document being navigated — a standalone
+/// SVG document opened directly, or a genuinely external reference into one (`<img src="...#viewId">`, an SVG
+/// `<image>`, a hyperlink). It does *not* extend to an inline `<svg>` embedded in an HTML page responding to a
+/// same-page anchor click (confirmed by hand while building `demo/view-demo.svg`) — which rules out a same-document
+/// link here too, since every test in this suite (this one included) hosts its `SvgRoot` inside an HTML test page,
+/// not a standalone SVG document. A self-contained `data:image/svg+xml;base64,...` URI is a genuine external
+/// reference as far as the browser's resource-loading and fragment-navigation machinery is concerned, so it
+/// exercises the real mechanism without needing a static test fixture, a standalone top-level SVG document, or
+/// test-server support.
+///
+/// This proves the browser mechanism itself works; it does not prove `svg-dom`'s own factories produce markup that
+/// exercises it — [`should_switch_rendered_viewport_for_svg_dom_generated_markup`] closes that gap using the exact
+/// same assertions against crate-generated, then serialized, markup instead of this hand-written string.
+#[wasm_bindgen_test]
+async fn should_switch_rendered_viewport_when_navigating_to_view_fragment() -> Result<(), String> {
+    // Hand-written markup, not built through svg-dom's own factories: it stands in for an already-exported SVG
+    // file (xmlns and all) — one of the two cases <view>'s fragment effect actually applies to (see the doc comment
+    // above); the other, a standalone top-level SVG document, isn't reachable from this HTML-hosted test harness.
+    const FIXTURE: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+        <view id="detail" viewBox="100 100 100 100"/>
+        <rect width="100" height="100" fill="rgb(10,20,220)"/>
+        <rect x="100" width="100" height="100" fill="rgb(230,90,10)"/>
+        <rect y="100" width="100" height="100" fill="rgb(230,210,10)"/>
+        <rect x="100" y="100" width="100" height="100" fill="rgb(10,200,60)"/>
+    </svg>"#;
+
+    let window = web_sys::window().unwrap();
+    let encoded = window.btoa(FIXTURE).map_err(|_| "btoa failed".to_string())?;
+    let data_uri = format!("data:image/svg+xml;base64,{encoded}");
+
+    assert_view_fragment_switches_viewport("view-fragment-nav", &data_uri).await
+}
+
+/// A serialization regression could in principle pass every DOM-shape test above (`defs.view()`, `build_view()`,
+/// `set_view_box()`, id validation, cached-id mutation) *and* [`should_switch_rendered_viewport_when_navigating_to_view_fragment`]
+/// independently, if the bug were specifically in how a live tree gets turned into exported markup — nothing else
+/// connects those two halves. This test closes that gap: the same four-quadrant fixture is built through
+/// `SvgRoot`/`SvgDefs::view`/the shape factories, serialized with `XmlSerializer`, and put through the exact same
+/// external-reference pixel comparison.
+///
+/// `XmlSerializer` is used rather than `Element::outer_html` (as tried during earlier development of this test
+/// module) because `outer_html`'s HTML-fragment serialization algorithm omits the `xmlns` declaration a standalone
+/// SVG document needs to parse correctly on its own — confirmed empirically in both Chromium and Firefox.
+/// `XmlSerializer::serialize_to_string` produces genuine XML and includes it.
+#[wasm_bindgen_test]
+async fn should_switch_rendered_viewport_for_svg_dom_generated_markup() -> Result<(), String> {
+    let svg = make_svg("view-fragment-nav-source");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let detail = defs.view("detail").map_err(|e| e.to_string())?;
+    detail.set_view_box(100.0, 100.0, 100.0, 100.0).map_err(|e| e.to_string())?;
+    // `make_svg` defaults to a 400x300 viewport; without matching it to the 200x200 viewBox below, the mismatched
+    // intrinsic aspect ratio (4:3 vs 1:1) would letterbox the serialized SVG when it is scaled down as an image,
+    // shifting the quadrants away from where the fixed (20,20)/(180,180) sample points in
+    // `assert_view_fragment_switches_viewport` expect them.
+    svg.set_viewport(Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    svg.set_view_box(0.0, 0.0, 200.0, 200.0).map_err(|e| e.to_string())?;
+
+    for (top_left, fill) in [
+        (Point::new(0.0, 0.0), "rgb(10,20,220)"),
+        (Point::new(100.0, 0.0), "rgb(230,90,10)"),
+        (Point::new(0.0, 100.0), "rgb(230,210,10)"),
+        (Point::new(100.0, 100.0), "rgb(10,200,60)"),
+    ] {
+        svg.rect(top_left, Size::new(100.0, 100.0))
+            .map_err(|e| e.to_string())?
+            .set_fill(fill)
+            .map_err(|e| e.to_string())?;
+    }
+
+    let serializer = web_sys::XmlSerializer::new().map_err(|e| format!("{e:?}"))?;
+    let markup = serializer.serialize_to_string(&svg.root).map_err(|e| format!("{e:?}"))?;
+
+    let window = web_sys::window().unwrap();
+    let encoded = window.btoa(&markup).map_err(|_| "btoa failed".to_string())?;
+    let data_uri = format!("data:image/svg+xml;base64,{encoded}");
+
+    assert_view_fragment_switches_viewport("view-fragment-nav-generated", &data_uri).await
 }

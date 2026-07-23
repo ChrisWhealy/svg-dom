@@ -92,4 +92,5 @@ features = [
     "TouchEvent",
     "Window",
     "WheelEvent",
+    "XmlSerializer",
 ]
