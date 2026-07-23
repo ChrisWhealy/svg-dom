@@ -798,6 +798,104 @@ fn should_treat_escape_hatch_html_content_as_opaque_to_tree_navigation() -> Resu
     )
 }
 
+/// The `<foreignObject>` element itself lives in the SVG namespace; the escape-hatch-constructed content inside it
+/// lives in the XHTML namespace. This is the actual interoperability requirement the raw-DOM escape hatch exists to
+/// satisfy — the exact-tag-name check above proves the element is called the right thing, but not that it (and its
+/// content) are actually in the right namespaces.
+#[wasm_bindgen_test]
+fn should_use_correct_namespaces_for_element_and_escape_hatch_content() -> Result<(), String> {
+    common::div("foreign-object-namespaces");
+    let svg = SvgRoot::create_in("foreign-object-namespaces", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let fo = svg
+        .foreign_object(Point::new(0.0, 0.0), Size::new(100.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    common::check_eq(fo.as_element().namespace_uri(), Some("http://www.w3.org/2000/svg".to_owned()))?;
+
+    let document = fo.as_element().owner_document().ok_or("foreignObject has no owner document")?;
+    let div = document
+        .create_element_ns(Some("http://www.w3.org/1999/xhtml"), "div")
+        .map_err(|e| format!("{e:?}"))?;
+    common::check_eq(div.namespace_uri(), Some("http://www.w3.org/1999/xhtml".to_owned()))
+}
+
+/// Real proof that XHTML content added via the raw-DOM escape hatch is actually laid out inside a
+/// `<foreignObject>`, not merely present in the DOM as inert markup: a child with an explicit fixed CSS size obtains
+/// a matching non-zero rendered bounding rectangle.
+#[wasm_bindgen_test]
+fn should_render_xhtml_content_with_positive_dimensions() -> Result<(), String> {
+    common::div("foreign-object-renders");
+    let svg = SvgRoot::create_in("foreign-object-renders", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let fo = svg
+        .foreign_object(Point::new(0.0, 0.0), Size::new(100.0, 50.0))
+        .map_err(|e| e.to_string())?;
+
+    let document = fo.as_element().owner_document().ok_or("foreignObject has no owner document")?;
+    let div = document
+        .create_element_ns(Some("http://www.w3.org/1999/xhtml"), "div")
+        .map_err(|e| format!("{e:?}"))?;
+    div.set_attribute("style", "width: 80px; height: 30px;")
+        .map_err(|e| format!("{e:?}"))?;
+    fo.as_element().append_child(&div).map_err(|e| format!("{e:?}"))?;
+
+    let rect = div.get_bounding_client_rect();
+    common::check(
+        rect.width() > 0.0 && rect.height() > 0.0,
+        "expected the XHTML child to have a non-zero rendered size",
+    )
+}
+
+/// Companion to the previous test, for SVG's rule that a zero `width` or `height` disables an element's rendering.
+///
+/// That rule turns out to be a *paint*-level effect here, not a layout one: `getBoundingClientRect()` on the XHTML
+/// child still reports its full CSS-driven size regardless of the foreignObject's own (possibly zero) dimensions —
+/// confirmed by hand before writing this test, since the naive "bounding rect goes to zero" version of this test
+/// would otherwise assert something false. `overflow: hidden` (see `SvgRoot::foreign_object`'s doc comment) clips
+/// what actually *paints* to a zero-area box; it does not stop the child's own layout from happening. So this checks
+/// what actually changes — whether a point inside the child's own on-screen box still resolves (via
+/// `document.elementFromPoint`) to that child, rather than to whatever is behind it.
+#[wasm_bindgen_test]
+fn should_not_paint_xhtml_content_when_foreign_object_has_zero_area() -> Result<(), String> {
+    common::div("foreign-object-zero-area");
+    let svg = SvgRoot::create_in("foreign-object-zero-area", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let document = web_sys::window().and_then(|w| w.document()).ok_or("no document")?;
+
+    let paints_at_own_position = |width: f64, height: f64| -> Result<bool, String> {
+        let fo = svg
+            .foreign_object(Point::new(10.0, 10.0), Size::new(width, height))
+            .map_err(|e| e.to_string())?;
+        let div = document
+            .create_element_ns(Some("http://www.w3.org/1999/xhtml"), "div")
+            .map_err(|e| format!("{e:?}"))?;
+        // A fixed CSS size independent of the foreignObject's own (possibly zero) size, so any collapse observed is
+        // specifically the "zero width/height disables rendering" rule, not ordinary CSS percentage-width layout.
+        div.set_attribute("style", "width: 80px; height: 30px;")
+            .map_err(|e| format!("{e:?}"))?;
+        fo.as_element().append_child(&div).map_err(|e| format!("{e:?}"))?;
+
+        // Every prior test in this shared page leaves its elements in place (see tests/common.rs), so by now the
+        // page is tall enough that this div's own position may well be scrolled out of the viewport —
+        // `elementFromPoint` only ever considers the current viewport, not the full scrollable document.
+        div.scroll_into_view();
+
+        let rect = div.get_bounding_client_rect();
+        let hit = document.element_from_point((rect.x() + 2.0) as f32, (rect.y() + 2.0) as f32);
+        Ok(hit.as_ref() == Some(&div))
+    };
+
+    common::check(
+        paints_at_own_position(100.0, 50.0)?,
+        "expected XHTML content to paint when the foreignObject has positive dimensions",
+    )?;
+    common::check(
+        !paints_at_own_position(0.0, 50.0)?,
+        "expected XHTML content not to paint when the foreignObject's width is zero",
+    )?;
+    common::check(
+        !paints_at_own_position(50.0, 0.0)?,
+        "expected XHTML content not to paint when the foreignObject's height is zero",
+    )
+}
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Batching (build_batch / build_batch_into)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
