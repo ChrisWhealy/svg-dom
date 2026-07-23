@@ -70,9 +70,15 @@ impl SvgRoot {
     ///
     /// # Browser support
     ///
-    /// `<foreignObject>` is universally supported in every browser this crate targets. SVG 1.1's
-    /// `requiredExtensions` escape hatch, for engines that could not render it at all, addresses a compatibility
-    /// problem that no longer exists; this crate does not model it.
+    /// `<foreignObject>` is universally supported in every browser this crate targets.
+    ///
+    /// `requiredExtensions` is still part of SVG 2's conditional processing and is applicable to `<foreignObject>`
+    /// (among other elements) for declaring that a particular foreign-language extension is required.
+    ///
+    /// It is a general conditional-processing attribute but has not been modelled specially here.
+    ///
+    /// It remains available through [`SvgNode::set_attr`](crate::SvgNode::set_attr), the same as on
+    /// [`SvgRoot::switch`](crate::SvgRoot::switch)'s children.
     ///
     /// # Errors
     ///
