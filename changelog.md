@@ -12,6 +12,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Implement the SVG elements `<view>` and `<style>` (`1ae69d6`)
 
+### Fixed
+
+- Doc only: <view> is not strictly childless (`f2c108b`)
+
 # [Released]
 
 ## [0.1.69] - 2026-07-22

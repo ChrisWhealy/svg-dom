@@ -69,6 +69,7 @@ wasm-bindgen-test = "0.3"
 [dev-dependencies.web-sys]
 version = "0.3"
 features = [
+    "CanvasRenderingContext2d",
     "CssStyleDeclaration",
     "Document",
     "DocumentFragment",
@@ -77,10 +78,13 @@ features = [
     "Event",
     "EventTarget",
     "FocusEvent",
+    "HtmlCanvasElement",
+    "ImageData",
     "KeyboardEvent",
     "MouseEvent",
     "Node",
     "PointerEvent",
+    "SvgImageElement",
     "SvgPoint",
     "SvgTextContentElement",
     "TouchEvent",

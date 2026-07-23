@@ -1,7 +1,11 @@
 mod common;
 
 use common::*;
-use svg_dom::Error;
+use svg_dom::{
+    Error,
+    root::utils::{Point, Size},
+};
+use wasm_bindgen::{JsCast, JsValue, closure::Closure};
 use wasm_bindgen_test::*;
 
 wasm_bindgen_test_configure!(run_in_browser);
@@ -157,4 +161,93 @@ fn should_reject_set_attr_id() -> Result<(), String> {
         matches!(result, Err(Error::ReservedAttribute("id"))),
         "expected ReservedAttribute error for set_attr(\"id\", ...)",
     )
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Fragment-navigation behaviour
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// Waits for the next `"load"` event on `image`, matching the `Promise`/`JsFuture` pattern
+/// `tests/animation_loop.rs` uses for `requestAnimationFrame`.
+async fn wait_for_load(image: &web_sys::SvgImageElement) {
+    let promise = js_sys::Promise::new(&mut |resolve, _| {
+        let closure = Closure::once_into_js(move || {
+            resolve.call0(&JsValue::NULL).unwrap();
+        });
+        image
+            .add_event_listener_with_callback("load", closure.as_ref().unchecked_ref())
+            .unwrap();
+    });
+    wasm_bindgen_futures::JsFuture::from(promise).await.unwrap();
+}
+
+/// Draws `image`'s current content to a fresh offscreen canvas and returns the RGBA pixel at `(x, y)`.
+///
+/// `data:` URIs do not taint the canvas, so `get_image_data` can read the pixels straight back.
+fn sample_pixel(image: &web_sys::SvgImageElement, x: f64, y: f64) -> [u8; 4] {
+    let document = web_sys::window().unwrap().document().unwrap();
+    let canvas: web_sys::HtmlCanvasElement = document.create_element("canvas").unwrap().dyn_into().unwrap();
+    canvas.set_width(200);
+    canvas.set_height(200);
+    let ctx: web_sys::CanvasRenderingContext2d = canvas.get_context("2d").unwrap().unwrap().dyn_into().unwrap();
+    ctx.draw_image_with_svg_image_element(image, 0.0, 0.0).unwrap();
+    let data = ctx.get_image_data(x, y, 1.0, 1.0).unwrap().data().0;
+    [data[0], data[1], data[2], data[3]]
+}
+
+/// Fragment navigation to `#viewId` is the entire reason `<view>` exists: it swaps the referenced resource's
+/// effective `viewBox`, changing what is actually rendered — not just a DOM attribute somewhere.
+///
+/// `<view>`'s fragment effect only applies to a genuinely *external* reference: a same-document, inline `<svg>` does
+/// not respond to a same-page anchor click the way an externally-referenced resource does (confirmed by hand while
+/// building `demo/view-demo.svg`, which is deliberately not built through `svg-dom` for the same reason). A
+/// self-contained `data:image/svg+xml;base64,...` URI is a genuine external reference as far as the browser's
+/// resource-loading and fragment-navigation machinery is concerned, so it exercises the real mechanism without
+/// needing a static test fixture or test-server support.
+#[wasm_bindgen_test]
+async fn should_switch_rendered_viewport_when_navigating_to_view_fragment() -> Result<(), String> {
+    // Hand-written markup, not built through svg-dom's own factories: it stands in for an already-exported SVG
+    // file (xmlns and all), which is the only case <view>'s fragment effect actually applies to.
+    const FIXTURE: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+        <view id="detail" viewBox="100 100 100 100"/>
+        <rect width="100" height="100" fill="rgb(10,20,220)"/>
+        <rect x="100" width="100" height="100" fill="rgb(230,90,10)"/>
+        <rect y="100" width="100" height="100" fill="rgb(230,210,10)"/>
+        <rect x="100" y="100" width="100" height="100" fill="rgb(10,200,60)"/>
+    </svg>"#;
+
+    let window = web_sys::window().unwrap();
+    let encoded = window.btoa(FIXTURE).map_err(|_| "btoa failed".to_string())?;
+    let data_uri = format!("data:image/svg+xml;base64,{encoded}");
+
+    let svg = make_svg("view-fragment-nav");
+    let img_node = svg
+        .image(&data_uri, Point::new(0.0, 0.0), Size::new(200.0, 200.0))
+        .map_err(|e| e.to_string())?;
+    let img_element: web_sys::SvgImageElement = img_node
+        .as_element()
+        .dyn_ref::<web_sys::SvgImageElement>()
+        .ok_or("expected an SVGImageElement")?
+        .clone();
+
+    wait_for_load(&img_element).await;
+
+    // Baseline: the whole 2x2 grid is visible, so opposite corners land in different quadrants.
+    let before_top_left = sample_pixel(&img_element, 20.0, 20.0);
+    let before_bottom_right = sample_pixel(&img_element, 180.0, 180.0);
+    check(
+        before_top_left != before_bottom_right,
+        "expected the baseline (unnavigated) render to show two different quadrants",
+    )?;
+
+    // Navigate to the named view. Re-setting `href` on an already-loaded resource re-triggers loading.
+    img_node.set_href(&format!("{data_uri}#detail")).map_err(|e| e.to_string())?;
+    wait_for_load(&img_element).await;
+
+    // The view's `viewBox` ("100 100 100 100") selects only the bottom-right quadrant, so both sample points now
+    // land inside it and read the same colour — proof that the *rendered* viewport changed, not just an attribute.
+    let after_top_left = sample_pixel(&img_element, 20.0, 20.0);
+    let after_bottom_right = sample_pixel(&img_element, 180.0, 180.0);
+    check_eq(after_top_left, after_bottom_right)?;
+    check_eq(after_top_left, before_bottom_right)
 }

@@ -12,7 +12,7 @@ That said, all reasonable, conventional steps have been taken to provide a secur
 
 ***IMPORTANT***<br>This crate targets WebAssembly only.
 
-# [Change Log](https://github.com/ChrisWhealy/svg-dom/blob/main/changelog.md)
+## [Change Log](https://github.com/ChrisWhealy/svg-dom/blob/main/changelog.md)
 
 # Table of Contents
 
