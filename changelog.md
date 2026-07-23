@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 
 - Doc only: <view> is not strictly childless (`f2c108b`)
+- Doc only: update missing docs for supported SVG elements (`48d6919`)
 
 # [Released]
 
