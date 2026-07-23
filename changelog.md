@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Doc only: update missing docs for supported SVG elements (`48d6919`)
 - Doc only: use consistent <view> navigation description (`d982c6a`)
 - Fix race and listener lifetime problems in async view test (`f05cd0f`)
+- Doc only: correct outdated statement about `<view>` child content (`957155f`)
 
 # [Released]
 

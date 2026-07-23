@@ -173,27 +173,33 @@ fn should_reject_set_attr_id() -> Result<(), String> {
 /// Must be called *before* the `href` change expected to trigger the event: image loading is queued as a browser
 /// task, so a listener registered only after that change risks losing the race if the load completes first.
 ///
-/// Both listeners use `AddEventListenerOptions { once: true }` so the DOM detaches each one after it fires at most
-/// once. This matters because the test navigates the same element more than once: a listener left attached across
-/// loads would still be present — and re-invoked — when a later `"load"` fires, and `Closure::once_into_js`
-/// explicitly guards against a second invocation by throwing rather than running its already-freed Rust state.
+/// `"load"` and `"error"` are mutually exclusive terminal outcomes of the same load attempt, so exactly one of these
+/// two listeners fires per call. Both are registered against one shared `AbortController`, and whichever fires calls
+/// `abort()` first — via `AddEventListenerOptions::set_signal`, this detaches *both* listeners at once, including the
+/// one that never fired. (`{ once: true }` alone would not do this: it only detaches the listener that actually
+/// fired, leaving its counterpart — for the event that never happened — attached for the rest of the element's
+/// lifetime, since the test loads the same element more than once.)
 fn next_load_event(image: &web_sys::SvgImageElement) -> wasm_bindgen_futures::JsFuture {
     let promise = js_sys::Promise::new(&mut |resolve, reject| {
-        let once = web_sys::AddEventListenerOptions::new();
-        once.set_once(true);
+        let controller = web_sys::AbortController::new().unwrap();
+        let options = web_sys::AddEventListenerOptions::new();
+        options.set_signal(&controller.signal());
 
+        let abort_on_load = controller.clone();
         let on_load = Closure::once_into_js(move || {
+            abort_on_load.abort();
             resolve.call0(&JsValue::NULL).unwrap();
         });
         image
             .add_event_listener_with_callback_and_add_event_listener_options(
                 "load",
                 on_load.as_ref().unchecked_ref(),
-                &once,
+                &options,
             )
             .unwrap();
 
         let on_error = Closure::once_into_js(move || {
+            controller.abort();
             reject
                 .call1(&JsValue::NULL, &JsValue::from_str("image failed to load"))
                 .unwrap();
@@ -202,7 +208,7 @@ fn next_load_event(image: &web_sys::SvgImageElement) -> wasm_bindgen_futures::Js
             .add_event_listener_with_callback_and_add_event_listener_options(
                 "error",
                 on_error.as_ref().unchecked_ref(),
-                &once,
+                &options,
             )
             .unwrap();
     });
