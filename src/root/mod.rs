@@ -44,6 +44,8 @@ mod anchor;
 mod circle;
 /// The [`SvgRoot::ellipse`](crate::SvgRoot::ellipse) factory.
 mod ellipse;
+/// The [`SvgRoot::foreign_object`](crate::SvgRoot::foreign_object) factory.
+mod foreign_object;
 /// The [`SvgRoot::group`](crate::SvgRoot::group) factory.
 mod group;
 /// The [`SvgRoot::image`](crate::SvgRoot::image) factory.

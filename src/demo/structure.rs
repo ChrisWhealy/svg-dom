@@ -6,7 +6,7 @@ use std::{
 use super::colours::*;
 use super::{BAND, H, PAD_Y, W, caption, keep_demo_anim, keep_demo_node};
 use crate::{
-    AnimationLoop, Error, PathDef, PathDefAbsolute, SvgNode, SvgRoot,
+    AnimationLoop, Error, PathDef, PathDefAbsolute, SvgNode, SvgRoot, dom_err,
     root::utils::{Matrix2D, Point, Size},
 };
 
@@ -822,6 +822,55 @@ pub(super) fn demo_style() -> Result<(), Error> {
         &svg,
         W / 2.0,
         "hover over a dot — fill+stroke, transform: scale, and filter: drop-shadow, all driven by :hover rules in <style>",
+    )?;
+    Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// foreignObject — a rectangular region of the canvas laid out by the browser's own HTML engine, not SVG's
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+pub(super) fn demo_foreign_object() -> Result<(), Error> {
+    let svg = SvgRoot::create_in("demo-foreign-object", Size::new(W, H))?;
+
+    // <foreignObject> paints nothing of its own — without a visible boundary, the demo would just show floating
+    // text with no indication of the SVG-space rectangle it's actually confined to.
+    let boundary = svg.rect(Point::new(40.0, PAD_Y), Size::new(340.0, BAND))?;
+    boundary.set_fill(NONE)?;
+    boundary.set_stroke(GUIDE)?;
+    boundary.set_attr("stroke-dasharray", "4 3")?;
+
+    let fo = svg.foreign_object(Point::new(40.0, PAD_Y), Size::new(340.0, BAND))?;
+
+    // svg-dom's own API stops here, deliberately: no set_inner_html/set_content method exists on the returned
+    // SvgNode — see SvgRoot::foreign_object's doc comment for why. Everything below builds real HTML through raw
+    // web-sys instead, exactly the escape hatch that doc comment describes. This demo module's own source-code
+    // panel already uses set_inner_html the same way (see inject_source_frames in src/demo/mod.rs) — an
+    // implementation detail of this showcase, never part of svg-dom's own public surface.
+    let document = fo
+        .as_element()
+        .owner_document()
+        .ok_or_else(|| Error::Dom("no owner document".into()))?;
+    let content = document
+        .create_element_ns(Some("http://www.w3.org/1999/xhtml"), "div")
+        .map_err(dom_err)?;
+    content
+        .set_attribute(
+            "style",
+            "font: 13px/1.4 sans-serif; color: #eee; padding: 8px; box-sizing: border-box;",
+        )
+        .map_err(dom_err)?;
+    content.set_inner_html(
+        "<strong>Real HTML</strong>, laid out by the browser's own engine: this paragraph <em>wraps</em> to the \
+         box width exactly the way it would on an ordinary web page — something SVG's own \
+         &lt;text&gt; element cannot do by itself.",
+    );
+    fo.as_element().append_child(&content).map_err(dom_err)?;
+    keep_demo_node(fo);
+
+    caption(
+        &svg,
+        W / 2.0,
+        "<foreignObject> embeds real, browser-laid-out HTML inside the SVG canvas — text wrapping included",
     )?;
     Ok(())
 }

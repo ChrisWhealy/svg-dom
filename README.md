@@ -72,7 +72,7 @@ That said, all reasonable, conventional steps have been taken to provide a secur
     - [ ] `feSpecularLighting`
     - [x] `feTile`
     - [x] `feTurbulence`
-  - [ ] `<foreignObject>`
+  - [x] `<foreignObject>` — no content-setting method, by design; content goes through the raw DOM escape hatch
   - [x] `<image>`
   - [x] `<linearGradient>`
   - [x] `<marker>`

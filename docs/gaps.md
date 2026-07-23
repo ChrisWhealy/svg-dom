@@ -20,14 +20,6 @@ Each individual primitive's own `in`/`result` attributes, and any primitive-spec
 
 See [`design_notes/filters.md`](design_notes/filters.md), "`<filter>` primitives return a plain `SvgNode`", for why a typed per-primitive wrapper was deferred rather than built now.
 
-## Unimplemented Elements
-
-The elements listed below have no specific wrapper methods and have not been implemented because they are either not commonly used or have no clear benefit over using `set_attr` directly.
-
-| Missing element | Cost of Implementation | Benefit |
-|---|---|---|
-| `<foreignObject>` | Low to build (`x`/`y`/`width`/`height` + the existing `set_inner_html`), but the crate's query methods (`first_child`, `query_selector`, etc.) already deliberately treat its contents as opaque — a constructor would be inconsistent with that stance unless the read side is revisited too. | Low-moderate, and narrow to HTML-interop scenarios. |
-
 ## Non-goals
 
 SMIL animation and the `<script>` element are not, and will never be supported by this crate.

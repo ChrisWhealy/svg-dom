@@ -35,6 +35,7 @@ The following SVG elements are supported:
   * `feMorphology`
   * `feImage`
   * `feTile`
+* `foreignObject` (no content-setting method, by design — see [Structural Elements](structural_elements.md#foreignobject) for the raw-DOM escape hatch)
 * `g`
 * `image`
 * `line`
@@ -82,9 +83,9 @@ The following SVG elements are supported:
 
 ## Structural and Reusable elements
 
-- [`<defs>`, `<marker>`, `<image>`, `<symbol>`, `<use>`, `<a>`, `<switch>` and `<view>`](structural_elements.md)
+- [`<defs>`, `<marker>`, `<image>`, `<symbol>`, `<use>`, `<a>`, `<switch>`, `<view>` and `<foreignObject>`](structural_elements.md)
 
-  A set of reusable SVG asset containers such as path-decoration markers, raster/SVG embedding, reusable scaled viewports and element instancing without the need for DOM duplication, plus the hyperlink and conditional-rendering wrappers, plus fragment-addressable named viewports.
+  A set of reusable SVG asset containers such as path-decoration markers, raster/SVG embedding, reusable scaled viewports and element instancing without the need for DOM duplication, plus the hyperlink and conditional-rendering wrappers, plus fragment-addressable named viewports, plus a browser-HTML-laid-out rectangular region.
 
 ## Text
 

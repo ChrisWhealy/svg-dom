@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Unreleased]
 
+## [0.1.72] - 2026-07-24
+
+### Added
+
+- Implement the SVG element `<foreignObject>` (``)
+
 # [Released]
 
 ## [0.1.71] - 2026-07-23

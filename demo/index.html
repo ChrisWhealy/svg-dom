@@ -56,6 +56,7 @@
                 <button type="button" class="menu-item" data-target="panel-switch">switch</button>
                 <button type="button" class="menu-item" data-target="panel-view">view</button>
                 <button type="button" class="menu-item" data-target="panel-style">style</button>
+                <button type="button" class="menu-item" data-target="panel-foreign-object">foreignObject</button>
             </details>
 
             <details class="menu-group">
@@ -447,6 +448,32 @@
                         <code>&lt;style&gt;</code> applies document-wide regardless of where in the tree it sits —
                         SVG's CSS cascade does not scope by DOM position the way <code>&lt;defs&gt;</code> content is
                         only reachable by reference.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- foreignObject -->
+            <section class="section" id="panel-foreign-object">
+                <h2><code>&lt;foreignObject&gt;</code> — a rectangular region laid out by the browser's own HTML
+                    engine</h2>
+                <figure>
+                    <div class="canvas" id="demo-foreign-object"></div>
+                    <figcaption>
+                        The dashed rectangle is the <code>&lt;foreignObject&gt;</code>'s own bounds — it paints
+                        nothing of its own, so it would otherwise be invisible.
+                        The paragraph inside is genuine HTML, laid out by the browser's normal engine: it
+                        <strong>wraps to the box width</strong> the way ordinary web content does, which SVG's own
+                        <code>&lt;text&gt;</code> element cannot do by itself.<br><br>
+                        <code>SvgRoot::foreign_object(top_left, size)</code> returns an <em>empty</em> element —
+                        there is no <code>set_inner_html</code>/<code>set_content</code> method to fill it.
+                        That is deliberate: this crate's public API never uses <code>innerHTML</code> anywhere, and
+                        adding one here for this single element would mean either quietly breaking that guarantee
+                        or shipping an HTML sanitizer this crate has no business maintaining.<br><br>
+                        The HTML above was built the documented way instead — through the raw DOM via
+                        <code>SvgNode::as_element()</code>, already a first-class, intentional escape hatch in this
+                        crate. That content is real and present in the DOM, but is silently skipped by
+                        <code>first_child()</code>/<code>children()</code>/<code>query_selector()</code> and their
+                        siblings, exactly like any other non-SVG content those methods encounter.
                     </figcaption>
                 </figure>
             </section>

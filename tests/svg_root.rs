@@ -730,6 +730,75 @@ fn should_append_metadata_to_defs() -> Result<(), String> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// SvgRoot::foreign_object
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `foreign_object` creates an element with tag name `"foreignObject"`.
+#[wasm_bindgen_test]
+fn should_create_foreign_object_element() -> Result<(), String> {
+    common::div("foreign-object-tag");
+    let svg = SvgRoot::create_in("foreign-object-tag", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let fo = svg
+        .foreign_object(Point::new(0.0, 0.0), Size::new(100.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    common::check_eq(fo.as_element().tag_name(), "foreignObject".to_owned())
+}
+
+/// `foreign_object` writes `x`, `y`, `width` and `height` from `top_left`/`size`, exactly like `rect`/`image`.
+#[wasm_bindgen_test]
+fn should_write_foreign_object_geometry_attributes() -> Result<(), String> {
+    common::div("foreign-object-geometry");
+    let svg = SvgRoot::create_in("foreign-object-geometry", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let fo = svg
+        .foreign_object(Point::new(12.0, 34.0), Size::new(56.0, 78.0))
+        .map_err(|e| e.to_string())?;
+    common::check_eq(fo.attr("x"), Some("12".to_owned()))?;
+    common::check_eq(fo.attr("y"), Some("34".to_owned()))?;
+    common::check_eq(fo.attr("width"), Some("56".to_owned()))?;
+    common::check_eq(fo.attr("height"), Some("78".to_owned()))
+}
+
+/// A newly created `foreign_object` is empty — no content-setting method fills it, by design (see
+/// `SvgRoot::foreign_object`'s doc comment for why).
+#[wasm_bindgen_test]
+fn should_create_empty_foreign_object() -> Result<(), String> {
+    common::div("foreign-object-empty");
+    let svg = SvgRoot::create_in("foreign-object-empty", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let fo = svg
+        .foreign_object(Point::new(0.0, 0.0), Size::new(100.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    common::check_eq(fo.as_element().child_element_count(), 0)
+}
+
+/// HTML content added to a crate-constructed `foreign_object` via the documented raw-DOM escape hatch
+/// (`as_element()` + `owner_document()` + `create_element_ns`) is real, present in the DOM (`text_content()` sees
+/// it) — but is silently skipped by `SvgNode::first_child`, exactly like every other non-SVG node those methods
+/// document skipping. This connects `foreign_object`'s own construction path to that existing, separately-tested
+/// general behaviour (see `tests/svg_node/tree.rs`), and doubles as a live check that the escape-hatch code in the
+/// rustdoc example actually works.
+#[wasm_bindgen_test]
+fn should_treat_escape_hatch_html_content_as_opaque_to_tree_navigation() -> Result<(), String> {
+    common::div("foreign-object-escape-hatch");
+    let svg = SvgRoot::create_in("foreign-object-escape-hatch", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let fo = svg
+        .foreign_object(Point::new(0.0, 0.0), Size::new(100.0, 50.0))
+        .map_err(|e| e.to_string())?;
+
+    let document = fo.as_element().owner_document().ok_or("foreignObject has no owner document")?;
+    let div = document
+        .create_element_ns(Some("http://www.w3.org/1999/xhtml"), "div")
+        .map_err(|e| format!("{e:?}"))?;
+    div.set_text_content(Some("real HTML content"));
+    fo.as_element().append_child(&div).map_err(|e| format!("{e:?}"))?;
+
+    common::check_eq(fo.as_element().text_content(), Some("real HTML content".to_owned()))?;
+    common::check(
+        fo.first_child().is_none(),
+        "expected None: the foreignObject's only child is HTML",
+    )
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Batching (build_batch / build_batch_into)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -841,6 +910,12 @@ fn should_create_equivalent_elements_via_root_and_batch() -> Result<(), String> 
     let pts = [Point::new(0.0, 0.0), Point::new(20.0, 40.0), Point::new(40.0, 0.0)];
 
     assert_parity("rect", svg.rect(p, s), batch.rect(p, s), &["x", "y", "width", "height"])?;
+    assert_parity(
+        "foreign_object",
+        svg.foreign_object(p, s),
+        batch.foreign_object(p, s),
+        &["x", "y", "width", "height"],
+    )?;
     assert_parity("circle", svg.circle(p, 25.0), batch.circle(p, 25.0), &["cx", "cy", "r"])?;
     assert_parity("ellipse", svg.ellipse(p, s), batch.ellipse(p, s), &["cx", "cy", "rx", "ry"])?;
     assert_parity("line", svg.line(p, q), batch.line(p, q), &["x1", "y1", "x2", "y2"])?;

@@ -12,6 +12,7 @@
 - [`<a>`](#a)
 - [`<switch>`](#switch)
 - [`<view>`](#view)
+- [`<foreignObject>`](#foreignobject)
 
 ## `<defs>`
 
@@ -232,3 +233,43 @@ preview.set_href("diagram.svg#detail")?;
 View ids follow the same crate-imposed allow-pattern as symbols and markers: `[A-Za-z_][A-Za-z0-9_-]*`. This is narrower than SVG/XML's own id grammar; it is a restriction this crate chooses, not a claim about what SVG itself permits, in exchange for every accepted id being unambiguously safe to embed in a `#id` fragment reference. A non-conforming id causes `Error::InvalidViewId` before any DOM call is made.
 
 Always use `SvgView::set_id` to rename a view after construction; `set_attr("id", ...)` will be rejected with `Error::ReservedAttribute` to protect the cached value.
+
+---
+
+## `<foreignObject>`
+
+`<foreignObject>` carves out a rectangular region of the SVG canvas in which the browser renders foreign (typically HTML) content using its own layout engine — CSS text flow/wrapping, form controls, and other HTML features that SVG's own text and shape model does not provide.
+
+Obtain a handle via `SvgRoot::foreign_object(top_left, size)` or `SvgBatch::foreign_object(top_left, size)`, which set `x`/`y`/`width`/`height` exactly like `rect`/`image`. Unlike most other reusable elements on this page, there is no `SvgDefs::foreign_object` — the same is true of `<image>`, since both place directly-rendered content at a position, rather than defining something referenced later.
+
+### No content-setting method — by design
+
+The factory returns an *empty* `<foreignObject>`; there is no `set_inner_html`/`set_content` method to fill it. That is a deliberate limit on this crate's public surface, not a missing feature.
+
+The whole point of `<foreignObject>` is to hold real HTML — flowing paragraphs, `<div>`s, form controls — and the only DOM operation that inserts markup like that is `innerHTML`, which no part of this crate's public API uses anywhere (the crate's top-level documentation states that guarantee explicitly). Adding a convenience method here would mean either quietly breaking it, or shipping an HTML sanitizer this crate has no business maintaining.
+
+To add content, reach for the raw DOM via `SvgNode::as_element()` — already a first-class, intentional escape hatch in this crate, not a fallback of last resort:
+
+```rust,no_run
+let svg = SvgRoot::attach("diagram")?;
+let fo  = svg.foreign_object(Point::new(10.0, 10.0), Size::new(200.0, 80.0))?;
+
+let document = fo.as_element().owner_document().expect("foreignObject element has no owner document");
+// The HTML namespace, not SVG's. `document.create_element` (no namespace) would also land in the HTML namespace
+// here, but `create_element_ns` makes that explicit rather than relying on it.
+let div = document
+    .create_element_ns(Some("http://www.w3.org/1999/xhtml"), "div")
+    .expect("createElementNS failed");
+div.set_text_content(Some("Flows and wraps like ordinary HTML, unlike SVG <text>."));
+fo.as_element().append_child(&div).expect("appendChild failed");
+```
+
+### Content is opaque to this crate's tree-navigation methods
+
+`SvgNode::first_child`, `children`, `query_selector`, and their siblings only ever return genuine SVG elements — HTML content inside a `<foreignObject>` is silently skipped, the same as any other non-SVG node they might encounter.
+
+This is existing, general behaviour that every one of those methods already documents; it applies here because `<foreignObject>` is the element it is actually reachable on. Use `as_element()` and the raw `web_sys` API if you need to see that content too.
+
+### Browser support
+
+`<foreignObject>` is universally supported in every browser this crate targets. SVG 1.1's `requiredExtensions` escape hatch, for engines that could not render it at all, addresses a compatibility problem that no longer exists; this crate does not model it.

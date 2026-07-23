@@ -158,6 +158,14 @@ impl SvgBatch {
     pub fn metadata(&self, content: &str) -> Result<SvgNode, Error> {
         self.create_metadata(content)
     }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Creates a detached, empty `<foreignObject>` element in this batch and returns its [`SvgNode`] handle.
+    ///
+    /// See [`SvgRoot::foreign_object`](crate::SvgRoot::foreign_object) for full documentation.
+    pub fn foreign_object(&self, top_left: Point, size: Size) -> Result<SvgNode, Error> {
+        self.create_foreign_object(top_left, size)
+    }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
