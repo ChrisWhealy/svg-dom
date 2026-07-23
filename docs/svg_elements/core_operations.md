@@ -252,7 +252,8 @@ Ok::<(), svg_dom::Error>(())
 ## Structured foreign-namespace children (RDF/XML, ...)
 
 SVG 2 illustrates structured metadata using an RDF/Dublin Core graph built from `<rdf:RDF>`/Dublin Core child elements, not a text blob.
-This is one common foreign-namespace representation, but SVG 2 does not prescribe any particular metadata vocabulary or structure — and either way, it is narrower than what `metadata()` above supports, which only ever writes plain text.
+This is one common foreign-namespace representation, but SVG 2 does not prescribe any particular metadata vocabulary or structure.
+The `metadata()` convenience method supports only character data, so it cannot directly author these structured foreign-namespace children.
 
 The `SvgNode` returned by `metadata()` can be built out afterwards with this crate's generic tree APIs (`append`, `insert_before`, `clear`, ...) — those are not markup-parsing, they operate on already-constructed `SvgNode`s.
 What this crate does not provide is a namespace-aware *factory* for foreign-namespace elements such as `rdf:RDF` or Dublin Core terms, deliberately: that would mean adding namespace-aware child-element construction for a single element, a scope this crate has not taken on anywhere else.
