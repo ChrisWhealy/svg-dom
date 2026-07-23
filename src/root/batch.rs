@@ -142,6 +142,14 @@ impl SvgBatch {
     pub fn switch(&self) -> Result<SvgNode, Error> {
         self.create_switch()
     }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Creates a detached `<style>` element in this batch and returns its [`SvgNode`] handle.
+    ///
+    /// See [`SvgRoot::style`](crate::SvgRoot::style) for full documentation.
+    pub fn style(&self, css: &str) -> Result<SvgNode, Error> {
+        self.create_style(css)
+    }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

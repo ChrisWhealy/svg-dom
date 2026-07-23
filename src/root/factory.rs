@@ -184,4 +184,12 @@ pub(crate) trait SvgFactory {
         self.append_node(&node)?;
         Ok(node)
     }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    fn create_style(&self, css: &str) -> Result<SvgNode, Error> {
+        let node = self.make_node("style")?;
+        node.set_text(css);
+        self.append_node(&node)?;
+        Ok(node)
+    }
 }

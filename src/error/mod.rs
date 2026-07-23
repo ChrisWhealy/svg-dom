@@ -3,7 +3,7 @@
 ///
 /// Every fallible function in this crate returns `Result<_, Error>`.
 ///
-/// The variants cover nine categories, one of which contains seven subtypes:
+/// The variants cover nine categories, one of which contains eight subtypes:
 ///
 /// - you asked for a non-existent element by id ([`Error::ElementNotFound`])
 /// - a `web-sys` call returned a JavaScript error ([`Error::Dom`])
@@ -22,6 +22,7 @@
 ///   - a bad symbol id ([`Error::InvalidSymbolId`])
 ///   - a bad pattern id ([`Error::InvalidPatternId`])
 ///   - a bad filter id ([`Error::InvalidFilterId`])
+///   - a bad view id ([`Error::InvalidViewId`])
 #[derive(Debug)]
 pub enum Error {
     /// No element with the given id exists in the current document.
@@ -131,6 +132,18 @@ pub enum Error {
     ///
     /// The inner `String` is the rejected id.
     InvalidFilterId(String),
+
+    /// A `<view>` `id` string was rejected before reaching the DOM.
+    ///
+    /// Valid view ids must match the pattern `[A-Za-z_][A-Za-z0-9_-]*` common to all other id-cached elements.
+    /// Such ids are always safe to embed in a plain `#id` fragment reference (a `<view>` is never wrapped in a
+    /// `url(#id)` form the way a marker/filter/mask/etc. is).
+    ///
+    /// This error is returned when a non-conforming string is passed to [`SvgDefs::view`](crate::SvgDefs::view) or
+    /// [`SvgDefs::build_view`](crate::SvgDefs::build_view).
+    ///
+    /// The inner `String` is the rejected id.
+    InvalidViewId(String),
 
     /// A generic attribute setter was called with an attribute name that is managed by a dedicated typed setter.
     ///
@@ -259,6 +272,7 @@ impl std::fmt::Display for Error {
             Error::InvalidSymbolId(id) => write!(f, "invalid svg symbol id: {id:?}"),
             Error::InvalidPatternId(id) => write!(f, "invalid svg pattern id: {id:?}"),
             Error::InvalidFilterId(id) => write!(f, "invalid svg filter id: {id:?}"),
+            Error::InvalidViewId(id) => write!(f, "invalid svg view id: {id:?}"),
             Error::ReservedAttribute(name) => {
                 write!(f, "attribute {name:?} is reserved; use the dedicated setter")
             },

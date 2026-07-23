@@ -1,0 +1,18 @@
+<!--
+  Hand-authored standalone SVG fixture for the <view> demo panel (see src/demo/structure.rs, demo_view).
+
+  Deliberately NOT built through svg-dom: <view>'s fragment-navigation effect only applies to an SVG resource
+  referenced *externally* (here, via an <image href="view-demo.svg#id">, set from a Rust on_click handler in the
+  live demo) — never to a live, already-attached DOM handle the caller already has, which is what every other panel
+  in this gallery demonstrates. This file is what gets exported/served independently; the surrounding gallery page
+  is not.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <view id="top-left" viewBox="0 0 100 100"/>
+  <view id="bottom-right" viewBox="100 100 100 100"/>
+
+  <rect width="100" height="100" fill="steelblue"/>
+  <rect x="100" width="100" height="100" fill="coral"/>
+  <rect y="100" width="100" height="100" fill="gold"/>
+  <rect x="100" y="100" width="100" height="100" fill="mediumseagreen"/>
+</svg>

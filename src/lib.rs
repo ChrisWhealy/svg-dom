@@ -23,6 +23,7 @@
 //! | [`root::path`] | [`PathDef`] | Type-safe `<path>` `d`-attribute builder from a sequence of typed segments |
 //! | [`root::pattern`] | [`SvgPattern`] / [`PatternUnits`] | Tiled pattern paint server defined in `<defs>`, applied with `set_fill_pattern_ref` |
 //! | [`root::symbol`] | [`SvgSymbol`] | Reusable scaled viewport defined in `<defs>`, stamped via `<use>` |
+//! | [`root::view`] | [`SvgView`] | Named `viewBox`/`preserveAspectRatio` defined in `<defs>`, navigated to via a `#id` URL fragment |
 //! | [`animate`] | [`AnimationLoop`] | `requestAnimationFrame` loop |
 //! | [`node`] | [`SvgNode`] | Live element handle that provides access to attributes, events and tree operations |
 //!
@@ -101,4 +102,5 @@ pub use root::{
     pattern::{PatternUnits, SvgPattern},
     svg_root::SvgRoot,
     symbol::SvgSymbol,
+    view::SvgView,
 };

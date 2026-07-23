@@ -54,6 +54,8 @@
                 <button type="button" class="menu-item" data-target="panel-symbol">symbol</button>
                 <button type="button" class="menu-item" data-target="panel-anchor">a</button>
                 <button type="button" class="menu-item" data-target="panel-switch">switch</button>
+                <button type="button" class="menu-item" data-target="panel-view">view</button>
+                <button type="button" class="menu-item" data-target="panel-style">style</button>
             </details>
 
             <details class="menu-group">
@@ -361,7 +363,8 @@
 
             <!-- a -->
             <section class="section" id="panel-anchor">
-                <h2><code>&lt;a&gt;</code> — a <code>&lt;g&gt;</code>-like wrapper that turns its children into a hyperlink</h2>
+                <h2><code>&lt;a&gt;</code> — a <code>&lt;g&gt;</code>-like wrapper that turns its children into a
+                    hyperlink</h2>
                 <figure>
                     <div class="canvas" id="demo-anchor"></div>
                     <figcaption>
@@ -389,6 +392,61 @@
                         is never reached.<br>
                         Both outcomes are deterministic in every browser/locale — unlike testing a real
                         <code>systemLanguage</code> match against whatever locale happens to be running the demo.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- view -->
+            <section class="section" id="panel-view">
+                <h2><code>&lt;view&gt;</code> — named viewBox, navigated to via a URL fragment</h2>
+                <figure>
+                    <div class="canvas" id="demo-view"></div>
+                    <figcaption>
+                        <code>&lt;view&gt;</code> only affects an <em>externally</em> referenced SVG resource, not
+                        a live DOM handle the caller already has.<br>
+                        This is a different approach that does not make a <code>set_view_box</code> or
+                        <code>set_viewport</code> call. Instead, the embedded picture is a separate, standalone file
+                        (<code>view-demo.svg</code>) rather than anything built through <code>svg-dom</code>'s own
+                        API.<br><br>
+                        Each button sets the <code>&lt;image&gt;</code>'s <code>href</code> such that the same file is
+                        displayed through a <code>#view</code> fragment via <code>SvgNode::set_href</code>. The browser
+                        then switches the effective <code>viewBox</code> entirely on its own, without the need for any
+                        JavaScript coding.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- style -->
+            <section class="section" id="panel-style">
+                <h2><code>&lt;style&gt;</code> — a document-wide CSS stylesheet</h2>
+                <figure>
+                    <div class="canvas" id="demo-style"></div>
+                    <figcaption>
+                        Three dots, three different CSS features driven by a <code>:hover</code> rule inside a
+                        single <code>&lt;style&gt;</code> element, not a per-element attribute:
+                        <ul>
+                            <li>
+                                <strong>fill + stroke</strong> (recolours and outlines)
+                            </li>
+                            <li>
+                                <strong>transform: scale</strong>
+                                (grows the shape)
+                            </li>
+                            <li>
+                                <strong>filter: drop-shadow</strong> (a CSS glow — a CSS
+                                <em>property</em>, distinct from this crate's own
+                                <code>SvgFilter</code>/<code>&lt;feGaussianBlur&gt;</code>
+                                etc., which reference an SVG <code>&lt;filter&gt;</code> element instead)
+                            </li>
+                        </ul>
+                        <br>
+                        <code>set_attr</code> and the presentation-property setters can express any state a shape is
+                        <em>currently</em> in, but not a state transition triggered purely by the pointer entering or
+                        leaving — that needs either a declarative CSS rule like these, or an implementation of the
+                        <code>on_pointerenter</code>/<code>on_pointerleave</code> events wired up by hand.<br><br>
+                        <code>&lt;style&gt;</code> applies document-wide regardless of where in the tree it sits —
+                        SVG's CSS cascade does not scope by DOM position the way <code>&lt;defs&gt;</code> content is
+                        only reachable by reference.
                     </figcaption>
                 </figure>
             </section>

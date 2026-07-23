@@ -24,6 +24,8 @@ pub mod path;
 pub mod pattern;
 /// The [`SvgSymbol`](crate::SvgSymbol) element.
 pub mod symbol;
+/// The [`SvgView`](crate::SvgView) element.
+pub mod view;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Factories and helper types
@@ -54,6 +56,8 @@ mod polygon;
 mod polyline;
 /// The [`SvgRoot::rect`](crate::SvgRoot::rect) factory.
 mod rect;
+/// The [`SvgRoot::style`](crate::SvgRoot::style) factory.
+mod style;
 /// The [`SvgRoot::switch`](crate::SvgRoot::switch) factory.
 mod switch;
 /// The [`SvgRoot::text`](crate::SvgRoot::text) factory.

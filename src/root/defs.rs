@@ -19,6 +19,7 @@ use super::{
     pattern::SvgPattern,
     svg_root::SvgRoot,
     symbol::SvgSymbol,
+    view::SvgView,
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -121,6 +122,20 @@ pub(crate) fn validate_symbol_id(id: &str) -> Result<(), Error> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Rejects view ids that would produce broken `#id` fragment references.
+///
+/// Applies the same allow-list as [`validate_marker_id`]: the id must match `[A-Za-z_][A-Za-z0-9_-]*`. Unlike most
+/// of the other id-validated elements in this crate, a `<view>` is never wrapped in a `url(#id)` form — it is only
+/// ever referenced as a plain `#id` fragment, the same way [`validate_symbol_id`] already is.
+pub(crate) fn validate_view_id(id: &str) -> Result<(), Error> {
+    if is_valid_svg_id(id) {
+        Ok(())
+    } else {
+        Err(Error::InvalidViewId(id.to_owned()))
+    }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Rejects pattern ids that would produce broken or ambiguous `url(#...)` references.
 ///
 /// Applies the same allow-list as [`validate_marker_id`]: the id must match `[A-Za-z_][A-Za-z0-9_-]*`.
@@ -149,6 +164,7 @@ pub(crate) fn validate_pattern_id(id: &str) -> Result<(), Error> {
 /// | [`SvgSymbol`] | [`symbol`](Self::symbol) | [`build_symbol`](Self::build_symbol) |
 /// | [`SvgPattern`] | [`pattern`](Self::pattern) | [`build_pattern`](Self::build_pattern) |
 /// | [`SvgFilter`] | [`filter`](Self::filter) | [`build_filter`](Self::build_filter) |
+/// | [`SvgView`] | [`view`](Self::view) | [`build_view`](Self::build_view) |
 ///
 /// Obtain one from [`SvgRoot::defs`].
 ///
@@ -660,6 +676,82 @@ impl SvgDefs {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Creates a `<view>` child element with the given `id`, immediately appends it to `<defs>` then returns its
+    /// handle.
+    ///
+    /// Unlike every other element `SvgDefs` builds, `<view>` has no content of its own. Instead, you call
+    /// [`SvgView::set_view_box`](crate::SvgView::set_view_box) on the returned handle, then reference it (prefixed
+    /// with `#`) from [`SvgRoot::anchor`](crate::SvgRoot::anchor) or an external URL fragment.
+    ///
+    /// Prefer [`build_view`](Self::build_view) when the `viewBox` is known upfront: that variant keeps the element
+    /// detached from the DOM until the closure succeeds, so a rejected `viewBox` does not leave a partial `<view>`
+    /// left lying around in `<defs>`.
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::InvalidViewId`] — `id` failed validation.
+    /// - [`Error::Dom`] — the browser refused to create or append the element.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::SvgRoot;
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    /// let view = defs.view("detail")?;
+    /// view.set_view_box(0.0, 0.0, 50.0, 50.0)?;
+    ///
+    /// svg.anchor("#detail")?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn view(&self, id: &str) -> Result<SvgView, Error> {
+        validate_view_id(id)?;
+        let el = super::create_svg_element::<SvgElement>(&self.document, "view", "SvgElement")?;
+        el.set_attribute("id", id).map_err(dom_err)?;
+        self.element.append_child(&el).map_err(dom_err)?;
+        Ok(SvgView::new(id.to_owned(), el))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Builds a `<view>` in one shot, appending to `<defs>` only after the closure succeeds.
+    ///
+    /// The closure receives a reference to the new [`SvgView`].
+    /// If the closure returns `Ok(())`, the view is appended to `<defs>` and the handle is returned.
+    /// If the closure returns `Err`, the element is dropped without being attached to `<defs>`.
+    ///
+    /// # Errors
+    ///
+    /// - Any error returned by `build`.
+    /// - [`Error::InvalidViewId`] — `id` failed validation.
+    /// - [`Error::Dom`] — the browser refused to create or append the element.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::SvgRoot;
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    /// defs.build_view("detail", |v| v.set_view_box(0.0, 0.0, 50.0, 50.0))?;
+    ///
+    /// svg.anchor("#detail")?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn build_view<F>(&self, id: &str, build: F) -> Result<SvgView, Error>
+    where
+        F: FnOnce(&SvgView) -> Result<(), Error>,
+    {
+        validate_view_id(id)?;
+        let el = super::create_svg_element::<SvgElement>(&self.document, "view", "SvgElement")?;
+        el.set_attribute("id", id).map_err(dom_err)?;
+        let view = SvgView::new(id.to_owned(), el);
+        build(&view)?;
+        self.element.append_child(view.as_element()).map_err(dom_err)?;
+        Ok(view)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates a `<pattern>` child element with the given `id`, immediately appends it to `<defs>` then returns its
     /// handle.
     ///
@@ -852,6 +944,15 @@ impl SvgDefs {
     /// Creates a `<g>` group child inside `<defs>`.
     pub fn group(&self) -> Result<SvgNode, Error> {
         self.create_group()
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Creates a `<style>` child inside `<defs>` — the conventional placement for a document-wide stylesheet,
+    /// though it applies the same wherever it sits in the tree.
+    ///
+    /// See [`SvgRoot::style`](crate::SvgRoot::style) for full documentation.
+    pub fn style(&self, css: &str) -> Result<SvgNode, Error> {
+        self.create_style(css)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

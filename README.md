@@ -79,14 +79,14 @@ That said, all reasonable, conventional steps have been taken to provide a secur
   - [x] `<mask>`
   - [x] `<pattern>`
   - [x] `<radialGradient>`
-  - [ ] `<style>`
+  - [x] `<style>`
   - [x] `<switch>`
   - [x] `<symbol>`
   - [x] `<textPath>`
   - [x] `<title>`
   - [x] `<tspan>`
   - [x] `<use>`
-  - [ ] `<view>`
+  - [x] `<view>`
 - [x] Type-safe `<path>` `d`-attribute builder (`PathDef` / `path_from_defs`) as a typesafe alternative to hand-written `d` strings
 
 ## What This Crate Is

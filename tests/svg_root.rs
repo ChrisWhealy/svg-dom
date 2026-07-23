@@ -580,6 +580,75 @@ fn should_render_only_the_selected_switch_child() -> Result<(), String> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// SvgRoot::style / SvgDefs::style
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `style` creates an element with tag name `"style"`.
+#[wasm_bindgen_test]
+fn should_create_style_element() -> Result<(), String> {
+    common::div("style-tag");
+    let svg = SvgRoot::create_in("style-tag", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let style = svg.style(".foo { fill: red; }").map_err(|e| e.to_string())?;
+    common::check_eq(style.as_element().tag_name(), "style".to_owned())
+}
+
+/// `css` is written as the element's text content, not an attribute.
+#[wasm_bindgen_test]
+fn should_write_css_as_text_content() -> Result<(), String> {
+    common::div("style-text");
+    let svg = SvgRoot::create_in("style-text", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let style = svg.style(".pulse { opacity: 0.4; }").map_err(|e| e.to_string())?;
+    common::check_eq(style.as_element().text_content(), Some(".pulse { opacity: 0.4; }".into()))
+}
+
+/// A class defined by `style` actually applies to a shape referencing it — this is the whole point of `<style>`
+/// over per-element `set_attr`/presentation-property calls: one rule, selected by `class`, rather than repeating
+/// the same attribute values on every matching element.
+#[wasm_bindgen_test]
+fn should_apply_style_rule_to_matching_class() -> Result<(), String> {
+    common::div("style-applies");
+    let svg = SvgRoot::create_in("style-applies", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    svg.style(".tagged { fill: rgb(255, 0, 0); }").map_err(|e| e.to_string())?;
+    let rect = svg
+        .rect(Point::new(0.0, 0.0), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    rect.set_attr("class", "tagged").map_err(|e| e.to_string())?;
+
+    let window = web_sys::window().ok_or("no window")?;
+    let computed = window
+        .get_computed_style(rect.as_element())
+        .map_err(|e| format!("{e:?}"))?
+        .ok_or("no computed style")?;
+    let fill = computed.get_property_value("fill").map_err(|e| format!("{e:?}"))?;
+    common::check_eq(fill, "rgb(255, 0, 0)".to_owned())
+}
+
+/// `SvgDefs::style` places the element inside `<defs>` — the conventional location — but the rule still applies
+/// document-wide, since SVG's CSS cascade does not scope by DOM position.
+#[wasm_bindgen_test]
+fn should_apply_style_rule_from_defs() -> Result<(), String> {
+    common::div("style-defs-applies");
+    let svg = SvgRoot::create_in("style-defs-applies", Size::new(200.0, 200.0)).map_err(|e| e.to_string())?;
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let style = defs.style(".from-defs { fill: rgb(0, 128, 0); }").map_err(|e| e.to_string())?;
+    let parent = style.as_element().parent_element().ok_or("style has no parent")?;
+    common::check_eq(parent.tag_name(), "defs".to_owned())?;
+
+    let rect = svg
+        .rect(Point::new(0.0, 0.0), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    rect.set_attr("class", "from-defs").map_err(|e| e.to_string())?;
+
+    let window = web_sys::window().ok_or("no window")?;
+    let computed = window
+        .get_computed_style(rect.as_element())
+        .map_err(|e| format!("{e:?}"))?
+        .ok_or("no computed style")?;
+    let fill = computed.get_property_value("fill").map_err(|e| format!("{e:?}"))?;
+    common::check_eq(fill, "rgb(0, 128, 0)".to_owned())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Batching (build_batch / build_batch_into)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -711,5 +780,11 @@ fn should_create_equivalent_elements_via_root_and_batch() -> Result<(), String> 
     let b_text = batch.text(p, "parity").map_err(|e| e.to_string())?;
     common::check_eq(r_text.attr("x"), b_text.attr("x"))?;
     common::check_eq(r_text.attr("y"), b_text.attr("y"))?;
-    common::check_eq(r_text.as_element().text_content(), b_text.as_element().text_content())
+    common::check_eq(r_text.as_element().text_content(), b_text.as_element().text_content())?;
+
+    // style also carries text content (CSS, not an attribute) — same comparison shape as text above.
+    let r_style = svg.style(".parity {}").map_err(|e| e.to_string())?;
+    let b_style = batch.style(".parity {}").map_err(|e| e.to_string())?;
+    common::check_eq(r_style.as_element().tag_name(), b_style.as_element().tag_name())?;
+    common::check_eq(r_style.as_element().text_content(), b_style.as_element().text_content())
 }
