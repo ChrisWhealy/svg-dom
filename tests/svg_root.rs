@@ -670,8 +670,8 @@ fn should_write_content_as_text_content() -> Result<(), String> {
     common::check_eq(metadata.as_element().text_content(), Some("quarterly sales data".into()))
 }
 
-/// Content shaped like markup is stored as literal escaped text, not parsed into child elements — `<metadata>` has
-/// no child-construction API in this crate, and `set_text` writes a genuine DOM text node, not `innerHTML`.
+/// Content shaped like markup is stored as literal escaped text, not parsed into child elements — `metadata()` has
+/// no markup-parsing path, and `set_text` writes a genuine DOM text node, not `innerHTML`.
 #[wasm_bindgen_test]
 fn should_not_parse_markup_like_content_as_child_elements() -> Result<(), String> {
     common::div("metadata-no-markup");

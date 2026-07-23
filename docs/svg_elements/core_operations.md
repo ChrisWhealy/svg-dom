@@ -233,9 +233,8 @@ Unlike `<title>`/`<desc>` above, `<metadata>` has **no accessibility role at all
 It remains an ordinary part of the DOM, though — reachable via `textContent`, selectors, or tree traversal like any other element (the crate's own tests read it this way) — and stays present in the serialized document for external tooling to read too.
 
 `content` is written as the element's text content via `SvgNode::set_text` — a genuine DOM text node, not parsed markup, so no HTML entity-escaping is needed for `<`/`>`/`&`.
-This is a deliberate scope limit: `content` cannot itself contain structured child elements the way a real RDF graph conventionally would.
-A string that looks like XML is stored and later serialized as literal escaped text, not parsed into child nodes.
-This crate offers no API for building nested markup inside `<metadata>`; plain text (a description, a JSON blob, ...) is only the supported use case.
+`metadata()` never parses `content` as markup: a string that looks like XML is stored and later serialized as literal escaped text, not parsed into child nodes.
+The returned `SvgNode` is otherwise ordinary, though, and can still be built out afterwards with this crate's generic tree APIs (`append`, `insert_before`, `clear`, ...) — see [Structured foreign-namespace children](#structured-foreign-namespace-children-rdfxml) below for what that can and can't reach.
 
 ***Security***<br>
 Writing `content` as a text node means it cannot execute script or affect rendering in this browser session — unlike `<style>`'s `css`, nothing here interprets it live.
@@ -255,7 +254,8 @@ Ok::<(), svg_dom::Error>(())
 SVG 2 illustrates structured metadata using an RDF/Dublin Core graph built from `<rdf:RDF>`/Dublin Core child elements, not a text blob.
 This is one common foreign-namespace representation, but SVG 2 does not prescribe any particular metadata vocabulary or structure — and either way, it is narrower than what `metadata()` above supports, which only ever writes plain text.
 
-This crate does not provide a typed API for building that markup, deliberately: it would mean adding namespace-aware child-element construction for a single element, a scope this crate has not taken on anywhere else.
+The `SvgNode` returned by `metadata()` can be built out afterwards with this crate's generic tree APIs (`append`, `insert_before`, `clear`, ...) — those are not markup-parsing, they operate on already-constructed `SvgNode`s.
+What this crate does not provide is a namespace-aware *factory* for foreign-namespace elements such as `rdf:RDF` or Dublin Core terms, deliberately: that would mean adding namespace-aware child-element construction for a single element, a scope this crate has not taken on anywhere else.
 
 Raw DOM access is already an intentional, first-class part of this crate's design (`SvgNode::as_element()` exists for exactly this kind of gap), so reach for it here rather than treating text-only `metadata()` as the ceiling:
 

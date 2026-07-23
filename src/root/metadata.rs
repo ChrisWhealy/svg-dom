@@ -13,16 +13,18 @@ impl SvgRoot {
     /// the serialized document for external tooling to read.
     ///
     /// `content` is written as the element's text content via [`SvgNode::set_text`](crate::SvgNode::set_text) — a
-    /// genuine DOM text node, not parsed markup, so no HTML entity-escaping is needed for `<`/`>`/`&`. This is a
-    /// deliberate scope limit, not an oversight: it means `content` cannot itself contain structured child elements
-    /// the way a real RDF graph conventionally would — a string that looks like XML is stored and later serialized
-    /// as literal escaped text, not parsed into child nodes. This crate offers no API for building nested markup
-    /// inside `<metadata>`; plain text (a description, a JSON blob, ...) is the supported use case.
+    /// genuine DOM text node, not parsed markup, so no HTML entity-escaping is needed for `<`/`>`/`&`. `metadata`
+    /// never parses `content` as markup: a string that looks like XML is stored and later serialized as literal
+    /// escaped text, not parsed into child nodes.
+    ///
+    /// The returned [`SvgNode`] is otherwise ordinary and can still be built out afterwards with this crate's
+    /// generic tree APIs (`append`, `insert_before`, `clear`, ...) — those work on any element, `<metadata>`
+    /// included. What this crate does not provide is a namespace-aware *factory* for foreign-namespace elements such
+    /// as `rdf:RDF` or Dublin Core terms; those still require the raw DOM.
     ///
     /// SVG 2 illustrates structured metadata using an RDF/Dublin Core graph built from namespaced `<rdf:RDF>`/
     /// Dublin Core child elements. This is one common foreign-namespace representation, but SVG 2 does not
-    /// prescribe any particular metadata vocabulary or structure — and either way, this method cannot author it: it
-    /// only ever writes plain text. If you need structured child markup, reach for the raw DOM via
+    /// prescribe any particular metadata vocabulary or structure. If you need one, reach for the raw DOM via
     /// [`SvgNode::as_element`](crate::SvgNode::as_element) — already a first-class, intentional escape hatch in this
     /// crate, not a fallback of last resort:
     ///
