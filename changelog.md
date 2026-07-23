@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Unreleased]
 
+# [Released]
+
 ## [0.1.70] - 2026-07-23
 
 ### Added 
@@ -23,8 +25,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix race and listener lifetime problems in async view test (`f05cd0f`)
 - Doc only: correct outdated statement about `<view>` child content (`957155f`)
 - Remove error/load event listeners in both success and failure cases (`5a420a1`)
-
-# [Released]
 
 ## [0.1.69] - 2026-07-22
 
