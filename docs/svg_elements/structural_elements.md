@@ -11,6 +11,7 @@
 - [`<use>`](#use)
 - [`<a>`](#a)
 - [`<switch>`](#switch)
+- [`<view>`](#view)
 
 ## `<defs>`
 
@@ -182,3 +183,33 @@ switch.append(&french)?;
 switch.append(&german)?;
 switch.append(&fallback)?;
 ```
+
+---
+
+## `<view>`
+
+`<view>` names a `viewBox`/`preserveAspectRatio` combination for JavaScript-free navigation via a URL fragment. Unlike `<symbol>`, it has no rendered graphical content of its own — a browser resolves a URL ending in `#viewId` by temporarily substituting the document's effective `viewBox`/`preserveAspectRatio` with this view's own. This works for a same-document fragment link, and for an external reference into an exported SVG file (`<img src="diagram.svg#viewId">`, or a plain hyperlink to `diagram.svg#viewId`).
+
+Obtain a handle via `SvgDefs::view(id)` or the transactional `SvgDefs::build_view(id, closure)`.
+
+| Method | Description |
+|---|---|
+| `set_view_box(x, y, w, h)` | The `viewBox` this view switches the document to |
+| `set_preserve_aspect_ratio(value)` | Alignment/clipping when the navigated-to viewport's aspect ratio differs |
+| `set_id(&mut self, id)` | Renames the view (updates both the DOM and the cached id) |
+| `set_attr`/`set_attrs` | Generic setter(s) for unlisted attributes |
+
+```rust,no_run
+let defs = svg.defs()?;
+let detail = defs.view("detail")?;
+detail.set_view_box(0.0, 0.0, 50.0, 50.0)?;
+
+// A same-document link that switches to it with no JavaScript at all.
+svg.anchor("#detail")?;
+```
+
+For a live, WASM-attached SVG for which the caller already has a handle, the same effect is just a direct `SvgRoot::set_view_box`/`set_viewport` call — `<view>` is useful primarily where an SVG document is exported or embedded/navigated independently of any running WASM code.
+
+View ids follow the same crate-imposed allow-pattern as symbols and markers: `[A-Za-z_][A-Za-z0-9_-]*`. This is narrower than SVG/XML's own id grammar; it is a restriction this crate chooses, not a claim about what SVG itself permits, in exchange for every accepted id being unambiguously safe to embed in a `#id` fragment reference. A non-conforming id causes `Error::InvalidViewId` before any DOM call is made.
+
+Always use `SvgView::set_id` to rename a view after construction; `set_attr("id", ...)` will be rejected with `Error::ReservedAttribute` to protect the cached value.

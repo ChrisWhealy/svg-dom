@@ -88,6 +88,19 @@ To update `<text>` content after creation, use `set_text`, plus the buffer-reusi
 
 To manipulate CSS classes on `SvgNode`, use `add_class`, `remove_class`, `toggle_class`, `set_class_enabled` (deterministic set/clear via `classList.toggle(token, force)`), `has_class`, backed by the DOM `classList` API.
 
+## `<style>`
+
+Where the helpers above toggle classes on individual nodes, `<style>` sets document-wide CSS rules for those classes (or any other selector) to key off. `SvgRoot::style(css)`, `SvgBatch::style(css)`, and `SvgDefs::style(css)` create a `<style>` element containing `css`, appended at the call site — SVG's cascade is not scoped by DOM position, so placement within the tree does not affect which elements a rule can select.
+
+`css` is written as the element's plain-text content via `SvgNode::set_text`, so no HTML entity-escaping is needed for `<`/`>`/`&`; it is otherwise written verbatim with no validation or sanitisation, so do not pass attacker-controlled CSS without validating it first — a `url(...)` value can still fetch an arbitrary attacker-chosen resource.
+
+```rust,no_run
+svg.style(".pulse { animation: pulse 2s ease-in-out infinite; } @keyframes pulse { 50% { opacity: 0.4; } }")?;
+
+let dot = svg.circle(Point::new(40.0, 40.0), 12.0)?;
+dot.set_attr("class", "pulse")?;
+```
+
 # Implemented Geometry Helpers
 
 Read-only geometry queries on `SvgNode`.

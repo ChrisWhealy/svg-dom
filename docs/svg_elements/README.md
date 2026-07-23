@@ -47,11 +47,13 @@ The following SVG elements are supported:
 * `polygon`
 * `polyline`
 * `radialGradient` (with `stop`)
+* `style`
 * `switch`
 * `symbol`
 * `text` (with `tspan`, `textPath`)
 * `title`
 * `use`
+* `view`
 
 ## Core Operations
 
@@ -79,9 +81,9 @@ The following SVG elements are supported:
 
 ## Structural and Reusable elements
 
-- [`<defs>`, `<marker>`, `<image>`, `<symbol>`, `<use>`, `<a>` and `<switch>`](structural_elements.md)
+- [`<defs>`, `<marker>`, `<image>`, `<symbol>`, `<use>`, `<a>`, `<switch>` and `<view>`](structural_elements.md)
 
-  A set of reusable SVG asset containers such as path-decoration markers, raster/SVG embedding, reusable scaled viewports and element instancing without the need for DOM duplication, plus the hyperlink and conditional-rendering wrappers.
+  A set of reusable SVG asset containers such as path-decoration markers, raster/SVG embedding, reusable scaled viewports and element instancing without the need for DOM duplication, plus the hyperlink and conditional-rendering wrappers, plus fragment-addressable named viewports.
 
 ## Text
 
