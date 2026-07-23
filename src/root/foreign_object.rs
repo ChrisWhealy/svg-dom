@@ -34,7 +34,7 @@ impl SvgRoot {
     /// surface.
     ///
     /// A string-based HTML convenience method would need to parse caller-supplied markup (typically via `innerHTML` or
-    /// an equivalent browser parsing API). However, parsing arbitrary markup means this crate must takw on sanitisation
+    /// an equivalent browser parsing API). However, parsing arbitrary markup means this crate must take on sanitisation
     /// and trust concerns that it has no business maintaining. No part of this crate's public API parses a string as
     /// markup anywhere (this crate's top-level documentation states that guarantee explicitly), and this factory does
     /// not make an exception for `<foreignObject>`.
@@ -93,7 +93,8 @@ impl SvgRoot {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::Dom`] if the browser refuses to create or append the `<foreignObject>` element.
+    /// Returns [`Error::Dom`] if the browser refuses to create the `<foreignObject>`, assign any of its geometry
+    /// attributes, or append it to the parent.
     pub fn foreign_object(&self, top_left: Point, size: Size) -> Result<SvgNode, Error> {
         self.create_foreign_object(top_left, size)
     }
