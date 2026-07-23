@@ -478,9 +478,11 @@
                         as markup anywhere.<br><br>
                         The HTML above was built the documented way instead — through the raw DOM via
                         <code>SvgNode::as_element()</code>, already a first-class, intentional escape hatch in this
-                        crate. That content is real and present in the DOM, but is silently skipped by
-                        <code>first_child()</code>/<code>children()</code>/<code>query_selector()</code> and their
-                        siblings, exactly like any other non-SVG content those methods encounter.
+                        crate. That content is real and present in the DOM, but this crate's tree-navigation methods
+                        treat it like any other non-SVG node: <code>children()</code>/<code>query_selector_all()</code>
+                        filter it out of their results, while <code>first_child()</code>/<code>query_selector()</code>
+                        and their single-result siblings return <code>None</code> if the one specific candidate they
+                        examine turns out to be non-SVG, without searching on for a different match.
                     </figcaption>
                 </figure>
             </section>

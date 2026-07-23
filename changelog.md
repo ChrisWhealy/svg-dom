@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Doc only: <foreignObject> does not always apply clipping (`c13ff6d`)
 - Doc only: clarify innerHTML safety guarantee (`650a324`)
+- Doc only: clarify requiredExtensions attribute of <foreignObject> (`6046f51`)
 
 # [Released]
 

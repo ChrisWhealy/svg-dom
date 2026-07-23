@@ -61,10 +61,21 @@ impl SvgRoot {
     ///
     /// # Content is opaque to this crate's tree-navigation methods
     ///
-    /// [`SvgNode::first_child`](crate::SvgNode::first_child), [`children`](crate::SvgNode::children),
-    /// [`query_selector`](crate::SvgNode::query_selector), and their siblings only ever return genuine SVG elements
-    /// — HTML content inside a `<foreignObject>` is silently skipped, the same as any other non-SVG node they might
-    /// encounter. This is existing, general behaviour that every one of those methods already documents; it is
+    /// HTML content inside a `<foreignObject>` is treated like any other non-SVG node these methods might
+    /// encounter, but "treated" means two different things depending on the method:
+    ///
+    /// - [`children`](crate::SvgNode::children) and [`query_selector_all`](crate::SvgNode::query_selector_all)
+    ///   return a collection: a non-SVG match is simply filtered out, so the result can be shorter than the number
+    ///   of DOM nodes actually present.
+    /// - [`first_child`](crate::SvgNode::first_child), [`last_child`](crate::SvgNode::last_child),
+    ///   [`next_sibling`](crate::SvgNode::next_sibling), [`previous_sibling`](crate::SvgNode::previous_sibling), and
+    ///   [`query_selector`](crate::SvgNode::query_selector) return a single result: each examines exactly one
+    ///   specific candidate (the actual first/last child, the immediately adjacent sibling, the browser's own first
+    ///   selector match) and returns `None` if *that* candidate is non-SVG. None of them search on for a different,
+    ///   later element that might qualify — a `<foreignObject>` whose first child is HTML makes `first_child()`
+    ///   return `None` even if a genuine SVG element exists as, say, the *second* child.
+    ///
+    /// This is existing, general behaviour that every one of those methods already documents individually; it is
     /// called out here because `<foreignObject>` is the element it is actually reachable on. Use
     /// [`as_element`](crate::SvgNode::as_element) and the raw `web_sys` API if you need to see that content too.
     ///

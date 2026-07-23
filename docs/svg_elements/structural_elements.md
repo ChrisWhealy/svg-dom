@@ -272,9 +272,17 @@ fo.as_element().append_child(&div).expect("appendChild failed");
 
 ### Content is opaque to this crate's tree-navigation methods
 
-`SvgNode::first_child`, `children`, `query_selector`, and their siblings only ever return genuine SVG elements — HTML content inside a `<foreignObject>` is silently skipped, the same as any other non-SVG node they might encounter.
+HTML content inside a `<foreignObject>` is treated like any other non-SVG node these methods might encounter, but "treated" means two different things depending on the method:
 
-This is existing, general behaviour that every one of those methods already documents; it applies here because `<foreignObject>` is the element it is actually reachable on. Use `as_element()` and the raw `web_sys` API if you need to see that content too.
+- `children` and `query_selector_all` return a collection: a non-SVG match is simply filtered out, so the result can be shorter than the number of DOM nodes actually present.
+
+- `first_child`, `last_child`, `next_sibling`, `previous_sibling`, and `query_selector` return a single result: each examines exactly one specific candidate and returns `None` if that *specific* candidate is not an SVG element.
+  None of them continue searching for a different, later element that might qualify.
+
+  A `<foreignObject>` whose first child is HTML causes `first_child()` to return `None` even if a genuine SVG element exists as a later sibling, say, the *second* child.
+
+This is existing, general behaviour that every one of those methods already documents individually; it applies here because `<foreignObject>` is the element on which it is actually reachable.
+Use `as_element()` and the raw `web_sys` API if you need to see that content too.
 
 ### Browser support
 
