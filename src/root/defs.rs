@@ -683,7 +683,8 @@ impl SvgDefs {
     ///
     /// Unlike every other element `SvgDefs` builds, `<view>` has no content of its own. Instead, you call
     /// [`SvgView::set_view_box`](crate::SvgView::set_view_box) on the returned handle, then reference it (prefixed
-    /// with `#`) from [`SvgRoot::anchor`](crate::SvgRoot::anchor) or an external URL fragment.
+    /// with `#`) from an external or standalone-document URL fragment — see [`SvgView`]'s type-level docs for exactly
+    /// which cases that fragment navigation activates for.
     ///
     /// Prefer [`build_view`](Self::build_view) when the `viewBox` is known upfront: that variant keeps the element
     /// detached from the DOM until the closure succeeds, so a rejected `viewBox` does not leave a partial `<view>`
@@ -697,14 +698,16 @@ impl SvgDefs {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use svg_dom::SvgRoot;
+    /// use svg_dom::{SvgRoot, root::utils::{Point, Size}};
     ///
     /// let svg  = SvgRoot::attach("diagram")?;
     /// let defs = svg.defs()?;
     /// let view = defs.view("detail")?;
     /// view.set_view_box(0.0, 0.0, 50.0, 50.0)?;
     ///
-    /// svg.anchor("#detail")?;
+    /// // Fragment navigation only activates for an externally referenced (or standalone) copy of this document.
+    /// let preview = svg.image("diagram.svg", Point::origin(), Size::new(50.0, 50.0))?;
+    /// preview.set_href("diagram.svg#detail")?;
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn view(&self, id: &str) -> Result<SvgView, Error> {
@@ -731,13 +734,15 @@ impl SvgDefs {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use svg_dom::SvgRoot;
+    /// use svg_dom::{SvgRoot, root::utils::{Point, Size}};
     ///
     /// let svg  = SvgRoot::attach("diagram")?;
     /// let defs = svg.defs()?;
     /// defs.build_view("detail", |v| v.set_view_box(0.0, 0.0, 50.0, 50.0))?;
     ///
-    /// svg.anchor("#detail")?;
+    /// // Fragment navigation only activates for an externally referenced (or standalone) copy of this document.
+    /// let preview = svg.image("diagram.svg", Point::origin(), Size::new(50.0, 50.0))?;
+    /// preview.set_href("diagram.svg#detail")?;
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn build_view<F>(&self, id: &str, build: F) -> Result<SvgView, Error>

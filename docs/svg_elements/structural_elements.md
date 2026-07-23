@@ -188,7 +188,24 @@ switch.append(&fallback)?;
 
 ## `<view>`
 
-`<view>` names a `viewBox`/`preserveAspectRatio` combination for JavaScript-free navigation via a URL fragment. Unlike `<symbol>`, it has no rendered graphical content of its own — a browser resolves a URL ending in `#viewId` by temporarily substituting the document's effective `viewBox`/`preserveAspectRatio` with this view's own. This works for a same-document fragment link, and for an external reference into an exported SVG file (`<img src="diagram.svg#viewId">`, or a plain hyperlink to `diagram.svg#viewId`).
+`<view>` names a `viewBox`/`preserveAspectRatio` combination, activated via a `#viewId` URL fragment. Unlike `<symbol>`, it has no rendered graphical content of its own.
+
+### Fragment navigation: three cases, only two of which apply to this crate
+
+SVG 2 activates `#viewId` fragment navigation only when the SVG resource named by `viewId` is itself *the document being navigated*, not merely any document that happens to contain a matching id. Concretely:
+
+- **A standalone SVG document, navigated directly** (opened in its own tab, or as the top-level document a same-document `#viewId` link/hash change targets): the browser substitutes its effective `viewBox`/`preserveAspectRatio` with this view's own, with no JavaScript needed.
+- **An external reference into an exported SVG file** — `<img src="diagram.svg#viewId">`, an SVG `<image>` with that `href`, or a plain hyperlink to `diagram.svg#viewId` — activates the same substitution for that resource.
+
+  [`SvgNode::set_href`](crate::SvgNode::set_href) can re-trigger it on an already-loaded reference by changing the
+  fragment.
+- **An inline `<svg>` embedded in an HTML page — the case every [`SvgRoot::attach`](crate::SvgRoot::attach)/
+  [`SvgRoot::create_in`](crate::SvgRoot::create_in) call in this crate deals with — does *not* qualify.**
+
+  The embedded SVG is not itself the navigated document, so this behaviour never activates for it; a same-page `<a href="#viewId">` click — whether an SVG-native [`SvgRoot::anchor`](crate::SvgRoot::anchor) inside it or a plain HTML link outside it — only updates `location.hash`, with no visible effect.
+  Use [`SvgRoot::set_view_box`](crate::SvgRoot::set_view_box)/[`SvgRoot::set_viewport`](crate::SvgRoot::set_viewport) directly instead — the caller already has a live handle, so there is no need to go through a URL fragment.
+
+`<view>` is therefore useful primarily when an SVG document is exported, or embedded/navigated independently of any running WASM code — not for switching the viewport of the very SVG a running WASM instance is attached to.
 
 Obtain a handle via `SvgDefs::view(id)` or the transactional `SvgDefs::build_view(id, closure)`.
 
@@ -204,11 +221,13 @@ let defs = svg.defs()?;
 let detail = defs.view("detail")?;
 detail.set_view_box(0.0, 0.0, 50.0, 50.0)?;
 
-// A same-document link that switches to it with no JavaScript at all.
-svg.anchor("#detail")?;
+// Fragment navigation only activates for an externally referenced (or standalone) copy of this document — here,
+// an exported "diagram.svg" loaded through an <image>. Re-setting `href` re-navigates it.
+let preview = svg.image("diagram.svg", Point::origin(), Size::new(50.0, 50.0))?;
+preview.set_href("diagram.svg#detail")?;
 ```
 
-For a live, WASM-attached SVG for which the caller already has a handle, the same effect is just a direct `SvgRoot::set_view_box`/`set_viewport` call — `<view>` is useful primarily where an SVG document is exported or embedded/navigated independently of any running WASM code.
+`<view>` is therefore useful primarily when an SVG document is exported, or embedded/navigated independently of any running WASM code — not for switching the viewport of the very SVG a running WASM instance is attached to.
 
 View ids follow the same crate-imposed allow-pattern as symbols and markers: `[A-Za-z_][A-Za-z0-9_-]*`. This is narrower than SVG/XML's own id grammar; it is a restriction this crate chooses, not a claim about what SVG itself permits, in exchange for every accepted id being unambiguously safe to embed in a `#id` fragment reference. A non-conforming id causes `Error::InvalidViewId` before any DOM call is made.
 

@@ -3,34 +3,42 @@ use std::cell::RefCell;
 use web_sys::SvgElement;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// A `<view>` element that names a `viewBox`/`preserveAspectRatio` combination for external, JavaScript-free navigation
-/// via a URL fragment.
+/// A `<view>` element that names a `viewBox`/`preserveAspectRatio` combination, activated via a `#viewId` URL
+/// fragment.
 ///
 /// Unlike a `<symbol>`, a `<view>` has no rendered graphical content of its own. However, SVG does permit descriptive
 /// child elements (`<title>`, `<desc>`, `<metadata>`), but does not currently offer a way to add them — it models only
 /// the viewport and fragment-navigation attributes below, since that covers `<view>`'s actual purpose.
 ///
-/// A browser resolves a URL ending in `#viewId` (where `viewId` is this element's [`id`](Self::id)) by temporarily
-/// substituting the document's effective `viewBox`/`preserveAspectRatio` with this element's own, without the need for
-/// any JavaScript. This works for:
+/// # Fragment navigation: three cases, only two of which apply to this crate
 ///
-/// - a same-document fragment link, e.g. [`SvgRoot::anchor`](crate::SvgRoot::anchor)`("#viewId")`;
-/// - an external reference into an exported SVG file, e.g. `<img src="diagram.svg#viewId">` or a plain hyperlink to
-///   `diagram.svg#viewId`.
+/// SVG 2 activates `#viewId` fragment navigation only when the SVG resource named by `viewId` is itself *the
+/// document being navigated* — not merely any document that happens to contain a matching id. Concretely:
 ///
-/// For a live, WASM-attached SVG, for which the caller already has a handle, the same effect is just a direct
-/// [`SvgRoot::set_view_box`](crate::SvgRoot::set_view_box) or [`SvgRoot::set_viewport`](crate::SvgRoot::set_viewport)
-/// call.
+/// - **A standalone SVG document, navigated directly** (opened in its own tab, or as the top-level document a
+///   same-document `#viewId` link/hash change targets): the browser substitutes its effective `viewBox`/
+///   `preserveAspectRatio` with this view's own, with no JavaScript needed.
+/// - **An external reference into an exported SVG file** — `<img src="diagram.svg#viewId">`, an SVG `<image>` with
+///   that `href`, or a plain hyperlink to `diagram.svg#viewId` — activates the same substitution for that resource.
+///   [`SvgNode::set_href`](crate::SvgNode::set_href) can re-trigger it on an already-loaded reference by changing the
+///   fragment.
+/// - **An inline `<svg>` embedded in an HTML page — the case every [`SvgRoot::attach`](crate::SvgRoot::attach)/
+///   [`SvgRoot::create_in`](crate::SvgRoot::create_in) call in this crate deals with — does *not* qualify.** The
+///   embedded SVG is not itself the navigated document, so this behaviour never activates for it; a same-page
+///   `<a href="#viewId">` click — whether an SVG-native [`SvgRoot::anchor`](crate::SvgRoot::anchor) inside it or a
+///   plain HTML link outside it — only updates `location.hash`, with no visible effect. Use
+///   [`SvgRoot::set_view_box`](crate::SvgRoot::set_view_box)/[`SvgRoot::set_viewport`](crate::SvgRoot::set_viewport)
+///   directly instead — the caller already has a live handle, so there is no need to go through a URL fragment.
 ///
-/// `<view>` is useful primarily in cases where an SVG document is exported or embedded/navigated independently of any
-/// running WASM code.
+/// `<view>` is therefore useful primarily when an SVG document is exported, or embedded/navigated independently of
+/// any running WASM code — not for switching the viewport of the very SVG a running WASM instance is attached to.
 ///
 /// Obtain one from [`SvgDefs::view`](crate::SvgDefs::view) or [`SvgDefs::build_view`](crate::SvgDefs::build_view).
 ///
 /// # Example
 ///
 /// ```rust,no_run
-/// use svg_dom::SvgRoot;
+/// use svg_dom::{SvgRoot, root::utils::{Point, Size}};
 ///
 /// let svg  = SvgRoot::attach("diagram")?;
 /// let defs = svg.defs()?;
@@ -39,8 +47,10 @@ use web_sys::SvgElement;
 /// let detail = defs.view("detail")?;
 /// detail.set_view_box(0.0, 0.0, 50.0, 50.0)?;
 ///
-/// // A same-document link that switches to it with no JavaScript at all.
-/// svg.anchor("#detail")?;
+/// // Fragment navigation only activates for an externally referenced (or standalone) copy of this document — here,
+/// // an exported "diagram.svg" loaded through an <image>. Re-setting `href` re-navigates it.
+/// let preview = svg.image("diagram.svg", Point::origin(), Size::new(50.0, 50.0))?;
+/// preview.set_href("diagram.svg#detail")?;
 /// Ok::<(), svg_dom::Error>(())
 /// ```
 pub struct SvgView {
@@ -66,8 +76,9 @@ impl SvgView {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Returns the cached `id` of this view.
     ///
-    /// Pass this (prefixed with `#`) to [`SvgRoot::anchor`](crate::SvgRoot::anchor), or embed it directly in an
-    /// external URL fragment (`"diagram.svg#" + id`).
+    /// Embed it in an external URL fragment (`"diagram.svg#" + id`) or a standalone SVG document's own
+    /// same-document fragment link — see the [type-level docs](Self) for which cases fragment navigation actually
+    /// activates for.
     ///
     /// # ⚠️ Caveat ⚠️
     ///

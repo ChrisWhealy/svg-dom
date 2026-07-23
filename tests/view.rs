@@ -198,16 +198,20 @@ fn sample_pixel(image: &web_sys::SvgImageElement, x: f64, y: f64) -> [u8; 4] {
 /// Fragment navigation to `#viewId` is the entire reason `<view>` exists: it swaps the referenced resource's
 /// effective `viewBox`, changing what is actually rendered — not just a DOM attribute somewhere.
 ///
-/// `<view>`'s fragment effect only applies to a genuinely *external* reference: a same-document, inline `<svg>` does
-/// not respond to a same-page anchor click the way an externally-referenced resource does (confirmed by hand while
-/// building `demo/view-demo.svg`, which is deliberately not built through `svg-dom` for the same reason). A
-/// self-contained `data:image/svg+xml;base64,...` URI is a genuine external reference as far as the browser's
-/// resource-loading and fragment-navigation machinery is concerned, so it exercises the real mechanism without
-/// needing a static test fixture or test-server support.
+/// SVG 2 activates this behaviour only when the SVG resource itself is the document being navigated — a standalone
+/// SVG document opened directly, or a genuinely external reference into one (`<img src="...#viewId">`, an SVG
+/// `<image>`, a hyperlink). It does *not* extend to an inline `<svg>` embedded in an HTML page responding to a
+/// same-page anchor click (confirmed by hand while building `demo/view-demo.svg`) — which rules out a same-document
+/// link here too, since every test in this suite (this one included) hosts its `SvgRoot` inside an HTML test page,
+/// not a standalone SVG document. A self-contained `data:image/svg+xml;base64,...` URI is a genuine external
+/// reference as far as the browser's resource-loading and fragment-navigation machinery is concerned, so it
+/// exercises the real mechanism without needing a static test fixture, a standalone top-level SVG document, or
+/// test-server support.
 #[wasm_bindgen_test]
 async fn should_switch_rendered_viewport_when_navigating_to_view_fragment() -> Result<(), String> {
     // Hand-written markup, not built through svg-dom's own factories: it stands in for an already-exported SVG
-    // file (xmlns and all), which is the only case <view>'s fragment effect actually applies to.
+    // file (xmlns and all) — one of the two cases <view>'s fragment effect actually applies to (see the doc comment
+    // above); the other, a standalone top-level SVG document, isn't reachable from this HTML-hosted test harness.
     const FIXTURE: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
         <view id="detail" viewBox="100 100 100 100"/>
         <rect width="100" height="100" fill="rgb(10,20,220)"/>
