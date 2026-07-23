@@ -471,9 +471,11 @@
                         enforces.<br><br>
                         <code>SvgRoot::foreign_object(top_left, size)</code> returns an <em>empty</em> element —
                         there is no <code>set_inner_html</code>/<code>set_content</code> method to fill it.
-                        That is deliberate: this crate's public API never uses <code>innerHTML</code> anywhere, and
-                        adding one here for this single element would mean either quietly breaking that guarantee
-                        or shipping an HTML sanitizer this crate has no business maintaining.<br><br>
+                        That is deliberate: a string-based HTML convenience method would need to parse
+                        caller-supplied markup — typically via <code>innerHTML</code> or an equivalent browser
+                        parsing API — and parsing arbitrary markup means taking on sanitisation and trust concerns
+                        this crate has no business maintaining. No part of this crate's public API parses a string
+                        as markup anywhere.<br><br>
                         The HTML above was built the documented way instead — through the raw DOM via
                         <code>SvgNode::as_element()</code>, already a first-class, intentional escape hatch in this
                         crate. That content is real and present in the DOM, but is silently skipped by

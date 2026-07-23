@@ -6,11 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Unreleased]
 
-## [0.1.72] - 2026-07-24
+## [0.1.72] - 2026-07-23
 
 ### Added
 
 - Implement the SVG element `<foreignObject>` (`566c5b4`)
+
+### Fixed
+
+- Doc only: <foreignObject> does not always apply clipping (`c13ff6d`)
 
 # [Released]
 

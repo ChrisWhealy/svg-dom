@@ -841,11 +841,14 @@ pub(super) fn demo_foreign_object() -> Result<(), Error> {
 
     let fo = svg.foreign_object(Point::new(40.0, PAD_Y), Size::new(340.0, BAND))?;
 
-    // svg-dom's own API stops here, deliberately: no set_inner_html/set_content method exists on the returned
-    // SvgNode — see SvgRoot::foreign_object's doc comment for why. Everything below builds real HTML through raw
-    // web-sys instead, exactly the escape hatch that doc comment describes. This demo module's own source-code
-    // panel already uses set_inner_html the same way (see inject_source_frames in src/demo/mod.rs) — an
-    // implementation detail of this showcase, never part of svg-dom's own public surface.
+    // svg-dom's own API deliberately stops here: no set_inner_html or set_content method exists on the returned SvgNode
+    // — see SvgRoot::foreign_object's doc comment for why a string-based convenience method isn't offered (parsing
+    // caller-supplied markup means taking on sanitisation/trust concerns that this crate has no business maintaining).
+    //
+    // Everything below builds the small <div>, <strong> and <em> tree through raw web-sys calls node by node, rather
+    // than via set_inner_html, even though this particular string is a compile-time constant and would be perfectly
+    // safe passed to set_inner_html too. Building it explicitly is what the documented escape hatch actually looks
+    // like, which is the whole point of this demo.
     let document = fo
         .as_element()
         .owner_document()
@@ -859,11 +862,29 @@ pub(super) fn demo_foreign_object() -> Result<(), Error> {
             "font: 13px/1.4 sans-serif; color: #eee; padding: 8px; box-sizing: border-box;",
         )
         .map_err(dom_err)?;
-    content.set_inner_html(
-        "<strong>Real HTML</strong>, laid out by the browser's own engine: this paragraph <em>wraps</em> to the \
-         box width exactly the way it would on an ordinary web page — something SVG's own \
-         &lt;text&gt; element cannot do by itself.",
-    );
+
+    let make_inline = |tag: &str, text: &str| -> Result<web_sys::Element, Error> {
+        let el = document
+            .create_element_ns(Some("http://www.w3.org/1999/xhtml"), tag)
+            .map_err(dom_err)?;
+        el.set_text_content(Some(text));
+        Ok(el)
+    };
+
+    content
+        .append_child(&make_inline("strong", "Real HTML")?.into())
+        .map_err(dom_err)?;
+    content
+        .append_child(&document.create_text_node(", laid out by the browser's own engine: this paragraph "))
+        .map_err(dom_err)?;
+    content.append_child(&make_inline("em", "wraps")?.into()).map_err(dom_err)?;
+    content
+        .append_child(&document.create_text_node(
+            " to the box width exactly the way it would on an ordinary web page — something SVG's own \
+             <text> element cannot do by itself.",
+        ))
+        .map_err(dom_err)?;
+
     fo.as_element().append_child(&content).map_err(dom_err)?;
     keep_demo_node(fo);
 

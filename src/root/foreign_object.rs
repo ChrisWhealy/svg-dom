@@ -29,13 +29,15 @@ impl SvgRoot {
     ///
     /// # No content-setting method — by design
     ///
-    /// This factory returns an *empty* `<foreignObject>`; there is no `set_inner_html`/`set_content` method to fill
-    /// it. That is a deliberate limit on this crate's public surface, not a missing feature. The whole point of
-    /// `<foreignObject>` is to hold real HTML — flowing paragraphs, `<div>`s, form controls — and the only DOM
-    /// operation that inserts markup like that is `innerHTML`, which no part of this crate's public API uses
-    /// anywhere (this crate's top-level documentation states that guarantee explicitly). Adding a convenience method
-    /// here would mean either quietly breaking it, or shipping an HTML sanitizer this crate has no business
-    /// maintaining.
+    /// This factory returns an *empty* `<foreignObject>`; there is no `set_inner_html` or `set_content` method to fill
+    /// it. This is not a missing feature, rather it is a deliberate design decision to limit the crate's public API
+    /// surface.
+    ///
+    /// A string-based HTML convenience method would need to parse caller-supplied markup (typically via `innerHTML` or
+    /// an equivalent browser parsing API). However, parsing arbitrary markup means this crate must takw on sanitisation
+    /// and trust concerns that it has no business maintaining. No part of this crate's public API parses a string as
+    /// markup anywhere (this crate's top-level documentation states that guarantee explicitly), and this factory does
+    /// not make an exception for `<foreignObject>`.
     ///
     /// To add content, reach for the raw DOM via [`SvgNode::as_element`](crate::SvgNode::as_element) — already a
     /// first-class, intentional escape hatch in this crate, not a fallback of last resort:

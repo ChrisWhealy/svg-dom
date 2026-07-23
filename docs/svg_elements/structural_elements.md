@@ -250,7 +250,9 @@ Browsers clip content to the rectangle by default — `<foreignObject>` gets `ov
 
 The factory returns an *empty* `<foreignObject>`; there is no `set_inner_html`/`set_content` method to fill it. That is a deliberate limit on this crate's public surface, not a missing feature.
 
-The whole point of `<foreignObject>` is to hold real HTML — flowing paragraphs, `<div>`s, form controls — and the only DOM operation that inserts markup like that is `innerHTML`, which no part of this crate's public API uses anywhere (the crate's top-level documentation states that guarantee explicitly). Adding a convenience method here would mean either quietly breaking it, or shipping an HTML sanitizer this crate has no business maintaining.
+A string-based HTML convenience method would need to parse caller-supplied markup (typically via `innerHTML` or an equivalent browser parsing API) and parsing arbitrary markup means taking on sanitisation and trust concerns this crate has no business maintaining.
+No part of this crate's public API parses a string as markup anywhere (the crate's top-level documentation states that guarantee explicitly), and this factory does not make an exception for `<foreignObject>`.
+Callers can instead construct nodes explicitly through the raw DOM escape hatch described below.
 
 To add content, reach for the raw DOM via `SvgNode::as_element()` — already a first-class, intentional escape hatch in this crate, not a fallback of last resort:
 
