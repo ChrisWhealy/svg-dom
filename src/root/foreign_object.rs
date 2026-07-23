@@ -11,12 +11,21 @@ use crate::{
 impl SvgRoot {
     /// Creates an empty `<foreignObject>` element, appends it to the root, and returns its [`SvgNode`] handle.
     ///
-    /// `<foreignObject>` carves out a rectangular region of the SVG canvas in which the browser renders foreign
-    /// (typically HTML) content using its own layout engine — CSS text flow/wrapping, form controls, and other HTML
+    /// `<foreignObject>` defines a rectangular containing block in SVG user space within which foreign (typically
+    /// HTML) content is laid out by the browser's own engine — CSS text flow/wrapping, form controls, and other HTML
     /// features that SVG's own text and shape model does not provide.
     ///
     /// `top_left` and `size` define that rectangle in the current user-space coordinate system, exactly like
     /// [`SvgRoot::rect`](crate::SvgRoot::rect)/[`SvgRoot::image`](crate::SvgRoot::image).
+    ///
+    /// # This is a containing block, not an unconditional clip
+    ///
+    /// The rectangle establishes the viewport and CSS containing block for the foreign content. Browsers clip to it
+    /// by default — `<foreignObject>` gets `overflow: hidden` from the UA stylesheet, the same as `<svg>`/`<symbol>`/
+    /// `<marker>`/`<pattern>`, the other elements that establish a new viewport — but that is an ordinary,
+    /// overridable CSS property, not a structural guarantee this crate or SVG's rendering model enforces. Content
+    /// set to `overflow: visible` (via [`SvgNode::set_attr`](crate::SvgNode::set_attr)) can still paint outside the
+    /// rectangle.
     ///
     /// # No content-setting method — by design
     ///

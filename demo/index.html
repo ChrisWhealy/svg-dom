@@ -464,6 +464,11 @@
                         The paragraph inside is genuine HTML, laid out by the browser's normal engine: it
                         <strong>wraps to the box width</strong> the way ordinary web content does, which SVG's own
                         <code>&lt;text&gt;</code> element cannot do by itself.<br><br>
+                        This rectangle is a containing block, not an unconditional clip: browsers clip to it by
+                        default (<code>overflow: hidden</code> from the UA stylesheet, the same as
+                        <code>&lt;svg&gt;</code>/<code>&lt;symbol&gt;</code>/<code>&lt;marker&gt;</code>), but that
+                        is an ordinary, overridable CSS property, not something SVG's rendering model
+                        enforces.<br><br>
                         <code>SvgRoot::foreign_object(top_left, size)</code> returns an <em>empty</em> element —
                         there is no <code>set_inner_html</code>/<code>set_content</code> method to fill it.
                         That is deliberate: this crate's public API never uses <code>innerHTML</code> anywhere, and

@@ -833,7 +833,7 @@ pub(super) fn demo_foreign_object() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-foreign-object", Size::new(W, H))?;
 
     // <foreignObject> paints nothing of its own — without a visible boundary, the demo would just show floating
-    // text with no indication of the SVG-space rectangle it's actually confined to.
+    // text with no indication of the SVG-space rectangle it's laid out (and, by default, clipped) within.
     let boundary = svg.rect(Point::new(40.0, PAD_Y), Size::new(340.0, BAND))?;
     boundary.set_fill(NONE)?;
     boundary.set_stroke(GUIDE)?;

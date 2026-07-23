@@ -238,9 +238,13 @@ Always use `SvgView::set_id` to rename a view after construction; `set_attr("id"
 
 ## `<foreignObject>`
 
-`<foreignObject>` carves out a rectangular region of the SVG canvas in which the browser renders foreign (typically HTML) content using its own layout engine — CSS text flow/wrapping, form controls, and other HTML features that SVG's own text and shape model does not provide.
+`<foreignObject>` defines a rectangular containing block in SVG user space within which foreign (typically HTML) content is laid out by the browser's own engine — CSS text flow/wrapping, form controls, and other HTML features that SVG's own text and shape model does not provide.
 
 Obtain a handle via `SvgRoot::foreign_object(top_left, size)` or `SvgBatch::foreign_object(top_left, size)`, which set `x`/`y`/`width`/`height` exactly like `rect`/`image`. Unlike most other reusable elements on this page, there is no `SvgDefs::foreign_object` — the same is true of `<image>`, since both place directly-rendered content at a position, rather than defining something referenced later.
+
+### This is a containing block, not an unconditional clip
+
+Browsers clip content to the rectangle by default — `<foreignObject>` gets `overflow: hidden` from the UA stylesheet, the same as `<svg>`/`<symbol>`/`<marker>`/`<pattern>`, the other elements that establish a new viewport — but that is an ordinary, overridable CSS property, not a structural guarantee SVG's rendering model enforces. Content set to `overflow: visible` can still paint outside the rectangle.
 
 ### No content-setting method — by design
 
