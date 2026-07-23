@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Unreleased]
 
+# [Released]
+
 ## [0.1.72] - 2026-07-23
 
 ### Added
@@ -21,8 +23,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Doc only: clarify requiredExtensions attribute of <foreignObject> (`6046f51`)
 - Doc only: tree-navigation opacity depends on which method is being called (`d2343f3`)
 - Doc only: qualify the Document::createElement() namespace comment (`79a6de0`)
-
-# [Released]
 
 ## [0.1.71] - 2026-07-23
 
