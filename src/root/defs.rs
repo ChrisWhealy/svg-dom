@@ -681,7 +681,7 @@ impl SvgDefs {
     /// Creates a `<view>` child element with the given `id`, immediately appends it to `<defs>` then returns its
     /// handle.
     ///
-    /// Unlike every other element `SvgDefs` builds, `<view>` has no content of its own. Instead, you call
+    /// Unlike most elements built by `SvgDefs`, `<view>` has no rendered graphical content of its own. Instead, you call
     /// [`SvgView::set_view_box`](crate::SvgView::set_view_box) on the returned handle, then reference it (prefixed
     /// with `#`) from an external or standalone-document URL fragment — see [`SvgView`]'s type-level docs for exactly
     /// which cases that fragment navigation activates for.
