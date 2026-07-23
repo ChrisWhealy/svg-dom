@@ -6,9 +6,12 @@ use web_sys::SvgElement;
 /// A `<view>` element that names a `viewBox`/`preserveAspectRatio` combination for external, JavaScript-free navigation
 /// via a URL fragment.
 ///
-/// `<view>` has no content model of its own, which means it is never rendered and never holds children, unlike a
-/// `<symbol>`. A browser resolves a URL ending in `#viewId` (where `viewId` is this element's [`id`](Self::id)) by
-/// temporarily substituting the document's effective `viewBox`/`preserveAspectRatio` with this element's own, without
+/// Unlike a `<symbol>`, a `<view>` has no rendered graphical content of its own. However, SVG does permit descriptive
+/// child elements (`<title>`, `<desc>`, `<metadata>`), but does not currently offer a way to add them — it models only
+/// the viewport and fragment-navigation attributes below, since that covers `<view>`'s actual purpose.
+///
+/// A browser resolves a URL ending in `#viewId` (where `viewId` is this element's [`id`](Self::id)) by temporarily
+/// substituting the document's effective `viewBox`/`preserveAspectRatio` with this element's own, without the need for
 /// any JavaScript. This works for:
 ///
 /// - a same-document fragment link, e.g. [`SvgRoot::anchor`](crate::SvgRoot::anchor)`("#viewId")`;
@@ -49,8 +52,9 @@ pub struct SvgView {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 impl SvgView {
-    // `<view>` has no content model, so unlike its sibling id-cached elements (`SvgSymbol`, `SvgMarker`, ...) it
-    // never needs a `Document` handle to create children — there is nothing to construct, so none is stored.
+    // `SvgView` does not offer child-element construction (SVG permits descriptive children such as <title>/<desc>
+    // on <view>, but nothing in this crate's own API needs to build), so unlike its sibling id-cached elements
+    // (`SvgSymbol`, `SvgMarker`, ...) it never needs a `Document` handle to create any — none is stored.
     pub(crate) fn new(id: String, element: SvgElement) -> Self {
         Self {
             id,
