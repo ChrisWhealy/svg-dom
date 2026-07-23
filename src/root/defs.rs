@@ -963,8 +963,12 @@ impl SvgDefs {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Creates a `<metadata>` child inside `<defs>` — a conventional placement, though it applies the same wherever
-    /// it sits in the tree.
+    /// Creates a `<metadata>` child inside `<defs>`.  Whilst this is syntactically valid, it is not the conventional
+    /// placement for `<metadata>`.  That said, its meaning is unaffected by where this element sits in the tree.
+    ///
+    /// Document-level metadata is more commonly placed directly beneath the root `<svg>` (as in SVG 2's own metadata
+    /// example) than inside `<defs>`, which the spec describes primarily as a container for objects defined for later
+    /// reference; use [`SvgRoot::metadata`](crate::SvgRoot::metadata) for that placement.
     ///
     /// See [`SvgRoot::metadata`](crate::SvgRoot::metadata) for full documentation.
     pub fn metadata(&self, content: &str) -> Result<SvgNode, Error> {

@@ -682,8 +682,13 @@ fn should_not_parse_markup_like_content_as_child_elements() -> Result<(), String
     common::check_eq(metadata.as_element().child_element_count(), 0)
 }
 
-/// `SvgDefs::metadata` places the element inside `<defs>` — a conventional location, though `<metadata>` is never
-/// rendered regardless of where it sits in the tree.
+/// `SvgDefs::metadata` places the element inside `<defs>`.  Whilst this is syntactically valid, it is not the
+/// conventional placement for `<metadata>`.  That said, its meaning is unaffected by where this element sits in the
+/// tree.
+///
+/// Document-level metadata is more commonly placed directly beneath the root `<svg>` (as in SVG 2's own metadata
+/// example) than inside `<defs>`, which the spec describes primarily as a container for objects defined for later
+/// reference; use [`SvgRoot::metadata`](crate::SvgRoot::metadata) for that placement.
 #[wasm_bindgen_test]
 fn should_append_metadata_to_defs() -> Result<(), String> {
     common::div("metadata-defs");
