@@ -49,8 +49,9 @@ impl SvgRoot {
     /// let fo  = svg.foreign_object(Point::new(10.0, 10.0), Size::new(200.0, 80.0))?;
     ///
     /// let document = fo.as_element().owner_document().expect("foreignObject element has no owner document");
-    /// // The HTML namespace, not SVG's. `document.create_element` (no namespace) would also land in the HTML
-    /// // namespace here, but `create_element_ns` makes that explicit rather than relying on it.
+    /// // In an HTML document, `document.create_element` (no namespace) would also create an HTML-namespaced
+    /// // element. Using `create_element_ns` makes the required namespace explicit and also works correctly in
+    /// // SVG/XML documents, where `create_element` would create a null-namespace element instead.
     /// let div = document
     ///     .create_element_ns(Some("http://www.w3.org/1999/xhtml"), "div")
     ///     .expect("createElementNS failed");
