@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Implement the SVG element `<metadata>` (`522459c`)
 - Doc only: <metadata> content permitted by this crate is narrower than that permitted by SVG 2 (`2677cec`)
+- Doc only: qualify that <metadata> inside <defs> is permitted, but not conventional (`ff586d5`)
 
 ### Fixed
 
