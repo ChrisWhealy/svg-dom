@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Doc only: <metadata> content is accessible only through the DOM API or after serialisation (`e45855e`)
 - Doc only: relax statement about RDF/XML <matadata> content (`c79840f`)
 - Doc only: <metadata> content can be manipulated through the crate's API (`b23dff2`)
+- Doc only: clarify supported content for <metadata> (`d3cc142`)
 
 # [Released]
 
