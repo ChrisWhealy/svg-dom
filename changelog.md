@@ -8,7 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [0.1.71] - 2026-07-23
 
-### Added 
+### Added
+
+- Implement the SVG element `<metadata>` (`522459c`)
 
 # [Released]
 
