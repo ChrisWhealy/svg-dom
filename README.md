@@ -76,7 +76,7 @@ That said, all reasonable, conventional steps have been taken to provide a secur
   - [x] `<image>`
   - [x] `<linearGradient>`
   - [x] `<marker>`
-  - [x] `<metadata>`
+  - [x] `<metadata>` — plain-text/JSON content; structured foreign-namespace children need the raw DOM escape hatch
   - [x] `<mask>`
   - [x] `<pattern>`
   - [x] `<radialGradient>`

@@ -249,3 +249,25 @@ let svg = SvgRoot::attach("diagram")?;
 svg.metadata(r#"{"source": "quarterly-sales.csv", "generated": "2026-07-23"}"#)?;
 Ok::<(), svg_dom::Error>(())
 ```
+
+## Structured foreign-namespace children (RDF/XML, ...)
+
+SVG 2's normative example for `<metadata>` is an actual RDF graph built from `<rdf:RDF>`/Dublin Core child elements, not a text blob — that is the conventional, maximally interoperable form, and it is genuinely narrower than what `metadata()` above supports.
+
+This crate does not provide a typed API for building that markup, deliberately: it would mean adding namespace-aware child-element construction for a single element, a scope this crate has not taken on anywhere else.
+
+Raw DOM access is already an intentional, first-class part of this crate's design (`SvgNode::as_element()` exists for exactly this kind of gap), so reach for it here rather than treating text-only `metadata()` as the ceiling:
+
+```rust,no_run
+use svg_dom::SvgRoot;
+let svg = SvgRoot::attach("diagram")?;
+
+// An empty <metadata> element (set_text("") leaves it childless) placed at the call site, then built out by hand.
+let metadata = svg.metadata("")?;
+let document = metadata.as_element().owner_document().expect("metadata element has no owner document");
+let rdf = document
+    .create_element_ns(Some("http://www.w3.org/1999/02/22-rdf-syntax-ns#"), "rdf:RDF")
+    .expect("createElementNS failed");
+metadata.as_element().append_child(&rdf).expect("appendChild failed");
+Ok::<(), svg_dom::Error>(())
+```

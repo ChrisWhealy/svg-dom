@@ -41,7 +41,7 @@ The following SVG elements are supported:
 * `linearGradient` (with `stop`)
 * `marker`
 * `mask`
-* `metadata`
+* `metadata` (plain-text/JSON content — see [Core Operations](core_operations.md#metadata) for the escape hatch to structured foreign-namespace children)
 * `pattern`
 * `rect`
 * `path` (with a type-safe `PathDef` builder as an alternative to hand-written `d` strings)

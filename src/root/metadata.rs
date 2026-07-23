@@ -17,6 +17,27 @@ impl SvgRoot {
     /// as literal escaped text, not parsed into child nodes. This crate offers no API for building nested markup
     /// inside `<metadata>`; plain text (a description, a JSON blob, ...) is the supported use case.
     ///
+    /// SVG 2's own normative example for `<metadata>` is an actual RDF graph built from namespaced `<rdf:RDF>`/
+    /// Dublin Core child elements — narrower still, this method cannot author that conventional, maximally
+    /// interoperable form. If you need it, reach for the raw DOM via
+    /// [`SvgNode::as_element`](crate::SvgNode::as_element) — already a first-class, intentional escape hatch in this
+    /// crate, not a fallback of last resort:
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::SvgRoot;
+    ///
+    /// let svg = SvgRoot::attach("diagram")?;
+    ///
+    /// // An empty <metadata> (set_text("") leaves it childless) placed at the call site, then built out by hand.
+    /// let metadata = svg.metadata("")?;
+    /// let document = metadata.as_element().owner_document().expect("metadata element has no owner document");
+    /// let rdf = document
+    ///     .create_element_ns(Some("http://www.w3.org/1999/02/22-rdf-syntax-ns#"), "rdf:RDF")
+    ///     .expect("createElementNS failed");
+    /// metadata.as_element().append_child(&rdf).expect("appendChild failed");
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    ///
     /// # Security
     ///
     /// Writing `content` as a text node means it cannot execute script or affect rendering in this browser session —
