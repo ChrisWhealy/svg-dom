@@ -135,9 +135,17 @@ pub enum Error {
 
     /// A `<view>` `id` string was rejected before reaching the DOM.
     ///
-    /// Valid view ids must match the pattern `[A-Za-z_][A-Za-z0-9_-]*` common to all other id-cached elements.
-    /// Such ids are always safe to embed in a plain `#id` fragment reference (a `<view>` is never wrapped in a
-    /// `url(#id)` form the way a marker/filter/mask/etc. is).
+    /// This crate only accepts view ids matching `[A-Za-z_][A-Za-z0-9_-]*` — an ASCII letter or underscore followed by
+    /// zero or more ASCII letters, digits, underscores, or hyphens — the same conservative subset every other id-cached
+    /// element in this crate accepts. This is a restriction imposed by the crate, not by SVG/XML: the id grammar SVG
+    /// itself permits is considerably broader (for example, it allows a full stop and non-ASCII name characters).
+    ///
+    /// Rejecting an id here does not mean it would be invalid SVG, only that this crate declines to accept it, in
+    /// exchange for every accepted id being trivially, unambiguously safe to embed in a plain `#id` fragment reference
+    /// (a `<view>` is never wrapped in a `url(#id)` form the way a marker/filter/mask/etc. is).
+    ///
+    /// This validator does not check for uniqueness; SVG requires ids to be unique within a document, but enforcing
+    /// that is left to the caller.
     ///
     /// This error is returned when a non-conforming string is passed to [`SvgDefs::view`](crate::SvgDefs::view) or
     /// [`SvgDefs::build_view`](crate::SvgDefs::build_view).

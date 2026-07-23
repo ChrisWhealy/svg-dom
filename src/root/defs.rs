@@ -122,11 +122,13 @@ pub(crate) fn validate_symbol_id(id: &str) -> Result<(), Error> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Rejects view ids that would produce broken `#id` fragment references.
+/// Rejects view ids outside the crate-imposed subset that would produce broken `#id` fragment references.
 ///
-/// Applies the same allow-list as [`validate_marker_id`]: the id must match `[A-Za-z_][A-Za-z0-9_-]*`. Unlike most
-/// of the other id-validated elements in this crate, a `<view>` is never wrapped in a `url(#id)` form — it is only
-/// ever referenced as a plain `#id` fragment, the same way [`validate_symbol_id`] already is.
+/// Applies the same allow-list as [`validate_marker_id`]: the id must match `[A-Za-z_][A-Za-z0-9_-]*`. This is
+/// narrower than SVG/XML's own id grammar — it is a restriction this crate chooses, not a claim about what SVG
+/// itself permits. Unlike most of the other id-validated elements in this crate, a `<view>` is never wrapped in a
+/// `url(#id)` form — it is only ever referenced as a plain `#id` fragment, the same way [`validate_symbol_id`]
+/// already is.
 pub(crate) fn validate_view_id(id: &str) -> Result<(), Error> {
     if is_valid_svg_id(id) {
         Ok(())
