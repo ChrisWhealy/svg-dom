@@ -6,9 +6,9 @@ use web_sys::SvgElement;
 /// A `<view>` element that names a `viewBox`/`preserveAspectRatio` combination, activated via a `#viewId` URL
 /// fragment.
 ///
-/// Unlike a `<symbol>`, a `<view>` has no rendered graphical content of its own. However, SVG does permit descriptive
-/// child elements (`<title>`, `<desc>`, `<metadata>`), but does not currently offer a way to add them — it models only
-/// the viewport and fragment-navigation attributes below, since that covers `<view>`'s actual purpose.
+/// Unlike a `<symbol>`, a `<view>` has no rendered graphical content of its own. However, SVG permits descriptive
+/// elements, animation elements, `<script>` and `<style>` as children of `<view>`. SvgView intentionally exposes no
+/// child-construction API because these children are not needed for its normal viewport-navigation role.
 ///
 /// # Fragment navigation: three cases, only two of which apply to this crate
 ///

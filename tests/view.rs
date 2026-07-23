@@ -167,18 +167,46 @@ fn should_reject_set_attr_id() -> Result<(), String> {
 // Fragment-navigation behaviour
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-/// Waits for the next `"load"` event on `image`, matching the `Promise`/`JsFuture` pattern
-/// `tests/animation_loop.rs` uses for `requestAnimationFrame`.
-async fn wait_for_load(image: &web_sys::SvgImageElement) {
-    let promise = js_sys::Promise::new(&mut |resolve, _| {
-        let closure = Closure::once_into_js(move || {
+/// Registers a one-shot listener for the next `"load"` or `"error"` event on `image`, returning a future that
+/// resolves on `"load"` or rejects (with a message, rather than hanging forever) on `"error"`.
+///
+/// Must be called *before* the `href` change expected to trigger the event: image loading is queued as a browser
+/// task, so a listener registered only after that change risks losing the race if the load completes first.
+///
+/// Both listeners use `AddEventListenerOptions { once: true }` so the DOM detaches each one after it fires at most
+/// once. This matters because the test navigates the same element more than once: a listener left attached across
+/// loads would still be present — and re-invoked — when a later `"load"` fires, and `Closure::once_into_js`
+/// explicitly guards against a second invocation by throwing rather than running its already-freed Rust state.
+fn next_load_event(image: &web_sys::SvgImageElement) -> wasm_bindgen_futures::JsFuture {
+    let promise = js_sys::Promise::new(&mut |resolve, reject| {
+        let once = web_sys::AddEventListenerOptions::new();
+        once.set_once(true);
+
+        let on_load = Closure::once_into_js(move || {
             resolve.call0(&JsValue::NULL).unwrap();
         });
         image
-            .add_event_listener_with_callback("load", closure.as_ref().unchecked_ref())
+            .add_event_listener_with_callback_and_add_event_listener_options(
+                "load",
+                on_load.as_ref().unchecked_ref(),
+                &once,
+            )
+            .unwrap();
+
+        let on_error = Closure::once_into_js(move || {
+            reject
+                .call1(&JsValue::NULL, &JsValue::from_str("image failed to load"))
+                .unwrap();
+        });
+        image
+            .add_event_listener_with_callback_and_add_event_listener_options(
+                "error",
+                on_error.as_ref().unchecked_ref(),
+                &once,
+            )
             .unwrap();
     });
-    wasm_bindgen_futures::JsFuture::from(promise).await.unwrap();
+    wasm_bindgen_futures::JsFuture::from(promise)
 }
 
 /// Draws `image`'s current content to a fresh offscreen canvas and returns the RGBA pixel at `(x, y)`.
@@ -225,8 +253,10 @@ async fn should_switch_rendered_viewport_when_navigating_to_view_fragment() -> R
     let data_uri = format!("data:image/svg+xml;base64,{encoded}");
 
     let svg = make_svg("view-fragment-nav");
+    // Created with an empty `href` (no request, no load/error event) so the very first real load — like the second
+    // one below — has its listener registered before the `href` that triggers it is set.
     let img_node = svg
-        .image(&data_uri, Point::new(0.0, 0.0), Size::new(200.0, 200.0))
+        .image("", Point::new(0.0, 0.0), Size::new(200.0, 200.0))
         .map_err(|e| e.to_string())?;
     let img_element: web_sys::SvgImageElement = img_node
         .as_element()
@@ -234,7 +264,9 @@ async fn should_switch_rendered_viewport_when_navigating_to_view_fragment() -> R
         .ok_or("expected an SVGImageElement")?
         .clone();
 
-    wait_for_load(&img_element).await;
+    let load = next_load_event(&img_element);
+    img_node.set_href(&data_uri).map_err(|e| e.to_string())?;
+    load.await.map_err(|e| format!("image failed to load: {e:?}"))?;
 
     // Baseline: the whole 2x2 grid is visible, so opposite corners land in different quadrants.
     let before_top_left = sample_pixel(&img_element, 20.0, 20.0);
@@ -244,9 +276,11 @@ async fn should_switch_rendered_viewport_when_navigating_to_view_fragment() -> R
         "expected the baseline (unnavigated) render to show two different quadrants",
     )?;
 
-    // Navigate to the named view. Re-setting `href` on an already-loaded resource re-triggers loading.
+    // Navigate to the named view. Re-setting `href` on an already-loaded resource re-triggers loading; the listener
+    // is (re-)registered first, exactly as above.
+    let load = next_load_event(&img_element);
     img_node.set_href(&format!("{data_uri}#detail")).map_err(|e| e.to_string())?;
-    wait_for_load(&img_element).await;
+    load.await.map_err(|e| format!("image failed to load: {e:?}"))?;
 
     // The view's `viewBox` ("100 100 100 100") selects only the bottom-right quadrant, so both sample points now
     // land inside it and read the same colour — proof that the *rendered* viewport changed, not just an attribute.
