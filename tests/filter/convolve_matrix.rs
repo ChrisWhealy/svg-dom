@@ -100,6 +100,22 @@ fn should_serialize_mismatched_kernel_length_unvalidated() -> Result<(), String>
     check_eq(conv.as_element().get_attribute("kernelMatrix"), Some("1 2".into()))
 }
 
+/// A `divisor` of `0.0` is written verbatim, unvalidated: per the SVG spec, the renderer substitutes the sum of
+/// `kernel_matrix`'s own values instead (or `1.0`, if that sum is itself `0.0`), rather than dividing by zero — a
+/// defined fallback this crate passes through to the browser rather than rejecting or special-casing. See
+/// `convolve_matrix`'s own doc comment for the full explanation.
+#[wasm_bindgen_test]
+fn should_serialize_zero_divisor_unvalidated() -> Result<(), String> {
+    let svg = make_svg("filter-convolve-matrix-zero-divisor");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("fcmzd").map_err(|e| e.to_string())?;
+    let kernel = [0.0, -1.0, 0.0, -1.0, 5.0, -1.0, 0.0, -1.0, 0.0];
+    let conv = filter
+        .convolve_matrix(3, &kernel, 0.0, EdgeMode::Duplicate, false)
+        .map_err(|e| e.to_string())?;
+    check_eq(conv.as_element().get_attribute("divisor"), Some("0".into()))
+}
+
 /// The generic `SvgNode::set_attr` escape hatch on the returned primitive node covers `in`, `result`, and every
 /// other attribute not wrapped by a named parameter: `bias`, `targetX`, `targetY`, and `kernelUnitLength`.
 #[wasm_bindgen_test]
@@ -111,15 +127,19 @@ fn should_set_unwrapped_attrs_via_generic_escape_hatch() -> Result<(), String> {
     let conv = filter
         .convolve_matrix(3, &kernel, 1.0, EdgeMode::Duplicate, true)
         .map_err(|e| e.to_string())?;
+    conv.set_attr("in", "SourceGraphic").map_err(|e| e.to_string())?;
     conv.set_attr("result", "embossed").map_err(|e| e.to_string())?;
     conv.set_attr("bias", "0.5").map_err(|e| e.to_string())?;
     conv.set_attr("targetX", "1").map_err(|e| e.to_string())?;
     conv.set_attr("targetY", "1").map_err(|e| e.to_string())?;
+    conv.set_attr("kernelUnitLength", "1 1").map_err(|e| e.to_string())?;
     let el = conv.as_element();
+    check_eq(el.get_attribute("in"), Some("SourceGraphic".into()))?;
     check_eq(el.get_attribute("result"), Some("embossed".into()))?;
     check_eq(el.get_attribute("bias"), Some("0.5".into()))?;
     check_eq(el.get_attribute("targetX"), Some("1".into()))?;
-    check_eq(el.get_attribute("targetY"), Some("1".into()))
+    check_eq(el.get_attribute("targetY"), Some("1".into()))?;
+    check_eq(el.get_attribute("kernelUnitLength"), Some("1 1".into()))
 }
 
 /// Unlike a `kernel_matrix` length mismatch or a zero `divisor` (both spec-defined fallbacks, see
