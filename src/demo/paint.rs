@@ -1260,7 +1260,7 @@ pub(super) fn demo_lighting() -> Result<(), Error> {
             Ok(())
         })?;
 
-        // feSpecularLighting alone: the shiny (Phong) counterpart. Unlike feDiffuseLighting, its alpha is the
+        // feSpecularLighting alone: the shiny (Blinn–Phong) counterpart. Unlike feDiffuseLighting, its alpha is the
         // maximum of its own lit R/G/B, so it renders as a highlight-only glint against the dark canvas
         // background, transparent everywhere the highlight itself is zero.
         d.build_filter("specular-only", |f| {

@@ -5,9 +5,12 @@ use web_sys::SvgElement;
 impl SvgFilter {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Appends a `<feSpecularLighting>` primitive to this filter, treating `in`'s alpha channel as a bump map and
-    /// lighting the resulting surface with `light_source` using the Phong specular reflection model — a shiny
-    /// highlight, the counterpart to [`diffuse_lighting`](Self::diffuse_lighting)'s matte lighting, and the other
-    /// half of the classic bevel/emboss lighting recipe.
+    /// lighting the resulting surface with `light_source` using the Blinn–Phong specular reflection model (the SVG
+    /// spec computes the surface normal's alignment against a halfway vector `H = normalize(L + E)` between the
+    /// light and eye directions, the defining trait of Blinn–Phong rather than the plain Phong model, which instead
+    /// compares the eye direction against a reflection vector) — a shiny highlight, the counterpart to
+    /// [`diffuse_lighting`](Self::diffuse_lighting)'s matte lighting, and the other half of the classic bevel/emboss
+    /// lighting recipe.
     ///
     /// `surface_scale` is the same bump-map height multiplier [`diffuse_lighting`](Self::diffuse_lighting)'s own
     /// parameter of the same name is — see its doc comment for what larger/smaller values do.
