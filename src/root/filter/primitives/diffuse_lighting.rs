@@ -8,10 +8,15 @@ impl SvgFilter {
     /// lighting the resulting surface with `light_source` — a matte, non-shiny lighting model (Lambertian
     /// reflectance), the diffuse half of the classic bevel/emboss lighting recipe.
     ///
-    /// `surface_scale` multiplies the alpha-derived bump-map height before lighting is computed: `0.0` produces a
-    /// perfectly flat surface (uniformly lit by `lighting_color`, since there is no bump geometry left to shade);
-    /// larger values exaggerate the apparent relief, making edges in `in`'s alpha channel read as taller, more
-    /// steeply lit ridges.
+    /// `surface_scale` multiplies the alpha-derived bump-map height before lighting is computed: `0.0` removes all
+    /// alpha-derived relief, leaving a perfectly flat surface — but *not* necessarily one uniformly lit by
+    /// `lighting_color` outright. A flat surface still has a single, constant normal, so its lit result still
+    /// depends on `diffuse_constant` and on the light's own direction relative to that normal: uniform only for
+    /// [`LightSource::Distant`], whose direction is the same everywhere by definition, but still position-dependent
+    /// across the flat plane for [`LightSource::Point`]/[`LightSource::Spot`], whose direction (and, for `Spot`,
+    /// beam concentration) varies from point to point even without any bump-map relief left to shade. Larger
+    /// `surface_scale` values exaggerate the apparent relief instead, making edges in `in`'s alpha channel read as
+    /// taller, more steeply lit ridges.
     ///
     /// `diffuse_constant` scales the lit result's overall brightness — `1.0` is the SVG default. Per the SVG spec
     /// this should be non-negative; this crate does not enforce that before reaching the DOM, since no defined
