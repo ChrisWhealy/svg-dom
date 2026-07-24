@@ -15,7 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 
-- Reformat README files now that all features are implemented (``)
+- Reformat README files now that all features are implemented (`0306fbc`)
 
 ### Fixed
 
