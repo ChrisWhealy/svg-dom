@@ -18,7 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Doc only: feSpotLight's limitingConeAngle omission does not make it omnidirectional (`8d773c9`)
 - Doc only: feDiffuseLighting surface_scale: 0.0 does not guarantee uniform lighting_color (`21f9a65`)
 - Doc only: feSpecularLighting uses the Blinn–Phong, not plain Phong, specular model (`b200070`)
-- Doc only: an invalid lighting_color is written verbatim, not left unset (``)
+- Doc only: an invalid lighting_color is written verbatim, not left unset (`1f3ce01`)
+- Doc only: soften "deriving Copy costs nothing" claim for LightSource (``)
 
 # [Released]
 

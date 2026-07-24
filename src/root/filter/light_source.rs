@@ -8,9 +8,13 @@ use web_sys::SvgElement;
 /// elements (`<feDistantLight>`, `<fePointLight>`, `<feSpotLight>`) is to be appended, and also supplies that element's
 /// attributes.
 ///
-/// Every variant here holds only `f64`/`Option<f64>` fields, not `Vec`/`String`, so deriving `Copy` costs nothing and
-/// rules out an unnecessary move/borrow decision at every call site, the same/ judgement as has already been applied to
-/// small coordinate types such as [`Point`](crate::root::utils::Point).
+/// All variants contain only small, directly copied numeric data (`f64`/`Option<f64>` fields, no `Vec`/`String`)
+/// and allocate nothing, so `Copy` is appropriate here — the same judgement already applied to small coordinate
+/// types such as [`Point`](crate::root::utils::Point). This is not literally free (`Spot`, the largest variant,
+/// carries seven `f64`s plus an `Option<f64>`), but it is allocation-free and cheap relative to the DOM operations
+/// each call site actually performs, and it rules out an unnecessary move/borrow decision at every call site —
+/// including reusing the same light description across a `diffuse_lighting`/`specular_lighting` pair, as the demo
+/// does.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum LightSource {
     /// A `<feDistantLight>`: the light arrives as parallel rays from infinitely distant source, with no position of its
