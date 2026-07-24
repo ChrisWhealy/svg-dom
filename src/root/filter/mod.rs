@@ -129,8 +129,6 @@ mod region;
 /// The SVG filter specification defines seventeen effect primitives in total, each with its own attribute grammar;
 /// every one of them is now implemented above.
 ///
-/// See `docs/gaps.md` for this crate's remaining (non-filter) gaps.
-///
 /// The filter region ([`set_x`](Self::set_x), [`set_y`](Self::set_y), [`set_width`](Self::set_width),
 /// [`set_height`](Self::set_height)) and coordinate-space ([`set_filter_units`](Self::set_filter_units),
 /// [`set_primitive_units`](Self::set_primitive_units)) attributes each have a named setter.

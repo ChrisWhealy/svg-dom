@@ -7,8 +7,9 @@
 
 A lightweight Rust/WebAssembly library for creating and mutating live SVG content directly in the browser DOM.
 
-This crate is a work-in-progress and contains known functional [gaps](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/gaps.md) that will be filled in time.
-That said, all reasonable, conventional steps have been taken to provide a secure, stable and robust foundation upon which to develop future functionality.
+The crate's planned feature set is implemented.
+Deliberate exclusions are documented under [Implementation Non-goals](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/non-goals.md).
+All reasonable, conventional steps have been taken to provide a secure, stable and robust foundation upon which to develop future functionality.
 
 ***IMPORTANT***<br>This crate targets WebAssembly only.
 
@@ -31,8 +32,8 @@ That said, all reasonable, conventional steps have been taken to provide a secur
 The `svg-dom` crate acts as a thin wrapper for `web-sys` SVG DOM bindings that allows you to:
 
 - Attach to an existing `<svg>` element in your HTML page
-- Create new `<svg>` element programmatically
-- Add a basic set of SVG elements:
+- Create a new `<svg>` element programmatically
+- Create the supported SVG elements listed in the [element guide](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/svg_elements/README.md):
    - Helper functions exist for `<rect>`, `<circle>`, `<ellipse>`, `<line>`, `<polyline>`, `<polygon>`, `<path>`, `<text>`, `<g>`
    - `<defs>` (`SvgDefs`), `<marker>` (`SvgMarker`), `<clipPath>` (`SvgClipPath`), `<mask>` (`SvgMask`), `<pattern>` (`SvgPattern`), and `<symbol>` (`SvgSymbol`) are supported for defining reusable assets, with deferred-append helpers (`build_defs` / `build_marker` / `build_clip_path` / `build_mask` / `build_pattern` / `build_symbol`) that only commit the element to the DOM once construction succeeds; apply a clip path to any element with `set_clip_path_ref`; apply a mask with `set_mask_ref`; apply a tiled pattern fill/stroke with `set_fill_pattern_ref` / `set_stroke_pattern_ref`
    - `<use>` is supported via `SvgRoot::use_node` / `SvgBatch::use_node` — stamps a copy of any element referenced by `id` without duplicating DOM nodes; each copy is independently positionable and styleable
@@ -96,15 +97,16 @@ The coding used in the actual demo implementation is shown beneath each example.
 |---|---|
 | `SvgRoot` | Wraps the root `<svg>` element; entry point for all element creation
 | `SvgNode` | Cheap-to-clone handle to a live DOM element; attribute + event API
-| `SvgDefs` | `<defs>` container for reusable assets; factory for `SvgMarker`, `SvgClipPath`, `SvgMask`, `SvgPattern`, `SvgSymbol`, gradients, and shape elements
+| `SvgDefs` | `<defs>` container for reusable assets; factory for `SvgMarker`, `SvgClipPath`, `SvgMask`, `SvgPattern`, `SvgSymbol`, `SvgFilter`, gradients, and shape elements
 | `SvgMarker` | `<marker>` element for arrowheads and other path decorations; owned id cache + shape factories
 | `SvgClipPath` | `<clipPath>` element that restricts rendered region to an arbitrary shape; owned id cache + shape factories
 | `SvgMask` | `<mask>` element that reveals/hides rendered region by luminance or alpha; owned id cache + shape factories
 | `SvgPattern` | `<pattern>` element that tiles its content as a fill or stroke paint server; owned id cache + shape factories
-| `PathDef` | Typesafe `<path>` `d`-attribute segment; builds a path from `&[PathDef]` via `path_from_defs` that avoids the possibility of creating a malformed `d` string
+| `SvgFilter` | `<filter>` element applying raster effects via a chain of filter-primitive builder methods (`feGaussianBlur`, `feColorMatrix`, `feDiffuseLighting`, ...); owned id cache
+| `PathDef` | Type-safe `<path>` `d`-attribute segment; builds a path from `&[PathDef]` via `path_from_defs` that avoids the possibility of creating a malformed `d` string
 | `AnimationLoop` | Drives a `requestAnimationFrame` loop; stops on `Drop`
 | `SvgAttrs` / `AttrWriter` | Reusable scratch buffer for allocation-light attribute writing
-| `Error` | All failure modes: element not found, DOM error, cast failure, invalid id (marker / gradient / clip-path / mask / symbol / pattern), or reserved attribute
+| `Error` | Crate-wide DOM, casting, identifier, path, viewBox, reserved-attribute, accessibility, and feature-specific validation failures — see the type's own rustdoc for the full, current list of variants
 
 ## Minimal Demo
 

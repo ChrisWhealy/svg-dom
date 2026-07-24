@@ -6,13 +6,14 @@ This directory describes what `svg-dom` currently supports:
 * their capabilities
 * element-focused guides for the ones with enough surface area to warrant one
 
-The basic shape factories (`circle`, `ellipse`, `g`, `line`, `polygon`, `polyline`, `rect`) are listed below but do not
-yet have their own thematic page here — their construction is largely self-explanatory (a factory method plus the
+The basic element factories (`circle`, `ellipse`, `g`, `line`, `polygon`, `polyline`, `rect`) are listed below but do
+not yet have their own thematic page here — their construction is largely self-explanatory (a factory method plus the
 shared presentation-attribute setters on `SvgNode`), so consult their own rustdoc for the full signature of each.
+Note that `<g>` is a structural/container element (SVG 2 classifies it as such), not a shape, despite sharing this
+factory grouping with the others for construction purposes.
 
-For known gaps, see [Gap Analysis](../gaps.md).
-
-All SVG elements are supported ***except*** `<script>` and the SMIL-based animation elements (see [Implementation Non-goals](../non-goals.md) for details):
+`svg-dom` provides typed support for the SVG elements listed below.
+`<script>` and the SMIL-based animation elements are intentional non-goals (see [Implementation Non-goals](../non-goals.md) for details):
 
 - `<a>` (anchor)
 - `<circle>`
@@ -21,28 +22,28 @@ All SVG elements are supported ***except*** `<script>` and the SMIL-based animat
 - `<desc>`
 - `<ellipse>`
 - `<filter>` and filter effects
-  - `feBlend`
-  - `feColorMatrix`
-  - `feComponentTransfer` with `feFuncR`, `feFuncG`, `feFuncB`, `feFuncA`
-  - `feComposite`
-  - `feConvolveMatrix`
-  - `feDiffuseLighting`
-  - `feDisplacementMap`
-  - `feDropShadow`
-  - `feFlood`
-  - `feGaussianBlur`
-  - `feImage`
-  - `feMerge`, `feMergeNode`
-  - `feMorphology`
-  - `feOffset`
-  - `feSpecularLighting`
-  - `feTile`
-  - `feTurbulence`
+  - `<feBlend>`
+  - `<feColorMatrix>`
+  - `<feComponentTransfer>` with `<feFuncR>`, `<feFuncG>`, `<feFuncB>`, `<feFuncA>`
+  - `<feComposite>`
+  - `<feConvolveMatrix>`
+  - `<feDiffuseLighting>` with `<feDistantLight>`, `<fePointLight>`, or `<feSpotLight>`
+  - `<feDisplacementMap>`
+  - `<feDropShadow>`
+  - `<feFlood>`
+  - `<feGaussianBlur>`
+  - `<feImage>`
+  - `<feMerge>`, `<feMergeNode>`
+  - `<feMorphology>`
+  - `<feOffset>`
+  - `<feSpecularLighting>` with `<feDistantLight>`, `<fePointLight>`, or `<feSpotLight>`
+  - `<feTile>`
+  - `<feTurbulence>`
 - `<foreignObject>` — no content-setting method, by design — see [Structural Elements](structural_elements.md#foreignobject) for the raw-DOM escape hatch
-- `<group>`
+- `<g>`
 - `<image>`
 - `<line>`
-- `<linearGradient>` - with `stop`
+- `<linearGradient>` — with `<stop>`
 - `<marker>`
 - `<mask>`
 - `<metadata>` — plain-text/JSON content — see [Core Operations](core_operations.md#metadata) for the escape hatch to structured foreign-namespace children
@@ -50,12 +51,13 @@ All SVG elements are supported ***except*** `<script>` and the SMIL-based animat
 - `<pattern>`
 - `<polygon>`
 - `<polyline>`
-- `<radialGradient>` - with `stop`
+- `<radialGradient>` — with `<stop>`
 - `<rect>`
 - `<style>`
+- `<svg>` — the root element itself (`SvgRoot`), either attached to an existing element or created programmatically
 - `<switch>`
 - `<symbol>`
-- `<text>` - with `tspan` and `textPath`
+- `<text>` — with `<tspan>` and `<textPath>`
 - `<title>`
 - `<tspan>`
 - `<use>`

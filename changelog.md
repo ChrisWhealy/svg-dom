@@ -16,7 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 
 - Reformat README files now that all features are implemented (`0306fbc`)
-- Reformat changelog (``)
+- Reformat changelog (`23b35f2`)
 
 ### Fixed
 
@@ -28,6 +28,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Doc only: soften "deriving Copy costs nothing" claim for LightSource (`9d50b64`)
 - Doc only: note specular_constant's non-negative restriction, and fix copy-editing typos (`3cc86a6`)
 - CI: pin `wasm-pack-action` to a specific version instead of resolving "latest" on every run (`da33f1b`)
+- Doc only: README's Error description no longer claims an exhaustive inline enumeration (``)
+- Doc only: Correct README inconsistencies (``)
 
 # [Released]
 
