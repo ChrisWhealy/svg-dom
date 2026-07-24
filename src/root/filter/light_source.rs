@@ -27,7 +27,7 @@ pub enum LightSource {
     /// illumination model follows the inverse square law, so points closer to `(x, y, z)` are lit more intensely than
     /// distant ones.
     Point {
-        /// The light position, in the coordinate system established by 
+        /// The light position, in the coordinate system established by
         /// [`primitiveUnits`](super::SvgFilter::set_primitive_units).  This is the same `primitiveUnits`-dependent
         /// interpretation as used by [`gaussian_blur`](super::SvgFilter::gaussian_blur)'s `std_deviation`.
         x: f64,
