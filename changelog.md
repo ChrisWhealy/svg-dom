@@ -14,7 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 
-- Reject `order`/`order_x`/`order_y` of `0` in `feConvolveMatrix` instead of silently accepting it (``)
+- Exclude convolve matrix order value of zero (`d5203df`)
 
 # [Released]
 
