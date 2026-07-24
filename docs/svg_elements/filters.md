@@ -370,6 +370,12 @@ A zero order is simply outside the attribute's permitted range.
 
 `convolve_matrix` and `convolve_matrix_xy` therefore both check for a zero component and return `Error::InvalidConvolveMatrixOrder` before creating any element, rather than serializing a value the specification never assigns a meaning to.
 
+***IMPORTANT***
+
+Prefer small kernels, normally `3`×`3` or `5`×`5`, for `order`/`order_x`/`order_y`.
+Convolution cost rises with the number of kernel entries (the square of `order` for a square kernel), and the SVG specification itself recommends small values, warning that larger ones may impose very high CPU overhead without a proportionate visual benefit.
+A large `order` is not rejected — it is legal SVG and occasionally necessary — but every example above deliberately uses a `3`×`3` kernel, the size the specification itself suggests.
+
 See [`../gaps.md`](../gaps.md) for the primitives still to be added.
 
 ## Region and Coordinate-Space Attributes

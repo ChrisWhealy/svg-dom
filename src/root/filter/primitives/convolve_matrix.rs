@@ -54,6 +54,15 @@ impl SvgFilter {
     /// `order`×`order` neighbourhood, the products are summed, divided by `divisor`, and `bias` (`0.0` unless set
     /// via the generic escape hatch — see below) is added: `(Σ kernel × source) / divisor + bias`.
     ///
+    /// Prefer small kernels, normally `3` or `5`: this per-pixel sum is taken over `order * order` entries, so
+    /// rendering cost rises with the *square* of `order`, and the SVG specification itself recommends small values
+    /// (`3` given as its own example), warning that larger ones "may result in very high CPU overhead" without a
+    /// proportionate visual benefit. This is a rendering-cost warning about the browser's own evaluation of the
+    /// resulting `<feConvolveMatrix>`, not a cost inside this crate — serializing `kernel_matrix` here is linear in
+    /// its length regardless of `order`. A large `order` is not rejected; it is legal SVG and occasionally
+    /// necessary, just markedly more expensive to render than the `3`×`3`/`5`×`5` kernels used throughout this
+    /// primitive's own examples.
+    ///
     /// `divisor` scales the summed products down to a usable range — for a kernel whose values already sum to `1.0`
     /// (the common case for a blur or sharpen kernel that should preserve overall brightness), `1.0` is the natural
     /// choice. A kernel whose values sum to something else (many edge-detect kernels sum to `0`) still needs an
@@ -172,8 +181,9 @@ impl SvgFilter {
     /// isotropic effect a square kernel of the same total width produces along both axes at once.
     ///
     /// See [`convolve_matrix`](Self::convolve_matrix) for `divisor`, `edge_mode`, `preserve_alpha`, the `in`/`result`/
-    /// `bias`/`targetX`/`targetY`/`kernelUnitLength` escape hatch, the length-mismatch pass-through caveat, and the
-    /// `bias` warning, all of which apply identically here.
+    /// `bias`/`targetX`/`targetY`/`kernelUnitLength` escape hatch, the length-mismatch pass-through caveat, the
+    /// `bias` warning, and the small-kernel performance recommendation, all of which apply identically here — the
+    /// rendering cost rises with `order_x * order_y` just as it does with `order * order` for a square kernel.
     ///
     /// # Errors
     ///
