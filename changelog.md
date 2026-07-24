@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 
-- Implement the filter effect `feConvolveMatrix` (``)
+- Implement the filter effect `feConvolveMatrix` (`4aca9a2`)
 
 # [Released]
 
