@@ -84,8 +84,14 @@ impl SvgFilter {
     ///
     /// If this is the filter's first primitive, its implicit input is `SourceGraphic`. Use the returned [`SvgNode`]'s
     /// [`set_attr`](crate::SvgNode::set_attr) to set `in` or `result` (neither has a dedicated setter), and likewise
-    /// for `bias`, `targetX`, `targetY`, or `kernelUnitLength` — every one of which keeps its own SVG default unless
-    /// set explicitly (see the warning below for `bias`).
+    /// for `bias`, `targetX`, or `targetY` — every one of which keeps its own SVG default unless set explicitly (see
+    /// the warning below for `bias`).
+    ///
+    /// `kernelUnitLength` is also reachable the same way, but is a deprecated legacy attribute for requesting
+    /// explicit kernel sampling intervals: the current Filter Effects specification marks it deprecated and slated
+    /// for removal, since it does not reliably achieve the device-independent rendering it was meant to provide. It
+    /// remains available through `set_attr` since a deprecated attribute is not a removed one, but should not be
+    /// relied upon for platform-independent rendering.
     ///
     /// See [`convolve_matrix_xy`](Self::convolve_matrix_xy) for an `order_x`×`order_y` rectangular kernel — the SVG
     /// `order` attribute accepts either one or two numbers, and this method covers only the one-number,
@@ -181,9 +187,13 @@ impl SvgFilter {
     /// isotropic effect a square kernel of the same total width produces along both axes at once.
     ///
     /// See [`convolve_matrix`](Self::convolve_matrix) for `divisor`, `edge_mode`, `preserve_alpha`, the `in`/`result`/
-    /// `bias`/`targetX`/`targetY`/`kernelUnitLength` escape hatch, the length-mismatch pass-through caveat, the
-    /// `bias` warning, and the small-kernel performance recommendation, all of which apply identically here — the
-    /// rendering cost rises with `order_x * order_y` just as it does with `order * order` for a square kernel.
+    /// `bias`/`targetX`/`targetY` escape hatch, the length-mismatch pass-through caveat, the `bias` warning, and the
+    /// small-kernel performance recommendation, all of which apply identically here — the rendering cost rises with
+    /// `order_x * order_y` just as it does with `order * order` for a square kernel.
+    ///
+    /// `kernelUnitLength` is likewise reachable via the same escape hatch, but see
+    /// [`convolve_matrix`](Self::convolve_matrix)'s own doc comment for why it is a deprecated attribute this crate
+    /// does not recommend relying on.
     ///
     /// # Errors
     ///

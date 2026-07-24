@@ -217,9 +217,10 @@ Following the same "cover what's common, defer what's rare" judgement already us
 
 * `bias` for a kernel whose output can go negative
 * `targetX`/`targetY` for an asymmetric kernel whose "centre" isn't the geometric middle
-* `kernelUnitLength` for a device-independent kernel spacing
+* `kernelUnitLength`, a deprecated legacy attribute for requesting explicit kernel sampling intervals — the current Filter Effects specification marks it deprecated and slated for removal, since it does not reliably achieve the device-independent rendering it was meant to provide
 
-so promoting all four to positional parameters would bloat the common call for a benefit needed only by a few callers.
+so promoting all four to positional parameters would bloat the common call for a benefit needed only by a few callers — and, for `kernelUnitLength` specifically, one the specification itself now discourages relying on.
+`kernelUnitLength` remains reachable through `set_attr` regardless, since a deprecated attribute is not the same as a removed one, and this crate's escape hatch does not gatekeep by spec status.
 
 `order`, `order_x` and `order_y` follow the fourth occurrence of the `fmt::Arguments`-core split already used by `gaussian_blur`/`gaussian_blur_xy` (`stdDeviation`), `turbulence`/`turbulence_xy` (`baseFrequency`), and `morphology`/`morphology_xy` (`radius`): that is, private `convolve_matrix_args` do the actual element creation and attribute writes, with `convolve_matrix` calling it via `format_args!("{order}")` and `convolve_matrix_xy` via `format_args!("{order_x} {order_y}")`.
 
