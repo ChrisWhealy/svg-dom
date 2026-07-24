@@ -16,7 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Exclude convolve matrix order value of zero (`d5203df`)
 - Doc only: warn that cost of large feConvolveMatrix rises with the square of the order (`0c63761`)
-- Doc only: kernelUnitLength is deprecated and unreliable for platform-independent rendering (``)
+- Doc only: kernelUnitLength is deprecated and unreliable for platform-independent rendering (`62bebae`)
 
 # [Released]
 
