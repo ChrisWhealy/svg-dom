@@ -144,8 +144,9 @@ fn should_append_spot_light_child_with_cone_angle() -> Result<(), String> {
     check_eq(light.get_attribute("limitingConeAngle"), Some("5.5".into()))
 }
 
-/// `LightSource::Spot` with `limiting_cone_angle: None` omits `limitingConeAngle` entirely — the SVG default
-/// (no limiting cone at all), distinct from writing an explicit `0`.
+/// `LightSource::Spot` with `limiting_cone_angle: None` omits `limitingConeAngle` entirely — the SVG default,
+/// meaning no *additional* hard-edged cutoff cone is applied (the spotlight remains directional via its own
+/// `specular_exponent` falloff), distinct from writing an explicit `0`.
 #[wasm_bindgen_test]
 fn should_omit_limiting_cone_angle_when_none() -> Result<(), String> {
     let svg = make_svg("filter-diffuse-lighting-spot-no-cone");

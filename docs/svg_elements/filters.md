@@ -416,12 +416,15 @@ Using the wrong operator for either — `merge` for `diffuse_lighting`, or a mul
 Both are called `specularExponent` in SVG and both default to `1.0`, but `specular_lighting`'s controls the surface's Phong shininess (how sharp the highlight looks), while `LightSource::Spot`'s controls how tightly the spotlight's own beam concentrates.
 Setting one has no effect on the other; an SVG example using `specularExponent` on both `<feSpecularLighting>` and `<feSpotLight>` is configuring two unrelated things that merely share a name.
 
-***⚠️ `LightSource::Spot`'s `limiting_cone_angle: None` is not the same as `Some(0.0)`***
+***⚠️ `LightSource::Spot`'s `limiting_cone_angle: None` does not make the spotlight omnidirectional***
 
-`None` (mirroring the SVG default when `limitingConeAngle` is omitted entirely) applies no limiting cone at all — light projects in every direction from the spotlight's position.
-`Some(0.0)` is an explicit cone of zero width, i.e. no light reaches the surface.
+`None` (mirroring the SVG default when `limitingConeAngle` is omitted entirely) skips only an *additional* hard-edged cutoff cone.
+The spotlight is still directional even then: every sample is lit according to `pow(-L·S, specular_exponent)` — `L` the unit vector from the surface to the light, `S` the unit vector from the light towards its aim point — which already falls off away from the aim axis and produces no light at all on the rear-facing side.
+`limiting_cone_angle` only clips that existing beam more sharply than the falloff alone would.
 
-Use `None` for an unconstrained spotlight, and `Some(angle)` to narrow its beam.
+`Some(0.0)` is a cone of zero width — in principle only a sample exactly on the aim axis survives, which reads as unlit at any rasterised resolution, though "zero width" rather than "no light at all in any absolute sense" is the precise definition.
+
+Use `None` when the natural `specular_exponent` falloff is enough on its own, `Some(angle)` to additionally hard-clip the beam narrower than that.
 
 ***IMPORTANT***
 

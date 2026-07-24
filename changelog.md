@@ -14,7 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 
-- Doc only: fePointLight has no inverse-square distance attenuation (``)
+- Doc only: fePointLight has no inverse-square distance attenuation (`fcf64ea`)
+- Doc only: feSpotLight's limitingConeAngle omission does not make it omnidirectional (``)
 
 # [Released]
 

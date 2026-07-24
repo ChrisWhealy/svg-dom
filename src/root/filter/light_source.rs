@@ -66,13 +66,22 @@ pub enum LightSource {
         /// Do not confuse the two when translating an SVG example that uses `specularExponent` on both
         /// `<feSpecularLighting>` and `<feSpotLight>`.
         specular_exponent: f64,
-        /// The half-angle, in degrees, of the cone beyond which no light is projected — `None` (the SVG default when
-        /// the attribute is omitted entirely) applies *no* limiting cone at all, projecting light in every direction
-        /// from the spotlight's position. This is not the same as `Some(0.0)`: an explicit `0.0` is a cone with zero
-        /// width, i.e. no light reaches the surface at all, an easy mistake if `None` is confused with "the smallest
-        /// angle".
+        /// The half-angle, in degrees, of an *additional* hard-edged cutoff cone around the spotlight's own aim axis —
+        /// `None` (the SVG default when the attribute is omitted entirely) applies no such cutoff, but the spotlight
+        /// is still directional even then: every sample is still lit according to `pow(-L·S, specular_exponent)`
+        /// (where `L` is the unit vector from the surface to `(x, y, z)`, and `S` the unit vector from `(x, y, z)`
+        /// towards `(points_at_x, points_at_y, points_at_z)`), which already falls off away from the aim axis and
+        /// produces no light at all on the rear-facing side where `L·S` is positive.
         ///
-        /// Use `None` for an unconstrained spotlight and `Some(angle)` to narrow its beam.
+        /// `limiting_cone_angle` only adds a sharp additional edge on top of that existing falloff; omitting it does
+        /// not make the light omnidirectional.
+        ///
+        /// `Some(0.0)` is a cone of zero width: in principle only a sample falling exactly on the aim axis survives the
+        /// cutoff, which in practice reads as unlit at any rasterised resolution, though "exactly zero width" is the
+        /// precise definition rather than "no light at all" in some absolute sense.
+        ///
+        /// Use `None` when only the natural `specular_exponent` falloff is wanted, `Some(angle)` to additionally
+        /// hard-clip the beam to a narrower cone than that falloff alone would produce.
         limiting_cone_angle: Option<f64>,
     },
 }

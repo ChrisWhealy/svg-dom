@@ -285,10 +285,10 @@ On the other hand, `LightSource`'s largest variant (`Spot`) holds nothing more t
 Withholding `Copy` here would only make the enum harder to use (an explicit `.clone()` at every call site) for no corresponding safety benefit, so it derives `Copy` the same way `Point` does.
 
 `Spot`'s `limiting_cone_angle` field is `Option<f64>` which otherwise always writes an explicit value for every attribute (even ones with a defined SVG default (such as `divisor` or `bias`) are still written verbatim rather than left unset.
-The exception is deliberate: as per the SVG spec, *omitting* `limitingConeAngle` entirely means no limiting cone is applied at all (the spotlight shines in every direction), which is not the same as any finite angle you could write instead.
-Even a very large angle is not the same as "no cone", since a cone always excludes at least the light's own rear-facing hemisphere.
+The exception is deliberate: as per the SVG spec, `limitingConeAngle` only adds an *additional* hard-edged cutoff on top of the spotlight's own existing `pow(-L·S, specular_exponent)` directional falloff (which already produces no light on the rear-facing side of the aim axis regardless of this attribute), so *omitting* it entirely does not make the spotlight omnidirectional — it only means that extra hard cutoff is not applied, not that directionality itself is absent.
+Even a very large explicit angle is still not quite the same as omitting the attribute, since a hard-edged cone always draws some cutoff boundary that the underlying falloff alone does not.
 
-There is no numeric value that reproduces "no cone", so `None` is the only way to express it, and `Option<f64>` is the natural (and in Rust, unavoidable) way to let a caller choose between that and `Some(angle)`.
+There is no finite numeric value that reproduces "no additional cutoff at all", so `None` is the only way to express it, and `Option<f64>` is the natural (and in Rust, unavoidable) way to let a caller choose between that and `Some(angle)`.
 
 This is not a precedent for reaching for `Option<T>` elsewhere in the crate; it is specific to this one attribute having a default that no numeric type can represent.
 
