@@ -54,6 +54,13 @@ jobs:
 
       - name: Install wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          # Pinned rather than left at the action's default "latest": with no version pinned, every run does an
+          # extra "search latest release" round-trip against the GitHub API/CDN before downloading it, which is
+          # both non-reproducible (a new wasm-pack release can silently change CI behaviour) and one more place a
+          # transient failure (e.g. a release-download 504) can break an otherwise-unrelated change. Bump this
+          # deliberately when a newer wasm-pack is actually needed.
+          version: "v0.15.0"
 
       - name: wasm-pack build (the published web artifact)
         # `--features` is passed after `--` so it reaches cargo directly. Older wasm-pack versions
@@ -86,6 +93,13 @@ jobs:
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Install wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          # Pinned rather than left at the action's default "latest": with no version pinned, every run does an
+          # extra "search latest release" round-trip against the GitHub API/CDN before downloading it, which is
+          # both non-reproducible (a new wasm-pack release can silently change CI behaviour) and one more place a
+          # transient failure (e.g. a release-download 504) can break an otherwise-unrelated change. Bump this
+          # deliberately when a newer wasm-pack is actually needed.
+          version: "v0.15.0"
       - name: Run the browser integration tests
         run: wasm-pack test --headless --${{ matrix.browser }}
 
@@ -104,6 +118,13 @@ jobs:
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Install wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          # Pinned rather than left at the action's default "latest": with no version pinned, every run does an
+          # extra "search latest release" round-trip against the GitHub API/CDN before downloading it, which is
+          # both non-reproducible (a new wasm-pack release can silently change CI behaviour) and one more place a
+          # transient failure (e.g. a release-download 504) can break an otherwise-unrelated change. Bump this
+          # deliberately when a newer wasm-pack is actually needed.
+          version: "v0.15.0"
 
       - name: Chrome version (diagnostic — the runner image ships one, nothing to install)
         run: google-chrome --version || google-chrome-stable --version || chromium-browser --version

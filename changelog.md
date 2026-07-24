@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Doc only: an invalid lighting_color is written verbatim, not left unset (`1f3ce01`)
 - Doc only: soften "deriving Copy costs nothing" claim for LightSource (`9d50b64`)
 - Doc only: note specular_constant's non-negative restriction, and fix copy-editing typos (`3cc86a6`)
+- CI: pin wasm-pack-action to a specific version instead of resolving "latest" on every run (``)
 
 # [Released]
 
