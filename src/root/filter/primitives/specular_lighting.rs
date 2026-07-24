@@ -30,9 +30,9 @@ impl SvgFilter {
     /// both `<feSpecularLighting>` and `<feSpotLight>` is configuring two unrelated things that merely look alike.
     ///
     /// `lighting_color` sets the colour of the light itself (the SVG `lighting-color` property/presentation
-    /// attribute) — `"white"` is the SVG default, and every example below uses it. `lighting_color` is written
-    /// verbatim; passing an invalid CSS colour leaves the property unset rather than causing an error, the same as
-    /// every other colour-valued attribute in this crate.
+    /// attribute) — `"white"` is the SVG default, and every example below uses it. The value is written verbatim: an
+    /// invalid CSS colour does not cause a crate error, but the browser will not use it as a valid `lighting-color`
+    /// value.
     ///
     /// `light_source` selects and configures the filter's one required light-source child — see [`LightSource`]
     /// for the three available kinds and what each looks like in practice.
