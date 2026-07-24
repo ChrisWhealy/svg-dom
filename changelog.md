@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 
 - Implement the filter effects feDiffuseLighting and feSpecularLighting (`d070435`)
+- Extend demo comparing LightSource::Distant/Point/Spot, with and without limitingConeAngle (``)
 
 ### Fixed
 
@@ -20,7 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Doc only: feSpecularLighting uses the Blinn–Phong, not plain Phong, specular model (`b200070`)
 - Doc only: an invalid lighting_color is written verbatim, not left unset (`1f3ce01`)
 - Doc only: soften "deriving Copy costs nothing" claim for LightSource (`9d50b64`)
-- Doc only: note specular_constant's non-negative restriction, and fix copy-editing typos (``)
+- Doc only: note specular_constant's non-negative restriction, and fix copy-editing typos (`3cc86a6`)
 
 # [Released]
 

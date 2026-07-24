@@ -87,6 +87,8 @@
                 <button type="button" class="menu-item" data-target="panel-convolve-matrix">feConvolveMatrix</button>
                 <button type="button" class="menu-item" data-target="panel-lighting">feDiffuseLighting /
                     feSpecularLighting</button>
+                <button type="button" class="menu-item" data-target="panel-light-sources">LightSource
+                    comparison</button>
             </details>
 
             <details class="menu-group">
@@ -897,6 +899,39 @@
                         <code>SourceGraphic</code> would hide the original entirely, which is why the combined panel
                         uses <code>composite(Arithmetic)</code> with different coefficients for each — a multiply
                         for the opaque diffuse layer, a plain sum for the non-opaque specular highlight.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- LightSource comparison -->
+            <section class="section" id="panel-light-sources">
+                <h2><code>LightSource</code> — Distant vs Point vs Spot, with/without <code>limitingConeAngle</code>
+                </h2>
+                <figure>
+                    <div class="canvas" id="demo-light-sources"></div>
+                    <figcaption>
+                        Every panel here lights a plain, flat rect with <code>feSpecularLighting</code> alone — a
+                        flat surface has one constant normal, so any position-dependence in the highlight comes
+                        entirely from the light source itself, not from bump-map relief.
+                        <ul>
+                            <li><strong>Distant (uniform)</strong> — direction is identical everywhere per the SVG
+                                spec, so the highlight is a uniform sheen across the whole flat surface, no hotspot
+                            </li>
+                            <li><strong>Point (hotspot)</strong> — direction varies per surface sample, producing a
+                                hotspot nearest the light's projected position; per <code>LightSource::Point</code>'s
+                                own doc comment, there is no distance attenuation on the light's colour itself, only
+                                its direction changes across the surface</li>
+                            <li><strong>Spot (no cone)</strong> — still directional (a
+                                <code>pow(-L&middot;S, specular_exponent)</code> falloff away from the aim axis), but
+                                with <code>limiting_cone_angle: None</code> no *additional* hard-edged cutoff is
+                                applied — compare its softer edge against the next panel's
+                            </li>
+                            <li><strong>Spot (limitingConeAngle)</strong> — the identical beam as the previous panel,
+                                now with <code>limiting_cone_angle: Some(20.0)</code> additionally hard-clipping it;
+                                the sharper circular edge here versus the previous panel's falloff-only edge is
+                                exactly the distinction <code>LightSource::Spot</code>'s own doc comment describes
+                            </li>
+                        </ul>
                     </figcaption>
                 </figure>
             </section>
