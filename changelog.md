@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 
 - Implement the filter effects feDiffuseLighting and feSpecularLighting (`d070435`)
-- Extend demo comparing LightSource::Distant/Point/Spot, with and without limitingConeAngle (``)
+- Extend demo comparing LightSource::Distant/Point/Spot, with and without limitingConeAngle (`b9089bd`)
 
 ### Fixed
 
