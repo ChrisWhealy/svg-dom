@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Unreleased]
 
+# [Released]
+
 ## [0.1.73] - 2026-07-24
 
 ### Added
@@ -18,8 +20,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Doc only: warn that cost of large feConvolveMatrix rises with the square of the order (`0c63761`)
 - Doc only: kernelUnitLength is deprecated and unreliable for platform-independent rendering (`62bebae`)
 - Fix escape-hatch test comment and add a zero-divisor serialization test for feConvolveMatrix (`10aa53e`)
-
-# [Released]
 
 ## [0.1.72] - 2026-07-23
 
