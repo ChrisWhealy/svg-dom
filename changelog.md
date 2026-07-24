@@ -19,7 +19,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Doc only: feDiffuseLighting surface_scale: 0.0 does not guarantee uniform lighting_color (`21f9a65`)
 - Doc only: feSpecularLighting uses the Blinn–Phong, not plain Phong, specular model (`b200070`)
 - Doc only: an invalid lighting_color is written verbatim, not left unset (`1f3ce01`)
-- Doc only: soften "deriving Copy costs nothing" claim for LightSource (``)
+- Doc only: soften "deriving Copy costs nothing" claim for LightSource (`9d50b64`)
+- Doc only: note specular_constant's non-negative restriction, and fix copy-editing typos (``)
 
 # [Released]
 

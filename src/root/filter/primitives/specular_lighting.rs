@@ -15,7 +15,10 @@ impl SvgFilter {
     /// `surface_scale` is the same bump-map height multiplier [`diffuse_lighting`](Self::diffuse_lighting)'s own
     /// parameter of the same name is — see its doc comment for what larger/smaller values do.
     ///
-    /// `specular_constant` scales the highlight's overall brightness — `1.0` is the SVG default.
+    /// `specular_constant` scales the highlight's overall brightness — `1.0` is the SVG default. As per the SVG spec,
+    /// this should be non-negative, the same restriction [`diffuse_lighting`](Self::diffuse_lighting)'s own
+    /// `diffuse_constant` has; this crate does not enforce that before reaching the DOM either, since no defined
+    /// fallback or error classification is given for a negative value.
     ///
     /// `specular_exponent` is the Phong shininess exponent: larger values narrow and sharpen the highlight
     /// (a harder, more mirror-like surface), smaller values spread it into a softer, broader sheen. SVG 1.1 gave

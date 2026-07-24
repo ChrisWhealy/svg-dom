@@ -4,8 +4,8 @@ use web_sys::SvgElement;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// The single light source child required by [`SvgFilter::diffuse_lighting`](super::SvgFilter::diffuse_lighting) and
-/// [`specular_lighting`](super::SvgFilter::specular_lighting). It firstly selects which of the three SVG light-source
-/// elements (`<feDistantLight>`, `<fePointLight>`, `<feSpotLight>`) is to be appended, and also supplies that element's
+/// [`specular_lighting`](super::SvgFilter::specular_lighting). It selects which of the three SVG light-source elements
+/// (`<feDistantLight>`, `<fePointLight>`, `<feSpotLight>`) is to be appended, and also supplies that element's
 /// attributes.
 ///
 /// All variants contain only small, directly copied numeric data (`f64`/`Option<f64>` fields, no `Vec`/`String`)
@@ -17,8 +17,8 @@ use web_sys::SvgElement;
 /// does.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum LightSource {
-    /// A `<feDistantLight>`: the light arrives as parallel rays from infinitely distant source, with no position of its
-    /// own.  This the standard choice for an evenly lit surface, as if lit by sunlight.
+    /// A `<feDistantLight>`: the light arrives as parallel rays from an infinitely distant source, with no position of
+    /// its own. This is the standard choice for an evenly lit surface, as if lit by sunlight.
     Distant {
         /// Direction angle on the XY plane, in degrees clockwise from the positive x-axis.
         azimuth: f64,

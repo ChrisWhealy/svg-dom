@@ -266,7 +266,7 @@ That is exactly the other branch of the "validate vs. document" distinction this
 ## `diffuse_lighting`/`specular_lighting` share one `LightSource` enum, the crate's first `Copy` data-carrying enum and first use of `Option`
 
 `<feDiffuseLighting>` and `<feSpecularLighting>` are the two lighting filter primitives.
-Both treat their input's alpha channel as a bump map and require exactly one light-source child element: either `<feDistantLight>`, `<fePointLight>`, or `<feSpotLight>` to describes where the light comes from.
+Both treat their input's alpha channel as a bump map and require exactly one light-source child element — either `<feDistantLight>`, `<fePointLight>`, or `<feSpotLight>` — to describe where the light comes from.
 
 This is the same "one child element, three possible shapes" that has already been solved using a data-carrying enum in `color_matrix`'s `ColorMatrixType` and `component_transfer`'s `TransferFunction`.
 `LightSource` follows the identical pattern:
