@@ -15,6 +15,7 @@
 - [Filter region and coordinate-space attributes get named setters, `FilterUnits` reuses the `PatternUnits` shape](#filter-region-and-coordinate-space-attributes-get-named-setters-filterunits-reuses-the-patternunits-shape)
 - [`tile` is the first primitive with zero parameters](#tile-is-the-first-primitive-with-zero-parameters)
 - [`convolve_matrix` and `convolve_matrix_xy` take a plain `&[f64]` kernel and document, rather than validate, a length mismatch](#convolve_matrix-and-convolve_matrix_xy-take-a-plain-f64-kernel-and-document-rather-than-validate-a-length-mismatch)
+- [`diffuse_lighting`/`specular_lighting` share one `LightSource` enum, the crate's first `Copy` data-carrying enum and first use of `Option`](#diffuse_lightingspecular_lighting-share-one-lightsource-enum-the-crates-first-copy-data-carrying-enum-and-first-use-of-option)
 
 `SvgFilter` (`src/root/filter/`) is structurally identical to `SvgClipPath` and `SvgPattern`: that is, it is an id-cached container obtained from `SvgDefs::filter`/`build_filter`, applied to any element via `SvgNode::set_filter_ref`/`set_filter`, with the usual `set_attr`/`set_attrs`/`set_attr_display` escape hatch for attributes not yet wrapped by a named setter.
 That much follows established precedent directly; the one new decision is what a filter-primitive *builder method* — `gaussian_blur`, and whatever `fe*` methods follow it — should hand back.
@@ -261,3 +262,48 @@ That is exactly the other branch of the "validate vs. document" distinction this
 `EdgeMode` is a fresh three-variant fieldless enum (`Duplicate`/`Wrap`/`None`), not a reuse of any existing crate enum — unlike `MorphologyOperator` reusing `Channel`'s selector vocabulary, nothing else in this crate's filter API shares `edgeMode`'s specific `duplicate`/`wrap`/`none` keyword set, so a new type is the correct call here, following the same "reuse only when the vocabulary is genuinely identical" rule that section already established.
 
 `Duplicate` is listed first as `<feConvolveMatrix>`'s own SVG default — the same "spec default first" convention `MorphologyOperator` follows — even though `<feGaussianBlur>` also has an `edgeMode` attribute sharing this vocabulary with a *different* default (`None`); `EdgeMode`'s own doc comment notes this explicitly so a reader does not assume one shared default across both elements.
+
+## `diffuse_lighting`/`specular_lighting` share one `LightSource` enum, the crate's first `Copy` data-carrying enum and first use of `Option`
+
+`<feDiffuseLighting>` and `<feSpecularLighting>` are the two lighting filter primitives.
+Both treat their input's alpha channel as a bump map and require exactly one light-source child element: either `<feDistantLight>`, `<fePointLight>`, or `<feSpotLight>` to describes where the light comes from.
+
+This is the same "one child element, three possible shapes" that has already been solved using a data-carrying enum in `color_matrix`'s `ColorMatrixType` and `component_transfer`'s `TransferFunction`.
+`LightSource` follows the identical pattern:
+
+* `Distant { azimuth, elevation }`
+* `Point { x, y, z }`
+* `Spot { x, y, z, points_at_x, points_at_y, points_at_z, specular_exponent, limiting_cone_angle }`
+
+A shared `SvgFilter::append_light_source` helper (in the new `light_source.rs`, alongside the enum) builds and appends the selected variant's child element, since both `diffuse_lighting` and `specular_lighting` share the same child-construction logic.
+
+Unlike `ColorMatrixType`/`TransferFunction`, `LightSource` derives `Copy` in addition to `Clone`.
+
+Both of those older enums deliberately withhold `Copy` because their largest variants carry heap-allocating or large fixed-size data (`ColorMatrixType::Matrix`'s `[f64; 20]`, `TransferFunction::Table`/`Discrete`'s `Vec<f64>`) where an implicit copy would become an easy-to-miss cost.
+
+On the other hand, `LightSource`'s largest variant (`Spot`) holds nothing more than eight `f64`/`Option<f64>` fields — plain, non-allocating data, in the same category for which `Point` (`src/root/utils/point.rs`) already derives `Copy`.
+Withholding `Copy` here would only make the enum harder to use (an explicit `.clone()` at every call site) for no corresponding safety benefit, so it derives `Copy` the same way `Point` does.
+
+`Spot`'s `limiting_cone_angle` field is `Option<f64>` which otherwise always writes an explicit value for every attribute (even ones with a defined SVG default (such as `divisor` or `bias`) are still written verbatim rather than left unset.
+The exception is deliberate: as per the SVG spec, *omitting* `limitingConeAngle` entirely means no limiting cone is applied at all (the spotlight shines in every direction), which is not the same as any finite angle you could write instead.
+Even a very large angle is not the same as "no cone", since a cone always excludes at least the light's own rear-facing hemisphere.
+
+There is no numeric value that reproduces "no cone", so `None` is the only way to express it, and `Option<f64>` is the natural (and in Rust, unavoidable) way to let a caller choose between that and `Some(angle)`.
+
+This is not a precedent for reaching for `Option<T>` elsewhere in the crate; it is specific to this one attribute having a default that no numeric type can represent.
+
+`diffuse_lighting`/`specular_lighting` themselves follow the same "cover what's common, defer what's rare" split as every other primitive: `surface_scale`, `diffuse_constant`/`specular_constant`(`specular_exponent`), `lighting_color`, and `light_source` become named parameters, since every meaningful use of either primitive supplies all of them, while `kernelUnitLength` is left to the generic escape hatch.
+
+`specular_lighting`'s own `specular_exponent` parameter and `LightSource::Spot`'s `specular_exponent` field share an SVG attribute name and a `1.0` default, but shape unrelated things — the surface's Phong shininess versus the spotlight's own beam concentration.
+
+Both doc comments cross-reference this explicitly with a `⚠️` warning, the same treatment given to any other easy-to-confuse pair in this crate (compare `bias`'s clamping-to-black warning on `convolve_matrix`).
+No renaming was possible to avoid the collision, since both parameters are properly called `specularExponent` in the SVG spec itself; the fix is documentation, not a different Rust name that would only make translating an existing SVG example harder.
+
+`kernelUnitLength`'s deprecation status differs by element in a way worth calling out precisely: the current Filter Effects specification marks it deprecated for `<feConvolveMatrix>` and `<feDiffuseLighting>`, but an open specification issue ([w3c/fxtf-drafts#615](https://github.com/w3c/fxtf-drafts/issues/615)) asks whether its omission from `<feSpecularLighting>`'s own deprecation was intentional or an oversight.
+
+`specular_lighting`'s doc comment states this precisely rather than asserting a uniform deprecation status across all three elements it does not actually have yet.
+
+`feDiffuseLighting` and `feSpecularLighting` differ in one respect worth a `⚠️` on each: `feDiffuseLighting`'s result is always fully opaque (`A = 1.0` everywhere), so recombining it with the original graphic needs `composite(Arithmetic)` with `k1: 1.0` (a multiply) rather than `merge`, which would simply paint the opaque lit surface over everything.
+`feSpecularLighting`'s alpha is instead the maximum of its own lit R/G/B channels, so it is transparent wherever the highlight itself is zero, making it safe to add straight back on top via `composite(Arithmetic)` with `k2`/`k3: 1.0`.
+
+Both doc comments' examples, and the `chains.rs` bevel-with-highlight integration test, use the correct operator for each.

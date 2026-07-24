@@ -39,8 +39,10 @@ Remove the filter with `SvgNode::remove_filter()`.
 | `morphology_xy(radius_x, radius_y, operator)` | `<feMorphology>` | As `morphology`, but with independent horizontal/vertical radii, writing the SVG two-number `radius="x y"` form. Both values must be positive: unlike `gaussian_blur_xy`, a zero (or negative) component on *either* axis disables the whole primitive rather than giving a one-dimensional effect — see the warning below. |
 | `image(href)` | `<feImage>` | Uses the image or SVG content at `href` as this primitive's own generated output — like `turbulence`/`turbulence_xy`, a generator with no meaningful `in`. `preserveAspectRatio` is not wrapped by a named parameter, the same choice already made for `SvgRoot::image`. Supplies a *second*, independent image source that can be combined with the filtered element's own `SourceGraphic`/`SourceAlpha` — a plain filtered `<image>` already becomes its own `SourceGraphic` and can be colour-transformed or blended on its own, but combining it with unrelated content needs either `image` or a second layered element. `href` accepts a same-document `"#id"` reference as well as an external/`data:` URL, and is written verbatim; do not pass a `javascript:` URL or other attacker-controlled string without validation. Loading is asynchronous: a successful return means only that the DOM node was constructed, not that `href` has loaded; a missing/unsupported/zero-sized/failed resource renders as transparent black. A *tainted* result (an SVG element reference, or an image fetched in no-CORS mode) consumed as `displacement_map`'s `in2` makes that displacement silently become a pass-through — see the warning below. |
 | `tile()` | `<feTile>` | Repeats its input across this primitive's own subregion. Has no numeric or enum-valued attributes needing a typed parameter — the optional `in`, and the common `result`, `x`, `y`, `width` and `height` are all reachable via `set_attr`/`set_attrs` on the returned `SvgNode`. The repeated rectangle is the selected input's *effective* subregion, not anything `tile` itself chooses — see the warning below, since that subregion must be smaller than `tile`'s own output subregion or tiling has no visible effect. |
-| `convolve_matrix(order, kernel_matrix, divisor, edge_mode, preserve_alpha)` | `<feConvolveMatrix>` | Applies a square `order`×`order` matrix convolution — the general image-processing operation behind sharpening, blurring, embossing, and edge-detection kernels. `kernel_matrix` is a `&[f64]` slice that must contain exactly `order * order` values, in row-major order; `edge_mode` is an `EdgeMode` (`Duplicate`/`Wrap`/`None`) selecting how the kernel reads beyond the input's border. `bias`, `targetX`, `targetY`, and `kernelUnitLength` are not wrapped by named parameters — set them via `set_attr`/`set_attrs` on the returned node. `kernelUnitLength` is a deprecated legacy attribute for requesting explicit kernel sampling intervals; the current Filter Effects specification marks it deprecated and slated for removal, since it does not reliably achieve platform-independent rendering, so it remains reachable through `set_attr` but should not be relied upon. **A `kernel_matrix` whose length does not match `order * order` is not rejected, but neither will it result in any visible alteration to the input — see the warning below.** **`order: 0` *is* rejected, returning `Error::InvalidConvolveMatrixOrder` — see the warning below.** |
+| `convolve_matrix(order, kernel_matrix, divisor, edge_mode, preserve_alpha)` | `<feConvolveMatrix>` | Applies a square `order`×`order` matrix convolution — the general image-processing operation behind sharpening, blurring, embossing, and edge-detection kernels. `kernel_matrix` is a `&[f64]` slice that must contain exactly `order * order` values, in row-major order; `edge_mode` is an `EdgeMode` (`Duplicate`/`Wrap`/`None`) selecting how the kernel reads beyond the input's border. `bias`, `targetX`, `targetY`, and `kernelUnitLength` are not wrapped by named parameters — set them via `set_attr`/`set_attrs` on the returned node. **A `kernel_matrix` whose length does not match `order * order` is not rejected, but neither will it result in any visible alteration to the input — see the warning below.** **`order: 0` *is* rejected, returning `Error::InvalidConvolveMatrixOrder` — see the warning below.** |
 | `convolve_matrix_xy(order_x, order_y, kernel_matrix, divisor, edge_mode, preserve_alpha)` | `<feConvolveMatrix>` | As `convolve_matrix`, but with an `order_x`×`order_y` rectangular kernel, writing the SVG two-number `order="x y"` form — the natural shape for a directional (horizontal-only or vertical-only) effect that a square kernel cannot express. |
+| `diffuse_lighting(surface_scale, diffuse_constant, lighting_color, light_source)` | `<feDiffuseLighting>` (with one `<feDistantLight>`/`<fePointLight>`/`<feSpotLight>` child) | Lights `in`'s alpha channel as a bump map using a matte (Lambertian) model — a `LightSource` selects and configures the one required light-source child. **The result is fully opaque (`A = 1.0` everywhere); recombine it with the original via `composite(Arithmetic)` with `k1: 1.0`, not `merge` — see the warning below.** `kernelUnitLength` is a deprecated legacy attribute — see the warning below. |
+| `specular_lighting(surface_scale, specular_constant, specular_exponent, lighting_color, light_source)` | `<feSpecularLighting>` (with one light-source child) | As `diffuse_lighting`, but a shiny (Phong) highlight instead of a matte surface. **Unlike `diffuse_lighting`, the result is *not* opaque — its alpha is the maximum of its own lit R/G/B, so it is safe to add straight back on top via `composite(Arithmetic)` with `k2`/`k3: 1.0` — see the warning below.** `specular_exponent` (this primitive's own Phong shininess) is a *different* attribute from `LightSource::Spot`'s own `specular_exponent` field, despite sharing a name and default — see the warning below. |
 
 ***⚠️ `CompositeOperator::Arithmetic` requires `k1`–`k4` to be set manually***
 
@@ -368,15 +370,66 @@ Double-check `kernel_matrix.len()` against `order * order` yourself; a silently 
 `u32` already rules out negative and fractional `order` values at compile time, but `0` is still representable, and — unlike a `kernelMatrix` length mismatch or a zero `divisor`, both of which have a defined fallback — the SVG spec gives `0` none.
 A zero order is simply outside the attribute's permitted range.
 
-`convolve_matrix` and `convolve_matrix_xy` therefore both check for a zero component and return `Error::InvalidConvolveMatrixOrder` before creating any element, rather than serializing a value the specification never assigns a meaning to.
-
 ***IMPORTANT***
 
 Prefer small kernels, normally `3`×`3` or `5`×`5`, for `order`/`order_x`/`order_y`.
 Convolution cost rises with the number of kernel entries (the square of `order` for a square kernel), and the SVG specification itself recommends small values, warning that larger ones may impose very high CPU overhead without a proportionate visual benefit.
 A large `order` is not rejected — it is legal SVG and occasionally necessary — but every example above deliberately uses a `3`×`3` kernel, the size the specification itself suggests.
 
-See [`../gaps.md`](../gaps.md) for the primitives still to be added.
+`convolve_matrix` and `convolve_matrix_xy` therefore both check for a zero component and return `Error::InvalidConvolveMatrixOrder` before creating any element, rather than serializing a value that cannot be handled.
+
+`diffuse_lighting` and `specular_lighting` treat `in`'s alpha channel as a bump map and light it with a `LightSource` — `Distant` (parallel rays, like sunlight), `Point` (radiating from a position, like a bare bulb), or `Spot` (aimed at a target, optionally narrowed to a cone).
+Together they form the classic bevel/emboss lighting recipe: a matte lit surface plus a shiny highlight, recombined with the original graphic:
+
+```rust,no_run
+use svg_dom::{SvgRoot, root::filter::{CompositeOperator, LightSource}};
+
+let svg   = SvgRoot::attach("diagram")?;
+let defs  = svg.defs()?;
+let flt   = defs.filter("bevel")?;
+let light = LightSource::Distant { azimuth: 235.0, elevation: 55.0 };
+
+flt.diffuse_lighting(6.0, 1.0, "white", light)?
+    .set_attrs([("in", "SourceAlpha"), ("result", "lit")])?;
+flt.composite("lit", CompositeOperator::Arithmetic)?.set_attrs([
+    ("in", "SourceGraphic"), ("result", "beveled"),
+    ("k1", "1"), ("k2", "0"), ("k3", "0"), ("k4", "0"),
+])?;
+flt.specular_lighting(6.0, 1.0, 20.0, "white", light)?
+    .set_attrs([("in", "SourceAlpha"), ("result", "highlight")])?;
+flt.composite("highlight", CompositeOperator::Arithmetic)?.set_attrs([
+    ("in", "beveled"),
+    ("k1", "0"), ("k2", "1"), ("k3", "1"), ("k4", "0"),
+])?;
+
+Ok::<(), svg_dom::Error>(())
+```
+
+***⚠️ `diffuse_lighting`'s result is fully opaque; `specular_lighting`'s is not — each needs a different `composite` recombination***
+
+Per the SVG spec, `feDiffuseLighting` always produces `A = 1.0` everywhere, so merging or blending it directly over `SourceGraphic` would hide the original entirely rather than tinting it — the first `composite(Arithmetic)` above, with `k1: 1.0`, multiplies the two inputs' colours instead.
+`feSpecularLighting`'s alpha is the maximum of its own lit R/G/B channels, so it is transparent wherever the highlight itself is zero — safe to add straight on top via the second `composite(Arithmetic)` above, with `k2`/`k3: 1.0`, a plain sum rather than a multiply.
+Using the wrong operator for either — `merge` for `diffuse_lighting`, or a multiply for `specular_lighting` — produces a visibly broken result (an opaque flat-lit rectangle in the first case, a highlight that darkens rather than brightens in the second).
+
+***⚠️ `specular_lighting`'s `specular_exponent` and `LightSource::Spot`'s own `specular_exponent` field are unrelated***
+
+Both are called `specularExponent` in SVG and both default to `1.0`, but `specular_lighting`'s controls the surface's Phong shininess (how sharp the highlight looks), while `LightSource::Spot`'s controls how tightly the spotlight's own beam concentrates.
+Setting one has no effect on the other; an SVG example using `specularExponent` on both `<feSpecularLighting>` and `<feSpotLight>` is configuring two unrelated things that merely share a name.
+
+***⚠️ `LightSource::Spot`'s `limiting_cone_angle: None` is not the same as `Some(0.0)`***
+
+`None` (mirroring the SVG default when `limitingConeAngle` is omitted entirely) applies no limiting cone at all — light projects in every direction from the spotlight's position.
+`Some(0.0)` is an explicit cone of zero width, i.e. no light reaches the surface.
+
+Use `None` for an unconstrained spotlight, and `Some(angle)` to narrow its beam.
+
+***IMPORTANT***
+
+`kernelUnitLength` is a deprecated legacy attribute on both primitives, requesting an explicit, device-independent kernel sampling interval that the current Filter Effects specification says does not reliably achieve platform-independent rendering.
+It is marked deprecated for `feDiffuseLighting`, and — per an open specification question ([w3c/fxtf-drafts#615](https://github.com/w3c/fxtf-drafts/issues/615)) — *not yet* formally deprecated for `feSpecularLighting`, though the same platform-independence problem applies there too.
+Neither primitive wraps it in a named parameter; it remains reachable through `set_attr` on either, but should not be relied upon.
+
+Every filter effect primitive defined by the SVG Filter Effects specification is now implemented — see [`../gaps.md`](../gaps.md) for the crate's remaining (non-filter) gaps.
 
 ## Region and Coordinate-Space Attributes
 

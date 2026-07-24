@@ -33,11 +33,17 @@
 //! - [`tile`] — `tile` — mirrors `src/root/filter/primitives/tile.rs`.
 //! - [`convolve_matrix`] — `convolve_matrix`/`convolve_matrix_xy`, every `EdgeMode` keyword, and the unvalidated
 //!   kernel-length-mismatch pass-through case — mirrors `src/root/filter/primitives/convolve_matrix.rs`.
+//! - [`diffuse_lighting`] — `diffuse_lighting` and every `LightSource` variant (`Distant`/`Point`/`Spot`, including
+//!   `Spot`'s optional `limiting_cone_angle`) — mirrors `src/root/filter/primitives/diffuse_lighting.rs` and
+//!   `src/root/filter/light_source.rs`.
+//! - [`specular_lighting`] — `specular_lighting`, and the `specular_exponent`-vs-`LightSource::Spot`'s own
+//!   `specular_exponent` field distinction — mirrors `src/root/filter/primitives/specular_lighting.rs`.
 //! - [`chains`] — cross-primitive integration tests (the manual blur+offset+merge and blur+flood+composite+offset+merge
 //!   drop-shadow chains, the flood+blend+composite tint chain, the turbulence+displacement_map noise-distortion chain,
 //!   the morphology+merge bold-outline chain, the image+color_matrix filtered-image chain, the image+composite+blend
-//!   textured-object chain, the turbulence+tile tiled-noise chain, and the convolve_matrix emboss recipe) — these
-//!   compose several primitives together, so they don't belong to any single primitive's own file.
+//!   textured-object chain, the turbulence+tile tiled-noise chain, the convolve_matrix emboss recipe, and the
+//!   diffuse_lighting+specular_lighting+composite bevel-with-highlight chain) — these compose several primitives
+//!   together, so they don't belong to any single primitive's own file.
 //!
 //! `tests/common.rs` is one directory up (shared with every other integration test file), hence the `#[path]`
 //! override below rather than a plain `mod common;`.
@@ -53,6 +59,7 @@ mod component_transfer;
 mod composite;
 mod construction;
 mod convolve_matrix;
+mod diffuse_lighting;
 mod displacement_map;
 mod drop_shadow;
 mod flood;
@@ -62,6 +69,7 @@ mod merge;
 mod morphology;
 mod offset;
 mod region;
+mod specular_lighting;
 mod tile;
 mod turbulence;
 

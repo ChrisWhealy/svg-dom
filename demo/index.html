@@ -85,6 +85,8 @@
                 <button type="button" class="menu-item" data-target="panel-fe-image">feImage</button>
                 <button type="button" class="menu-item" data-target="panel-fe-tile">feTile</button>
                 <button type="button" class="menu-item" data-target="panel-convolve-matrix">feConvolveMatrix</button>
+                <button type="button" class="menu-item" data-target="panel-lighting">feDiffuseLighting /
+                    feSpecularLighting</button>
             </details>
 
             <details class="menu-group">
@@ -856,6 +858,43 @@
                         A <code>kernel_matrix</code> whose length does not equal <code>order * order</code> is not
                         rejected by this crate: per the SVG spec, <code>feConvolveMatrix</code> then acts as a pass
                         through filter instead, a defined (if inert) outcome rather than an error.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- feDiffuseLighting / feSpecularLighting -->
+            <section class="section" id="panel-lighting">
+                <h2><code>&lt;feDiffuseLighting&gt;</code> / <code>&lt;feSpecularLighting&gt;</code> — bump-mapped
+                    lighting</h2>
+                <figure>
+                    <div class="canvas" id="demo-lighting"></div>
+                    <figcaption>
+                        <ul>
+                            <li><strong>original</strong> — bold text, no filter</li>
+                            <li><strong>feDiffuseLighting (opaque)</strong> — a matte (Lambertian) surface lit from
+                                the upper-left; the result is fully opaque per the SVG spec, so with no further
+                                compositing this renders as a flat lit plate with the text embossed into it</li>
+                            <li><strong>feSpecularLighting (highlight)</strong> — the shiny (Phong) counterpart from
+                                the same light; its alpha is the maximum of its own lit R/G/B, so it renders as a
+                                highlight-only glint against the dark canvas, transparent everywhere the highlight
+                                itself is zero</li>
+                            <li><strong>combined bevel</strong> — the classic recipe: the opaque diffuse-lit surface
+                                multiplied back over the original text (<code>composite(Arithmetic)</code>,
+                                <code>k1: 1.0</code>), then the specular highlight added on top
+                                (<code>composite(Arithmetic)</code>, <code>k2</code>/<code>k3: 1.0</code>)
+                            </li>
+                        </ul>
+                        <br><br>
+                        Both primitives treat their input's alpha channel as a bump map and light it with a
+                        <code>LightSource</code> — <strong>Distant</strong> (parallel rays, like sunlight),
+                        <strong>Point</strong> (radiating from a position, like a bare bulb), or
+                        <strong>Spot</strong> (aimed at a target, optionally narrowed to a cone). Every panel above
+                        uses the same <strong>Distant</strong> light so the emboss direction reads consistently.<br>
+                        <code>feDiffuseLighting</code>'s opacity and <code>feSpecularLighting</code>'s transparency
+                        are not interchangeable: merging or blending the opaque diffuse result directly over
+                        <code>SourceGraphic</code> would hide the original entirely, which is why the combined panel
+                        uses <code>composite(Arithmetic)</code> with different coefficients for each — a multiply
+                        for the opaque diffuse layer, a plain sum for the non-opaque specular highlight.
                     </figcaption>
                 </figure>
             </section>

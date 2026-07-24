@@ -1,5 +1,7 @@
 use crate::common::*;
-use svg_dom::{BlendMode, Channel, ColorMatrixType, CompositeOperator, EdgeMode, MorphologyOperator, TurbulenceType};
+use svg_dom::{
+    BlendMode, Channel, ColorMatrixType, CompositeOperator, EdgeMode, LightSource, MorphologyOperator, TurbulenceType,
+};
 use wasm_bindgen_test::*;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -287,4 +289,71 @@ fn should_build_desaturated_emboss_chain() -> Result<(), String> {
     check_eq(matrix.tag_name(), "feColorMatrix".to_owned())?;
     check_eq(matrix.get_attribute("in"), Some("embossed".into()))?;
     check_eq(matrix.get_attribute("type"), Some("saturate".into()))
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// diffuse_lighting + specular_lighting + composite — bevel-with-highlight chain
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `diffuse_lighting` and `specular_lighting` compose with two `composite(Arithmetic)` steps into a well-formed
+/// beveled, shiny-highlighted filter — the example from both primitives' own doc comments, and the classic bevel
+/// recipe: light `SourceAlpha`'s bump map twice from the same distant light (once matte, once specular), multiply
+/// the matte result back over the source graphic (since `diffuse_lighting`'s own result is fully opaque), then add
+/// the (non-opaque) specular highlight on top. As with the other chains in this file, this only proves the DOM is
+/// assembled correctly; it does not capture or inspect rendered output.
+#[wasm_bindgen_test]
+fn should_build_bevel_with_highlight_chain() -> Result<(), String> {
+    let svg = make_svg("filter-lighting-bevel-chain");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let light = LightSource::Distant {
+        azimuth: 235.0,
+        elevation: 55.0,
+    };
+    let filter = defs
+        .build_filter("bevel", |f| {
+            f.diffuse_lighting(6.0, 1.0, "white", light)?
+                .set_attrs([("in", "SourceAlpha"), ("result", "lit")])?;
+            f.composite("lit", CompositeOperator::Arithmetic)?.set_attrs([
+                ("in", "SourceGraphic"),
+                ("result", "beveled"),
+                ("k1", "1"),
+                ("k2", "0"),
+                ("k3", "0"),
+                ("k4", "0"),
+            ])?;
+            f.specular_lighting(6.0, 1.0, 20.0, "white", light)?
+                .set_attrs([("in", "SourceAlpha"), ("result", "highlight")])?;
+            f.composite("highlight", CompositeOperator::Arithmetic)?.set_attrs([
+                ("in", "beveled"),
+                ("k1", "0"),
+                ("k2", "1"),
+                ("k3", "1"),
+                ("k4", "0"),
+            ])?;
+            Ok(())
+        })
+        .map_err(|e| e.to_string())?;
+    let el = filter.as_element();
+    check_eq(el.child_element_count(), 4)?;
+    let diffuse = el.first_element_child().ok_or("expected a <feDiffuseLighting> child")?;
+    let comp1 = diffuse.next_element_sibling().ok_or("expected a <feComposite> sibling")?;
+    let specular = comp1.next_element_sibling().ok_or("expected a <feSpecularLighting> sibling")?;
+    let comp2 = specular
+        .next_element_sibling()
+        .ok_or("expected a second <feComposite> sibling")?;
+    check_eq(diffuse.tag_name(), "feDiffuseLighting".to_owned())?;
+    check_eq(diffuse.get_attribute("in"), Some("SourceAlpha".into()))?;
+    check_eq(diffuse.get_attribute("result"), Some("lit".into()))?;
+    let diffuse_light = diffuse.first_element_child().ok_or("expected a light-source child")?;
+    check_eq(diffuse_light.tag_name(), "feDistantLight".to_owned())?;
+    check_eq(comp1.tag_name(), "feComposite".to_owned())?;
+    check_eq(comp1.get_attribute("in"), Some("SourceGraphic".into()))?;
+    check_eq(comp1.get_attribute("in2"), Some("lit".into()))?;
+    check_eq(comp1.get_attribute("result"), Some("beveled".into()))?;
+    check_eq(specular.tag_name(), "feSpecularLighting".to_owned())?;
+    check_eq(specular.get_attribute("in"), Some("SourceAlpha".into()))?;
+    check_eq(specular.get_attribute("result"), Some("highlight".into()))?;
+    check_eq(comp2.tag_name(), "feComposite".to_owned())?;
+    check_eq(comp2.get_attribute("in"), Some("beveled".into()))?;
+    check_eq(comp2.get_attribute("in2"), Some("highlight".into()))
 }

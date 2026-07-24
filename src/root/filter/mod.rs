@@ -11,6 +11,7 @@ mod color_matrix_type;
 mod composite_operator;
 mod edge_mode;
 mod filter_units;
+mod light_source;
 mod morphology_operator;
 mod transfer_function;
 mod turbulence_type;
@@ -21,6 +22,7 @@ pub use color_matrix_type::ColorMatrixType;
 pub use composite_operator::CompositeOperator;
 pub use edge_mode::EdgeMode;
 pub use filter_units::FilterUnits;
+pub use light_source::LightSource;
 pub use morphology_operator::MorphologyOperator;
 pub use transfer_function::TransferFunction;
 pub use turbulence_type::TurbulenceType;
@@ -64,6 +66,8 @@ mod region;
 /// - [`tile`](Self::tile) (`<feTile>`)
 /// - [`convolve_matrix`](Self::convolve_matrix)
 /// - [`convolve_matrix_xy`](Self::convolve_matrix_xy) (`<feConvolveMatrix>`)
+/// - [`diffuse_lighting`](Self::diffuse_lighting) (`<feDiffuseLighting>`)
+/// - [`specular_lighting`](Self::specular_lighting) (`<feSpecularLighting>`)
 ///
 /// The first five, taken together, can be used to build a *true* tinted, opacity-controlled drop shadow (blur the
 /// source alpha, composite a flood colour into the blurred mask, offset it, then merge it underneath the original
@@ -115,9 +119,17 @@ mod region;
 /// edge-detection kernels — independent of every other primitive above; see its own doc comment for worked examples
 /// of each.
 ///
-/// The SVG filter specification defines around fifteen effect primitives in total, each with its own attribute grammar.
+/// [`diffuse_lighting`](Self::diffuse_lighting)/[`specular_lighting`](Self::specular_lighting) treat their input's
+/// alpha channel as a bump map and light it using a [`LightSource`] — [`diffuse_lighting`](Self::diffuse_lighting)
+/// produces a fully opaque, matte-lit surface, [`specular_lighting`](Self::specular_lighting) a highlight-only
+/// image (transparent wherever the highlight is absent) meant to be added back on top of the original graphic.
+/// Independent of every other primitive above; see either method's own doc comment for the classic bevel/emboss
+/// recipe that composites the two together.
 ///
-/// See `docs/gaps.md` for the primitives still to be added.
+/// The SVG filter specification defines seventeen effect primitives in total, each with its own attribute grammar;
+/// every one of them is now implemented above.
+///
+/// See `docs/gaps.md` for this crate's remaining (non-filter) gaps.
 ///
 /// The filter region ([`set_x`](Self::set_x), [`set_y`](Self::set_y), [`set_width`](Self::set_width),
 /// [`set_height`](Self::set_height)) and coordinate-space ([`set_filter_units`](Self::set_filter_units),

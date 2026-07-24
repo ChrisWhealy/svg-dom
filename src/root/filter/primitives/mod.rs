@@ -3,6 +3,7 @@ mod color_matrix;
 mod component_transfer;
 mod composite;
 mod convolve_matrix;
+mod diffuse_lighting;
 mod displacement_map;
 mod drop_shadow;
 mod flood;
@@ -11,6 +12,7 @@ mod image;
 mod merge;
 mod morphology;
 mod offset;
+mod specular_lighting;
 mod tile;
 mod turbulence;
 

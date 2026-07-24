@@ -60,7 +60,7 @@ That said, all reasonable, conventional steps have been taken to provide a secur
     - [x] `feComponentTransfer`
     - [x] `feComposite`
     - [x] `feConvolveMatrix`
-    - [ ] `feDiffuseLighting`
+    - [x] `feDiffuseLighting`
     - [x] `feDisplacementMap`
     - [x] `feDropShadow`
     - [x] `feFlood`
@@ -69,7 +69,7 @@ That said, all reasonable, conventional steps have been taken to provide a secur
     - [x] `feMerge`
     - [x] `feMorphology`
     - [x] `feOffset`
-    - [ ] `feSpecularLighting`
+    - [x] `feSpecularLighting`
     - [x] `feTile`
     - [x] `feTurbulence`
   - [x] `<foreignObject>` — no content-setting method, by design; content goes through the raw DOM escape hatch

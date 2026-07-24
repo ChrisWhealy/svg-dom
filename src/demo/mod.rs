@@ -122,6 +122,7 @@ pub fn run_demo() -> Result<(), JsValue> {
     paint::demo_fe_image().map_err(e)?;
     paint::demo_fe_tile().map_err(e)?;
     paint::demo_convolve_matrix().map_err(e)?;
+    paint::demo_lighting().map_err(e)?;
     texts::demo_tspan().map_err(e)?;
     texts::demo_text_path().map_err(e)?;
 
@@ -206,6 +207,7 @@ const DEMO_SOURCES: &[(&str, &str)] = &[
     ("panel-fe-image", "demo_fe_image"),
     ("panel-fe-tile", "demo_fe_tile"),
     ("panel-convolve-matrix", "demo_convolve_matrix"),
+    ("panel-lighting", "demo_lighting"),
     ("panel-tspan", "demo_tspan"),
     ("panel-text-path", "demo_text_path"),
     ("panel-events-click", "demo_events_click"),
