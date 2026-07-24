@@ -23,9 +23,11 @@ pub enum LightSource {
         elevation: f64,
     },
 
-    /// A `<fePointLight>`: the light radiates outward from a single point in the same way a bare bulb does. This
-    /// illumination model follows the inverse square law, so points closer to `(x, y, z)` are lit more intensely than
-    /// distant ones.
+    /// A `<fePointLight>`: a positional light source, in the same way a bare bulb is. The light's *direction* varies
+    /// across the surface — computed per-pixel as the (normalised) vector from that surface point to `(x, y, z)` — but
+    /// as per the SVG spec, its *colour* intensity does not: there is no inverse-square (or any other) distance
+    /// attenuation term, unlike a physically-based point light. A pixel far from `(x, y, z)` is lit with the same light
+    /// colour as one directly beneath it, just from a different angle.
     Point {
         /// The light position, in the coordinate system established by
         /// [`primitiveUnits`](super::SvgFilter::set_primitive_units).  This is the same `primitiveUnits`-dependent
@@ -33,8 +35,9 @@ pub enum LightSource {
         x: f64,
         /// See `x`'s own field doc, above.
         y: f64,
-        /// Height above the surface, in the same coordinate system as `x`/`y`. Larger values move the light further
-        /// from the surface, softening the falloff between near and far points.
+        /// Height above the surface, in the same coordinate system as `x`/`y`. Larger values make the incident-light
+        /// direction more uniform across the surface (closer to a [`Distant`](Self::Distant) light shining straight
+        /// down) rather than fanning out sharply near the light.
         z: f64,
     },
 

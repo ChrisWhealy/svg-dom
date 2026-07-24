@@ -12,6 +12,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Implement the filter effects feDiffuseLighting and feSpecularLighting (`d070435`)
 
+### Fixed
+
+- Doc only: fePointLight has no inverse-square distance attenuation (``)
+
 # [Released]
 
 ## [0.1.73] - 2026-07-24
