@@ -12,50 +12,54 @@ shared presentation-attribute setters on `SvgNode`), so consult their own rustdo
 
 For known gaps, see [Gap Analysis](../gaps.md).
 
-The following SVG elements are supported:
+All SVG elements are supported ***except*** `<script>` and the SMIL-based animation elements (see [Implementation Non-goals](../non-goals.md) for details):
 
-* `a`
-* `circle`
-* `clipPath`
-* `defs`
-* `desc`
-* `ellipse`
-* `filter`
-  * `feGaussianBlur`
-  * `feOffset`
-  * `feMerge`/`feMergeNode`
-  * `feFlood`
-  * `feComposite`
-  * `feBlend`
-  * `feDropShadow`
-  * `feColorMatrix`
-  * `feComponentTransfer`/`feFuncR`/`feFuncG`/`feFuncB`/`feFuncA`
-  * `feTurbulence`
-  * `feDisplacementMap`
-  * `feMorphology`
-  * `feImage`
-  * `feTile`
-* `foreignObject` (no content-setting method, by design — see [Structural Elements](structural_elements.md#foreignobject) for the raw-DOM escape hatch)
-* `g`
-* `image`
-* `line`
-* `linearGradient` (with `stop`)
-* `marker`
-* `mask`
-* `metadata` (plain-text/JSON content — see [Core Operations](core_operations.md#metadata) for the escape hatch to structured foreign-namespace children)
-* `pattern`
-* `rect`
-* `path` (with a type-safe `PathDef` builder as an alternative to hand-written `d` strings)
-* `polygon`
-* `polyline`
-* `radialGradient` (with `stop`)
-* `style`
-* `switch`
-* `symbol`
-* `text` (with `tspan`, `textPath`)
-* `title`
-* `use`
-* `view`
+- `<a>` (anchor)
+- `<circle>`
+- `<clipPath>`
+- `<defs>`
+- `<desc>`
+- `<ellipse>`
+- `<filter>` and filter effects
+  - `feBlend`
+  - `feColorMatrix`
+  - `feComponentTransfer` with `feFuncR`, `feFuncG`, `feFuncB`, `feFuncA`
+  - `feComposite`
+  - `feConvolveMatrix`
+  - `feDiffuseLighting`
+  - `feDisplacementMap`
+  - `feDropShadow`
+  - `feFlood`
+  - `feGaussianBlur`
+  - `feImage`
+  - `feMerge`, `feMergeNode`
+  - `feMorphology`
+  - `feOffset`
+  - `feSpecularLighting`
+  - `feTile`
+  - `feTurbulence`
+- `<foreignObject>` — no content-setting method, by design — see [Structural Elements](structural_elements.md#foreignobject) for the raw-DOM escape hatch
+- `<group>`
+- `<image>`
+- `<line>`
+- `<linearGradient>` - with `stop`
+- `<marker>`
+- `<mask>`
+- `<metadata>` — plain-text/JSON content — see [Core Operations](core_operations.md#metadata) for the escape hatch to structured foreign-namespace children
+- `<path>` — with a type-safe `PathDef` builder as an alternative to hand-written `d` strings
+- `<pattern>`
+- `<polygon>`
+- `<polyline>`
+- `<radialGradient>` - with `stop`
+- `<rect>`
+- `<style>`
+- `<switch>`
+- `<symbol>`
+- `<text>` - with `tspan` and `textPath`
+- `<title>`
+- `<tspan>`
+- `<use>`
+- `<view>`
 
 ## Core Operations
 

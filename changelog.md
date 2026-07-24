@@ -13,6 +13,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Implement the filter effects feDiffuseLighting and feSpecularLighting (`d070435`)
 - Extend demo comparing LightSource::Distant/Point/Spot, with and without limitingConeAngle (`b9089bd`)
 
+### Changed
+
+- Reformat README files now that all features are implemented (``)
+
 ### Fixed
 
 - Doc only: fePointLight has no inverse-square distance attenuation (`fcf64ea`)

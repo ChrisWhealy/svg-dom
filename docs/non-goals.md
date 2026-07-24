@@ -1,11 +1,4 @@
-# Gap Analysis
-
-This crate implements almost all of the standard SVG elements and all the filter effects defined by the SVG specification.
-For a description of what the crate currently supports, see [Supported SVG Elements](svg_elements/README.md).
-
-However, it is important to understand that this crate is not a full-featured SVG renderer for the reasons described in the non-goals section below.
-
-## Non-goals
+# Implementation Non-goals
 
 Synchronized Multimedia Integration Language (SMIL) animation and the `<script>` element are not, and will never be supported by this crate.
 They have been intentionally excluded:

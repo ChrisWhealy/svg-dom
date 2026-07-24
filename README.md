@@ -16,7 +16,6 @@ That said, all reasonable, conventional steps have been taken to provide a secur
 
 # Table of Contents
 
-- [ToDo List](#todo-list)
 - [What This Crate Is](#what-this-crate-is)
 - [What This Crate Is NOT](#what-this-crate-is-not)
 - [Building](#building)
@@ -25,70 +24,7 @@ That said, all reasonable, conventional steps have been taken to provide a secur
 - [Testing](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/testing.md)
 - [Supported SVG Elements](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/svg_elements/README.md)
 - [Design Notes](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/design_notes/README.md)
-- [Gap Analysis](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/gaps.md)
-
-## ToDo List
-
-- [x] Define custom `Error` object suitable for handling browser DOM errors
-- [x] Define `SvgNode` object
-- [x] Define `SvgRoot` object
-- [x] Define `AnimationLoop` object
-- Implement helper functions for basic SVG shapes
-  - [x] `<circle>`
-  - [x] `<ellipse>`
-  - [x] `<group>`
-  - [x] `<line>`
-  - [x] `<path>`
-  - [x] `<polygon>`
-  - [x] `<polyline>`
-  - [x] `<rect>`
-  - [x] `<text>`
-- [x] Implement multi-attribute setter for an SVG node
-- [x] Implement reusable `SvgAttrs` / `AttrWriter` for allocation-light attribute writing
-- [x] Implement batch-building API that allows elements to be added *en masse*
-- [x] Share factory implementation between `SvgRoot` and `SvgBatch`
-- [x] Build demo server to illustrate current functionality
-- [x] Schedule `cargo-deny` to run as a weekly `cron` job
-- Implement remaining SVG elements
-  - [x] `<a>` (anchor)
-  - [x] `<clipPath>`
-  - [x] `<defs>`
-  - [x] `<desc>`
-  - [x] `<filter>` and filter effects
-    - [x] `feBlend`
-    - [x] `feColorMatrix`
-    - [x] `feComponentTransfer`
-    - [x] `feComposite`
-    - [x] `feConvolveMatrix`
-    - [x] `feDiffuseLighting`
-    - [x] `feDisplacementMap`
-    - [x] `feDropShadow`
-    - [x] `feFlood`
-    - [x] `feGaussianBlur`
-    - [x] `feImage`
-    - [x] `feMerge`
-    - [x] `feMorphology`
-    - [x] `feOffset`
-    - [x] `feSpecularLighting`
-    - [x] `feTile`
-    - [x] `feTurbulence`
-  - [x] `<foreignObject>` — no content-setting method, by design; content goes through the raw DOM escape hatch
-  - [x] `<image>`
-  - [x] `<linearGradient>`
-  - [x] `<marker>`
-  - [x] `<metadata>` — plain-text/JSON content; structured foreign-namespace children need the raw DOM escape hatch
-  - [x] `<mask>`
-  - [x] `<pattern>`
-  - [x] `<radialGradient>`
-  - [x] `<style>`
-  - [x] `<switch>`
-  - [x] `<symbol>`
-  - [x] `<textPath>`
-  - [x] `<title>`
-  - [x] `<tspan>`
-  - [x] `<use>`
-  - [x] `<view>`
-- [x] Type-safe `<path>` `d`-attribute builder (`PathDef` / `path_from_defs`) as a typesafe alternative to hand-written `d` strings
+- [Implementation Non-goals](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/non-goals.md)
 
 ## What This Crate Is
 
