@@ -243,6 +243,18 @@ This is exactly the distinction the `morphology`/`morphology_xy` correction (bel
 The same reasoning applies to `divisor: 0.0`: the specification defines this as falling back to the sum of `kernel_matrix`'s own values (or `1.0` if that sum is itself `0.0`), rather than an error.
 So this crate passes it through unvalidated and documents the fallback rather than rejecting it or treating it as a special case.
 
+**Correction:** an external review of the first `convolve_matrix`/`convolve_matrix_xy` implementation pointed out that `order`, `order_x` and `order_y` were left unvalidated too, on the mistaken assumption that the same "document, don't validate" reasoning above covered every edge case this primitive has.
+
+It does not.
+
+The Filter Effects specification requires `order`'s components to be integers greater than zero, but it gives no defined fallback for a zero component.
+
+Unlike the `kernelMatrix` length mismatch (defined as a pass-through) and the zero `divisor` (defined as falling back to the kernel's sum): this is not a "defined but surprising" outcome, but simply a value outside the attribute's permitted range with no defined rendering behaviour.
+
+That is exactly the other branch of the "validate vs. document" distinction this crate already draws elsewhere (see `component_transfer`'s `Error::InvalidTransferFunction` above, for a value list whose length has no defined SVG semantics): an undefined outcome gets rejected before it reaches the DOM, not documented and passed through.
+
+`convolve_matrix`/`convolve_matrix_xy` now check `order`/`order_x`/`order_y` for zero and return the new `Error::InvalidConvolveMatrixOrder` before creating any element, rather than serializing a value the specification never assigns a meaning to — `u32` already rules out negative and fractional `order` values at compile time, so zero was the one remaining gap `u32` alone could not close.
+
 `SpaceSeparated` — to avoid duplicating functionality, the private `fmt::Display` wrapper `component_transfer` already used internally to provide an allocation-free way to write `tableValues`, has been moved from `component_transfer.rs` to `primitives/mod.rs` as `pub(super)` so `convolve_matrix` can reuse it for `kernelMatrix`.
 
 `EdgeMode` is a fresh three-variant fieldless enum (`Duplicate`/`Wrap`/`None`), not a reuse of any existing crate enum — unlike `MorphologyOperator` reusing `Channel`'s selector vocabulary, nothing else in this crate's filter API shares `edgeMode`'s specific `duplicate`/`wrap`/`none` keyword set, so a new type is the correct call here, following the same "reuse only when the vocabulary is genuinely identical" rule that section already established.

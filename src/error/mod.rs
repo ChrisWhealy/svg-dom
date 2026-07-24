@@ -3,7 +3,7 @@
 ///
 /// Every fallible function in this crate returns `Result<_, Error>`.
 ///
-/// The variants cover nine categories, one of which contains eight subtypes:
+/// The variants cover ten categories, one of which contains eight subtypes:
 ///
 /// - you asked for a non-existent element by id ([`Error::ElementNotFound`])
 /// - a `web-sys` call returned a JavaScript error ([`Error::Dom`])
@@ -14,6 +14,8 @@
 /// - an empty or whitespace-only `<title>`/`<desc>` value was supplied ([`Error::InvalidAccessibleText`])
 /// - a `TransferFunction::Table`/`Discrete` value list had a length with no defined SVG semantics
 ///   ([`Error::InvalidTransferFunction`])
+/// - a `feConvolveMatrix` `order`/`order_x`/`order_y` value of zero was supplied
+///   ([`Error::InvalidConvolveMatrixOrder`])
 /// - Crate-level validation errors for various id strings
 ///   - a bad marker id ([`Error::InvalidMarkerId`])
 ///   - a bad gradient id ([`Error::InvalidGradientId`])
@@ -243,6 +245,20 @@ pub enum Error {
     ///
     /// Returned by [`SvgFilter::component_transfer`](crate::SvgFilter::component_transfer).
     InvalidTransferFunction(&'static str),
+
+    /// A `feConvolveMatrix` `order`, `order_x`, or `order_y` value of `0` was rejected before reaching the DOM.
+    ///
+    /// The SVG Filter Effects specification requires `order`'s components to be integers greater than zero.
+    /// Unlike a `kernel_matrix` length mismatch (which the spec defines as an inert pass-through) or a `divisor` of
+    /// `0.0` (which the spec defines as falling back to the kernel's own value sum), a zero `order` component has no
+    /// defined fallback — it is simply outside the attribute's permitted value range, so this crate rejects it rather
+    /// than serializing a value the specification never assigns a meaning to.
+    ///
+    /// Returned by [`SvgFilter::convolve_matrix`](crate::SvgFilter::convolve_matrix) and
+    /// [`convolve_matrix_xy`](crate::SvgFilter::convolve_matrix_xy).
+    ///
+    /// The inner `&'static str` describes which component(s) were rejected.
+    InvalidConvolveMatrixOrder(&'static str),
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -290,6 +306,7 @@ impl std::fmt::Display for Error {
                 write!(f, "{tag} value must not be empty or whitespace-only")
             },
             Error::InvalidTransferFunction(msg) => write!(f, "invalid transfer function values: {msg}"),
+            Error::InvalidConvolveMatrixOrder(msg) => write!(f, "invalid feConvolveMatrix order: {msg}"),
         }
     }
 }

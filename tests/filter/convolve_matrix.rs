@@ -1,5 +1,5 @@
 use crate::common::*;
-use svg_dom::EdgeMode;
+use svg_dom::{EdgeMode, Error};
 use wasm_bindgen_test::*;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -122,6 +122,23 @@ fn should_set_unwrapped_attrs_via_generic_escape_hatch() -> Result<(), String> {
     check_eq(el.get_attribute("targetY"), Some("1".into()))
 }
 
+/// Unlike a `kernel_matrix` length mismatch or a zero `divisor` (both spec-defined fallbacks, see
+/// `should_serialize_mismatched_kernel_length_unvalidated` above), an `order` of `0` has no defined SVG fallback, so
+/// `convolve_matrix` rejects it before creating any element.
+#[wasm_bindgen_test]
+fn should_reject_zero_order() -> Result<(), String> {
+    let svg = make_svg("filter-convolve-matrix-zero-order");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("fcmzo").map_err(|e| e.to_string())?;
+    let kernel: [f64; 0] = [];
+    let result = filter.convolve_matrix(0, &kernel, 1.0, EdgeMode::Duplicate, false);
+    check(
+        matches!(result, Err(Error::InvalidConvolveMatrixOrder(_))),
+        "expected InvalidConvolveMatrixOrder error for order: 0",
+    )?;
+    check_eq(filter.as_element().child_element_count(), 0)
+}
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // convolve_matrix_xy primitive
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -179,4 +196,35 @@ fn should_set_result_on_convolve_matrix_xy_via_generic_escape_hatch() -> Result<
         .map_err(|e| e.to_string())?;
     conv.set_attr("result", "streaked").map_err(|e| e.to_string())?;
     check_eq(conv.as_element().get_attribute("result"), Some("streaked".into()))
+}
+
+/// `convolve_matrix_xy` rejects `order_x: 0` before creating any element, the same as `convolve_matrix` does for a
+/// zero `order`.
+#[wasm_bindgen_test]
+fn should_reject_zero_order_x() -> Result<(), String> {
+    let svg = make_svg("filter-convolve-matrix-xy-zero-order-x");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("fcmxyzx").map_err(|e| e.to_string())?;
+    let kernel: [f64; 0] = [];
+    let result = filter.convolve_matrix_xy(0, 3, &kernel, 1.0, EdgeMode::Duplicate, false);
+    check(
+        matches!(result, Err(Error::InvalidConvolveMatrixOrder(_))),
+        "expected InvalidConvolveMatrixOrder error for order_x: 0",
+    )?;
+    check_eq(filter.as_element().child_element_count(), 0)
+}
+
+/// `convolve_matrix_xy` rejects `order_y: 0` before creating any element, the same as for `order_x`.
+#[wasm_bindgen_test]
+fn should_reject_zero_order_y() -> Result<(), String> {
+    let svg = make_svg("filter-convolve-matrix-xy-zero-order-y");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    let filter = defs.filter("fcmxyzy").map_err(|e| e.to_string())?;
+    let kernel: [f64; 0] = [];
+    let result = filter.convolve_matrix_xy(3, 0, &kernel, 1.0, EdgeMode::Duplicate, false);
+    check(
+        matches!(result, Err(Error::InvalidConvolveMatrixOrder(_))),
+        "expected InvalidConvolveMatrixOrder error for order_y: 0",
+    )?;
+    check_eq(filter.as_element().child_element_count(), 0)
 }

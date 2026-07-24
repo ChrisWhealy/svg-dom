@@ -94,9 +94,15 @@ impl SvgFilter {
     /// look, so the flat (zero-response) areas of the image render as mid-grey rather than black. Set it via
     /// `set_attr("bias", "0.5")` on the returned node — see the emboss example below.
     ///
+    /// `order` itself, unlike the two caveats above, *is* rejected when it is `0`: the SVG spec requires `order`'s
+    /// component(s) to be an integer greater than zero, and (unlike the length-mismatch or zero-`divisor` cases) gives
+    /// no defined fallback for a zero component, so this crate returns [`Error::InvalidConvolveMatrixOrder`] rather
+    /// than serializing a value the specification never assigns a meaning to.
+    ///
     /// # Errors
     ///
-    /// Returns [`Error::Dom`] if the browser refuses to create or append the `<feConvolveMatrix>` element.
+    /// - [`Error::InvalidConvolveMatrixOrder`] if `order` is `0`.
+    /// - [`Error::Dom`] if the browser refuses to create or append the `<feConvolveMatrix>` element.
     ///
     /// # Example
     ///
@@ -147,6 +153,9 @@ impl SvgFilter {
         edge_mode: EdgeMode,
         preserve_alpha: bool,
     ) -> Result<SvgNode, Error> {
+        if order == 0 {
+            return Err(Error::InvalidConvolveMatrixOrder("order must be greater than zero"));
+        }
         self.convolve_matrix_args(format_args!("{order}"), kernel_matrix, divisor, edge_mode, preserve_alpha)
     }
 
@@ -168,7 +177,10 @@ impl SvgFilter {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::Dom`] if the browser refuses to create or append the `<feConvolveMatrix>` element.
+    /// - [`Error::InvalidConvolveMatrixOrder`] if `order_x` or `order_y` is `0` — see
+    ///   [`convolve_matrix`](Self::convolve_matrix)'s own doc comment for why this, unlike a `kernel_matrix`
+    ///   length mismatch or a zero `divisor`, is rejected rather than documented.
+    /// - [`Error::Dom`] if the browser refuses to create or append the `<feConvolveMatrix>` element.
     ///
     /// # Example
     ///
@@ -193,6 +205,11 @@ impl SvgFilter {
         edge_mode: EdgeMode,
         preserve_alpha: bool,
     ) -> Result<SvgNode, Error> {
+        if order_x == 0 || order_y == 0 {
+            return Err(Error::InvalidConvolveMatrixOrder(
+                "order_x and order_y must both be greater than zero",
+            ));
+        }
         self.convolve_matrix_args(
             format_args!("{order_x} {order_y}"),
             kernel_matrix,

@@ -12,6 +12,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Implement the filter effect `feConvolveMatrix` (`4aca9a2`)
 
+### Fixed
+
+- Reject `order`/`order_x`/`order_y` of `0` in `feConvolveMatrix` instead of silently accepting it (``)
+
 # [Released]
 
 ## [0.1.72] - 2026-07-23
