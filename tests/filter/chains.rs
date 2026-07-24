@@ -1,5 +1,5 @@
 use crate::common::*;
-use svg_dom::{BlendMode, Channel, ColorMatrixType, CompositeOperator, MorphologyOperator, TurbulenceType};
+use svg_dom::{BlendMode, Channel, ColorMatrixType, CompositeOperator, EdgeMode, MorphologyOperator, TurbulenceType};
 use wasm_bindgen_test::*;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -248,4 +248,43 @@ fn should_build_tiled_noise_chain() -> Result<(), String> {
     check_eq(turb.get_attribute("width"), Some("20".into()))?;
     check_eq(turb.get_attribute("height"), Some("20".into()))?;
     check_eq(tile.tag_name(), "feTile".to_owned())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// convolve_matrix + color_matrix — desaturated emboss chain
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// `convolve_matrix` composes with `color_matrix` into a well-formed classic-emboss filter: convolve with a
+/// zero-sum emboss kernel (`bias: 0.5`, set via the generic escape hatch, shifts flat regions to mid-grey instead of
+/// clamping to black), then desaturate the result — the standard finishing touch for an embossed look, since the
+/// raw convolution output still carries the source's own hue. As with the other chains in this file, this only
+/// proves the DOM is assembled correctly; it does not capture or inspect rendered output.
+#[wasm_bindgen_test]
+fn should_build_desaturated_emboss_chain() -> Result<(), String> {
+    let svg = make_svg("filter-convolve-matrix-emboss-chain");
+    let defs = svg.defs().map_err(|e| e.to_string())?;
+    #[rustfmt::skip]
+    let kernel = [
+        -2.0, -1.0, 0.0,
+        -1.0,  1.0, 1.0,
+         0.0,  1.0, 2.0,
+    ];
+    let filter = defs
+        .build_filter("emboss", |f| {
+            f.convolve_matrix(3, &kernel, 1.0, EdgeMode::Duplicate, true)?
+                .set_attrs([("bias", "0.5"), ("result", "embossed")])?;
+            f.color_matrix(ColorMatrixType::Saturate(0.0))?.set_attr("in", "embossed")?;
+            Ok(())
+        })
+        .map_err(|e| e.to_string())?;
+    let el = filter.as_element();
+    check_eq(el.child_element_count(), 2)?;
+    let conv = el.first_element_child().ok_or("expected a <feConvolveMatrix> child")?;
+    let matrix = conv.next_element_sibling().ok_or("expected a <feColorMatrix> sibling")?;
+    check_eq(conv.tag_name(), "feConvolveMatrix".to_owned())?;
+    check_eq(conv.get_attribute("bias"), Some("0.5".into()))?;
+    check_eq(conv.get_attribute("result"), Some("embossed".into()))?;
+    check_eq(matrix.tag_name(), "feColorMatrix".to_owned())?;
+    check_eq(matrix.get_attribute("in"), Some("embossed".into()))?;
+    check_eq(matrix.get_attribute("type"), Some("saturate".into()))
 }

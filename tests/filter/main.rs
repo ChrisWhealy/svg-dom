@@ -31,11 +31,13 @@
 //!   `src/root/filter/primitives/morphology.rs`.
 //! - [`image`] — `image` — mirrors `src/root/filter/primitives/image.rs`.
 //! - [`tile`] — `tile` — mirrors `src/root/filter/primitives/tile.rs`.
+//! - [`convolve_matrix`] — `convolve_matrix`/`convolve_matrix_xy`, every `EdgeMode` keyword, and the unvalidated
+//!   kernel-length-mismatch pass-through case — mirrors `src/root/filter/primitives/convolve_matrix.rs`.
 //! - [`chains`] — cross-primitive integration tests (the manual blur+offset+merge and blur+flood+composite+offset+merge
 //!   drop-shadow chains, the flood+blend+composite tint chain, the turbulence+displacement_map noise-distortion chain,
 //!   the morphology+merge bold-outline chain, the image+color_matrix filtered-image chain, the image+composite+blend
-//!   textured-object chain, and the turbulence+tile tiled-noise chain) — these compose several primitives together, so
-//!   they don't belong to any single primitive's own file.
+//!   textured-object chain, the turbulence+tile tiled-noise chain, and the convolve_matrix emboss recipe) — these
+//!   compose several primitives together, so they don't belong to any single primitive's own file.
 //!
 //! `tests/common.rs` is one directory up (shared with every other integration test file), hence the `#[path]`
 //! override below rather than a plain `mod common;`.
@@ -50,6 +52,7 @@ mod color_matrix;
 mod component_transfer;
 mod composite;
 mod construction;
+mod convolve_matrix;
 mod displacement_map;
 mod drop_shadow;
 mod flood;

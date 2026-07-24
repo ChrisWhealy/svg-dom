@@ -39,6 +39,8 @@ Remove the filter with `SvgNode::remove_filter()`.
 | `morphology_xy(radius_x, radius_y, operator)` | `<feMorphology>` | As `morphology`, but with independent horizontal/vertical radii, writing the SVG two-number `radius="x y"` form. Both values must be positive: unlike `gaussian_blur_xy`, a zero (or negative) component on *either* axis disables the whole primitive rather than giving a one-dimensional effect — see the warning below. |
 | `image(href)` | `<feImage>` | Uses the image or SVG content at `href` as this primitive's own generated output — like `turbulence`/`turbulence_xy`, a generator with no meaningful `in`. `preserveAspectRatio` is not wrapped by a named parameter, the same choice already made for `SvgRoot::image`. Supplies a *second*, independent image source that can be combined with the filtered element's own `SourceGraphic`/`SourceAlpha` — a plain filtered `<image>` already becomes its own `SourceGraphic` and can be colour-transformed or blended on its own, but combining it with unrelated content needs either `image` or a second layered element. `href` accepts a same-document `"#id"` reference as well as an external/`data:` URL, and is written verbatim; do not pass a `javascript:` URL or other attacker-controlled string without validation. Loading is asynchronous: a successful return means only that the DOM node was constructed, not that `href` has loaded; a missing/unsupported/zero-sized/failed resource renders as transparent black. A *tainted* result (an SVG element reference, or an image fetched in no-CORS mode) consumed as `displacement_map`'s `in2` makes that displacement silently become a pass-through — see the warning below. |
 | `tile()` | `<feTile>` | Repeats its input across this primitive's own subregion. Has no numeric or enum-valued attributes needing a typed parameter — the optional `in`, and the common `result`, `x`, `y`, `width` and `height` are all reachable via `set_attr`/`set_attrs` on the returned `SvgNode`. The repeated rectangle is the selected input's *effective* subregion, not anything `tile` itself chooses — see the warning below, since that subregion must be smaller than `tile`'s own output subregion or tiling has no visible effect. |
+| `convolve_matrix(order, kernel_matrix, divisor, edge_mode, preserve_alpha)` | `<feConvolveMatrix>` | Applies a square `order`×`order` matrix convolution — the general image-processing operation behind sharpening, blurring, embossing, and edge-detection kernels. `kernel_matrix` is a `&[f64]` slice that must contain exactly `order * order` values, in row-major order; `edge_mode` is an `EdgeMode` (`Duplicate`/`Wrap`/`None`) selecting how the kernel reads beyond the input's border. `bias`, `targetX`, `targetY`, and `kernelUnitLength` are not wrapped by named parameters — set them via `set_attr`/`set_attrs` on the returned node. **A `kernel_matrix` whose length does not match `order * order` is not rejected, but neither will it result in any visible alteration to the input — see the warning below.** |
+| `convolve_matrix_xy(order_x, order_y, kernel_matrix, divisor, edge_mode, preserve_alpha)` | `<feConvolveMatrix>` | As `convolve_matrix`, but with an `order_x`×`order_y` rectangular kernel, writing the SVG two-number `order="x y"` form — the natural shape for a directional (horizontal-only or vertical-only) effect that a square kernel cannot express. |
 
 ***⚠️ `CompositeOperator::Arithmetic` requires `k1`–`k4` to be set manually***
 
@@ -311,7 +313,57 @@ A generator with no referenced input, such as `feTurbulence` in the example abov
 
 Whichever primitive in the chain actually needs narrowing, its effective subregion must be smaller than `tile`'s own output subregion, or there is nothing smaller than the destination rectangle to repeat, and `tile`'s output is indistinguishable from its input passed through unchanged.
 
-See [`../gaps.md`](../gaps.md) for the primitives (`feConvolveMatrix`, and others) still to be added.
+`convolve_matrix` applies an arbitrary matrix convolution, independent of every other primitive on this page — the same general-purpose operation behind sharpen, blur, emboss, and edge-detect kernels in any image editor:
+
+```rust,no_run
+use svg_dom::{SvgRoot, root::filter::EdgeMode};
+
+let svg  = SvgRoot::attach("diagram")?;
+let defs = svg.defs()?;
+let flt  = defs.filter("sharpen")?;
+
+#[rustfmt::skip]
+let kernel = [
+     0.0, -1.0,  0.0,
+    -1.0,  5.0, -1.0,
+     0.0, -1.0,  0.0,
+];
+flt.convolve_matrix(3, &kernel, 1.0, EdgeMode::Duplicate, false)?;
+
+Ok::<(), svg_dom::Error>(())
+```
+
+The kernel above sums to `1.0`, so `divisor: 1.0` preserves overall brightness and the default `bias` of `0.0` needs no adjustment.
+A kernel that sums to `0.0` instead (e.g. most edge-detect and emboss kernels) convolves a flat region of input to `0.0`, which clamps to black unless `bias` is set via the generic escape hatch (since it is not one of `convolve_matrix`'s own parameters) to shift that midpoint back into the visible range; `0.5` is the standard choice for a classic embossed-grey look:
+
+```rust,no_run
+use svg_dom::{SvgRoot, root::filter::EdgeMode};
+
+let svg  = SvgRoot::attach("diagram")?;
+let defs = svg.defs()?;
+let flt  = defs.filter("emboss")?;
+
+#[rustfmt::skip]
+let kernel = [
+    -2.0, -1.0, 0.0,
+    -1.0,  1.0, 1.0,
+     0.0,  1.0, 2.0,
+];
+flt.convolve_matrix(3, &kernel, 1.0, EdgeMode::Duplicate, true)?
+    .set_attr("bias", "0.5")?;
+
+Ok::<(), svg_dom::Error>(())
+```
+
+***⚠️ A `kernel_matrix` whose length does not equal `order * order` (or `order_x * order_y`) is not rejected — instead, no visible effect is produced***
+
+Per the SVG spec, `<feConvolveMatrix>` *acts as a pass through filter* when `kernelMatrix`'s length does not match `order`'s — `in` renders unchanged, with no error raised by this crate or by the browser.
+
+This is a defined, well-formed (albeit inert) rendering outcome, the same category of behaviour as `morphology_xy`'s zero-or-negative-component case above, so it is documented rather than validated — see `convolve_matrix`'s own doc comment for the full explanation of why.
+
+Double-check `kernel_matrix.len()` against `order * order` yourself; a silently inert filter is easy to mistake for one that simply has no visible effect on the chosen input.
+
+See [`../gaps.md`](../gaps.md) for the primitives still to be added.
 
 ## Region and Coordinate-Space Attributes
 

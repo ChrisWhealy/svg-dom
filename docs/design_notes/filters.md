@@ -14,6 +14,7 @@
 - [`image` takes `href` positionally and adds no `PreserveAspectRatio` type, both by analogy with `SvgRoot::image`](#image-takes-href-positionally-and-adds-no-preserveaspectratio-type-both-by-analogy-with-svgrootimage)
 - [Filter region and coordinate-space attributes get named setters, `FilterUnits` reuses the `PatternUnits` shape](#filter-region-and-coordinate-space-attributes-get-named-setters-filterunits-reuses-the-patternunits-shape)
 - [`tile` is the first primitive with zero parameters](#tile-is-the-first-primitive-with-zero-parameters)
+- [`convolve_matrix` and `convolve_matrix_xy` take a plain `&[f64]` kernel and document, rather than validate, a length mismatch](#convolve_matrix-and-convolve_matrix_xy-take-a-plain-f64-kernel-and-document-rather-than-validate-a-length-mismatch)
 
 `SvgFilter` (`src/root/filter/`) is structurally identical to `SvgClipPath` and `SvgPattern`: that is, it is an id-cached container obtained from `SvgDefs::filter`/`build_filter`, applied to any element via `SvgNode::set_filter_ref`/`set_filter`, with the usual `set_attr`/`set_attrs`/`set_attr_display` escape hatch for attributes not yet wrapped by a named setter.
 That much follows established precedent directly; the one new decision is what a filter-primitive *builder method* — `gaussian_blur`, and whatever `fe*` methods follow it — should hand back.
@@ -205,3 +206,45 @@ An ordinary primitive's default subregion is generally the union of its own refe
 Neither replaces the other; they solve the same "repeat this pattern" problem in two different parts of the SVG rendering model.
 
 See [`docs/gaps.md`](../gaps.md) for the primitives still to be added.
+
+## `convolve_matrix` and `convolve_matrix_xy` take a plain `&[f64]` kernel and document, rather than validate, a length mismatch
+
+`<feConvolveMatrix>` is the highest-attribute-count primitive in this crate: `order`, `kernelMatrix`, `divisor`, `bias`, `targetX`/`targetY`, `edgeMode`, `kernelUnitLength`, and `preserveAlpha`, on top of the usual `in`/`result`.
+
+Following the same "cover what's common, defer what's rare" judgement already used by `drop_shadow` and `composite`, five of these become named parameters — `order` (or `order_x`/`order_y`), `kernel_matrix`, `divisor`, `edge_mode`, `preserve_alpha` — since every meaningful use of this primitive supplies all five: there is no useful "just convolve" call that skips any of them.
+
+`bias`, `targetX`, `targetY`, and `kernelUnitLength` are deferred to the generic `set_attr`/`set_attrs` escape hatch, which is the same treatment `composite` gives `Arithmetic`'s `k1`–`k4`: each only matters for a minority of kernels:
+
+* `bias` for a kernel whose output can go negative
+* `targetX`/`targetY` for an asymmetric kernel whose "centre" isn't the geometric middle
+* `kernelUnitLength` for a device-independent kernel spacing
+
+so promoting all four to positional parameters would bloat the common call for a benefit needed only by a few callers.
+
+`order`, `order_x` and `order_y` follow the fourth occurrence of the `fmt::Arguments`-core split already used by `gaussian_blur`/`gaussian_blur_xy` (`stdDeviation`), `turbulence`/`turbulence_xy` (`baseFrequency`), and `morphology`/`morphology_xy` (`radius`): that is, private `convolve_matrix_args` do the actual element creation and attribute writes, with `convolve_matrix` calling it via `format_args!("{order}")` and `convolve_matrix_xy` via `format_args!("{order_x} {order_y}")`.
+
+`kernel_matrix` is a plain `&[f64]` slice, not a fixed-size array the way `ColorMatrixType::Matrix` uses `[f64; 20]`.
+
+`feColorMatrix`'s `values` attribute has exactly one valid length (20) across every use of that element, so a fixed-size array of the wrong length can be caught at compile time for free; however, `feConvolveMatrix`'s `kernelMatrix` has no such single valid length, since the slice length must equal `order_x * order_y`, which is itself a parameter the caller chooses per call.
+
+A `[f64; N]` parameter for `kernel_matrix` would therefore need `N` to be a const generic tied to two further const generics (the product of `order_x` and `order_y`), which is an expression Rust's stable const-generics cannot yet support (this crate's `rust-version` is 1.85, well before the still-nightly-only `generic_const_exprs`).
+
+A runtime slice is therefore the only shape available, so a mismatch between `kernel_matrix.len()` and `order_x * order_y` cannot be rejected at compile time the way an out-of-range `ColorMatrixType::Matrix` element count can.
+
+The natural next question is whether that mismatch should be validated at runtime, the way `component_transfer` validates `TransferFunction::Table`/`Discrete`'s value-count edge cases via `Error::InvalidTransferFunction`.
+
+Checking the SVG specification settles it the other way: a `kernelMatrix` whose length does not equal `orderX * orderY` is explicitly defined to make `<feConvolveMatrix>` *"act as a pass through filter"*.
+This therefore defines a well-formed (albeit inert) rendering outcome, rather than an error condition whose handling browsers may well disagree on (in the same way they disagree on how an *undefined* `TransferFunction::Table`/`Discrete` length is handled).
+
+This is exactly the distinction the `morphology`/`morphology_xy` correction (below) already draws for a negative/zero `radius`: a defined-but-perhaps-surprising SVG behaviour gets documented with a `⚠️` warning on the affected method, not a new `Error` variant.
+
+`convolve_matrix`'s own doc comment states this directly, mirroring `morphology_xy`'s *"not a no-op you'd expect"* treatment rather than inventing a new validation for a case the specification has already settled.
+
+The same reasoning applies to `divisor: 0.0`: the specification defines this as falling back to the sum of `kernel_matrix`'s own values (or `1.0` if that sum is itself `0.0`), rather than an error.
+So this crate passes it through unvalidated and documents the fallback rather than rejecting it or treating it as a special case.
+
+`SpaceSeparated` — to avoid duplicating functionality, the private `fmt::Display` wrapper `component_transfer` already used internally to provide an allocation-free way to write `tableValues`, has been moved from `component_transfer.rs` to `primitives/mod.rs` as `pub(super)` so `convolve_matrix` can reuse it for `kernelMatrix`.
+
+`EdgeMode` is a fresh three-variant fieldless enum (`Duplicate`/`Wrap`/`None`), not a reuse of any existing crate enum — unlike `MorphologyOperator` reusing `Channel`'s selector vocabulary, nothing else in this crate's filter API shares `edgeMode`'s specific `duplicate`/`wrap`/`none` keyword set, so a new type is the correct call here, following the same "reuse only when the vocabulary is genuinely identical" rule that section already established.
+
+`Duplicate` is listed first as `<feConvolveMatrix>`'s own SVG default — the same "spec default first" convention `MorphologyOperator` follows — even though `<feGaussianBlur>` also has an `edgeMode` attribute sharing this vocabulary with a *different* default (`None`); `EdgeMode`'s own doc comment notes this explicitly so a reader does not assume one shared default across both elements.

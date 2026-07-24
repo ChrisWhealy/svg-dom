@@ -1,26 +1,9 @@
-use super::super::{Channel, SvgFilter, TransferFunction};
+use super::{
+    super::{Channel, SvgFilter, TransferFunction},
+    SpaceSeparated,
+};
 use crate::{Error, SvgNode, dom_err, root::create_svg_element};
-use std::fmt;
 use web_sys::SvgElement;
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Formats a slice of `f64` space-separated, straight into the caller's `fmt::Formatter` — used to write
-/// `tableValues` through [`SvgAttrs::display_element`](crate::root::attrs::SvgAttrs::display_element)'s scratch
-/// buffer with no intermediate `String`/`Vec` allocation, the same technique this crate's internal `write_points`
-/// helper uses for the `points` attribute.
-struct SpaceSeparated<'a>(&'a [f64]);
-
-impl fmt::Display for SpaceSeparated<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for (i, v) in self.0.iter().enumerate() {
-            if i > 0 {
-                f.write_str(" ")?;
-            }
-            write!(f, "{v}")?;
-        }
-        Ok(())
-    }
-}
 
 impl SvgFilter {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

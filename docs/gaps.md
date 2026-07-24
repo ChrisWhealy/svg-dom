@@ -11,7 +11,6 @@ The following filter effect primitives still need to be implemented, each with i
 
 | Missing Primitive | Cost | Benefit |
 |---|---|---|
-| `<feConvolveMatrix>` | High — `order`, `kernelMatrix` (variable-length, needs validation), `divisor`, `bias`, `targetX`/`targetY`, `edgeMode`, `preserveAlpha`. | Low — sharpen/emboss/edge-detect, rare outside specialty tooling. |
 | `<feDiffuseLighting>` / `<feSpecularLighting>` | High — each needs light-source child elements (`<feDistantLight>`/`<fePointLight>`/`<feSpotLight>`), each with its own attribute set, plus `surfaceScale`/`specularExponent`/`lighting-color`. | Low — embossed/3D lighting effects, rarely used on the web. |
 
 Every filter primitive reuses the same `SvgFilter` pattern already proven multiple times (`impl SvgFilter { pub fn x(&self, ...) -> Result<SvgNode, Error> }`), so none of them require a new architectural decision — only attribute-surface work that scales with each primitive's own complexity.
@@ -41,4 +40,4 @@ They have been intentionally excluded:
 
 ### Priority
 
-`feConvolveMatrix` and `feDiffuseLighting`/`feSpecularLighting` remain the most expensive items on either list for the narrowest payoff, and not considered a high priority.
+`feDiffuseLighting`/`feSpecularLighting` remain the most expensive items left to implement.

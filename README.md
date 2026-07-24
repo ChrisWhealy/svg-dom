@@ -59,7 +59,7 @@ That said, all reasonable, conventional steps have been taken to provide a secur
     - [x] `feColorMatrix`
     - [x] `feComponentTransfer`
     - [x] `feComposite`
-    - [ ] `feConvolveMatrix`
+    - [x] `feConvolveMatrix`
     - [ ] `feDiffuseLighting`
     - [x] `feDisplacementMap`
     - [x] `feDropShadow`

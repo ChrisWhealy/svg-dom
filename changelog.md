@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Unreleased]
 
+## [0.1.73] - 2026-07-24
+
+### Added
+
+- Implement the filter effect `feConvolveMatrix` (``)
+
 # [Released]
 
 ## [0.1.72] - 2026-07-23

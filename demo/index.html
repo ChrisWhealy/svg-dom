@@ -84,6 +84,7 @@
                 <button type="button" class="menu-item" data-target="panel-morphology">feMorphology</button>
                 <button type="button" class="menu-item" data-target="panel-fe-image">feImage</button>
                 <button type="button" class="menu-item" data-target="panel-fe-tile">feTile</button>
+                <button type="button" class="menu-item" data-target="panel-convolve-matrix">feConvolveMatrix</button>
             </details>
 
             <details class="menu-group">
@@ -815,6 +816,46 @@
                         <code>fill</code>/<code>stroke</code>,
                         while <code>feTile</code> repeats a filter-generated tile as one step inside a filter graph, so
                         its output can feed further primitives the same way any other primitive's output can.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- feConvolveMatrix -->
+            <section class="section" id="panel-convolve-matrix">
+                <h2><code>&lt;feConvolveMatrix&gt;</code> — arbitrary matrix convolution</h2>
+                <figure>
+                    <div class="canvas" id="demo-convolve-matrix"></div>
+                    <figcaption>
+                        <ul>
+                            <li><strong>original</strong> — bold text, no filter</li>
+                            <li><strong>sharpen</strong> — a classic 3&times;3 sharpen kernel whose values sum to
+                                <code>1.0</code>, so <code>divisor: 1.0</code> preserves overall brightness and the
+                                default <code>bias</code> of <code>0.0</code> needs no adjustment</li>
+                            <li><strong>edge-detect</strong> — a zero-sum 3&times;3 kernel; a flat region convolves
+                                to <code>0.0</code> (black), leaving only the glyphs' edges lit —
+                                <code>preserve_alpha: true</code> keeps the text's own alpha coverage unfiltered, so
+                                the edges stay crisp against the transparent background</li>
+                            <li><strong>emboss (desaturated)</strong> — a zero-sum emboss kernel with
+                                <code>bias: 0.5</code> (set via the generic escape hatch, since it is not one of
+                                <code>convolve_matrix</code>'s own parameters) shifting flat regions to mid-grey
+                                instead of clamping to black; a final <code>color_matrix(Saturate(0.0))</code>
+                                desaturates the result, since the raw convolution output still carries the source's
+                                own steel-blue hue
+                            </li>
+                        </ul>
+                        <br><br>
+                        <code>feConvolveMatrix</code> is the general-purpose image-processing operation behind
+                        sharpen, blur, emboss, and edge-detect kernels in any image editor: every kernel entry is
+                        multiplied by the corresponding input pixel in its <code>order</code>&times;<code>order</code>
+                        neighbourhood, the products are summed, divided by <code>divisor</code>, and
+                        <code>bias</code> is added.<br>
+                        <code>edge_mode</code> (an <code>EdgeMode</code> — <strong>Duplicate</strong>/<strong>Wrap
+                            </strong>/<strong>None</strong>) selects how the input is virtually extended wherever the
+                        kernel overhangs its border; every panel above uses <strong>Duplicate</strong>, the SVG
+                        default.<br>
+                        A <code>kernel_matrix</code> whose length does not equal <code>order * order</code> is not
+                        rejected by this crate: per the SVG spec, <code>feConvolveMatrix</code> then acts as a pass
+                        through filter instead, a defined (if inert) outcome rather than an error.
                     </figcaption>
                 </figure>
             </section>

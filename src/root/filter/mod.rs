@@ -9,6 +9,7 @@ mod blend_mode;
 mod channel;
 mod color_matrix_type;
 mod composite_operator;
+mod edge_mode;
 mod filter_units;
 mod morphology_operator;
 mod transfer_function;
@@ -18,6 +19,7 @@ pub use blend_mode::BlendMode;
 pub use channel::Channel;
 pub use color_matrix_type::ColorMatrixType;
 pub use composite_operator::CompositeOperator;
+pub use edge_mode::EdgeMode;
 pub use filter_units::FilterUnits;
 pub use morphology_operator::MorphologyOperator;
 pub use transfer_function::TransferFunction;
@@ -60,6 +62,8 @@ mod region;
 /// - [`morphology_xy`](Self::morphology_xy) (`<feMorphology>`)
 /// - [`image`](Self::image) (`<feImage>`)
 /// - [`tile`](Self::tile) (`<feTile>`)
+/// - [`convolve_matrix`](Self::convolve_matrix)
+/// - [`convolve_matrix_xy`](Self::convolve_matrix_xy) (`<feConvolveMatrix>`)
 ///
 /// The first five, taken together, can be used to build a *true* tinted, opacity-controlled drop shadow (blur the
 /// source alpha, composite a flood colour into the blurred mask, offset it, then merge it underneath the original
@@ -105,6 +109,11 @@ mod region;
 /// filter-graph counterpart to [`SvgDefs::pattern`](crate::SvgDefs::pattern)), which repeats a paint server instead of
 /// a filter-generated tile; see [`tile`](Self::tile)'s own doc comment for the narrowed-subregion step this needs to
 /// have any visible effect.
+///
+/// [`convolve_matrix`](Self::convolve_matrix)/[`convolve_matrix_xy`](Self::convolve_matrix_xy) apply an arbitrary
+/// matrix convolution — the general-purpose image-processing operation behind sharpening, blurring, embossing, and
+/// edge-detection kernels — independent of every other primitive above; see its own doc comment for worked examples
+/// of each.
 ///
 /// The SVG filter specification defines around fifteen effect primitives in total, each with its own attribute grammar.
 ///
