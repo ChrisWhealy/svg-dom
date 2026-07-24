@@ -29,7 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Doc only: note specular_constant's non-negative restriction, and fix copy-editing typos (`3cc86a6`)
 - CI: pin `wasm-pack-action` to a specific version instead of resolving "latest" on every run (`da33f1b`)
 - Doc only: README's Error description no longer claims an exhaustive inline enumeration (``)
-- Doc only: Correct README inconsistencies (``)
+- Doc only: Correct README inconsistencies (`3e24eff`)
 
 # [Released]
 
