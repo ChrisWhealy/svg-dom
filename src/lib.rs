@@ -11,7 +11,6 @@
 //!
 //! | Module | Key type | Purpose |
 //! |---|---|---|
-//! | `demo` (feature `demo`) | | Provides a set of SVG element examples.  Run `cargo demo` then visit http://localhost:8080/demo. |
 //! | [`error`] | [`Error`] | Wrapper for Browser DOM errors |
 //! | [`root`] | [`SvgRoot`] / [`SvgAttrs`] | Wraps the `<svg>` root; factory for all child elements; reusable attribute writing |
 //! | [`root::defs`] | [`SvgDefs`] | `<defs>` container; factory for markers, gradients, clip-paths, patterns, filters, and symbols |
@@ -49,8 +48,9 @@
 //!
 //! The SVG-building API is also safe by construction against script injection: all text content set through the public
 //! API uses `textContent`, never `innerHTML`, and there is no use of `eval`.
-//! The fact that the `demo` module makes use of `innerHTML` is simply an implementation detail of the showcase module
-//! and forms no part of the library contract.
+//! The interactive demo gallery (the separate `svg-dom-demo` workspace crate, built via `cargo demo`) does make use of
+//! `innerHTML` for its own syntax-highlighted source-code panels; that is an implementation detail of that showcase
+//! crate and forms no part of this library's own contract.
 //!
 //! The one thing to be aware of is [`SvgNode::set_attr`](crate::SvgNode::set_attr) (and [`set_attrs`](crate::SvgNode::set_attrs)),
 //! write attribute names and values **verbatim** via `setAttribute`.
@@ -71,10 +71,6 @@ pub mod error;
 pub mod node;
 /// The `<svg>` root [`SvgRoot`], the element factories, batching, and the reusable attribute writer.
 pub mod root;
-
-/// Interactive browser element gallery, compiled only under the `demo` feature.
-#[cfg(feature = "demo")]
-pub mod demo;
 
 pub use animate::{anim_frame::AnimationFrame, anim_loop::AnimationLoop};
 pub use error::Error;

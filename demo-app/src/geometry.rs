@@ -1,6 +1,6 @@
 use super::colours::*;
 use super::{H, PAD_Y, W, caption, keep_demo_anim, keep_demo_node};
-use crate::{
+use svg_dom::{
     AnimationLoop, Error, SvgRoot,
     root::utils::{Point, Size},
 };
@@ -9,12 +9,16 @@ use crate::{
 // Geometry — total_length / point_at_length (a marker chasing a lap around an ellipse track)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 //
-// `total_length()` is measured once at setup — the track's geometry never changes, so there is no reason to
-// re-measure it every frame. `point_at_length()`, by contrast, genuinely belongs on the animation's hot path: the
-// runner's position is recomputed every frame from the current lap fraction. That is exactly the per-frame browser
-// measurement the method's own doc comment cautions about — a legitimate demonstration here (one simple ellipse, not
-// a whole scene's worth), but the acceptable cost was not independently profiled; a caller doing this for real should
-// profile it against their own path complexity and target browser before assuming it scales.
+// `total_length()` is measured once at setup.  This means the track's geometry never changes, so there is no reason to
+// re-measure it every frame.
+//
+// By contrast, `point_at_length()` genuinely belongs on the animation's hot path, so te runner's position needs to be
+// recomputed every frame from the current lap fraction. That is exactly the per-frame browser measurement the method's
+// own doc comment cautions about — a legitimate demonstration here (one using a simple ellipse, not a whole scene's
+// worth of paths), but the acceptable cost has not been independently profiled.
+//
+// ⚠️ A caller implementing this for real should profile it against their own path complexity and target browser before
+// assuming the functionality scales adequatelty.
 pub(super) fn demo_geometry_path_follow() -> Result<(), Error> {
     const CX: f64 = W / 2.0;
     const CY: f64 = PAD_Y + BAND_HALF;
@@ -69,25 +73,31 @@ pub(super) fn demo_geometry_path_follow() -> Result<(), Error> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 //
 // None of the three shapes below carry a `transform`, so each one's `bounding_box()` (local, pre-transform
-// user-space) lines up exactly with where it is actually rendered — the dashed overlay can be drawn directly from
-// the returned coordinates with no further conversion. (`bounding_box()` deliberately excludes an element's own
-// `transform`, confirmed empirically before writing this demo — a transformed element's overlay would need to share
-// that same transform, which this demo sidesteps entirely by not using one.)
+// user-space) lines up exactly with where it has actually been rendered. The dashed overlay can be drawn directly from
+// the returned coordinates with no further conversion.
 //
-// The measurement happens inside the `on_click` handler, not once at setup. `getBBox()`/`getBoundingClientRect()`
-// both require the element to actually be rendered — a `display:none` ancestor (which is exactly the state of every
-// non-active demo panel: see `.section`/`.section.active` in `style.css`) makes them report an all-zero rect. Every
-// demo in this gallery is built eagerly by one `run_demo()` call at page load, long before a user has picked which
-// panel to look at, so measuring here at setup time would silently capture zeros for every panel but whichever one
-// happens to be active first. Measuring inside a click handler sidesteps this entirely: a click can only happen on a
-// panel the user is already looking at, which is therefore guaranteed to be rendered.
+// ***NOTE***
+// `bounding_box()` deliberately excludes an element's own `transform`, confirmed empirically before writing this demo -
+// so a transformed element's overlay would need to share that same transform, which this demo sidesteps entirely by not
+// using one.
+//
+// The measurement happens inside the `on_click` handler, not once at setup.
+//
+// `getBBox()` and `getBoundingClientRect()` both require the element to actually be rendered — having a `display:none`
+// ancestor (which is exactly the state of every non-active demo panel: see `.section`/`.section.active` in `style.css`)
+// makes them report an all-zero rect. Every demo in this gallery is built eagerly by a single call to `run_demo()`
+// occurring at page load, long before a user has picked which panel to look at, so measuring here at setup time would
+// silently capture zeros for every panel, not whichever one happens to be active first.
+//
+// Measuring inside a click handler sidesteps this entirely: a click can only happen on a panel the user is already
+// looking at, which is therefore guaranteed to be rendered.
 pub(super) fn demo_geometry_bounding_box() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-geometry-bbox", Size::new(W, H))?;
 
-    // A full-canvas, invisible-but-hit-testable surface placed *behind* the icon (added to the DOM first, so it
-    // renders underneath). A click that lands on the icon hits the icon's own opaque shapes instead of this surface,
-    // so the two `on_click` handlers below never fire for the same click — this one only ever catches clicks outside
-    // the icon, which is exactly what "clear the overlay" should mean.
+    // A full-canvas, invisible-but-hit-testable surface placed *behind* the icon (added to the DOM first, so it renders
+    // underneath). A click that lands on the icon hits the icon's own opaque shapes instead of this surface, so the two
+    // `on_click` handlers below never fire for the same click — this one only ever catches clicks outside the icon,
+    // which is exactly what "clear the overlay" should mean.
     let clear_zone = svg.rect(Point::origin(), Size::new(W, H))?;
     clear_zone.set_fill(TRANSPARENT)?;
 

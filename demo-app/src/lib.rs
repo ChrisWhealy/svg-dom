@@ -1,12 +1,17 @@
 //! Interactive element gallery for the browser.
 //!
+//! This is a separate workspace crate, not a feature of `svg-dom` itself: it depends on `svg-dom` the same way any
+//! external consumer would (a plain `Cargo.toml` path dependency), reaching it only through its public API. This
+//! keeps the demo gallery's build out of the main library's own dependency graph and — since a private/internal
+//! item this crate accidentally relied on would simply fail to compile — doubles as a standing check that the
+//! library's public surface is actually sufficient to build a real, full-featured application against.
+//!
 //! Build and serve with:
 //! ```sh
 //! cargo demo
 //! ```
-//! which rebuilds the wasm package and serves it via the Actix `demo-server` crate at <http://127.0.0.1:8080/demo/>.
-//!
-//! The `demo` feature excludes this code from the normal library build.
+//! which rebuilds this crate's wasm package and serves it via the Actix `demo-server` crate at
+//! <http://127.0.0.1:8080/demo/>.
 
 mod colours;
 mod events;
@@ -18,11 +23,12 @@ mod structure;
 mod texts;
 
 use std::{cell::RefCell, rc::Rc};
+use svg_dom::{AnimationLoop, CachedAttr, Error, SvgAttrs, SvgNode, SvgRoot, root::utils::Point};
 use wasm_bindgen::prelude::*;
 
-use crate::{AnimationLoop, CachedAttr, Error, SvgAttrs, SvgNode, SvgRoot, root::utils::Point};
 use colours::*;
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 thread_local! {
     /// Demo-only owner for interactive nodes whose managed listeners must remain attached after `run_demo` returns.
     ///
@@ -38,6 +44,7 @@ thread_local! {
     static LIVE_DEMO_ANIM: RefCell<Option<AnimationLoop>> = const { RefCell::new(None) };
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 fn keep_demo_node(node: SvgNode) {
     LIVE_DEMO_NODES.with(|nodes| nodes.borrow_mut().push(node));
 }
@@ -46,6 +53,7 @@ fn keep_demo_anim(anim: AnimationLoop) {
     LIVE_DEMO_ANIM.with(|slot| *slot.borrow_mut() = Some(anim));
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Event-type-generic handler that routes a constant `last: {name}` label through a shared `CachedAttr`, so a burst of
 // identical labels (a stream of pointermove/touchmove events) skips the DOM write after the first. Every writer to a
 // given readout must share the *same* cache for it to stay coherent.
@@ -79,7 +87,7 @@ const PAD_Y: f64 = (H - BAND) / 2.0;
 ///
 /// Call this from JavaScript after `await init()`:
 /// ```js
-/// import init, { run_demo } from '../pkg/svg_dom.js';
+/// import init, { run_demo } from '../pkg/svg_dom_demo.js';
 /// await init();
 /// run_demo();
 /// ```
@@ -226,6 +234,7 @@ const DEMO_SOURCES: &[(&str, &str)] = &[
     ("panel-geometry-bbox", "demo_geometry_bounding_box"),
 ];
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Appends a source frame to every panel listed in [`DEMO_SOURCES`].
 fn inject_source_frames() -> Result<(), Error> {
     let document = web_sys::window()
@@ -238,6 +247,7 @@ fn inject_source_frames() -> Result<(), Error> {
     Ok(())
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Builds `<details class="source"><summary>...</summary><pre><code>...</code></pre></details>` and appends it to the
 /// panel `<section>`. A missing panel or missing function is skipped rather than treated as an error, so the gallery
 /// still renders if `index.html` and this module drift apart.
@@ -269,6 +279,7 @@ fn append_source_frame(document: &web_sys::Document, panel_id: &str, fn_name: &s
     Ok(())
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Returns the source text of the top-level `fn {name}` item in [`DEMO_SRC`], from the signature line through its
 /// closing brace, or `None` if it cannot be located.
 ///
@@ -295,6 +306,7 @@ fn demo_fn_source(name: &str) -> Option<&'static str> {
     }
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Creates an element, mapping any DOM failure into [`Error::Dom`].
 fn create_element(document: &web_sys::Document, tag: &str) -> Result<web_sys::Element, Error> {
     document.create_element(tag).map_err(dom_err)

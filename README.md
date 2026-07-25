@@ -76,18 +76,31 @@ wasm-pack build --target web
 
 # Demo Server
 
-To run a basic demo, start the demo Web Server using
+A demo gallery app will become available at <http://127.0.0.1:8080/demo> after running
 
 ```sh
 cargo demo
 ```
 
-Then visit <http://127.0.0.1:8080/demo>.
+The coding used to create the demo implementation is shown beneath each example.
 
-The demo gallery includes examples for the managed event wrappers.
-Interactive demo nodes are kept alive explicitly for the lifetime of the page because managed listeners are removed automatically when their owning `SvgNode` is dropped.
+## Demo Gallery Build Sequence
 
-The coding used in the actual demo implementation is shown beneath each example.
+1. Based on the contents of `.cargo/config.toml`, the command `cargo demo` expands to `cargo run --release -p demo-server`
+
+1. `demo-server`'s `main()` function first starts a shell process that invokes the command `wasm-pack build demo-app --target web --out-dir ../pkg`.
+
+   That one command does several things internally:
+
+   - Runs `cargo build --release --target wasm32-unknown-unknown` scoped to the `demo-app` package.
+    Because `demo-app/Cargo.toml` declares `svg-dom = { path = ".." }`, Cargo first compiles `svg-dom`, then compiles `demo-app` against it, producing a raw `.wasm` binary.
+   - Runs `wasm-bindgen` over that binary to generate the JS/TS glue (`svg_dom_demo.js`, `svg_dom_demo_bg.wasm`, `.d.ts` files) — this is what turns a raw wasm export into something JavaScript can execute.
+   - Runs `wasm-opt` to shrink/optimize the final `.wasm`.
+   - Writes all of it to `--out-dir ../pkg`, resolved relative to the crate path (demo-app), so it lands at `demo-app/../pkg`.
+
+1. Back in `demo-server`, `main()` starts actix-web's `HttpServer` bound to `127.0.0.1:8080`.
+
+1. The browser does the rest
 
 # Quick Start
 

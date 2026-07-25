@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Unreleased]
 
+## [0.2.0] - 2026-07-25
+
+### Changed
+
+- Split the demo gallery into its own workspace crate `svg-dom-demo` (``)
+
 # [Released]
 
 ## [0.1.74] - 2026-07-24

@@ -5,8 +5,12 @@ use std::{
 
 use super::colours::*;
 use super::{BAND, H, PAD_Y, W, caption, keep_demo_anim, keep_demo_node};
-use crate::{
-    AnimationLoop, Error, PathDef, PathDefAbsolute, SvgNode, SvgRoot, dom_err,
+// `dom_err` is this crate's own private helper (defined in `lib.rs`, formerly `mod.rs`'s own DOM-error mapper), not
+// part of `svg_dom`'s public API — kept as a separate `use` from the `svg_dom::` import below for exactly that
+// reason.
+use crate::dom_err;
+use svg_dom::{
+    AnimationLoop, Error, PathDef, PathDefAbsolute, SvgNode, SvgRoot,
     root::utils::{Matrix2D, Point, Size},
 };
 

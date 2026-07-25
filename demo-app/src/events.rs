@@ -6,7 +6,7 @@ use std::{
 
 use super::colours::*;
 use super::{H, PAD_Y, W, cached_label, caption, keep_demo_node};
-use crate::{
+use svg_dom::{
     CachedAttr, Error, SvgAttrs, SvgNode, SvgRoot,
     root::utils::{Point, Size},
 };

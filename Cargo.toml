@@ -1,15 +1,15 @@
 [workspace]
-members = ["demo-server", "a11y-fixture", "accessibility-tree-test"]
-# Keep plain `cargo build` / `cargo test` focused on the library; the demo
-# server (which pulls in actix) is built only on demand via `cargo demo`, and the
-# a11y-fixture wasm crate plus its headless_chrome-driven CDP test are built only on
-# demand via `cargo test -p accessibility-tree-test`.
+members = ["demo-app", "demo-server", "a11y-fixture", "accessibility-tree-test"]
+# Keep plain `cargo build` / `cargo test` focused on the library; the demo-app (the interactive gallery,
+# consuming svg-dom only through its public API) and the demo server (which pulls in actix) are built only
+# on demand via `cargo demo`, and the a11y-fixture wasm crate plus its headless_chrome-driven CDP test are
+# built only on demand via `cargo test -p accessibility-tree-test`.
 default-members = ["."]
 
 [package]
 name = "svg-dom"
 authors = ["Chris Whealy <chris@whealy.com>"]
-version = "0.1.74"
+version = "0.2.0"
 edition = "2024"
 rust-version = "1.85"
 description = "A lightweight Rust/WebAssembly library for creating and mutating live SVG content directly in the browser DOM"
@@ -18,9 +18,6 @@ categories = ["wasm", "web-programming", "rendering"]
 repository = "https://github.com/ChrisWhealy/svg-dom"
 license = "MIT"
 readme = "README.md"
-
-[features]
-demo = []
 
 [lib]
 crate-type = ["cdylib", "rlib"]

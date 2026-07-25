@@ -2,7 +2,7 @@ use std::{cell::Cell, rc::Rc};
 
 use super::colours::*;
 use super::{H, PAD_Y, W, caption};
-use crate::{
+use svg_dom::{
     ArcSize, ArcSweep, EllipticalArc, Error, PathDef, PathDefAbsolute, SvgAttrs, SvgRoot,
     root::utils::{Point, Size},
 };

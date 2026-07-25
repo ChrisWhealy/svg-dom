@@ -1,6 +1,6 @@
 use super::colours::*;
 use super::{BAND, H, PAD_Y, W, caption};
-use crate::{
+use svg_dom::{
     Error, PathDef, PathDefAbsolute, SvgFilter, SvgRoot, TextAnchor,
     root::{
         filter::{

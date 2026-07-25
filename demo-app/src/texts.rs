@@ -1,6 +1,6 @@
 use super::colours::*;
 use super::{H, PAD_Y, W, caption};
-use crate::{
+use svg_dom::{
     DominantBaseline, Error, PathDef, PathDefAbsolute, SvgRoot, TextAnchor,
     root::utils::{Point, Size},
 };

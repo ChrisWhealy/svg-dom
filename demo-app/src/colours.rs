@@ -1,7 +1,7 @@
 //! Named colours for the demo gallery.
 //!
-//! Values are plain CSS colour strings, suitable for passing straight to [`SvgNode::set_fill`](crate::SvgNode::set_fill)
-//! and friends.
+//! Values are plain CSS colour strings, suitable for passing straight to
+//! [`SvgNode::set_fill`](svg_dom::SvgNode::set_fill) and friends.
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Paint keywords (not really colours, but valid paint values)

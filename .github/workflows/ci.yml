@@ -25,9 +25,6 @@ jobs:
       - name: Clippy (library + tests)
         run: cargo clippy --lib --tests -- -D warnings
 
-      - name: Clippy (demo feature)
-        run: cargo clippy --lib --features demo -- -D warnings
-
       - name: Unit tests + doctests
         run: cargo test --all-features
 
@@ -37,7 +34,7 @@ jobs:
           RUSTDOCFLAGS: -D warnings
 
   wasm:
-    name: wasm build · README example
+    name: wasm build · README example · demo-app
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -46,11 +43,19 @@ jobs:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
 
-      - name: Build demo for wasm32
-        run: cargo build --features demo --target wasm32-unknown-unknown
-
       - name: Compile README minimal demo for wasm32
         run: cargo build --example readme_minimal --target wasm32-unknown-unknown
+
+      # `demo-app` (package `svg-dom-demo`) is a separate workspace crate that depends on `svg-dom` only via a plain
+      # `Cargo.toml` path dependency, reaching it exclusively through its public API — the same way any external
+      # consumer would. Building and linting it here is therefore also a standing check that the library's public
+      # surface is sufficient to build a real, full-featured application: a demo that accidentally relied on a
+      # private/internal item would simply fail to compile.
+      - name: Build demo-app against the library's public API
+        run: cargo build -p svg-dom-demo --target wasm32-unknown-unknown
+
+      - name: Clippy (demo-app)
+        run: cargo clippy -p svg-dom-demo --target wasm32-unknown-unknown -- -D warnings
 
       - name: Install wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
@@ -63,9 +68,10 @@ jobs:
           version: "v0.15.0"
 
       - name: wasm-pack build (the published web artifact)
-        # `--features` is passed after `--` so it reaches cargo directly. Older wasm-pack versions
-        # (such as the one the action may install) don't accept `--features` as a wasm-pack flag.
-        run: wasm-pack build --target web -- --features demo
+        run: wasm-pack build --target web
+
+      - name: wasm-pack build (the demo gallery, same invocation `cargo demo` uses)
+        run: wasm-pack build demo-app --target web --out-dir ../pkg
 
   browser-tests:
     name: wasm-pack test (${{ matrix.browser }})
@@ -150,11 +156,11 @@ jobs:
           tool: cargo-llvm-cov,cargo-nextest
       - uses: Swatinem/rust-cache@v2
 
-      # llvm-cov instruments the host-runnable tests only (the `error` and demo
-      # `highlight` modules). The DOM-bound `root`/`node`/`animate` code is
-      # exercised by the wasm-pack browser tests in the `browser-tests` job,
-      # which cannot be instrumented here — so this figure reflects the
-      # host-testable subset of the crate, not the whole library.
+      # llvm-cov instruments the host-runnable tests only (the `error` module — the demo gallery's own
+      # host-runnable `highlight` tests moved out to the separate `svg-dom-demo` workspace crate along with the
+      # rest of the demo implementation, and are not measured here). The DOM-bound `root`/`node`/`animate` code is
+      # exercised by the wasm-pack browser tests in the `browser-tests` job, which cannot be instrumented here —
+      # so this figure reflects the host-testable subset of the library crate, not the whole library.
       - name: Measure coverage (host-runnable tests)
         run: cargo llvm-cov nextest --all-features --no-report
 

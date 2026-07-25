@@ -4,8 +4,10 @@
 //! ```sh
 //! cargo demo
 //! ```
-//! This rebuilds the wasm package (`wasm-pack build --target web -- --features demo`) and then serves the project root,
-//! so the demo lives at: <http://127.0.0.1:8080/demo/>.
+//! This rebuilds the `svg-dom-demo` crate's wasm package (`wasm-pack build demo-app --target web --out-dir ../pkg`,
+//! so the built `pkg/` lands at the project root exactly where `demo/index.html` already expects it, rather than
+//! inside `demo-app/` itself) and then serves the project root, so the demo lives at:
+//! <http://127.0.0.1:8080/demo/>.
 //!
 //! The port number can be overridden using the `PORT` environment variable, e.g. `PORT=9000 cargo demo`.
 
@@ -34,7 +36,7 @@ async fn main() -> std::io::Result<()> {
     let port: u16 = std::env::var("PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(DEFAULT_PORT);
     let addr = ("127.0.0.1", port);
 
-    println!("\n  svg-dom demo running on http://127.0.0.1:{port}/demo/\n");
+    println!("\n  svg-dom-demo running on http://127.0.0.1:{port}/demo/\n");
 
     HttpServer::new(move || {
         App::new()
@@ -47,16 +49,19 @@ async fn main() -> std::io::Result<()> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Rebuilds the wasm package so the served `pkg/` is up to date.
+/// Rebuilds the `svg-dom-demo` crate's wasm package so the served `pkg/` is up to date.
 /// A failure here is fatal: rather than silently serving a stale `pkg/`, the error is reported and the process exits.
 fn build_wasm(root: &Path) {
-    println!("Building wasm package: wasm-pack build --target web -- --features demo");
+    let cmd = "wasm-pack build demo-app --target web --out-dir ../pkg";
+    println!("Building wasm package: {cmd}");
 
-    // `--features` is passed after `--` so it reaches cargo directly; older wasm-pack versions do
-    // not accept it as a wasm-pack flag.
+    // `demo-app` is a separate workspace crate (`svg-dom-demo`) consuming `svg-dom` only through its public API —
+    // see that crate's own doc comment for why. `--out-dir ../pkg` is resolved relative to the crate path
+    // (`demo-app`), not the current directory, so the built package still lands at the project root's `pkg/`,
+    // matching `demo/index.html`'s `import ... from '../pkg/svg_dom_demo.js'`.
     match Command::new("wasm-pack")
         .current_dir(root)
-        .args(["build", "--target", "web", "--", "--features", "demo"])
+        .args(["build", "demo-app", "--target", "web", "--out-dir", "../pkg"])
         .status()
     {
         Ok(status) if status.success() => {},
