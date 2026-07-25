@@ -121,8 +121,6 @@ Writing the 20-number `values` string still avoids a heap allocation: `format_ar
 
 A shared "write N space-separated numbers" helper (mirroring `write_points`'s technique for a runtime-length list) was not worth building for this: `feColorMatrix` is the only primitive in the entire SVG filter specification with a fixed 20-number attribute, so there is no second call site to justify factoring the loop out.
 
-See [`docs/gaps.md`](../gaps.md) for the primitives still to be added.
-
 ## `turbulence`/`turbulence_xy` have no `in`, and `displacement_map` reuses `Channel` rather than a new enum
 
 `<feTurbulence>` is the first primitive in this crate with no `in` attribute at all — it is a generator, not a filter over an existing input, so the "`in` defers to the generic escape hatch" convention every prior primitive follows has nothing to defer here: there is no `in` to set.
@@ -155,8 +153,6 @@ The specification does in fact define it, and plainly: "a negative or zero value
 That is, a negative `radius` behaves identically to `0.0`, not merely "unsupported" or "unspecified" — both disable the primitive outright, with `in` passed through unchanged.
 `morphology`'s doc comment now states this directly instead of hedging, and there is accordingly no reason for `morphology`/`morphology_xy` to reject or clamp a negative value in Rust: the SVG-defined pass-through behaviour is already the correct, useful result, so preserving it (rather than adding a redundant `Error` variant purely to special-case a value the renderer already handles safely) is the simpler and equally correct choice.
 
-See [`docs/gaps.md`](../gaps.md) for the primitives still to be added.
-
 ## `image` takes `href` positionally and adds no `PreserveAspectRatio` type, both by analogy with `SvgRoot::image`
 
 Alongside `turbulence` and `turbulence_xy`, `<feImage>` takes its content from resolving an `href`, rather than an `in` generator.
@@ -171,8 +167,6 @@ Checking those three first found no existing `PreserveAspectRatio` type anywhere
 Here, we reached for a typed enum when a closed vocabulary is already established crate-wide, not merely because an attribute recurs.
 
 `href` is written verbatim with no validation, under a `# Security` doc section that is close to word-for-word the one on `SvgRoot::image`/`SvgNode::set_href` — the risk (an attacker-controlled `javascript:` URL reaching `setAttribute`) and the crate's stance on it (document, don't silently sanitise) are unchanged by which element carries the attribute.
-
-See [`docs/gaps.md`](../gaps.md) for the primitives still to be added.
 
 ## Filter region and coordinate-space attributes get named setters, `FilterUnits` reuses the `PatternUnits` shape
 
@@ -205,8 +199,6 @@ An ordinary primitive's default subregion is generally the union of its own refe
 
 `feTile` repeats a filter-generated tile as one step inside a filter graph instead, so its output can feed further primitives (colour-transformed, blended, composited, ...) the same way any other primitive's output can.
 Neither replaces the other; they solve the same "repeat this pattern" problem in two different parts of the SVG rendering model.
-
-See [`docs/gaps.md`](../gaps.md) for the primitives still to be added.
 
 ## `convolve_matrix` and `convolve_matrix_xy` take a plain `&[f64]` kernel and document, rather than validate, a length mismatch
 

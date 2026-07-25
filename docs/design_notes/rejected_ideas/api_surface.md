@@ -22,7 +22,10 @@ We documented the caveat on the field (direct mutation desyncs `width()`/`height
   The change swaps a public field for a method of identical power over the invariant; it does not close the hole the recommendation set out to close.
 
 * **Exposing the element is a deliberate escape hatch.**<br>
-  This crate is a thin, minimal wrapper and does not wrap every SVG attribute or property (`preserveAspectRatio`, focus management, and so on — see `docs/gaps.md`). Geometry read-back (`getBBox`, `getCTM`, `getTotalLength`, ...) was in this category at the time of this rejection; it has since been wrapped as `SvgNode::bounding_box`/`ctm`/`total_length`/etc. — see [Geometry read-back](../geometry.md) — which does not change the argument here: the crate still does not, and will not, wrap *every* SVG attribute or property, only the ones with a demonstrated need.
+  This crate is a thin, minimal wrapper and does not wrap every SVG attribute or property.
+
+  Geometry read-back (`getBBox`, `getCTM`, `getTotalLength`, ...) was in this category at the time of this rejection; however, it has since been wrapped as `SvgNode::bounding_box`/`ctm`/`total_length`/etc. (see [Geometry read-back](../geometry.md)) — which does not change the argument here: the crate still does not, and will not, wrap *every* SVG attribute or property, only the ones with a demonstrated need.
+
   Direct access to the root `<svg>` is the supported way to reach those, so the leak is inherent to *exposing the element at all* (which we want to do) not to the field-versus-method spelling.
 
   The only extra power a public field grants is reassigning `root` wholesale, which needs `&mut SvgRoot` and would obviously corrupt the handle; that is a self-evident misuse, not a footgun worth a breaking API change to forbid.
@@ -81,8 +84,10 @@ It would also create a naming inconsistency between `SvgMarker` and the other ty
 
 ### The Cargo feature approach
 
-Gating `as_element()` behind `features = ["raw-dom-access"]` would impose a feature dependency on every caller who needs `computed_text_length`-style `dyn_ref` casts or any other non-attribute DOM method that the crate does not wrap — exactly the legitimate use cases the method exists for.
-The `docs/gaps.md` list makes clear that this crate deliberately does not wrap large swaths of SVG DOM; a feature gate would make those gaps less accessible, not more documented.
+Gating `as_element()` behind `features = ["raw-dom-access"]` would impose a feature dependency on every caller who needs to use `computed_text_length`-style `dyn_ref` casts or any other non-attribute DOM method that the crate does not wrap — exactly the legitimate use cases the method exists for.
+
+This crate deliberately does not wrap large swaths of SVG DOM, and has never claimed to.
+A feature gate would make the parts it does not cover less accessible, not more documented.
 
 ### Conclusion
 

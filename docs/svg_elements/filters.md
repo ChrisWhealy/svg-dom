@@ -432,7 +432,7 @@ Use `None` when the natural `specular_exponent` falloff is enough on its own, `S
 It is marked deprecated for `feDiffuseLighting`, and — per an open specification question ([w3c/fxtf-drafts#615](https://github.com/w3c/fxtf-drafts/issues/615)) — *not yet* formally deprecated for `feSpecularLighting`, though the same platform-independence problem applies there too.
 Neither primitive wraps it in a named parameter; it remains reachable through `set_attr` on either, but should not be relied upon.
 
-Every filter effect primitive defined by the SVG Filter Effects specification is now implemented — see [`../gaps.md`](../gaps.md) for the crate's remaining (non-filter) gaps.
+Every filter effect primitive defined by the SVG Filter Effects specification is now implemented; deliberate exclusions elsewhere in the crate (notably, SMIL animation and `<script>`) are documented under [Implementation Non-goals](../non-goals.md).
 
 ## Region and Coordinate-Space Attributes
 
