@@ -17,6 +17,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Doc only: remove dead links and stale comments (`9aed3b0`)
 - Trim the published package (`b48a2d1`)
 
+### Fixed
+
+- Correct changelog entry ('')
+
 ## [0.1.74] - 2026-07-24
 
 ### Added
@@ -39,7 +43,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Doc only: soften "deriving Copy costs nothing" claim for LightSource (`9d50b64`)
 - Doc only: note specular_constant's non-negative restriction, and fix copy-editing typos (`3cc86a6`)
 - CI: pin `wasm-pack-action` to a specific version instead of resolving "latest" on every run (`da33f1b`)
-- Doc only: README's Error description no longer claims an exhaustive inline enumeration (`3e24eff`)
 - Doc only: Correct README inconsistencies (`3e24eff`)
 
 ## [0.1.73] - 2026-07-24
