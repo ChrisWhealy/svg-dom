@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 
 - Split the demo gallery into its own workspace crate `svg-dom-demo` (`d739ade`)
-- Update top-level README (``)
+- Update top-level README (`7aaf4c7`)
 
 # [Released]
 
