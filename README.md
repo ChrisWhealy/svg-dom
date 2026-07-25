@@ -32,18 +32,34 @@ All reasonable, conventional steps have been taken to provide a secure, stable a
 The `svg-dom` crate acts as a thin wrapper for `web-sys` SVG DOM bindings that allows you to:
 
 - Attach to an existing `<svg>` element in your HTML page
-- Create a new `<svg>` element programmatically
+- Create a new `<svg>` element programmatically that gives you back a cheap-to-clone handle (`SvgNode`) that holds a live reference to the real DOM node
 - Create the supported SVG elements listed in the [element guide](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/svg_elements/README.md):
    - Helper functions exist for `<rect>`, `<circle>`, `<ellipse>`, `<line>`, `<polyline>`, `<polygon>`, `<path>`, `<text>`, `<g>`
-   - `<defs>` (`SvgDefs`), `<marker>` (`SvgMarker`), `<clipPath>` (`SvgClipPath`), `<mask>` (`SvgMask`), `<pattern>` (`SvgPattern`), and `<symbol>` (`SvgSymbol`) are supported for defining reusable assets, with deferred-append helpers (`build_defs` / `build_marker` / `build_clip_path` / `build_mask` / `build_pattern` / `build_symbol`) that only commit the element to the DOM once construction succeeds; apply a clip path to any element with `set_clip_path_ref`; apply a mask with `set_mask_ref`; apply a tiled pattern fill/stroke with `set_fill_pattern_ref` / `set_stroke_pattern_ref`
-   - `<use>` is supported via `SvgRoot::use_node` / `SvgBatch::use_node` — stamps a copy of any element referenced by `id` without duplicating DOM nodes; each copy is independently positionable and styleable
-   - `<image>` is supported via `SvgRoot::image` / `SvgBatch::image` — embeds a raster image or SVG by URL or `data:` URI with full `preserveAspectRatio` control
-   - You get back a cheap-to-clone handle (`SvgNode`) that holds a live reference to the real DOM node
-- Using the element's handle, you can mutate individual, multiple or arbitrary attributes:
+   - Reusable assets can be defined for:
+     
+     | SVG Element | Type | Deferred-append Helper |
+     |---|---|---|
+     | `<defs>` | `SvgDefs` | `build_defs` |
+     | `<marker>` | `SvgMarker` | `build_marker` |
+     | `<clipPath>` | `SvgClipPath` | `build_clip_path` |
+     | `<mask>` | `SvgMask` | `build_mask` |
+     | `<pattern>` | `SvgPattern` | `build_pattern` |
+     | `<symbol>` | `SvgSymbol` | `build_symbol` |
+   
+     The deferred-append helpers only commit the element to the DOM once the closure used for construction has succeeded.
+
+     * Apply a clip path to any element with `set_clip_path_ref`
+     * Apply a mask with `set_mask_ref`
+     * Apply a tiled pattern fill/stroke with `set_fill_pattern_ref` / `set_stroke_pattern_ref`
+  - `<use>` stamps an independently positionable and styleable copy of any element referenced by `id` without duplicating DOM nodes.
+     Available through `SvgRoot::use_node` / `SvgBatch::use_node`
+  - `<image>` embeds a raster image or SVG by URL or `data:` URI with full `preserveAspectRatio` control.
+     Available through `SvgRoot::image` / `SvgBatch::image`
+- Using the `SvgNode` handle, you can mutate the element's attributes either individually or as a batch:
    - without the need to rebuild or diff the DOM tree
-   - via helpers such as `fill`, `stroke`, `d`
-   - using `set_attrs` (multiple attributes in one call)
-   - formatted values via `SvgAttrs` (scratch-buffer backed; reuses a single `String` allocation across calls)
+   - via helpers such as `fill`, `stroke` and `d`
+   - using `set_attrs` (alter multiple attributes in one call)
+   - formatted values via `SvgAttrs`
 - Attach managed event listeners directly to individual elements (listener event names are stored as `&'static str` making them allocation-free)
    - `mouse`
    - `pointer`
@@ -54,11 +70,18 @@ The `svg-dom` crate acts as a thin wrapper for `web-sys` SVG DOM bindings that a
    - `drag-and-drop`
    - and generic `Event` handlers
 - Drive reactive updates through a `requestAnimationFrame` loop via `AnimationLoop`
-- Give any element a `<title>` / `<desc>` child with `set_title` / `set_desc` (and read them back with `title` / `desc`) — each feeds into (but is not always the same as) the element's computed accessible name/description, since ARIA naming/description attributes take precedence when present; `<title>` also drives the browser's native hover tooltip
+- Support for assistive technologies such as screen readers.
+
+   Accessible name/description support via `<title>` / `<desc>` using `title`/`set_title` and `desc`/`set_desc`.
+
+   These values are used when calculating the element's computed accessible name and description.
+   However, when present, the name or description values supplied by ARIA will take precedence over `<title>` and `<desc>`.
+
+   `<title>` drives the browser's native hover tooltip value.
 
 ## What This Crate Is NOT
 
-This crate does not use an HTML `<canvas>` element!
+This crate makes no use of the HTML `<canvas>` element!
 
 Whilst the `<canvas>` element offers a pixel-based, bitmap drawing API that gives you the highest performance ceiling, it also requires you to take ownership of the entire layout, the render loop and hit-testing.
 
