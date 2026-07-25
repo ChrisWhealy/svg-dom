@@ -19,7 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 
-- Correct changelog entry ('')
+- Correct changelog entry (`0b4beea`)
 
 ## [0.1.74] - 2026-07-24
 
