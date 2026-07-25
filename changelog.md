@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Unreleased]
 
+# [Released]
+
 ## [0.2.0] - 2026-07-25
 
 ### Changed
@@ -13,9 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Split the demo gallery into its own workspace crate `svg-dom-demo` (`d739ade`)
 - Update top-level README (`7aaf4c7`)
 - Doc only: remove dead links and stale comments (`9aed3b0`)
-- Trim the published package (``)
-
-# [Released]
+- Trim the published package (`b48a2d1`)
 
 ## [0.1.74] - 2026-07-24
 
