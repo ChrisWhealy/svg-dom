@@ -97,7 +97,9 @@ Use [wasm-pack](https://rustwasm.github.io/wasm-pack/) to build:
 wasm-pack build --target web
 ```
 
-# Demo Server
+# Demo Gallery
+
+The demo gallery is not published as part of the crate's release, but once you have cloned the repo, you can build it and run it locally as follows:
 
 A demo gallery app will become available at <http://127.0.0.1:8080/demo> after running
 
@@ -108,8 +110,6 @@ cargo demo
 The coding used to create the demo implementation is shown beneath each example.
 
 ## Demo Gallery Build Sequence
-
-The demo gallery is not published as part of the crate's release, but once you have cloned the repo, you can build it and run it locally as follows:
 
 1. Based on the contents of `.cargo/config.toml`, the command `cargo demo` expands to `cargo run --release -p demo-server`
 
