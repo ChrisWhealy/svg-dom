@@ -106,7 +106,7 @@ cargo demo
 ```
 
 A demo gallery app is now available at <http://127.0.0.1:8080/demo>.
-The coding used to create the demo implementation is shown beneath each example.
+The coding used to create each demo is shown beneath each example.
 
 ## Demo Gallery Build Sequence
 
