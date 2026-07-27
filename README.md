@@ -99,7 +99,7 @@ wasm-pack build --target web
 
 # Demo Gallery
 
-The demo gallery is not published as part of the crate's release, but once you have cloned the repo, you can build and run locally as follows:
+The demo gallery is not published as part of the crate's release, but once you have cloned this repo, you can build and run it locally as follows:
 
 ```sh
 cargo demo
