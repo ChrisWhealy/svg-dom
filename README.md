@@ -110,9 +110,15 @@ The coding used to create each demo is shown beneath each example.
 
 ## Demo Gallery Build Sequence
 
-1. Based on the contents of `.cargo/config.toml`, the command `cargo demo` expands to `cargo run --release -p demo-server`
+1. Based on the contents of `.cargo/config.toml`, the command `cargo demo` expands to:
 
-1. `demo-server`'s `main()` function first starts a shell process that invokes the command `wasm-pack build demo-app --target web --out-dir ../pkg`.
+   ```shell
+   cargo run --release -p demo-server
+   ```
+
+1. `demo-server`'s `main()` function takes each HTML panel fragment and assembles them into a single HTML page that will then be served by the Actix webserver.
+
+1. Next, a shell process is started that invokes the command `wasm-pack build demo-app --target web --out-dir ../pkg`.
 
    That one command does several things internally:
 
