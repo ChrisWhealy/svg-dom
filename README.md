@@ -118,7 +118,11 @@ The coding used to create each demo is shown beneath each example.
 
 1. `demo-server`'s `main()` function takes each HTML panel fragment and assembles them into a single HTML page that will then be served by the Actix webserver.
 
-1. Next, a shell process is started that invokes the command `wasm-pack build demo-app --target web --out-dir ../pkg`.
+1. Next, a shell process is started that invokes the command:
+
+   ```shell
+   wasm-pack build demo-app --target web --out-dir ../pkg
+   ```
 
    That one command does several things internally:
 
