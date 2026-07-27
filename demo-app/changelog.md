@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 
-- Refactor demo gallery into individual panels (``)
+- Refactor demo gallery into individual panels (`d987feb`)
 
 # [Released]
 
