@@ -46,7 +46,7 @@ body {
     margin: 1.25rem 0 0.4rem;
 }
 
-.menu-group > summary {
+.menu-group>summary {
     display: flex;
     align-items: center;
     gap: 0.35rem;
@@ -59,13 +59,13 @@ body {
     user-select: none;
 }
 
-.menu-group > summary::-webkit-details-marker {
+.menu-group>summary::-webkit-details-marker {
     display: none;
 }
 
 /* Custom disclosure triangle (the default marker is hidden above) so it can share the group label's muted colour
    and rotate on open/close instead of switching between the browser's own triangle/pointer glyphs. */
-.menu-group > summary::before {
+.menu-group>summary::before {
     content: "▸";
     display: inline-block;
     font-size: 0.65rem;
@@ -73,11 +73,11 @@ body {
     transition: transform 0.15s ease;
 }
 
-.menu-group[open] > summary::before {
+.menu-group[open]>summary::before {
     transform: rotate(90deg);
 }
 
-.menu-group > summary:hover {
+.menu-group>summary:hover {
     color: #8b949e;
 }
 
@@ -193,11 +193,40 @@ figcaption {
     font-size: 0.82rem;
     color: #6e7681;
     margin-top: 0.6rem;
-    max-width: 80ch;
+    max-width: 120ch;
 }
 
 figcaption strong {
     color: #8b949e;
+}
+
+figcaption code {
+    color: #f0883e;
+}
+
+figcaption p {
+    margin-bottom: 0.5rem;
+    line-height: 1.15rem;
+}
+
+figcaption ul {
+    margin-bottom: 0.5rem;
+    margin-left: 1.1rem;
+}
+
+figcaption ol {
+    margin-bottom: 0.5rem;
+    margin-left: 1.3rem;
+}
+
+figcaption ul li {
+    margin-bottom: 0.5rem;
+    line-height: 1.15rem;
+}
+
+figcaption ol li {
+    margin-bottom: 0.5rem;
+    line-height: 1.15rem;
 }
 
 /* classList demo (Event handling → CSS class toggle, src/demo/events.rs). Rust only ever calls toggle_class on the
@@ -234,7 +263,7 @@ figcaption strong {
     background: #161b22;
 }
 
-.source > summary {
+.source>summary {
     cursor: pointer;
     padding: 0.5rem 0.8rem;
     color: #8b949e;
@@ -242,11 +271,11 @@ figcaption strong {
     user-select: none;
 }
 
-.source > summary:hover {
+.source>summary:hover {
     color: #c9d1d9;
 }
 
-.source[open] > summary {
+.source[open]>summary {
     border-bottom: 1px solid #21262d;
 }
 

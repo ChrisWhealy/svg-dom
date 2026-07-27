@@ -1,0 +1,22 @@
+            <!-- switch -->
+            <section class="section" id="panel-switch">
+                <h2><code>&lt;switch&gt;</code> — renders at most one direct child</h2>
+                <figure>
+                    <div class="canvas" id="demo-switch"></div>
+                    <figcaption>
+                        <ul>
+                            <li><strong>no child matches → renders the fallback case</strong>: SVG 2 defines an empty
+                                <code>systemLanguage=""</code> as always false, so the first child is guaranteed to fail
+                                and <code>&lt;switch&gt;</code> then falls through to the attribute-free fallback colour
+                                (steelblue).
+                            </li>
+                            <li><strong>attribute-free first child always matches</strong>: A child with no conditional
+                                attributes is always true, so it renders immediately and the second child (darkorange)
+                                is never reached. Both outcomes are deterministic in every browser/locale — unlike
+                                testing a real <code>systemLanguage</code> match against whatever locale happens to be
+                                running the demo.
+                            </li>
+                        </ul>
+                    </figcaption>
+                </figure>
+            </section>

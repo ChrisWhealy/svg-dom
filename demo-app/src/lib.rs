@@ -36,12 +36,13 @@ thread_local! {
     /// long-lived, so they keep listener-owning nodes here instead of leaking individual `Closure`s.
     static LIVE_DEMO_NODES: RefCell<Vec<SvgNode>> = const { RefCell::new(Vec::new()) };
 
-    /// Demo-only owner for the running `AnimationLoop`.
+    /// Demo-only owner for every running `AnimationLoop`.
     ///
-    /// `AnimationLoop` stops on `Drop`, so the demo parks it here to keep it running for the page's lifetime.  Storing
-    /// it (rather than leaking it with `mem::forget`) keeps it cancellable: clearing or replacing this slot stops the
-    /// animation cleanly.
-    static LIVE_DEMO_ANIM: RefCell<Option<AnimationLoop>> = const { RefCell::new(None) };
+    /// `AnimationLoop` stops on `Drop`, so each demo parks its loop here to keep it running for the page's lifetime.
+    /// This has to be a collection, not a single slot: more than one demo (`structure::demo_anim` and
+    /// `geometry::demo_geometry_path_follow`) runs its own independent `AnimationLoop`, and a single `Option` slot
+    /// would let the second call silently drop and stop the first one's animation.
+    static LIVE_DEMO_ANIMS: RefCell<Vec<AnimationLoop>> = const { RefCell::new(Vec::new()) };
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -50,7 +51,7 @@ fn keep_demo_node(node: SvgNode) {
 }
 
 fn keep_demo_anim(anim: AnimationLoop) {
-    LIVE_DEMO_ANIM.with(|slot| *slot.borrow_mut() = Some(anim));
+    LIVE_DEMO_ANIMS.with(|anims| anims.borrow_mut().push(anim));
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

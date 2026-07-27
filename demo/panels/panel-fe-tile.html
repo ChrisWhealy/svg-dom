@@ -1,0 +1,42 @@
+            <!-- feTile -->
+            <section class="section" id="panel-fe-tile">
+                <h2><code>&lt;feTile&gt;</code> — repeat a filter-generated tile across the filter region</h2>
+                <figure>
+                    <div class="canvas" id="demo-fe-tile"></div>
+                    <figcaption>
+                        <ul>
+                            <li><strong>narrow tile (unrepeated)</strong>: <code>turbulence</code> narrowed to a
+                                20&times;20 subregion; everything outside that corner stays transparent, showing
+                                exactly the rectangle <code>tile</code> would otherwise repeat</li>
+                            <li><strong>feTile (visible seams)</strong>: The same narrowed noise repeated by
+                                <code>tile</code> across the whole filter region; plain noise is not periodic at an
+                                arbitrary width/height, so the seams between copies are visible
+                            </li>
+                            <li><strong>feTile + stitchTiles</strong>: <code>stitchTiles="stitch"</code> makes the
+                                noise exactly periodic across its own subregion first, so the seams disappear
+                            </li>
+                        </ul>
+                        <p>
+                            <code>feTile</code> has no numeric or enum-valued attributes needing a typed parameter. It
+                            accepts the optional input selector <code>in</code>, together with the common
+                            filter-primitive attributes <code>x</code>, <code>y</code>, <code>width</code>,
+                            <code>height</code>, and <code>result</code>.
+                        </p>
+                        <p>
+                            It does not choose what gets repeated: that is entirely the <em>input</em> primitive's own
+                            subregion — here, <code>turbulence</code>, a generator with no referenced input, whose
+                            default subregion is therefore the whole filter region rather than the union of a referenced
+                            input's subregion the way an ordinary primitive's default would be. Left unnarrowed, there
+                            would be nothing smaller than that to repeat, and <code>tile</code>'s output would be
+                            indistinguishable from its input.
+                        </p>
+                        <p>
+                            This is the filter-graph counterpart to <code>SvgDefs::pattern</code>: a
+                            <code>&lt;pattern&gt;</code> is a paint server applied via <code>fill</code> or
+                            <code>stroke</code>, while <code>feTile</code> repeats a filter-generated tile as one step
+                            inside a filter graph, so its output can feed further primitives the same way any other
+                            primitive's output can.
+                        </p>
+                    </figcaption>
+                </figure>
+            </section>

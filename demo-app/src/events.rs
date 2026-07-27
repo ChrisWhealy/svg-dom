@@ -330,7 +330,7 @@ pub(super) fn demo_events_press() -> Result<(), Error> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// Events — pointerenter wrappers on groups
+// Events — non-bubbling pointerenter vs bubbling mouseover, on identically-shaped groups
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 pub(super) fn demo_events_group() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-events-group", Size::new(W, H))?;
@@ -388,11 +388,22 @@ pub(super) fn demo_events_group() -> Result<(), Error> {
     // page lifetime.
     keep_demo_node(group1);
 
-    // group 2 — the same wrapper on another group, showing the behaviour is independent of the child shapes.
-    let g2_count = labels(440.0, ACCENT_AMBER, "group 2: on_pointerenter")?;
+    // group 2 — the same shape, but wired to the bubbling on_mouseover event instead. Unlike group 1's
+    // pointerenter, mouseover re-fires on every child-to-child crossing inside the group: entering child A bubbles
+    // a mouseover up from the group's boundary, and then crossing from child A to child B fires *another*
+    // mouseover (child A's mouseout is immediately followed by child B's mouseover, both bubbling up to the same
+    // group handler) even though the pointer never left the group. That is the entire contrast this demo exists to
+    // show — group 1's counter only rises on a genuine group-boundary crossing, group 2's rises on every child
+    // boundary crossed as well.
+    //
+    // on_mouseover is `#[deprecated]` in favour of on_pointerenter precisely because of this bubbling quirk; it is
+    // used here deliberately, as the demonstration of the quirk it warns about, not as a recommendation to prefer
+    // it for real hover handling.
+    let g2_count = labels(440.0, ACCENT_AMBER, "group 2: on_mouseover (bubbles)")?;
     let group2 = build(440.0, ACCENT_AMBER)?;
     let c2 = Rc::new(Cell::new(0u32));
-    group2.on_pointerenter(move |_| {
+    #[allow(deprecated)]
+    group2.on_mouseover(move |_| {
         let n = c2.get() + 1;
         c2.set(n);
         g2_count.set_text(&format!("fires: {n}"));

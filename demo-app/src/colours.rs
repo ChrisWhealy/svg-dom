@@ -41,7 +41,7 @@ pub const LEAF_GREEN: &str = "#3fb950";
 /// Darkened teal shown while the press-state button is held down.
 pub const TEAL_PRESSED: &str = "#0a3d3d";
 /// Thin connector / guide strokes.
-pub const GUIDE: &str = "#444";
+pub const GUIDE: &str = "#ccc";
 /// A plain mid-grey wire/line.
 pub const WIRE: &str = "#aaa";
 /// The colour swatch before any hue has been sampled.

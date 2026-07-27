@@ -1,0 +1,23 @@
+            <!-- view -->
+            <section class="section" id="panel-view">
+                <h2>Navigate to a <code>&lt;view&gt;</code> (a named viewBox) via a URL fragment</h2>
+                <figure>
+                    <div class="canvas" id="demo-view"></div>
+                    <figcaption>
+                        <p><code>&lt;view&gt;</code> only affects an <em>externally</em> referenced SVG resource, not
+                            a live DOM handle the caller already has.</p>
+                        <p>
+                            This is a different approach that does not call either <code>set_view_box()</code> or
+                            <code>set_viewport()</code>. Instead, the embedded picture is a separate, standalone file
+                            (<code>view-demo.svg</code>) rather than anything built through <code>svg-dom</code>'s own
+                            API.
+                        </p>
+                        <p>
+                            Each button sets the <code>&lt;image&gt;</code>'s <code>href</code> such that the same file
+                            is displayed through a <code>#view</code> fragment via <code>SvgNode::set_href</code>. </p>
+                        <p>
+                            The browser then switches the effective <code>viewBox</code> entirely on its own, without
+                            the need for any JavaScript coding.</p>
+                    </figcaption>
+                </figure>
+            </section>

@@ -388,23 +388,37 @@ pub(super) fn demo_use() -> Result<(), Error> {
 pub(super) fn demo_image() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-image", Size::new(W, H))?;
 
-    // A 60×40 four-quadrant colour grid embedded as a base64 SVG data URI.
-    // Base64 avoids having to percent-encode '<', '>' and '#' that appear in raw SVG data URIs.
+    // A 60×40 four-quadrant colour grid, embedded as a base64 PNG data URI (not SVG — see below).
     // The 3:2 source aspect ratio differs from the 1:1 display boxes below, making the three
     // preserveAspectRatio modes visually distinct.
-    const SRC: &str = "data:image/svg+xml;base64,\
-        PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc2MCcgaGVpZ2h0\
-        PSc0MCc+PHJlY3Qgd2lkdGg9JzMwJyBoZWlnaHQ9JzIwJyBmaWxsPSdzdGVlbGJsdWUnLz48cmVj\
-        dCB4PSczMCcgd2lkdGg9JzMwJyBoZWlnaHQ9JzIwJyBmaWxsPSdjb3JhbCcvPjxyZWN0IHk9JzIw\
-        JyB3aWR0aD0nMzAnIGhlaWdodD0nMjAnIGZpbGw9J2dvbGQnLz48cmVjdCB4PSczMCcgeT0nMjAn\
-        IHdpZHRoPSczMCcgaGVpZ2h0PScyMCcgZmlsbD0nbWVkaXVtc2VhZ3JlZW4nLz48L3N2Zz4=";
+    //
+    // This has to be a raster image, not an embedded SVG: Chromium does not clip a nested-SVG
+    // `<image>` source correctly under preserveAspectRatio="slice" — the overflow that "slice" is
+    // supposed to crop away stays visible, so it ends up looking identical to "meet". The same
+    // "slice" value clips correctly once the source is a raster format instead, which is what this
+    // PNG (generated from four filled rects plus a circle, not hand-drawn) sidesteps the bug.
+    //
+    // The small white/black dot sits at x=5, just inside the 60-wide source's left edge. It is
+    // what makes "slice" visually distinguishable from "none": both scale the source up to a
+    // different size, but because the grid's colour boundaries sit exactly on the source's
+    // centre line, a symmetric centre-crop maps that centre back onto itself — so "none" and
+    // "slice" would otherwise land the quadrant colours in identical positions. The off-centre
+    // dot breaks that symmetry: "slice" crops the source to its central 40 units (x=10..50) and
+    // the dot falls outside that window, so it disappears; "meet" and "none" show the whole
+    // source, so the dot stays visible in both.
+    const SRC: &str = "data:image/png;base64,\
+        iVBORw0KGgoAAAANSUhEUgAAADwAAAAoCAIAAAAt2Q6oAAAAfklEQVR42u3UwQmAMBBE0S3Ms2db\
+        sQLBlrQXy1kFQQIhgiYTovzhn8O7bKyfV1E+DaIMNGjQoEGDBg0a9H/RFq119Kn0YEXcQnQsLuXW\
+        oj0x0BXRvr2vW0ZRn0XfHGKj6OP11JeXI5ajL3e4THENtCLQoEGDBg0aNGjQoJ+0A+7MRi7Hd5r9\
+        AAAAAElFTkSuQmCC";
 
     // Alternative image: slate-blue with a centred white circle (used in the set_href demo slot).
-    const ALT: &str = "data:image/svg+xml;base64,\
-        PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc2MCcgaGVpZ2h0\
-        PSc0MCc+PHJlY3Qgd2lkdGg9JzYwJyBoZWlnaHQ9JzQwJyBmaWxsPSdzbGF0ZWJsdWUnLz48Y2ly\
-        Y2xlIGN4PSczMCcgY3k9JzIwJyByPScxNCcgZmlsbD0nd2hpdGUnIG9wYWNpdHk9Jy44NScvPjwv\
-        c3ZnPg==";
+    // PNG for the same nested-SVG-in-<image> reason as SRC above.
+    const ALT: &str = "data:image/png;base64,\
+        iVBORw0KGgoAAAANSUhEUgAAADwAAAAoCAIAAAAt2Q6oAAAAfElEQVR42u3YwQ2AMAxDUc/JCOza\
+        NZDYgCML0EsT0qb5kgd4t8TWebR0EWjQoLdD39fzmUXRPe4fdMVwfekKFru4FS+2uzVFbHRrltji\
+        LoP2Eg+7a6B9xWNu0KBBgwbNRVwCzZdHCdizbmUttlknhKxjTeJZjNUUNOhi6BfLEZpQ5CIbXgAA\
+        AABJRU5ErkJggg==";
 
     // 100×100 px square display boxes; the 3:2 source makes preserveAspectRatio effects clear.
     let img_w = 100.0_f64;
@@ -670,11 +684,15 @@ pub(super) fn demo_anchor() -> Result<(), Error> {
     let cy = PAD_Y + BAND / 2.0;
 
     // Fragment hrefs are used here purely so clicking inside this demo does not navigate away from the gallery; a
-    // real application would pass whatever URL it actually wants to link to.
+    // real application would pass whatever URL it actually wants to link to. Each link targets a different demo
+    // panel's id rather than "#demo-anchor" (this panel's own id) or the page header: linking to an element already
+    // on screen — this panel, or the always-visible header — is indistinguishable from the link doing nothing.
+    // demo/index.html's hashchange listener is what makes a bare fragment link actually switch the visible panel;
+    // without it, following a link to a hidden `.section` does nothing at all, since there is nothing to scroll to.
     //
     // Both the circle and its label become part of the same hyperlink, the same way an HTML <a> around several
     // elements would — clicking either one navigates.
-    let link1 = svg.anchor("#demo-anchor")?;
+    let link1 = svg.anchor("#panel-image")?;
     let icon1 = svg.circle(Point::new(150.0, cy), 40.0)?;
     icon1.set_fill(ACCENT_BLUE)?;
     let label1 = svg.text(Point::new(150.0, cy + 5.0), "A")?;
@@ -686,7 +704,7 @@ pub(super) fn demo_anchor() -> Result<(), Error> {
 
     // `target` is not wrapped by a named parameter — every meaningful use of <a> supplies href, but target is only
     // occasionally needed — so it goes through the generic set_attr escape hatch instead.
-    let link2 = svg.anchor("#demo-anchor")?;
+    let link2 = svg.anchor("#panel-marker")?;
     link2.set_attr("target", "_blank")?;
     let icon2 = svg.circle(Point::new(450.0, cy), 40.0)?;
     icon2.set_fill(DARK_ORANGE)?;

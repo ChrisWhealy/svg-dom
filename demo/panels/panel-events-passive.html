@@ -1,0 +1,20 @@
+            <!-- passive event listeners -->
+            <section class="section" id="panel-events-passive">
+                <h2><code>passive</code> event listeners</h2>
+                <figure>
+                    <div class="canvas" id="demo-events-passive"></div>
+                    <figcaption>
+                        <p>
+                            All three of the events below are registered with <code>{ passive: true }</code> so the
+                            browser never waits for the handler to complete before scrolling or panning.
+                            <code>preventDefault()</code> inside a passive handler is silently ignored.
+                        </p>
+                        <p>Use the non-passive sibling when you need to suppress default scroll behaviour.</p>
+                        <ul>
+                            <li><strong>on_wheel_passive</strong></li>
+                            <li><strong>on_touchstart_passive</strong></li>
+                            <li><strong>on_touchmove_passive</strong></li>
+                        </ul>
+                    </figcaption>
+                </figure>
+            </section>

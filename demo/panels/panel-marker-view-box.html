@@ -1,0 +1,25 @@
+            <!-- SvgMarker::set_view_box -->
+            <section class="section" id="panel-marker-view-box">
+                <h2><code>SvgMarker::set_view_box</code> creates a viewBox window onto the same shape</h2>
+                <figure>
+                    <div class="canvas" id="demo-marker-view-box"></div>
+                    <figcaption>
+                        <p>First, create a triangle polygon</p>
+                        <p>Then, reference it using two markers that have been sized so they preserve the triangle's
+                            aspect ratio of 10:7. This means calling <code>set_marker_width(24.0)</code> followed by
+                            <code>set_marker_height(16.8)</code>.
+                        </p>
+                        <ul>
+                            <li>
+                                <strong>Top</strong>: <code>set_view_box(0, 0, 100, 70)</code> creates a view box that
+                                covers the full extent of the polygon, making the entire arrow visible.<br>
+                            </li>
+                            <li>
+                                <strong>Bottom</strong>: <code>set_view_box(0, 0, 50, 35)</code> creates a view that
+                                covers only the triangle's top-left quarter, effectively magnifying the triangle by a
+                                factor of 2. Consequently, the triangle's tip has been clipped off entirely.
+                            </li>
+                        </ul>
+                    </figcaption>
+                </figure>
+            </section>

@@ -4,12 +4,15 @@
 //! ```sh
 //! cargo demo
 //! ```
-//! This rebuilds the `svg-dom-demo` crate's wasm package (`wasm-pack build demo-app --target web --out-dir ../pkg`,
+//! This rebuilds `demo/index.html` from `demo/index.template.html` and `demo/panels/*.html` (see [`panels`]),
+//! rebuilds the `svg-dom-demo` crate's wasm package (`wasm-pack build demo-app --target web --out-dir ../pkg`,
 //! so the built `pkg/` lands at the project root exactly where `demo/index.html` already expects it, rather than
-//! inside `demo-app/` itself) and then serves the project root, so the demo lives at:
+//! inside `demo-app/` itself), and then serves the project root, so the demo lives at:
 //! <http://127.0.0.1:8080/demo/>.
 //!
 //! The port number can be overridden using the `PORT` environment variable, e.g. `PORT=9000 cargo demo`.
+
+mod panels;
 
 use std::{
     path::{Path, PathBuf},
@@ -29,6 +32,10 @@ async fn main() -> std::io::Result<()> {
         .parent()
         .ok_or_else(|| std::io::Error::other("demo-server must live inside the project"))?
         .to_path_buf();
+
+    // Rebuild demo/index.html from its template and per-panel fragments before wasm-pack or the server ever touch
+    // it, so both always see the current assembled file, never a stale one from a previous run.
+    panels::assemble(&root);
 
     // Run wasm-pack
     build_wasm(&root);

@@ -1,0 +1,16 @@
+            <!-- geometry: path follow -->
+            <section class="section" id="panel-geometry-path-follow">
+                <h2>Path follow — <code>total_length</code> / <code>point_at_length</code></h2>
+                <figure>
+                    <div class="canvas" id="demo-geometry-path-follow"></div>
+                    <figcaption>
+                        <p>Since the ellipse never changes size, its path length can be measured once, at setup, using
+                            <strong>total_length()</strong>
+                        </p>
+                        <p><strong>point_at_length()</strong> then recomputes the runner's position every animation
+                            frame from the current lap fraction. This is a legitimate use of a per-frame browser
+                            measurement for one simple ellipse. However, you should profile it against your own path
+                            complexity and target browser before assuming it scales.</p>
+                    </figcaption>
+                </figure>
+            </section>

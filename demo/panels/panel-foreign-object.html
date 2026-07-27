@@ -1,0 +1,42 @@
+            <!-- foreignObject -->
+            <section class="section" id="panel-foreign-object">
+                <h2><code>&lt;foreignObject&gt;</code> — arbitrary content placed within a rectangular region and laid
+                    out by the browser's own HTML engine</h2>
+                <figure>
+                    <div class="canvas" id="demo-foreign-object"></div>
+                    <figcaption>
+                        <p>
+                            The dashed rectangle shows the <code>&lt;foreignObject&gt;</code>'s own bounds — it paints
+                            nothing of its own, so it would otherwise be invisible. The paragraph inside it however is a
+                            genuine HTML element, laid out by the browser's normal engine: it <strong>wraps to the box
+                                width</strong> the way any ordinary web content does; something SVG's own
+                            <code>&lt;text&gt;</code> element cannot do by itself.
+                        </p>
+                        <p>
+                            This rectangle is a bounding box, not an unconditional clip: browsers clip to it by default
+                            (<code>overflow: hidden</code> from the UA stylesheet, the same as used by
+                            <code>&lt;svg&gt;</code>,
+                            <code>&lt;symbol&gt;</code> and <code>&lt;marker&gt;</code>), but that is an ordinary,
+                            overridable CSS property, not something SVG's rendering model enforces.
+                        </p>
+                        <p>
+                            <code>SvgRoot::foreign_object(top_left, size)</code> returns an <em>empty</em> element that
+                            has neither a <code>set_inner_html()</code> nor <code>set_content()</code> method to fill
+                            it. This is a deliberate design choice: a string-based HTML convenience method would need to
+                            parse caller-supplied markup (typically via some parsing API such as
+                            <code>innerHTML</code>), and parsing arbitrary markup means taking on sanitisation and trust
+                            concerns this crate has no business maintaining.
+                        </p>
+                        <p>No part of this crate's public API parses a string as markup anywhere.</p>
+                        <p>
+                            The HTML above was built through the raw DOM via <code>SvgNode::as_element()</code>, already
+                            a first-class, intentional escape hatch in this crate. That content is real and present in
+                            the DOM, but this crate's tree-navigation methods treat it like any other non-SVG node:
+                            So functions such as <code>children()</code> and <code>query_selector_all()</code> will
+                            filter it out of their results, while <code>first_child()</code>,
+                            <code>query_selector()</code> and their single-result siblings return <code>None</code> if
+                            the one specific candidate they examine turns out to be non-SVG.
+                        </p>
+                    </figcaption>
+                </figure>
+            </section>

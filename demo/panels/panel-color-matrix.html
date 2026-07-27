@@ -1,0 +1,25 @@
+            <!-- feColorMatrix -->
+            <section class="section" id="panel-color-matrix">
+                <h2><code>&lt;feColorMatrix&gt;</code> — colour transforms, independent of the shadow primitives</h2>
+                <figure>
+                    <div class="canvas" id="demo-color-matrix"></div>
+                    <figcaption>
+                        <p>
+                            Four copies of the same multi-hue gradient rectangle (a flat colour would not show
+                            saturation or hue changing anything), each referencing a separate
+                            <code>&lt;filter&gt;</code> built with <strong>color_matrix</strong>:
+                        </p>
+                        <ul>
+                            <li><strong>original</strong>: No filter</li>
+                            <li><strong>Saturate(0.0)</strong>: Greyscale</li>
+                            <li><strong>HueRotate(180)</strong>: Hue shifted around the colour circle</li>
+                            <li><strong>Matrix(sepia)</strong>: A full custom 4×5 transform — the classic sepia-tone
+                                coefficients</li>
+                        </ul>
+                        <p>
+                            <code>LuminanceToAlpha</code>, the fourth <code>ColorMatrixType</code> variant, produces
+                            an alpha mask rather than a directly visible result, so is not shown here.
+                        </p>
+                    </figcaption>
+                </figure>
+            </section>

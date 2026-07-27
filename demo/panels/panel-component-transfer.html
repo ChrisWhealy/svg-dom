@@ -1,0 +1,29 @@
+            <!-- feComponentTransfer -->
+            <section class="section" id="panel-component-transfer">
+                <h2><code>&lt;feComponentTransfer&gt;</code> — per-channel remap, independent of the shadow
+                    primitives</h2>
+                <figure>
+                    <div class="canvas" id="demo-component-transfer"></div>
+                    <figcaption>
+                        <p>
+                            Four copies of the same multi-hue gradient rectangle, each referencing a separate
+                            <code>&lt;filter&gt;</code> built with <strong>component_transfer</strong>:
+                        </p>
+                        <ul>
+                            <li><strong>original</strong>: No filter</li>
+                            <li><strong>Gamma(2.2)</strong>: Applied identically to red/green/blue, darkens
+                                midtones</li>
+                            <li><strong>Discrete(4-step)</strong>: Applied identically to red/green/blue,
+                                posterises the smooth gradient into hard colour bands</li>
+                            <li><strong>Alpha Linear(0.4)</strong>: Applied only to alpha, fading the rectangle
+                                toward the dark canvas background without touching its colour at all</li>
+                        </ul>
+                        <p>
+                            Each channel is independent: a <code>(Channel, TransferFunction)</code> pair not
+                            mentioned gets no <code>&lt;feFuncX&gt;</code> child at all (the SVG default —
+                            equivalent to <code>TransferFunction::Identity</code>), which is why the alpha-only
+                            example above leaves colour completely untouched.
+                        </p>
+                    </figcaption>
+                </figure>
+            </section>

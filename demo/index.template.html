@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>svg-dom — Element Gallery</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div id="app">
+        <!-- Menu panel  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+        <!--
+            Categorised the same way as docs/svg_elements/README.md
+
+            * Basic Shapes
+            * Path
+            * Text
+            * Structural
+            * Reusable Elements
+            * Paint Servers
+            * Clipping & Masking
+            * Filters
+
+            Plus four demo-only categories that have no direct element-doc counterpart:
+
+            * Core Operations (root/node-level operations not specific to any one element),
+            * Animation (AnimationLoop is a crate utility, not an SVG element),
+            * Event Handling, and
+            * Geometry Read-back
+
+            Each category is a <details> disclosure widget (an expandable tree node) rather than one long
+            undifferentiated list; see style.css's .menu-group rules.
+        -->
+        <nav id="menu">
+            <h1 class="brand">svg-dom</h1>
+
+            <details class="menu-group">
+                <summary>Basic Shapes</summary>
+                <button type="button" class="menu-item" data-target="panel-rect">rect</button>
+                <button type="button" class="menu-item" data-target="panel-circle">circle</button>
+                <button type="button" class="menu-item" data-target="panel-ellipse">ellipse</button>
+                <button type="button" class="menu-item" data-target="panel-line">line</button>
+                <button type="button" class="menu-item" data-target="panel-poly">polygon / polyline</button>
+                <button type="button" class="menu-item" data-target="panel-group">group</button>
+            </details>
+
+            <details class="menu-group">
+                <summary>Path</summary>
+                <button type="button" class="menu-item" data-target="panel-path">path</button>
+            </details>
+
+            <details class="menu-group">
+                <summary>Text</summary>
+                <button type="button" class="menu-item" data-target="panel-text">text</button>
+                <button type="button" class="menu-item" data-target="panel-tspan">tspan</button>
+                <button type="button" class="menu-item" data-target="panel-text-path">textPath</button>
+            </details>
+
+            <details class="menu-group">
+                <summary>Structural &amp; Reusable Elements</summary>
+                <button type="button" class="menu-item" data-target="panel-marker">defs / marker</button>
+                <button type="button" class="menu-item" data-target="panel-marker-view-box">marker
+                    set_view_box</button>
+                <button type="button" class="menu-item" data-target="panel-use">use</button>
+                <button type="button" class="menu-item" data-target="panel-image">image</button>
+                <button type="button" class="menu-item" data-target="panel-symbol">symbol</button>
+                <button type="button" class="menu-item" data-target="panel-anchor">a</button>
+                <button type="button" class="menu-item" data-target="panel-switch">switch</button>
+                <button type="button" class="menu-item" data-target="panel-view">view</button>
+                <button type="button" class="menu-item" data-target="panel-style">style</button>
+                <button type="button" class="menu-item" data-target="panel-foreign-object">foreignObject</button>
+            </details>
+
+            <details class="menu-group">
+                <summary>Paint Servers</summary>
+                <button type="button" class="menu-item" data-target="panel-linear-gradient">linearGradient</button>
+                <button type="button" class="menu-item" data-target="panel-radial-gradient">radialGradient</button>
+                <button type="button" class="menu-item" data-target="panel-pattern">pattern</button>
+            </details>
+
+            <details class="menu-group">
+                <summary>Clipping &amp; Masking</summary>
+                <button type="button" class="menu-item" data-target="panel-clip-path">clipPath</button>
+                <button type="button" class="menu-item" data-target="panel-mask">mask</button>
+            </details>
+
+            <details class="menu-group">
+                <summary>Filters</summary>
+                <button type="button" class="menu-item" data-target="panel-filter">filter</button>
+                <button type="button" class="menu-item" data-target="panel-color-matrix">feColorMatrix</button>
+                <button type="button" class="menu-item" data-target="panel-blend">feBlend</button>
+                <button type="button" class="menu-item"
+                    data-target="panel-component-transfer">feComponentTransfer</button>
+                <button type="button" class="menu-item" data-target="panel-turbulence">feTurbulence /
+                    feDisplacementMap</button>
+                <button type="button" class="menu-item" data-target="panel-morphology">feMorphology</button>
+                <button type="button" class="menu-item" data-target="panel-fe-image">feImage</button>
+                <button type="button" class="menu-item" data-target="panel-fe-tile">feTile</button>
+                <button type="button" class="menu-item" data-target="panel-convolve-matrix">feConvolveMatrix</button>
+                <button type="button" class="menu-item" data-target="panel-lighting">feDiffuseLighting /
+                    feSpecularLighting</button>
+                <button type="button" class="menu-item" data-target="panel-light-sources">LightSource
+                    comparison</button>
+            </details>
+
+            <details class="menu-group">
+                <summary>Core Operations</summary>
+                <button type="button" class="menu-item" data-target="panel-view-box">set_view_box</button>
+                <button type="button" class="menu-item" data-target="panel-tree-nav">tree navigation</button>
+                <button type="button" class="menu-item" data-target="panel-accessibility">desc / title</button>
+            </details>
+
+            <details class="menu-group">
+                <summary>Animation</summary>
+                <button type="button" class="menu-item" data-target="panel-anim">AnimationLoop</button>
+            </details>
+
+            <details class="menu-group">
+                <summary>Event Handling</summary>
+                <button type="button" class="menu-item" data-target="panel-events-click">Click counter</button>
+                <button type="button" class="menu-item" data-target="panel-events-colour">Colour wheel</button>
+                <button type="button" class="menu-item" data-target="panel-events-modifiers">Modifier keys</button>
+                <button type="button" class="menu-item" data-target="panel-events-press">Press state</button>
+                <button type="button" class="menu-item" data-target="panel-events-group">Bubbling</button>
+                <button type="button" class="menu-item" data-target="panel-events-pointer">Pointer lifecycle</button>
+                <button type="button" class="menu-item" data-target="panel-events-keyboard-wheel">Keyboard &amp;
+                    wheel</button>
+                <button type="button" class="menu-item" data-target="panel-events-drag-drop-touch">Native
+                    drag/touch</button>
+                <button type="button" class="menu-item" data-target="panel-events-passive">Passive Event
+                    Listeners</button>
+                <button type="button" class="menu-item" data-target="panel-events-classlist">CSS class toggle</button>
+            </details>
+
+            <details class="menu-group">
+                <summary>Geometry Read-back</summary>
+                <button type="button" class="menu-item" data-target="panel-geometry-path-follow">Path follow</button>
+                <button type="button" class="menu-item" data-target="panel-geometry-bbox">Bounding box</button>
+            </details>
+        </nav>
+
+        <!-- Title panel  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+        <header id="title">
+            <h1>Element Gallery</h1>
+            <p class="subtitle">
+                Every demo is created programmatically from Rust/WebAssembly using the <code>svg-dom</code> crate.
+                Pick a demo from the menu on the left; hover, click and drag the highlighted elements to see live
+                event handling.
+            </p>
+            <p class="subtitle">
+                Build &amp; serve with <code>cargo demo</code> from the project root, then open
+                <code>http://127.0.0.1:8000/demo/</code>
+            </p>
+            <div id="error-banner"></div>
+        </header>
+
+        <!-- Demo (stage) panel  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+        <main id="stage">
+{{PANELS}}
+        </main>
+    </div>
+
+    <script type="module">
+        import init, {run_demo} from '../pkg/svg_dom_demo.js';
+
+        // Show the demo whose panel id matches `target`, and highlight its menu item.
+        function selectDemo(target) {
+            for (const section of document.querySelectorAll('#stage .section')) {
+                section.classList.toggle('active', section.id === target);
+            }
+            for (const item of document.querySelectorAll('#menu .menu-item')) {
+                item.classList.toggle('active', item.dataset.target === target);
+            }
+        }
+
+        for (const item of document.querySelectorAll('#menu .menu-item')) {
+            item.addEventListener('click', () => selectDemo(item.dataset.target));
+        }
+
+        // Panels are otherwise only reachable by clicking a menu item; this is what makes a plain URL fragment link
+        // (such as the ones the <a> demo itself uses, in demo-app/src/structure.rs) actually switch panels, rather
+        // than silently doing nothing because the target section's `display: none` is never toggled off.
+        window.addEventListener('hashchange', () => {
+            const target = location.hash.slice(1);
+            if (document.getElementById(target)) selectDemo(target);
+        });
+
+        try {
+            await init();
+            run_demo();
+        } catch (err) {
+            const banner = document.getElementById('error-banner');
+            banner.style.display = 'block';
+            banner.textContent = `WASM error: ${err}`;
+            console.error(err);
+        }
+
+        // Select the demo named by the URL fragment, if it names a real panel; otherwise the first demo.
+        const requested = location.hash.slice(1);
+        const first = document.querySelector('#menu .menu-item');
+        const initial = document.getElementById(requested) ? requested : first?.dataset.target;
+        if (initial) selectDemo(initial);
+    </script>
+</body>
+
+</html>

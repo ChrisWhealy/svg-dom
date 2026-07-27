@@ -1,0 +1,29 @@
+            <!-- image -->
+            <section class="section" id="panel-image">
+                <h2><code>&lt;image&gt;</code> — embed a raster or SVG image</h2>
+                <figure>
+                    <div class="canvas" id="demo-image"></div>
+                    <figcaption>
+                        <p>
+                            A four-quadrant colour grid image has a natural size of 60&times;40 pixels, marked with a
+                            small dot near its left edge.
+                        </p>
+                        <p>
+                            This image is then placed in a 100&times;100 box with three different
+                            <strong>preserveAspectRatio</strong> modes. Watch the dot and the grey guide outline:
+                        </p>
+                        <ul>
+                            <li><strong>meet</strong> (default) shrinks the whole image to fit, leaving guide-coloured
+                                bars above and below &mdash; the dot stays visible.</li>
+                            <li><strong>none</strong> stretches the image to fill the box exactly, distorting its
+                                aspect ratio &mdash; no bars, and the dot stays visible.</li>
+                            <li><strong>slice</strong> scales the image up to fill the box and crops the sides causing
+                                the dot to be cropped away entirely.</li>
+                        </ul>
+                        <p>
+                            The fourth slot demonstrates using <code>set_href</code> to swap the image source after its
+                            creation.
+                        </p>
+                    </figcaption>
+                </figure>
+            </section>

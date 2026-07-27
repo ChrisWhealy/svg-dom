@@ -21,9 +21,9 @@ use svg_dom::{
 // assuming the functionality scales adequatelty.
 pub(super) fn demo_geometry_path_follow() -> Result<(), Error> {
     const CX: f64 = W / 2.0;
-    const CY: f64 = PAD_Y + BAND_HALF;
+    const CY: f64 = (PAD_Y / 2.0) + BAND_HALF;
     const BAND_HALF: f64 = 65.0;
-    const RX: f64 = 300.0;
+    const RX: f64 = 200.0;
     const RY: f64 = 48.0;
     const LAP_MS: f64 = 4000.0;
 
@@ -41,11 +41,11 @@ pub(super) fn demo_geometry_path_follow() -> Result<(), Error> {
     let runner = svg.circle(Point::new(CX + RX, CY), 8.0)?;
     runner.set_fill(ACCENT_BLUE)?;
 
-    let readout = svg.text(Point::new(20.0, 20.0 + PAD_Y), &format!("total length: {total:.0}"))?;
+    let readout = svg.text(Point::new(20.0, 20.0), &format!("total length: {total:.0}"))?;
     readout.set_fill(TEXT)?;
     readout.set_attr("font-size", "14")?;
 
-    let lap_readout = svg.text(Point::new(20.0, 40.0 + PAD_Y), "distance: 0 / 0")?;
+    let lap_readout = svg.text(Point::new(20.0, 40.0), "distance: 0 / 0")?;
     lap_readout.set_fill(TEXT_MUTED)?;
     lap_readout.set_attr("font-size", "12")?;
 

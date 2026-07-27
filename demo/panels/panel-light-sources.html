@@ -1,0 +1,34 @@
+            <!-- LightSource comparison -->
+            <section class="section" id="panel-light-sources">
+                <h2><code>LightSource</code> — Distant vs Point vs Spot, with/without <code>limitingConeAngle</code>
+                </h2>
+                <figure>
+                    <div class="canvas" id="demo-light-sources"></div>
+                    <figcaption>
+                        <p>
+                            Every panel here lights a plain, flat rect with <code>feSpecularLighting</code> alone —
+                            a flat surface has one constant normal, so any position-dependence in the highlight
+                            comes entirely from the light source itself, not from bump-map relief.
+                        </p>
+                        <ul>
+                            <li><strong>Distant (uniform)</strong>: Direction is identical everywhere per the SVG
+                                spec, so the highlight is a uniform sheen across the whole flat surface, no hotspot
+                            </li>
+                            <li><strong>Point (hotspot)</strong>: Direction varies per surface sample, producing a
+                                hotspot nearest the light's projected position; per <code>LightSource::Point</code>'s
+                                own doc comment, there is no distance attenuation on the light's colour itself, only
+                                its direction changes across the surface</li>
+                            <li><strong>Spot (no cone)</strong>: Still directional (a
+                                <code>pow(-L&middot;S, specular_exponent)</code> falloff away from the aim axis), but
+                                with <code>limiting_cone_angle: None</code> no *additional* hard-edged cutoff is
+                                applied — compare its softer edge against the next panel's
+                            </li>
+                            <li><strong>Spot (limitingConeAngle)</strong>: The identical beam as the previous panel,
+                                now with <code>limiting_cone_angle: Some(20.0)</code> additionally hard-clipping it;
+                                the sharper circular edge here versus the previous panel's falloff-only edge is
+                                exactly the distinction <code>LightSource::Spot</code>'s own doc comment describes
+                            </li>
+                        </ul>
+                    </figcaption>
+                </figure>
+            </section>
