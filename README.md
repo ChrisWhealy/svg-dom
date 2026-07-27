@@ -127,8 +127,9 @@ The coding used to create each demo is shown beneath each example.
    That one command does several things internally:
 
    - Runs `cargo build --release --target wasm32-unknown-unknown` scoped to the `demo-app` package.
-    Because `demo-app/Cargo.toml` declares `svg-dom = { path = ".." }`, Cargo first compiles `svg-dom`, then compiles `demo-app` against it, producing a raw `.wasm` binary.
-   - Runs `wasm-bindgen` over that binary to generate the JS/TS glue (`svg_dom_demo.js`, `svg_dom_demo_bg.wasm`, `.d.ts` files) — this is what turns a raw wasm export into something JavaScript can execute.
+     Because `demo-app/Cargo.toml` declares `svg-dom = { path = ".." }`, Cargo first compiles `svg-dom`, then compiles `demo-app` against it, producing a raw `.wasm` binary.
+   - Runs `wasm-bindgen` over that binary to generate the JS/TS glue files (`svg_dom_demo.js`, `svg_dom_demo_bg.wasm` and `.d.ts`).
+     These files wrap the generate WASM module such that JavaScript can execute it.
    - Runs `wasm-opt` to shrink/optimize the final `.wasm`.
    - Writes all of it to `--out-dir ../pkg`, resolved relative to the crate path (demo-app), so it lands at `demo-app/../pkg`.
 
