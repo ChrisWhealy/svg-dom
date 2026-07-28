@@ -1,4 +1,4 @@
-//! Static file server for the `svg-dom` element gallery.
+//! Static file server for the `svg-dom` feature gallery.
 //!
 //! Run from the project root with:
 //! ```sh
@@ -29,7 +29,7 @@
 //!
 //! * The checkout stays untouched by `cargo demo` (nothing to accidentally commit and `git status` stays clean)
 //! * The static server exposes only the generated gallery, not the repository's own manifests or Rust sources
-//! * A failed or interrupted run will not leave a partial artefact sitting in directoru monitored by source control
+//! * A failed or interrupted run will not leave a partial artefact sitting in directory monitored by source control
 //! * The whole generated gallery is removed by an ordinary `cargo clean`, the same as any other build output
 //!
 //! The port number can be overridden using the `PORT` environment variable, e.g. `PORT=9000 cargo demo`.
@@ -38,6 +38,11 @@
 //! as a `Result`-returning [`build::build_gallery`] rather than something that reports errors and exits on its own.
 //! That keeps every "how do we build the gallery" decision testable and reusable independently of Actix, and leaves
 //! `main` as the one place that decides what a build failure means for the process.
+//!
+//! Run with `--prepare-only` (`cargo run -p demo-server -- --prepare-only`) to run [`build::prepare_gallery`] alone
+//! — validate the catalogue, assemble `index.html`, copy static assets — and exit, without rebuilding the wasm
+//! package or starting the server. This is what lets CI exercise the actual staging pipeline (the same phases
+//! `wasm-pack build demo-app ...` on its own bypasses entirely) without paying for a full wasm build every run.
 mod build;
 mod panels;
 mod validate;
@@ -65,6 +70,15 @@ async fn main() -> std::io::Result<()> {
         .unwrap_or_else(|| root.join("target"));
     let stage = StagePaths::new(&target_dir);
     let port: u16 = std::env::var("PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(DEFAULT_PORT);
+
+    if std::env::args().any(|arg| arg == "--prepare-only") {
+        if let Err(err) = build::prepare_gallery(&root, &stage, port) {
+            eprintln!("aborting: {err}");
+            process::exit(1);
+        }
+        println!("gallery staged successfully at {}", stage.demo_dir.display());
+        return Ok(());
+    }
 
     // Every build phase — validating the catalogue, assembling index.html, copying static assets, rebuilding the
     // wasm package — runs here, in order, before the server ever starts; a failure at any phase is fatal, so

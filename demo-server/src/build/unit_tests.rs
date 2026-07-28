@@ -1,5 +1,57 @@
 use super::*;
 
+/// The workspace root — `demo-server`'s own parent directory. See `validate::unit_tests`'s identical helper.
+fn workspace_root() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("demo-server has a parent directory")
+        .to_path_buf()
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// prepare_gallery — the end-to-end staging check: everything build_gallery does except the wasm rebuild, run
+// against the real project. This is what actually proves catalogue validation, fragment validation, template
+// assembly, port substitution, and asset copying stay wired together correctly as one pipeline, not just that
+// each phase's own unit tests (in panels::unit_tests and validate::unit_tests) pass in isolation — without paying
+// for a real wasm-pack build to do it.
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+#[test]
+fn should_prepare_the_real_gallery_without_building_wasm() {
+    let stage_root = tempfile::tempdir().expect("create temp dir");
+    let stage = StagePaths::new(stage_root.path());
+
+    let result = prepare_gallery(&workspace_root(), &stage, 8080);
+    assert!(
+        result.is_ok(),
+        "prepare_gallery failed against the real project: {:?}",
+        result.err()
+    );
+
+    let html = fs::read_to_string(stage.demo_dir.join("index.html")).expect("read staged index.html");
+    assert!(
+        html.contains(r#"id="panel-rect""#),
+        "staged index.html is missing a known real panel"
+    );
+    assert!(
+        html.contains("http://127.0.0.1:8080/demo/"),
+        "staged index.html did not substitute the port placeholder"
+    );
+    assert!(
+        !html.contains("{{"),
+        "staged index.html still contains an unresolved placeholder"
+    );
+
+    assert!(stage.demo_dir.join("style.css").is_file(), "style.css was not staged");
+    assert!(stage.demo_dir.join("view-demo.svg").is_file(), "view-demo.svg was not staged");
+
+    // The whole point of prepare_gallery vs. build_gallery: staging must not touch pkg/ at all.
+    assert!(
+        !stage.pkg_dir.exists(),
+        "prepare_gallery must not build (or even create a directory for) the wasm package"
+    );
+}
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // StagePaths
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

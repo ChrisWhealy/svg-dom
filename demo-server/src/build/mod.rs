@@ -4,9 +4,19 @@
 //!
 //! Each phase returns a `Result` rather than terminating the process itself, the same policy [`panels::assemble`]
 //! and [`validate::validate`] already followed; this module extends that discipline to the two phases that used to
-//! call `process::exit` directly (copying assets, running `wasm-pack`), and adds [`build_gallery`] to chain every
-//! phase together behind one signature. Deciding what a failure means for the process — report to stderr,
-//! `exit(1)` — stays `main`'s job alone.
+//! call `process::exit` directly (copying assets, running `wasm-pack`).
+//!
+//! The pipeline is split into two layers rather than one:
+//!  - [`prepare_gallery`] runs every phase except the wasm build: validate the catalogue, assemble `index.html`,
+//!    substitute the port placeholder, copy static assets. This is the part `wasm-pack build demo-app ...` on its
+//!    own — the invocation CI's `wasm` job runs to build the wasm package — does not exercise at all.
+//!  - [`build_gallery`] runs [`prepare_gallery`] and then rebuilds the wasm package, which is what `cargo demo`
+//!    actually needs to serve the gallery.
+//!
+//! Separating them means CI (via `demo-server --prepare-only`, see `main`) or a test can exercise catalogue
+//! validation, fragment validation, template assembly, and asset staging together — the actual `demo-server`
+//! pipeline, not just each phase's own unit tests in isolation — without paying for a full wasm build every time.
+//! Deciding what a failure means for the process — report to stderr, `exit(1)` — stays `main`'s job alone.
 use crate::{panels, validate};
 use std::{
     fmt, fs, io,
@@ -86,12 +96,12 @@ impl From<panels::AssembleError> for BuildError {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Runs every phase of the gallery build in order — validating the catalogue, assembling `index.html`, copying
-/// static assets, and rebuilding the wasm package — leaving only starting the Actix server itself to `main`.
-/// Returns as soon as any phase fails, via `?`, the same short-circuiting [`panels::assemble`] and
-/// [`validate::validate`] already do individually: nothing after a failed phase runs, so (for example) a stale
-/// catalogue is caught before `wasm-pack` is ever spawned.
-pub fn build_gallery(root: &Path, stage: &StagePaths, port: u16) -> Result<(), BuildError> {
+/// Runs every gallery-build phase except the wasm rebuild: validates the catalogue, assembles `index.html`
+/// (substituting the port placeholder), and copies the static assets it references — everything needed to stage a
+/// servable `demo/` directory except `pkg/`. Returns as soon as any phase fails, via `?`, the same short-circuiting
+/// [`panels::assemble`] and [`validate::validate`] already do individually: nothing after a failed phase runs, so
+/// (for example) a stale catalogue is caught before `index.html` is ever written.
+pub fn prepare_gallery(root: &Path, stage: &StagePaths, port: u16) -> Result<(), BuildError> {
     fs::create_dir_all(&stage.demo_dir).map_err(|source| BuildError::CreateStageDir {
         path: stage.demo_dir.clone(),
         source,
@@ -112,6 +122,15 @@ pub fn build_gallery(root: &Path, stage: &StagePaths, port: u16) -> Result<(), B
     copy_asset(&source_demo_dir.join("style.css"), &stage.demo_dir.join("style.css"))?;
     copy_asset(&source_demo_dir.join("view-demo.svg"), &stage.demo_dir.join("view-demo.svg"))?;
 
+    Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Runs [`prepare_gallery`] and then rebuilds the wasm package, leaving only starting the Actix server itself to
+/// `main`. This is the full pipeline `cargo demo` needs; `main --prepare-only` runs [`prepare_gallery`] alone
+/// instead (see this module's own doc comment for why that split exists).
+pub fn build_gallery(root: &Path, stage: &StagePaths, port: u16) -> Result<(), BuildError> {
+    prepare_gallery(root, stage, port)?;
     build_wasm(root, &stage.pkg_dir)
 }
 

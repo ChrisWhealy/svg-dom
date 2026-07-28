@@ -1,4 +1,4 @@
-//! Interactive element gallery for the browser.
+//! Interactive feature gallery for the browser.
 //!
 //! This is a separate workspace crate, not a feature of `svg-dom` itself: it depends on `svg-dom` the same way any
 //! external consumer would (a plain `Cargo.toml` path dependency), reaching it only through its public API. This
@@ -192,7 +192,7 @@ const PANEL_STATE_ATTR: &str = "data-panel-state";
 ///
 /// For the two lightweight animations currently in this gallery, the added complexity of a pause/resume lifecycle
 /// (e.g. an `activate_panel`/`deactivate_panel` pair, or getting each animation callback to check its own section's
-/// `.active` class), is not worth the ffort.
+/// `.active` class), is not worth the effort.
 ///
 /// If the number of animations grows, it would be worth revisiting this design decision.
 ///
@@ -320,7 +320,7 @@ fn append_source_frame(document: &web_sys::Document, panel_id: &str, fn_name: &s
 /// indented.
 ///
 /// Scanning for the first line that is exactly `}` after the signature therefore finds the function's end without
-/// having to parse any string literals or resort to an brace-balancing shenanigans.
+/// having to parse any string literals or resort to any brace-balancing shenanigans.
 fn demo_fn_source(name: &str) -> Option<&'static str> {
     let needle = format!("fn {name}(");
     let hit = DEMO_SRC.find(&needle)?;

@@ -42,6 +42,14 @@ jobs:
       - name: Unit tests (demo-server)
         run: cargo test -p demo-server
 
+      # demo-server's own unit tests (panels/validate/build) already cover each phase in isolation with synthetic
+      # fixtures, but this exercises the real pipeline end to end — catalogue validation, fragment validation,
+      # template assembly, port substitution, and asset staging, wired together the way `cargo demo` actually runs
+      # them — without paying for a full `wasm-pack build` (the `wasm` job below already covers that separately).
+      # See demo-server/src/build/mod.rs's doc comment for why prepare_gallery is split out from build_gallery.
+      - name: Demo gallery staging check (validate + assemble, no wasm build)
+        run: cargo run -p demo-server -- --prepare-only
+
       # Native, not the `wasm` job's `--target wasm32-unknown-unknown` clippy step below: that one only lints the
       # normal (non-test) build, so it never sees #[cfg(test)] code either — same gap as demo-server's clippy step
       # above, for the same reason. demo-app/src/highlight/unit_tests.rs is what this actually catches.
