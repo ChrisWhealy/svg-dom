@@ -10,7 +10,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 ### Added
 
-- Make text-anchor demo interactive (``)
+- Make text-anchor demo interactive (`3dfbc85`)
 
 ## [0.1.2] - 2026-07-28
 
