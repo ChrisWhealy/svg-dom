@@ -250,7 +250,10 @@ fn should_accept_well_formed_panel_ids() {
 fn should_reject_panel_id_missing_the_prefix() {
     const INVALID: &[Entry] = &[Entry::Panel { id: "rect", label: "a" }];
     let err = check_panel_id_format(INVALID).expect_err("a missing panel- prefix must be rejected");
-    assert!(matches!(err, AssembleError::InvalidPanelId("rect")), "wrong error variant: {err}");
+    assert!(
+        matches!(err, AssembleError::InvalidPanelId("rect")),
+        "wrong error variant: {err}"
+    );
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -258,7 +261,10 @@ fn should_reject_panel_id_missing_the_prefix() {
 fn should_reject_panel_id_with_no_suffix() {
     const INVALID: &[Entry] = &[Entry::Panel { id: "panel-", label: "a" }];
     let err = check_panel_id_format(INVALID).expect_err("an empty suffix must be rejected");
-    assert!(matches!(err, AssembleError::InvalidPanelId("panel-")), "wrong error variant: {err}");
+    assert!(
+        matches!(err, AssembleError::InvalidPanelId("panel-")),
+        "wrong error variant: {err}"
+    );
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -266,7 +272,10 @@ fn should_reject_panel_id_with_no_suffix() {
 fn should_reject_panel_id_with_disallowed_characters() {
     const INVALID: &[Entry] = &[Entry::Panel { id: "panel-Rect", label: "a" }];
     let err = check_panel_id_format(INVALID).expect_err("an uppercase character must be rejected");
-    assert!(matches!(err, AssembleError::InvalidPanelId("panel-Rect")), "wrong error variant: {err}");
+    assert!(
+        matches!(err, AssembleError::InvalidPanelId("panel-Rect")),
+        "wrong error variant: {err}"
+    );
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

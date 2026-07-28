@@ -15,6 +15,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 ### Changed
 
 - Make port number a placeholder in the HTML page (`acb2329`)
+- Extract all the build steps from `main.rs` into `build.rs` (``)
 
 ### Fixed
 

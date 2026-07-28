@@ -4,15 +4,17 @@
 //! ```sh
 //! cargo demo
 //! ```
-//! This checks firstly that `demo-app`'s `demo_gallery!` list and this crate's own panel manifest still agree with
-//! each other (see [`validate`]), then it rebuilds the gallery's `index.html` from `demo/index.template.html` and
-//! the various `demo/panels/*.html` files (see [`panels`]), rebuilds the `svg-dom-demo` crate's wasm package
-//! (`wasm-pack build demo-app --target web`), and serves the result — so the demo lives at:
-//! <http://127.0.0.1:8080/demo/>.
 //!
-//! The generated `index.html` and the wasm `pkg/` are staged under `target/demo-gallery/` rather than written into
-//! the source tree (`demo/index.html`, root-level `pkg/`, as earlier versions of this server did) or served
-//! straight out of the project root. Concretely:
+//! The following steps are performed:
+//!
+//! 1. `demo-app`'s `demo_gallery!` list and this crate's own panel manifest must agree with each other (see [`validate`])
+//! 1. Rebuilds the gallery's `index.html` from `demo/index.template.html` and the various `demo/panels/*.html` files
+//!    (see [`panels`])
+//! 1. Rebuilds the `svg-dom-demo` crate's wasm package using `wasm-pack build demo-app --target web`
+//! 1. Serves the result at <http://127.0.0.1:8080/demo/>
+//!
+//! The generated `index.html` and the wasm `pkg/` are staged under `target/demo-gallery/` rather than written into the
+//! source tree (as earlier versions of this server did) or served straight out of the project root. Concretely:
 //!
 //! ```text
 //! target/demo-gallery/
@@ -23,29 +25,27 @@
 //! └── pkg/                 (wasm-pack's output)
 //! ```
 //!
-//! `demo/index.template.html`'s own relative references — `href="style.css"` and
-//! `import ... from '../pkg/svg_dom_demo.js'` — resolve exactly the same way here as they did against the source
-//! tree, since the staged `demo/` sits next to a staged `pkg/` the same way the real `demo/` used to sit next to
-//! the real `pkg/`. Only `Files::new`'s own root changes, from the whole project directory to this one.
+//! Serving from outside the source tree means:
 //!
-//! Staging outside the source tree like this means: the checkout stays untouched by `cargo demo` (nothing to
-//! accidentally commit, `git status` stays clean); the static server exposes only the generated gallery, not the
-//! repository's own manifests or Rust sources; a failed or interrupted run cannot leave a partial artefact sitting
-//! in source control; and the whole generated gallery is removed by an ordinary `cargo clean`, the same as any
-//! other build output.
+//! * The checkout stays untouched by `cargo demo` (nothing to accidentally commit and `git status` stays clean)
+//! * The static server exposes only the generated gallery, not the repository's own manifests or Rust sources
+//! * A failed or interrupted run will not leave a partial artefact sitting in directoru monitored by source control
+//! * The whole generated gallery is removed by an ordinary `cargo clean`, the same as any other build output
 //!
 //! The port number can be overridden using the `PORT` environment variable, e.g. `PORT=9000 cargo demo`.
+//!
+//! The build pipeline itself — resolving staging paths through to a wasm package ready to serve — lives in [`build`],
+//! as a `Result`-returning [`build::build_gallery`] rather than something that reports errors and exits on its own.
+//! That keeps every "how do we build the gallery" decision testable and reusable independently of Actix, and leaves
+//! `main` as the one place that decides what a build failure means for the process.
+mod build;
 mod panels;
 mod validate;
 
-use std::{
-    fs,
-    path::{Path, PathBuf},
-    process::{self, Command},
-};
-
 use actix_files::Files;
 use actix_web::{App, HttpServer, middleware::Logger};
+use build::StagePaths;
+use std::{path::PathBuf, process};
 
 const DEFAULT_PORT: u16 = 8080;
 
@@ -63,40 +63,19 @@ async fn main() -> std::io::Result<()> {
     let target_dir = std::env::var_os("CARGO_TARGET_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|| root.join("target"));
-    let stage_dir = target_dir.join("demo-gallery");
-    let stage_demo_dir = stage_dir.join("demo");
-    let stage_pkg_dir = stage_dir.join("pkg");
-
-    if let Err(err) = fs::create_dir_all(&stage_demo_dir) {
-        eprintln!("aborting: could not create {} ({err})", stage_demo_dir.display());
-        process::exit(1);
-    }
-
-    // Check whether the panel manifest is out of sync with the demo gallery before it produces a broken or incomplete
-    // gallery, rather than after.
-    if let Err(err) = validate::validate(&root) {
-        eprintln!("aborting: {err}");
-        process::exit(1);
-    }
-
+    let stage = StagePaths::new(&target_dir);
     let port: u16 = std::env::var("PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(DEFAULT_PORT);
-    let addr = ("127.0.0.1", port);
 
-    // Rebuild index.html from the source template and panel fragments before wasm-pack or the server ever touch it,
-    // so both always see the current assembled file, not some stale one from a previous run. The source demo/
-    // directory is read from, never written to — panels::assemble takes its input and output paths independently.
-    let source_demo_dir = root.join("demo");
-    if let Err(err) = panels::assemble(&source_demo_dir, &stage_demo_dir.join("index.html"), port) {
+    // Every build phase — validating the catalogue, assembling index.html, copying static assets, rebuilding the
+    // wasm package — runs here, in order, before the server ever starts; a failure at any phase is fatal, so
+    // `main` reports it and exits rather than starting Actix in front of an incomplete or stale gallery.
+    if let Err(err) = build::build_gallery(&root, &stage, port) {
         eprintln!("aborting: {err}");
         process::exit(1);
     }
 
-    // style.css and view-demo.svg are not generated — they are static assets index.html references by a plain
-    // relative path, so they need to sit alongside the generated file in the staging directory too.
-    copy_or_die(&source_demo_dir.join("style.css"), &stage_demo_dir.join("style.css"));
-    copy_or_die(&source_demo_dir.join("view-demo.svg"), &stage_demo_dir.join("view-demo.svg"));
-
-    build_wasm(&root, &stage_pkg_dir);
+    let addr = ("127.0.0.1", port);
+    let stage_dir = stage.stage_dir;
 
     println!("\n  svg-dom-demo running on http://127.0.0.1:{port}/demo/\n");
 
@@ -108,44 +87,4 @@ async fn main() -> std::io::Result<()> {
     .bind(addr)?
     .run()
     .await
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Rebuilds the `svg-dom-demo` crate's wasm package into `out_dir` so the served `pkg/` is up to date.
-/// Any failure discovered at this point must be treated as fatal: rather than silently serving a stale `pkg/`, the
-/// error is reported and the process exits.
-fn build_wasm(root: &Path, out_dir: &Path) {
-    println!(
-        "Building wasm package: wasm-pack build demo-app --target web --out-dir {}",
-        out_dir.display()
-    );
-
-    // `demo-app` is a separate workspace crate (`svg-dom-demo`) consuming `svg-dom` only through its public API —
-    // see that crate's own doc comment for why. `--out-dir` is given as an absolute path so it lands exactly at
-    // `out_dir` regardless of `demo-app`'s own location, rather than relying on relative-path arithmetic from it.
-    match Command::new("wasm-pack")
-        .current_dir(root)
-        .arg("build")
-        .arg("demo-app")
-        .args(["--target", "web", "--out-dir"])
-        .arg(out_dir)
-        .status()
-    {
-        Ok(status) if status.success() => {},
-        Ok(status) => {
-            eprintln!("aborting: wasm-pack exited with {status}");
-            process::exit(1);
-        },
-        Err(err) => {
-            eprintln!("aborting: could not run wasm-pack ({err})");
-            process::exit(1);
-        },
-    }
-}
-
-fn copy_or_die(src: &Path, dest: &Path) {
-    if let Err(err) = fs::copy(src, dest) {
-        eprintln!("aborting: could not copy {} to {} ({err})", src.display(), dest.display());
-        process::exit(1);
-    }
 }

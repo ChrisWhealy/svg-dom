@@ -175,7 +175,10 @@ impl fmt::Display for AssembleError {
                 )
             },
             Self::DuplicateManifestId(id) => write!(f, "MANIFEST contains the panel id {id:?} more than once"),
-            Self::InvalidPanelId(id) => write!(f, "MANIFEST contains the panel id {id:?}, which does not match panel-[a-z0-9-]+"),
+            Self::InvalidPanelId(id) => write!(
+                f,
+                "MANIFEST contains the panel id {id:?}, which does not match panel-[a-z0-9-]+"
+            ),
             Self::FragmentIdMismatch { id, fragment_path } => {
                 write!(
                     f,
@@ -286,8 +289,9 @@ fn check_panel_id_format(entries: &[Entry]) -> Result<(), AssembleError> {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 fn is_valid_panel_id(id: &str) -> bool {
-    id.strip_prefix("panel-")
-        .is_some_and(|rest| !rest.is_empty() && rest.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-'))
+    id.strip_prefix("panel-").is_some_and(|rest| {
+        !rest.is_empty() && rest.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+    })
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
