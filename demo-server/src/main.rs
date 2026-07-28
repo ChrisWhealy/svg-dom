@@ -104,9 +104,17 @@ async fn main() -> std::io::Result<()> {
     println!("\n  svg-dom-demo running on http://127.0.0.1:{port}/demo/\n");
 
     HttpServer::new(move || {
-        App::new()
-            .wrap(Logger::default())
-            .service(Files::new("/", stage_dir.clone()).index_file("index.html"))
+        App::new().wrap(Logger::default()).service(
+            // Without `redirect_to_slash_directory`, a request for a bare directory path (e.g. `/demo`, with no
+            // trailing slash — exactly what a typed or bookmarked URL naturally looks like) serves index.html's bytes
+            // in place rather than redirecting to `/demo/`. That leaves the browser's base URI one path segment too
+            // shallow, so every plain-relative reference the generated page makes (view-demo.svg or style.css)
+            // resolve one directory level too high and consequently 404s. The documented URL already has the trailing
+            // slash (see this file's own top-level doc comment), but nothing enforced it without this.
+            Files::new("/", stage_dir.clone())
+                .index_file("index.html")
+                .redirect_to_slash_directory(),
+        )
     })
     .bind(addr)?
     .run()
