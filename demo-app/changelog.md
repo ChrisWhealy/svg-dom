@@ -1,12 +1,10 @@
-# Changelog
+# Demo Gallery Changelog
 
 All notable changes to the `svg-dom-demo` project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project's crate version follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# [Unreleased]
-
-# [Released]
+The `svg-dom-demo` gallery is not published as part of the crate's release, so the changes listed here are not tied to any version number known to `crates.io`.
 
 ## [0.1.2] - 2026-07-28
 

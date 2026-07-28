@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Released]
 
+## [0.2.1] - 2026-07-28
+
+### Changed
+
+- Doc only: Update README to refer to `svg-dom-demo` (``)
+
 ## [0.2.0] - 2026-07-25
 
 ### Changed
