@@ -74,7 +74,10 @@ async fn main() -> std::io::Result<()> {
 
     // Check whether the panel manifest is out of sync with the demo gallery before it produces a broken or incomplete
     // gallery, rather than after.
-    validate::validate(&root);
+    if let Err(err) = validate::validate(&root) {
+        eprintln!("aborting: {err}");
+        process::exit(1);
+    }
 
     let port: u16 = std::env::var("PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(DEFAULT_PORT);
     let addr = ("127.0.0.1", port);

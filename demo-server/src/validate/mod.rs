@@ -8,28 +8,56 @@
 //! rather than depending on `demo-app` as a library: that crate builds to a wasm `cdylib` for the browser, not
 //! something a native binary like `demo-server` can link against.
 use crate::panels;
-use std::{collections::HashSet, fs, path::Path, process};
+use std::{
+    collections::HashSet,
+    fmt, fs, io,
+    path::{Path, PathBuf},
+};
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Everything that can go wrong cross-checking the two catalogues, mirroring how [`panels::AssembleError`] reports
+/// its own failures — `main` is responsible for deciding what a failure means for the process (report and exit),
+/// this module just reports what went wrong.
+#[derive(Debug)]
+pub enum ValidationError {
+    /// `demo-app/src/lib.rs` could not be read.
+    Io { path: PathBuf, source: io::Error },
+    /// The same panel id appears in `demo_gallery!` more than once.
+    DuplicateGalleryId(String),
+    /// `demo-server`'s panel manifest and `demo-app`'s `demo_gallery!` are not the same set of ids.
+    CatalogueMismatch(String),
+}
+
+impl fmt::Display for ValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Io { path, source } => write!(f, "could not read {} ({source})", path.display()),
+            Self::DuplicateGalleryId(id) => {
+                write!(f, "demo-app's demo_gallery! contains the panel id {id:?} more than once")
+            },
+            Self::CatalogueMismatch(detail) => {
+                write!(f, "demo-server's panel manifest and demo-app's demo_gallery! have drifted apart\n{detail}")
+            },
+        }
+    }
+}
+
+impl std::error::Error for ValidationError {}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Checks that every panel id in `demo-server`'s [`panels::panel_ids`] has a matching `demo_gallery!` entry in
 /// `demo-app/src/lib.rs`, and vice versa. A failure here is fatal, for the same reason a stale `index.html` or a
 /// failed wasm build is: better to refuse to serve a gallery already known to be inconsistent than to leave someone
-/// debugging a blank panel or a missing menu entry by hand.
-pub fn validate(root: &Path) {
+/// debugging a blank panel or a missing menu entry by hand — but, as with [`panels::assemble`], deciding *how* to
+/// treat that fatality (report and exit) is `main`'s job, not this function's.
+pub fn validate(root: &Path) -> Result<(), ValidationError> {
     let lib_rs_path = root.join("demo-app").join("src").join("lib.rs");
-    let lib_rs = match fs::read_to_string(&lib_rs_path) {
-        Ok(s) => s,
-        Err(err) => {
-            eprintln!("aborting: could not read {} ({err})", lib_rs_path.display());
-            process::exit(1);
-        },
-    };
+    let lib_rs = fs::read_to_string(&lib_rs_path).map_err(|source| ValidationError::Io { path: lib_rs_path, source })?;
 
     let gallery_ids = extract_gallery_panel_ids(&lib_rs);
 
     if let Some(dup) = find_duplicate_gallery_id(&gallery_ids) {
-        eprintln!("aborting: demo-app's demo_gallery! contains the panel id {dup:?} more than once");
-        process::exit(1);
+        return Err(ValidationError::DuplicateGalleryId(dup.to_string()));
     }
 
     let manifest_ids = panels::panel_ids();
@@ -37,20 +65,22 @@ pub fn validate(root: &Path) {
     let missing_from_gallery: Vec<_> = manifest_ids.iter().filter(|id| !gallery_ids.iter().any(|g| g == *id)).collect();
     let missing_from_manifest: Vec<_> = gallery_ids.iter().filter(|id| !manifest_ids.contains(&id.as_str())).collect();
 
-    if !missing_from_gallery.is_empty() || !missing_from_manifest.is_empty() {
-        eprintln!("aborting: demo-server's panel manifest and demo-app's demo_gallery! have drifted apart");
-        if !missing_from_gallery.is_empty() {
-            eprintln!(
-                "  in demo-server/src/panels.rs's MANIFEST but missing from demo-app's demo_gallery!: {missing_from_gallery:?}"
-            );
-        }
-        if !missing_from_manifest.is_empty() {
-            eprintln!(
-                "  in demo-app's demo_gallery! but missing from demo-server/src/panels.rs's MANIFEST: {missing_from_manifest:?}"
-            );
-        }
-        process::exit(1);
+    if missing_from_gallery.is_empty() && missing_from_manifest.is_empty() {
+        return Ok(());
     }
+
+    let mut detail = Vec::new();
+    if !missing_from_gallery.is_empty() {
+        detail.push(format!(
+            "  in demo-server/src/panels.rs's MANIFEST but missing from demo-app's demo_gallery!: {missing_from_gallery:?}"
+        ));
+    }
+    if !missing_from_manifest.is_empty() {
+        detail.push(format!(
+            "  in demo-app's demo_gallery! but missing from demo-server/src/panels.rs's MANIFEST: {missing_from_manifest:?}"
+        ));
+    }
+    Err(ValidationError::CatalogueMismatch(detail.join("\n")))
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
