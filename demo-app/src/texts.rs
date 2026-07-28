@@ -14,6 +14,7 @@ use wasm_bindgen::{JsCast, prelude::*};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 pub(super) fn demo_text() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-text", Size::new(W, H))?;
+    let mut demo_x: f64 = 6.0;
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // text-anchor (interactive)
@@ -35,7 +36,7 @@ pub(super) fn demo_text() -> Result<(), Error> {
     anchor_text.set_text_anchor(TextAnchor::Start)?;
 
     // Use a foreignObject to house the HTML radio buttons and keep them within the SVG viewport.
-    let fo = svg.foreign_object(Point::new(6.0, 76.0), Size::new(180.0, 72.0))?;
+    let fo = svg.foreign_object(Point::new(demo_x, 76.0), Size::new(180.0, 72.0))?;
     let document = fo
         .as_element()
         .owner_document()
@@ -95,67 +96,123 @@ pub(super) fn demo_text() -> Result<(), Error> {
 
     caption(&svg, 100.0, "text-anchor")?;
 
-    // ── font-size ─────────────────────────────────────────────────────────────────
-    // Three labels at the same x, each rendered at a different font size.
-    let fs_s = svg.text(Point::new(215.0, 60.0), "small — 11px")?;
-    fs_s.set_fill(PLAIN_TEXT)?;
-    fs_s.set_font_size(11.0)?;
-
-    let fs_m = svg.text(Point::new(215.0, 92.0), "medium — 17px")?;
-    fs_m.set_fill(PLAIN_TEXT)?;
-    fs_m.set_font_size(17.0)?;
-
-    let fs_l = svg.text(Point::new(215.0, 128.0), "large — 26px")?;
-    fs_l.set_fill(PLAIN_TEXT)?;
-    fs_l.set_font_size(26.0)?;
-
-    caption(&svg, 300.0, "font-size")?;
-
-    // ── dominant-baseline ─────────────────────────────────────────────────────────
-    // Horizontal dashed guide at y=90; three labels share that y but use different
-    // DominantBaseline values so the guide passes through a different part of each.
-    let hguide = svg.line(Point::new(415.0, 90.0), Point::new(588.0, 90.0))?;
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // dominant-baseline (interactive)
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // A single text element sits on the dashed horizontal guide at y=45 — the same "one text element, one fixed
+    // anchor coordinate" shape the text-anchor demo above uses, just on the other axis. Three real HTML
+    // `<input type="radio">` elements, laid out inside a second `<foreignObject>` below it, set its
+    // `dominant-baseline` live on change — see the text-anchor demo above for why native radios were chosen over
+    // hand-drawn SVG ones, and `SvgRoot::foreign_object`'s own doc comment for the raw web-sys escape hatch both
+    // of these `<foreignObject>`s use.
+    demo_x += 209.0;
+    let hguide = svg.line(Point::new(demo_x, 45.0), Point::new(demo_x + 150.0, 45.0))?;
     hguide.set_stroke(GUIDE)?;
     hguide.set_attr("stroke-dasharray", "4 3")?;
 
-    let db_h = svg.text(Point::new(432.0, 90.0), "hanging")?;
-    db_h.set_fill(PLAIN_TEXT)?;
-    db_h.set_font_size(13.0)?;
-    db_h.set_text_anchor(TextAnchor::Middle)?;
-    db_h.set_dominant_baseline(DominantBaseline::Hanging)?;
+    let baseline_text = svg.text(Point::new(demo_x + 45.0, 45.0), "baseline")?;
+    baseline_text.set_fill(STEELBLUE)?;
+    baseline_text.set_font_size(13.0)?;
+    baseline_text.set_text_anchor(TextAnchor::Middle)?;
+    baseline_text.set_dominant_baseline(DominantBaseline::Alphabetic)?;
 
-    let db_m = svg.text(Point::new(503.0, 90.0), "middle")?;
-    db_m.set_fill(STEELBLUE)?;
-    db_m.set_font_size(13.0)?;
-    db_m.set_text_anchor(TextAnchor::Middle)?;
-    db_m.set_dominant_baseline(DominantBaseline::Middle)?;
+    let db_fo = svg.foreign_object(Point::new(demo_x, 76.0), Size::new(185.0, 78.0))?;
+    let db_document = db_fo
+        .as_element()
+        .owner_document()
+        .ok_or_else(|| Error::Dom("cannot identify owner document for SVG foreignObject".into()))?;
 
-    let db_a = svg.text(Point::new(573.0, 90.0), "alphabetic")?;
-    db_a.set_fill(CORAL)?;
-    db_a.set_font_size(13.0)?;
-    db_a.set_text_anchor(TextAnchor::Middle)?;
-    db_a.set_dominant_baseline(DominantBaseline::Alphabetic)?;
+    let db_list = db_document
+        .create_element_ns(Some("http://www.w3.org/1999/xhtml"), "div")
+        .map_err(dom_err)?;
+    db_list
+        .set_attribute(
+            "style",
+            "display:flex; flex-direction:column; gap:6px; font:13px sans-serif; color:#c9d1d9;",
+        )
+        .map_err(dom_err)?;
 
-    caption(&svg, 500.0, "dominant-baseline")?;
+    const BASELINE_OPTIONS: [(DominantBaseline, &str); 3] = [
+        (DominantBaseline::Alphabetic, "alphabetic"),
+        (DominantBaseline::Middle, "middle"),
+        (DominantBaseline::Hanging, "hanging"),
+    ];
 
-    // ── font-family ───────────────────────────────────────────────────────────────
+    for (value, label) in BASELINE_OPTIONS {
+        let row = db_document
+            .create_element_ns(Some("http://www.w3.org/1999/xhtml"), "label")
+            .map_err(dom_err)?;
+        row.set_attribute("style", "display:flex; align-items:center; gap:6px; cursor:pointer;")
+            .map_err(dom_err)?;
+
+        let input = db_document
+            .create_element_ns(Some("http://www.w3.org/1999/xhtml"), "input")
+            .map_err(dom_err)?
+            .dyn_into::<web_sys::HtmlInputElement>()
+            .map_err(|_| Error::Dom("createElement(\"input\") did not return an HtmlInputElement".into()))?;
+        input.set_type("radio");
+        input.set_name("demo-dominant-baseline");
+        input.set_checked(value == DominantBaseline::Alphabetic);
+
+        let target = baseline_text.clone();
+        let on_change: DemoClosure = Closure::new(move |_: web_sys::Event| {
+            let _ = target.set_dominant_baseline(value);
+        });
+        input
+            .add_event_listener_with_callback("change", on_change.as_ref().unchecked_ref())
+            .map_err(dom_err)?;
+        keep_demo_closure(on_change);
+
+        row.append_child(&input).map_err(dom_err)?;
+        row.append_child(&db_document.create_text_node(label)).map_err(dom_err)?;
+        db_list.append_child(&row).map_err(dom_err)?;
+    }
+
+    db_fo.as_element().append_child(&db_list).map_err(dom_err)?;
+    keep_demo_node(db_fo);
+
+    caption(&svg, demo_x + 50.0, "dominant-baseline")?;
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // font-family
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // The same word rendered in the three CSS generic font families.
-    let ff_serif = svg.text(Point::new(618.0, 60.0), "Serif")?;
+    demo_x += 180.0;
+    let ff_serif = svg.text(Point::new(demo_x, 30.0), "Serif")?;
     ff_serif.set_fill(PLAIN_TEXT)?;
-    ff_serif.set_font_size(16.0)?;
+    ff_serif.set_font_size(18.0)?;
     ff_serif.set_font_family("serif")?;
 
-    let ff_sans = svg.text(Point::new(618.0, 91.0), "Sans-serif")?;
+    let ff_sans = svg.text(Point::new(demo_x, 77.0), "Sans-serif")?;
     ff_sans.set_fill(STEELBLUE)?;
-    ff_sans.set_font_size(16.0)?;
+    ff_sans.set_font_size(18.0)?;
     ff_sans.set_font_family("sans-serif")?;
 
-    let ff_mono = svg.text(Point::new(618.0, 124.0), "Monospace")?;
+    let ff_mono = svg.text(Point::new(demo_x, 128.0), "Monospace")?;
     ff_mono.set_fill(CORAL)?;
-    ff_mono.set_font_size(16.0)?;
+    ff_mono.set_font_size(18.0)?;
     ff_mono.set_font_family("monospace")?;
 
-    caption(&svg, 700.0, "font-family")?;
+    caption(&svg, demo_x + 50.0, "font-family")?;
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // font-size
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // Three labels at the same x, each rendered at a different font size.
+    demo_x += 150.0;
+    let fs_s = svg.text(Point::new(demo_x, 30.0), "small — 11px")?;
+    fs_s.set_fill(PLAIN_TEXT)?;
+    fs_s.set_font_size(11.0)?;
+
+    let fs_m = svg.text(Point::new(demo_x, 77.0), "medium — 17px")?;
+    fs_m.set_fill(PLAIN_TEXT)?;
+    fs_m.set_font_size(17.0)?;
+
+    let fs_l = svg.text(Point::new(demo_x, 128.0), "large — 26px")?;
+    fs_l.set_fill(PLAIN_TEXT)?;
+    fs_l.set_font_size(26.0)?;
+
+    caption(&svg, demo_x + 50.0, "font-size")?;
 
     Ok(())
 }
