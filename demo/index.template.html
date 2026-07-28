@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>svg-dom — Element Gallery</title>
+    <title>svg-dom — Feature Gallery</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -12,23 +12,33 @@
     <div id="app">
         <!-- Menu panel  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
         <!--
-            Categorised the same way as docs/svg_elements/README.md
+            Loosely based on docs/svg_elements/README.md's own categories, not an exact match to it:
 
             * Basic Shapes
             * Path
             * Text
-            * Structural
-            * Reusable Elements
+            * Structural & Reusable Elements
             * Paint Servers
             * Clipping & Masking
             * Filters
 
-            Plus four demo-only categories that have no direct element-doc counterpart:
+            <g> sits under Basic Shapes here purely for construction-grouping convenience. The docs themselves flag
+            the same tension without resolving it either way — they note "<g> is a structural/container element
+            ... despite sharing this factory grouping with the others for construction purposes" but never actually
+            place <g> in their own Structural and Reusable Elements section; it just sits in their flat top-level
+            list of every supported element. The gallery picks a side: <g> lives here, since it is what most people
+            reach for right after the basic shapes.
 
-            * Core Operations (root/node-level operations not specific to any one element),
-            * Animation (AnimationLoop is a crate utility, not an SVG element),
+            The docs bundle tree navigation, events, geometry and accessibility helpers into one "Core Operations"
+            category (core_operations.md). The gallery instead splits that same material into three menu groups —
+            a single ~15-item group would defeat the point of having categories:
+
+            * Core Operations (tree navigation, set_view_box, accessibility),
             * Event Handling, and
             * Geometry Read-back
+
+            Animation is the one category genuinely outside the docs' own structure: AnimationLoop is a crate
+            utility, not an SVG element, so it has no page there to belong to at all.
 
             Each category is a <details> disclosure widget (an expandable tree node) rather than one long
             undifferentiated list; see style.css's .menu-group rules.
@@ -36,114 +46,12 @@
         <nav id="menu">
             <h1 class="brand">svg-dom</h1>
 
-            <details class="menu-group">
-                <summary>Basic Shapes</summary>
-                <button type="button" class="menu-item" data-target="panel-rect">rect</button>
-                <button type="button" class="menu-item" data-target="panel-circle">circle</button>
-                <button type="button" class="menu-item" data-target="panel-ellipse">ellipse</button>
-                <button type="button" class="menu-item" data-target="panel-line">line</button>
-                <button type="button" class="menu-item" data-target="panel-poly">polygon / polyline</button>
-                <button type="button" class="menu-item" data-target="panel-group">group</button>
-            </details>
-
-            <details class="menu-group">
-                <summary>Path</summary>
-                <button type="button" class="menu-item" data-target="panel-path">path</button>
-            </details>
-
-            <details class="menu-group">
-                <summary>Text</summary>
-                <button type="button" class="menu-item" data-target="panel-text">text</button>
-                <button type="button" class="menu-item" data-target="panel-tspan">tspan</button>
-                <button type="button" class="menu-item" data-target="panel-text-path">textPath</button>
-            </details>
-
-            <details class="menu-group">
-                <summary>Structural &amp; Reusable Elements</summary>
-                <button type="button" class="menu-item" data-target="panel-marker">defs / marker</button>
-                <button type="button" class="menu-item" data-target="panel-marker-view-box">marker
-                    set_view_box</button>
-                <button type="button" class="menu-item" data-target="panel-use">use</button>
-                <button type="button" class="menu-item" data-target="panel-image">image</button>
-                <button type="button" class="menu-item" data-target="panel-symbol">symbol</button>
-                <button type="button" class="menu-item" data-target="panel-anchor">a</button>
-                <button type="button" class="menu-item" data-target="panel-switch">switch</button>
-                <button type="button" class="menu-item" data-target="panel-view">view</button>
-                <button type="button" class="menu-item" data-target="panel-style">style</button>
-                <button type="button" class="menu-item" data-target="panel-foreign-object">foreignObject</button>
-            </details>
-
-            <details class="menu-group">
-                <summary>Paint Servers</summary>
-                <button type="button" class="menu-item" data-target="panel-linear-gradient">linearGradient</button>
-                <button type="button" class="menu-item" data-target="panel-radial-gradient">radialGradient</button>
-                <button type="button" class="menu-item" data-target="panel-pattern">pattern</button>
-            </details>
-
-            <details class="menu-group">
-                <summary>Clipping &amp; Masking</summary>
-                <button type="button" class="menu-item" data-target="panel-clip-path">clipPath</button>
-                <button type="button" class="menu-item" data-target="panel-mask">mask</button>
-            </details>
-
-            <details class="menu-group">
-                <summary>Filters</summary>
-                <button type="button" class="menu-item" data-target="panel-filter">filter</button>
-                <button type="button" class="menu-item" data-target="panel-color-matrix">feColorMatrix</button>
-                <button type="button" class="menu-item" data-target="panel-blend">feBlend</button>
-                <button type="button" class="menu-item"
-                    data-target="panel-component-transfer">feComponentTransfer</button>
-                <button type="button" class="menu-item" data-target="panel-turbulence">feTurbulence /
-                    feDisplacementMap</button>
-                <button type="button" class="menu-item" data-target="panel-morphology">feMorphology</button>
-                <button type="button" class="menu-item" data-target="panel-fe-image">feImage</button>
-                <button type="button" class="menu-item" data-target="panel-fe-tile">feTile</button>
-                <button type="button" class="menu-item" data-target="panel-convolve-matrix">feConvolveMatrix</button>
-                <button type="button" class="menu-item" data-target="panel-lighting">feDiffuseLighting /
-                    feSpecularLighting</button>
-                <button type="button" class="menu-item" data-target="panel-light-sources">LightSource
-                    comparison</button>
-            </details>
-
-            <details class="menu-group">
-                <summary>Core Operations</summary>
-                <button type="button" class="menu-item" data-target="panel-view-box">set_view_box</button>
-                <button type="button" class="menu-item" data-target="panel-tree-nav">tree navigation</button>
-                <button type="button" class="menu-item" data-target="panel-accessibility">desc / title</button>
-            </details>
-
-            <details class="menu-group">
-                <summary>Animation</summary>
-                <button type="button" class="menu-item" data-target="panel-anim">AnimationLoop</button>
-            </details>
-
-            <details class="menu-group">
-                <summary>Event Handling</summary>
-                <button type="button" class="menu-item" data-target="panel-events-click">Click counter</button>
-                <button type="button" class="menu-item" data-target="panel-events-colour">Colour wheel</button>
-                <button type="button" class="menu-item" data-target="panel-events-modifiers">Modifier keys</button>
-                <button type="button" class="menu-item" data-target="panel-events-press">Press state</button>
-                <button type="button" class="menu-item" data-target="panel-events-group">Bubbling</button>
-                <button type="button" class="menu-item" data-target="panel-events-pointer">Pointer lifecycle</button>
-                <button type="button" class="menu-item" data-target="panel-events-keyboard-wheel">Keyboard &amp;
-                    wheel</button>
-                <button type="button" class="menu-item" data-target="panel-events-drag-drop-touch">Native
-                    drag/touch</button>
-                <button type="button" class="menu-item" data-target="panel-events-passive">Passive Event
-                    Listeners</button>
-                <button type="button" class="menu-item" data-target="panel-events-classlist">CSS class toggle</button>
-            </details>
-
-            <details class="menu-group">
-                <summary>Geometry Read-back</summary>
-                <button type="button" class="menu-item" data-target="panel-geometry-path-follow">Path follow</button>
-                <button type="button" class="menu-item" data-target="panel-geometry-bbox">Bounding box</button>
-            </details>
+{{MENU}}
         </nav>
 
         <!-- Title panel  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
         <header id="title">
-            <h1>Element Gallery</h1>
+            <h1>Feature Gallery</h1>
             <p class="subtitle">
                 Every demo is created programmatically from Rust/WebAssembly using the <code>svg-dom</code> crate.
                 Pick a demo from the menu on the left; hover, click and drag the highlighted elements to see live
@@ -163,33 +71,66 @@
     </div>
 
     <script type="module">
-        import init, {run_demo} from '../pkg/svg_dom_demo.js';
+        import init, {init_panel} from '../pkg/svg_dom_demo.js';
 
-        // Show the demo whose panel id matches `target`, and highlight its menu item.
+        // False until the wasm module has finished loading; guards against a menu click or hashchange racing in
+        // before init_panel exists to call, during the brief window `await init()` below is still pending.
+        let wasmReady = false;
+
+        // The full set of valid panel ids, taken directly from the rendered menu — itself generated server-side
+        // from the same catalogue (`demo-server/src/panels.rs`'s MANIFEST) that the panel fragments come from.
+        // This is what lets `route` validate a hash against the actual catalogue, rather than merely checking
+        // whether *some* element with that id exists anywhere on the page — a child SVG shape's own id would
+        // satisfy that just as well as a real panel's, and previously did.
+        const menuItems = [...document.querySelectorAll('#menu .menu-item')];
+        const validPanelIds = new Set(menuItems.map(item => item.dataset.target));
+
+        // Shows `target`'s section, opens its menu group, marks its menu button as the current page, and builds
+        // its content. Only ever called with an id already confirmed to be in `validPanelIds` — see `route` below,
+        // the only caller.
         function selectDemo(target) {
             for (const section of document.querySelectorAll('#stage .section')) {
                 section.classList.toggle('active', section.id === target);
             }
-            for (const item of document.querySelectorAll('#menu .menu-item')) {
-                item.classList.toggle('active', item.dataset.target === target);
+            for (const item of menuItems) {
+                const isActive = item.dataset.target === target;
+                item.classList.toggle('active', isActive);
+                if (isActive) {
+                    item.setAttribute('aria-current', 'page');
+                    item.closest('details.menu-group')?.setAttribute('open', '');
+                } else {
+                    item.removeAttribute('aria-current');
+                }
             }
+            // init_panel is a no-op if this panel was already built on an earlier visit, so switching back and
+            // forth between panels never rebuilds one that is already there.
+            if (wasmReady) init_panel(target);
         }
 
-        for (const item of document.querySelectorAll('#menu .menu-item')) {
-            item.addEventListener('click', () => selectDemo(item.dataset.target));
+        // The single routing path every panel selection goes through, whatever triggered it: a menu click, a deep
+        // link, the browser's back/forward buttons, or the initial load below. A hash that does not name a real
+        // panel — including one that happens to match some other element's id on the page — is rejected here
+        // instead of reaching `selectDemo`, which would otherwise hide every panel: none of the `.section`
+        // elements would have that id, so its `classList.toggle('active', section.id === target)` loop would
+        // clear `active` from all of them.
+        function route(target) {
+            if (validPanelIds.has(target)) selectDemo(target);
         }
 
-        // Panels are otherwise only reachable by clicking a menu item; this is what makes a plain URL fragment link
-        // (such as the ones the <a> demo itself uses, in demo-app/src/structure.rs) actually switch panels, rather
-        // than silently doing nothing because the target section's `display: none` is never toggled off.
-        window.addEventListener('hashchange', () => {
-            const target = location.hash.slice(1);
-            if (document.getElementById(target)) selectDemo(target);
-        });
+        // A menu click updates the URL instead of selecting the panel directly, so every selection — including
+        // this one — flows through the same `hashchange` → `route` path below, and clicking through the gallery
+        // produces bookmarkable, shareable URLs the same way a deep link already did.
+        for (const item of menuItems) {
+            item.addEventListener('click', () => {
+                location.hash = item.dataset.target;
+            });
+        }
+
+        window.addEventListener('hashchange', () => route(location.hash.slice(1)));
 
         try {
             await init();
-            run_demo();
+            wasmReady = true;
         } catch (err) {
             const banner = document.getElementById('error-banner');
             banner.style.display = 'block';
@@ -197,11 +138,20 @@
             console.error(err);
         }
 
-        // Select the demo named by the URL fragment, if it names a real panel; otherwise the first demo.
+        // Route to the panel named by the URL fragment, if it names a real one; otherwise the first panel.
+        // Setting `location.hash` would not reliably reach `route` here — assigning the fragment its own current
+        // value does not fire `hashchange` — so this calls `route` directly and then, only if the URL does not
+        // already name the panel actually shown (no fragment yet, or an invalid one), brings it in sync via
+        // `replaceState` rather than `location.hash =`, so the page's starting state does not add a spurious
+        // back-button stop of its own.
         const requested = location.hash.slice(1);
-        const first = document.querySelector('#menu .menu-item');
-        const initial = document.getElementById(requested) ? requested : first?.dataset.target;
-        if (initial) selectDemo(initial);
+        const initial = validPanelIds.has(requested) ? requested : menuItems[0]?.dataset.target;
+        if (initial) {
+            route(initial);
+            if (location.hash.slice(1) !== initial) {
+                history.replaceState(null, '', `#${initial}`);
+            }
+        }
     </script>
 </body>
 

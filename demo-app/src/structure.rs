@@ -263,7 +263,7 @@ pub(super) fn demo_marker() -> Result<(), Error> {
     l2.set_stroke(ACCENT_BLUE)?;
     l2.set_stroke_width(2.0)?;
     l2.set_marker_end_ref(&arrow)?;
-    caption(&svg, 385.0, r#"orient="auto""#)?;
+    caption(&svg, 385.0, "orient=\"auto\"")?;
 
     // Thick — same marker reused across all three lines
     let l3 = svg.line(Point::new(530.0, 55.0 + PAD_Y), Point::new(770.0, 55.0 + PAD_Y))?;

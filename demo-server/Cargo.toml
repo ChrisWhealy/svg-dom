@@ -7,3 +7,7 @@ publish = false
 [dependencies]
 actix-web = "4"
 actix-files = "0.6"
+
+[dev-dependencies]
+# Used only by panels.rs's tests, to assemble into a throwaway directory instead of the real demo/index.html.
+tempfile = "3"

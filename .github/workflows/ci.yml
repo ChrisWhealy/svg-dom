@@ -28,6 +28,29 @@ jobs:
       - name: Unit tests + doctests
         run: cargo test --all-features
 
+      # The workspace's default-members is just the root package, so none of the above select the other workspace crates
+      # — demo-server and svg-dom-demo (demo-app) each need an explicit `-p` invocation, same as accessibility-tree-test
+      # already gets in the `accessibility-tree-test` job below. Both build and run natively (svg-dom-demo depends on
+      # web-sys/wasm-bindgen, but nothing in its host-runnable unit tests — see demo-app/src/highlight/unit_tests.rs —
+      # touches an actual browser API), so they belong here rather than in the `wasm` job, which is about the wasm32
+      # *target* build specifically.
+      - name: Clippy (demo-server)
+        # --all-targets, not a plain `-p demo-server`: #[cfg(test)] code (panels.rs's test module) is only compiled
+        # in test mode, so a plain clippy invocation here would silently never lint it at all.
+        run: cargo clippy -p demo-server --all-targets -- -D warnings
+
+      - name: Unit tests (demo-server)
+        run: cargo test -p demo-server
+
+      # Native, not the `wasm` job's `--target wasm32-unknown-unknown` clippy step below: that one only lints the
+      # normal (non-test) build, so it never sees #[cfg(test)] code either — same gap as demo-server's clippy step
+      # above, for the same reason. demo-app/src/highlight/unit_tests.rs is what this actually catches.
+      - name: Clippy (svg-dom-demo tests)
+        run: cargo clippy -p svg-dom-demo --all-targets -- -D warnings
+
+      - name: Unit tests (svg-dom-demo)
+        run: cargo test -p svg-dom-demo
+
       - name: Docs (deny warnings)
         run: cargo doc --no-deps --all-features
         env:

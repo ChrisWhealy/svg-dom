@@ -12,13 +12,13 @@ use svg_dom::{
 // `total_length()` is measured once at setup.  This means the track's geometry never changes, so there is no reason to
 // re-measure it every frame.
 //
-// By contrast, `point_at_length()` genuinely belongs on the animation's hot path, so te runner's position needs to be
+// By contrast, `point_at_length()` genuinely belongs on the animation's hot path, so the runner's position needs to be
 // recomputed every frame from the current lap fraction. That is exactly the per-frame browser measurement the method's
 // own doc comment cautions about — a legitimate demonstration here (one using a simple ellipse, not a whole scene's
 // worth of paths), but the acceptable cost has not been independently profiled.
 //
 // ⚠️ A caller implementing this for real should profile it against their own path complexity and target browser before
-// assuming the functionality scales adequatelty.
+// assuming the functionality scales adequately.
 pub(super) fn demo_geometry_path_follow() -> Result<(), Error> {
     const CX: f64 = W / 2.0;
     const CY: f64 = (PAD_Y / 2.0) + BAND_HALF;
@@ -85,12 +85,12 @@ pub(super) fn demo_geometry_path_follow() -> Result<(), Error> {
 //
 // `getBBox()` and `getBoundingClientRect()` both require the element to actually be rendered — having a `display:none`
 // ancestor (which is exactly the state of every non-active demo panel: see `.section`/`.section.active` in `style.css`)
-// makes them report an all-zero rect. Every demo in this gallery is built eagerly by a single call to `run_demo()`
-// occurring at page load, long before a user has picked which panel to look at, so measuring here at setup time would
-// silently capture zeros for every panel, not whichever one happens to be active first.
-//
-// Measuring inside a click handler sidesteps this entirely: a click can only happen on a panel the user is already
-// looking at, which is therefore guaranteed to be rendered.
+// makes them report an all-zero rect. This panel's own build function only ever runs once, the first time a user
+// selects it (see `lib.rs`'s `init_panel`), by which point its section is already the active, visible one — so
+// measuring at setup time would in fact be safe here now. Measuring inside a click handler instead is kept anyway: it
+// is the more natural shape for a "measure on demand" demo, and it means this demo makes no assumption about *when*
+// its own panel becomes visible relative to when it runs — an assumption worth not depending on regardless of whether
+// the current lazy-initialisation approach happens to guarantee it.
 pub(super) fn demo_geometry_bounding_box() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-geometry-bbox", Size::new(W, H))?;
 
