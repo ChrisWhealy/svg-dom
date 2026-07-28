@@ -29,7 +29,7 @@
 //!
 //! * The checkout stays untouched by `cargo demo` (nothing to accidentally commit and `git status` stays clean)
 //! * The static server exposes only the generated gallery, not the repository's own manifests or Rust sources
-//! * A failed or interrupted run will not leave a partial artefact sitting in directory monitored by source control
+//! * A failed or interrupted run will not leave a partial artefact sitting in a directory monitored by source control
 //! * The whole generated gallery is removed by an ordinary `cargo clean`, the same as any other build output
 //!
 //! The port number can be overridden using the `PORT` environment variable, e.g. `PORT=9000 cargo demo`.

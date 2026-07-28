@@ -1,11 +1,10 @@
 //! Assembles `demo/index.html` using `demo/index.template.html` and the various panel fragments in `demo/panels/`.
 //!
-//! The gallery used to be a single, hand-edited, ever-growing `index.html`. Now, every demo's `<section>` lives in its
-//! own file under `demo/panels/` and the job of this module is to stitch them back into the single static file
-//! that `demo-server` will then serve.
+//! The demo gallery is composed from multiple `<section>` fragment files found in `demo/panels/`.  The job of this
+//! module is to stitch them together into the single static file that `demo-server` then serves.
 //!
-//! `Files::new` in `main.rs` resolves `/demo/` to `demo/index.html` on disk, so that file has to exist there, generated
-//! or not.
+//! `Files::new` in `main.rs` resolves `/demo/` to `target/demo-gallery/demo/index.html` on disk, so that file has to
+//! exist there, generated or not.
 //!
 //! [`MANIFEST`] acts as the gallery's single source of truth for both panel *order* and *labelling*: it drives both the
 //! generated `<nav>` menu and the generated panel body, so the two can never disagree about:
