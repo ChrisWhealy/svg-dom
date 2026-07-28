@@ -27,6 +27,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 - Harden catalogue validation against false positives (`a005a3a`)
 - Improve text-node escape function to include `<` and `>` (`98fd2e7`)
 - Handle invalid PORT number gracefully (`81f0592`)
+- Doc only: update stale docs (`500e1cb`)
 
 ## [0.1.1] - 2026-07-28
 
