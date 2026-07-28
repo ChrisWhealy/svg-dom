@@ -88,11 +88,15 @@ pub fn validate(root: &Path) -> Result<(), ValidationError> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Extracts every `"panel-..."` string literal immediately followed by `=>` from `demo_gallery!`'s invocation — the
-/// only place that exact shape (`"panel-id" => module::func,`) appears anywhere in `lib.rs`.
+/// Extracts every `"panel-..."` string literal immediately followed by `=>` from inside [`gallery_invocation_body`]
+/// — not from anywhere in `lib.rs` — so a doc comment or unrelated future macro that merely contains the same
+/// `"id" => path::func` shape (e.g. a documentation example reading `"panel-example" => module::function`) is never
+/// mistaken for a real gallery entry.
 fn extract_gallery_panel_ids(lib_rs: &str) -> Vec<String> {
+    let Some(body) = gallery_invocation_body(lib_rs) else { return Vec::new() };
+
     let mut ids = Vec::new();
-    let mut rest = lib_rs;
+    let mut rest = body;
     while let Some(start) = rest.find("\"panel-") {
         let after_open_quote = &rest[start + 1..];
         let Some(close) = after_open_quote.find('"') else { break };
@@ -104,6 +108,43 @@ fn extract_gallery_panel_ids(lib_rs: &str) -> Vec<String> {
         rest = after_id;
     }
     ids
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Locates the text between `demo_gallery!`'s outermost `{` and its matching `}` — the macro's actual invocation
+/// body — skipping any earlier occurrence of the literal text `demo_gallery!` not immediately followed (after
+/// whitespace) by `{`, such as this file's own comments and doc comments that merely mention the macro by name
+/// (`demo-app/src/lib.rs` has two of these above the real invocation) rather than invoking it.
+///
+/// Counts braces instead of parsing Rust, which is safe here only because `demo_gallery!`'s own doc comment
+/// guarantees its invocation body is currently just a flat, comma-separated entry list with no nested `{`/`}` of
+/// its own.
+fn gallery_invocation_body(lib_rs: &str) -> Option<&str> {
+    const NEEDLE: &str = "demo_gallery!";
+    let mut search_from = 0;
+    loop {
+        let hit = search_from + lib_rs[search_from..].find(NEEDLE)?;
+        let after_bang = lib_rs[hit + NEEDLE.len()..].trim_start();
+        let Some(body) = after_bang.strip_prefix('{') else {
+            search_from = hit + NEEDLE.len();
+            continue;
+        };
+
+        let mut depth = 1;
+        for (i, b) in body.bytes().enumerate() {
+            match b {
+                b'{' => depth += 1,
+                b'}' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        return Some(&body[..i]);
+                    }
+                },
+                _ => {},
+            }
+        }
+        return None;
+    }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

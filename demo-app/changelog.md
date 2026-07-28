@@ -8,6 +8,10 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 ## [0.1.2] - 2026-07-28
 
+### Added
+
+- Doc only: animations are started lazily but keep running when no longer selected (`2c03f1e`)
+
 ### Changed
 
 - Make port number a placeholder in the HTML page (`acb2329`)
@@ -17,6 +21,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 - Update demo style sheet (`a12837b`)
 - Detect duplicate ids in demo_gallery! (`753a5f7`)
 - The validate module should return an error instead of terminating the process (`d331b8d`)
+- Harden catalogue validation against false positives (``)
 
 ## [0.1.1] - 2026-07-28
 

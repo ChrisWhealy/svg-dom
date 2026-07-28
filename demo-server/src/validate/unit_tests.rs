@@ -91,8 +91,10 @@ fn should_extract_every_panel_id_in_order() {
 #[test]
 fn should_extract_every_occurrence_including_duplicates() {
     let lib_rs = r#"
-        "panel-rect" => shapes::demo_rect,
-        "panel-rect" => shapes::some_other_demo,
+        demo_gallery! {
+            "panel-rect" => shapes::demo_rect,
+            "panel-rect" => shapes::some_other_demo,
+        }
     "#;
     assert_eq!(extract_gallery_panel_ids(lib_rs), vec!["panel-rect", "panel-rect"]);
 }
@@ -100,10 +102,44 @@ fn should_extract_every_occurrence_including_duplicates() {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #[test]
 fn should_ignore_panel_strings_not_followed_by_fat_arrow() {
-    // A doc comment or string that merely mentions a panel id, without the `=> module::func` shape that only
-    // `demo_gallery!`'s own entries have, must not be picked up.
-    let lib_rs = r#"//! See "panel-rect" for an example.
-        "panel-circle" => shapes::demo_circle,
+    // Even inside the invocation body, a bare panel-shaped string with no `=>` immediately after it must not be
+    // picked up as an entry.
+    let lib_rs = r#"
+        demo_gallery! {
+            "panel-not-an-entry",
+            "panel-circle" => shapes::demo_circle,
+        }
+    "#;
+    assert_eq!(extract_gallery_panel_ids(lib_rs), vec!["panel-circle"]);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#[test]
+fn should_ignore_panel_strings_outside_the_gallery_invocation() {
+    // The exact false positive this function's brace-scoped extraction exists to rule out: a comment showing an
+    // example entry, sitting outside demo_gallery!'s own braces, has the same `"id" => path::func` shape as a real
+    // entry but must not be picked up as one just because it appears somewhere in the file.
+    let lib_rs = r#"
+        // e.g. "panel-example" => module::function
+        demo_gallery! {
+            "panel-circle" => shapes::demo_circle,
+        }
+    "#;
+    assert_eq!(extract_gallery_panel_ids(lib_rs), vec!["panel-circle"]);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#[test]
+fn should_skip_demo_gallery_mentions_that_are_not_the_invocation() {
+    // Mirrors demo-app/src/lib.rs's own shape: plain-text and doc-comment mentions of `demo_gallery!` (by name,
+    // not immediately followed by `{`) sit above the real invocation there — see gallery_invocation_body's own doc
+    // comment.
+    let lib_rs = r#"
+        // generated below by demo_gallery!
+        /// see the `demo_gallery!` macro
+        demo_gallery! {
+            "panel-circle" => shapes::demo_circle,
+        }
     "#;
     assert_eq!(extract_gallery_panel_ids(lib_rs), vec!["panel-circle"]);
 }
