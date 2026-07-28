@@ -185,6 +185,17 @@ const PANEL_STATE_ATTR: &str = "data-panel-state";
 /// (`structure::demo_anim`, `geometry::demo_geometry_path_follow`) started ticking at page load and ran for the
 /// rest of the page's lifetime, animating a hidden panel nobody was looking at.
 ///
+/// This only defers that cost, it does not remove it: once an `AnimationLoop`-driven panel has been visited, its
+/// loop is parked in [`LIVE_DEMO_ANIMS`] and keeps ticking for the rest of the page's lifetime even after the user
+/// navigates to a different panel — lazy construction fixes "running before anyone asked for it", not "still
+/// running once nobody is looking anymore".
+///
+/// For the two lightweight animations currently in this gallery, the added complexity of a pause/resume lifecycle
+/// (e.g. an `activate_panel`/`deactivate_panel` pair, or getting each animation callback to check its own section's
+/// `.active` class), is not worth the ffort.
+///
+/// If the number of animations grows, it would be worth revisiting this design decision.
+///
 /// Call this from JavaScript each time a panel becomes the active one (see `demo/index.template.html`'s
 /// `selectDemo`). It is idempotent — see [`PANEL_STATE_ATTR`] — so calling it again for an already-initialised
 /// panel, e.g. navigating back to one visited earlier, is a no-op rather than a duplicate rebuild.
