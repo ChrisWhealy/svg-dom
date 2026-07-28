@@ -222,9 +222,51 @@ fn should_extract_every_data_target() {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #[test]
-fn should_escape_ampersands_only() {
-    assert_eq!(escape_amp("Clipping & Masking"), "Clipping &amp; Masking");
-    assert_eq!(escape_amp("plain text"), "plain text");
+fn should_escape_amp_lt_and_gt() {
+    assert_eq!(escape_text("Clipping & Masking"), "Clipping &amp; Masking");
+    assert_eq!(escape_text("a < b"), "a &lt; b");
+    assert_eq!(escape_text("a > b"), "a &gt; b");
+    assert_eq!(escape_text("plain text"), "plain text");
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#[test]
+fn should_detect_real_manifest_has_valid_panel_id_format() {
+    assert!(check_panel_id_format(MANIFEST).is_ok());
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#[test]
+fn should_accept_well_formed_panel_ids() {
+    const VALID: &[Entry] = &[
+        Entry::Panel { id: "panel-a", label: "a" },
+        Entry::Panel { id: "panel-rect-2", label: "b" },
+    ];
+    assert!(check_panel_id_format(VALID).is_ok());
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#[test]
+fn should_reject_panel_id_missing_the_prefix() {
+    const INVALID: &[Entry] = &[Entry::Panel { id: "rect", label: "a" }];
+    let err = check_panel_id_format(INVALID).expect_err("a missing panel- prefix must be rejected");
+    assert!(matches!(err, AssembleError::InvalidPanelId("rect")), "wrong error variant: {err}");
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#[test]
+fn should_reject_panel_id_with_no_suffix() {
+    const INVALID: &[Entry] = &[Entry::Panel { id: "panel-", label: "a" }];
+    let err = check_panel_id_format(INVALID).expect_err("an empty suffix must be rejected");
+    assert!(matches!(err, AssembleError::InvalidPanelId("panel-")), "wrong error variant: {err}");
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#[test]
+fn should_reject_panel_id_with_disallowed_characters() {
+    const INVALID: &[Entry] = &[Entry::Panel { id: "panel-Rect", label: "a" }];
+    let err = check_panel_id_format(INVALID).expect_err("an uppercase character must be rejected");
+    assert!(matches!(err, AssembleError::InvalidPanelId("panel-Rect")), "wrong error variant: {err}");
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

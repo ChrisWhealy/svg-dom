@@ -139,17 +139,20 @@ pub enum AssembleError {
     },
     /// The same panel id appears in [`MANIFEST`] more than once.
     DuplicateManifestId(&'static str),
+    /// A panel id does not match `panel-[a-z0-9-]+` — see [`check_panel_id_format`] for why that pattern is enforced up
+    /// front rather than escaped at each place an id is emitted.
+    InvalidPanelId(&'static str),
     /// A fragment's own content does not contain `id="{id}"` for the id it is filed under — it may have been
     /// copy-pasted from another panel and never updated, or renamed on disk without updating its content.
     FragmentIdMismatch { id: &'static str, fragment_path: PathBuf },
-    /// [`MANIFEST`]'s panel ids, the generated menu's `data-target` ids, and `demo/panels/*.html`'s filenames are
-    /// not all the same set. In this pipeline the menu is generated directly from `MANIFEST`, so a mismatch there
-    /// points at a bug in [`render_menu`] rather than independent drift — but a mismatch against the fragments
-    /// directory is exactly how an orphaned fragment (removed from `MANIFEST` but left on disk) or a missing
-    /// fragment (added to `MANIFEST` but never created) gets caught.
+    /// [`MANIFEST`]'s panel ids, the generated menu's `data-target` ids, and `demo/panels/*.html`'s filenames are not
+    /// all the same set. In this pipeline the menu is generated directly from `MANIFEST`, so a mismatch there points to
+    /// a bug in [`render_menu`] rather than independent drift — but a mismatch against the fragments directory is
+    /// exactly how an orphaned fragment (removed from `MANIFEST` but left on disk) or a missing fragment (added to
+    /// `MANIFEST` but never created) gets caught.
     CatalogueMismatch(String),
-    /// The fully assembled output still contains a `{{...}}` token after both placeholders were substituted —
-    /// evidence of a typo'd or unexpected placeholder that no check above already caught.
+    /// The fully assembled output still contains a `{{...}}` token after both placeholders were substituted — evidence
+    /// of a typo'd or unexpected placeholder that no check above already caught.
     LeftoverPlaceholder(String),
 }
 
@@ -172,6 +175,7 @@ impl fmt::Display for AssembleError {
                 )
             },
             Self::DuplicateManifestId(id) => write!(f, "MANIFEST contains the panel id {id:?} more than once"),
+            Self::InvalidPanelId(id) => write!(f, "MANIFEST contains the panel id {id:?}, which does not match panel-[a-z0-9-]+"),
             Self::FragmentIdMismatch { id, fragment_path } => {
                 write!(
                     f,
@@ -211,6 +215,7 @@ pub fn assemble(source_demo_dir: &Path, out_path: &Path, port: u16) -> Result<Pa
     let template_path = source_demo_dir.join("index.template.html");
 
     check_unique_manifest_ids(MANIFEST)?;
+    check_panel_id_format(MANIFEST)?;
 
     let template = read_to_string(&template_path)?;
     check_placeholder_count(&template, &template_path, PANELS_PLACEHOLDER)?;
@@ -237,10 +242,12 @@ pub fn assemble(source_demo_dir: &Path, out_path: &Path, port: u16) -> Result<Pa
 // Checks
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-/// Every panel id among `entries` must be unique — a duplicate would silently insert the same fragment twice and
-/// leave one of the two ids' "real" position undefined. Takes the entry list as a parameter, rather than reading
-/// [`MANIFEST`] directly, purely so the tests below can exercise the duplicate-detection logic itself against a
-/// small synthetic list, independently of whether the real `MANIFEST` happens to have a duplicate right now.
+/// Every panel id among `entries` must be unique as a duplicate would silently overwrite the existing fragment and
+/// leave one of the two ids' "real" position undefined.
+///
+/// Takes the entry list as a parameter, rather than reading [`MANIFEST`] directly, purely so the tests below can
+/// exercise the duplicate-detection logic against a small synthetic list, independently of whether the real `MANIFEST`
+/// happens to contain a duplicate.
 fn check_unique_manifest_ids(entries: &[Entry]) -> Result<(), AssembleError> {
     let mut seen = HashSet::new();
     for entry in entries {
@@ -253,8 +260,39 @@ fn check_unique_manifest_ids(entries: &[Entry]) -> Result<(), AssembleError> {
     Ok(())
 }
 
-/// `template` must contain `placeholder` exactly once: zero means nothing will ever be substituted in, and more
-/// than one means `replacen(..., 1)` would leave every occurrence after the first sitting in the output untouched.
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Every panel id among `entries` must match `panel-[a-z0-9-]+`.
+///
+/// Ids are emitted verbatim into both HTML attribute values and Rust match arms:
+/// * `id="{id}"` in each fragment
+/// * `data-target="{id}"` in the generated menu
+/// * `"panel-..." => module::func` in `demo-app/src/lib.rs`'s `demo_gallery!`
+///
+/// This restricts them to a known-safe ASCII pattern up front, meaning that downstream — [`render_menu`], a fragment
+/// file, `demo_gallery!` never have to escape or re-validate an id thenselves.
+///
+/// Unlike labels (see [`escape_text`]), ids are not free text, so a fixed character set is the natural fit rather than
+/// an escaper.
+fn check_panel_id_format(entries: &[Entry]) -> Result<(), AssembleError> {
+    for entry in entries {
+        if let Entry::Panel { id, .. } = entry
+            && !is_valid_panel_id(id)
+        {
+            return Err(AssembleError::InvalidPanelId(id));
+        }
+    }
+    Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+fn is_valid_panel_id(id: &str) -> bool {
+    id.strip_prefix("panel-")
+        .is_some_and(|rest| !rest.is_empty() && rest.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-'))
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// `template` must contain `placeholder` exactly once: zero means nothing will ever be substituted in, and more than
+/// one means `replacen(..., 1)` would leave every occurrence after the first sitting in the output untouched.
 fn check_placeholder_count(
     template: &str,
     template_path: &Path,
@@ -274,9 +312,10 @@ fn check_placeholder_count(
     }
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// [`MANIFEST`]'s panel ids, the generated menu's `data-target` ids, and the filenames actually present in
-/// `demo/panels/` must all be the same set. Reports every set difference found, not just the first, since a
-/// caller fixing one of these by hand benefits from seeing the whole picture at once.
+/// `demo/panels/` must all be the same set. Reports every set difference found, not just the first, since a caller
+/// fixing one of these by hand benefits from seeing the whole picture at once.
 fn check_catalogue_consistency(menu_body: &str, fragment_filenames: &HashSet<String>) -> Result<(), AssembleError> {
     let manifest_ids: HashSet<String> = panel_ids().into_iter().map(str::to_string).collect();
     let menu_targets = extract_data_targets(menu_body);
@@ -294,6 +333,7 @@ fn check_catalogue_consistency(menu_body: &str, fragment_filenames: &HashSet<Str
     }
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 fn report_set_difference(
     problems: &mut Vec<String>,
     left_name: &str,
@@ -309,9 +349,10 @@ fn report_set_difference(
     problems.push(format!("  in {left_name} but not {right_name}: {only_in_left:?}"));
 }
 
-/// Extracts every `data-target="..."` value from generated menu markup this module itself just built — a genuine
-/// check of [`render_menu`]'s output, not a restatement of its input, since a future bug in that function (skipping
-/// an entry, say) would show up here as a real mismatch against [`MANIFEST`].
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Extracts every `data-target="..."` value from generated menu markup this module itself just built — a genuine check
+/// of [`render_menu`]'s output, not a restatement of its input, since a future bug in that function (skipping an entry,
+/// say) would show up here as a real mismatch against [`MANIFEST`].
 fn extract_data_targets(menu_body: &str) -> HashSet<String> {
     const NEEDLE: &str = "data-target=\"";
     let mut targets = HashSet::new();
@@ -325,8 +366,9 @@ fn extract_data_targets(menu_body: &str) -> HashSet<String> {
     targets
 }
 
-/// The assembled output must not contain any `{{...}}` token once both placeholders have been substituted — a
-/// leftover one means a typo'd or unexpected placeholder that none of the checks above already caught.
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// The assembled output must not contain any `{{...}}` token once both placeholders have been substituted — a leftover
+/// one means a typo'd or unexpected placeholder that none of the checks above already caught.
 fn check_no_leftover_placeholders(assembled: &str) -> Result<(), AssembleError> {
     if let Some(start) = assembled.find("{{") {
         let end = (start + 40).min(assembled.len());
@@ -339,9 +381,9 @@ fn check_no_leftover_placeholders(assembled: &str) -> Result<(), AssembleError> 
 // Rendering
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-/// Concatenates every panel fragment (and category divider comment) from [`MANIFEST`], in order. Checks each
-/// fragment contains `id="{id}"` for its own id as it reads it, rather than in a separate pass, since it has
-/// already paid the cost of reading the file at that point.
+/// Concatenates every panel fragment (and category divider comment) from [`MANIFEST`], in order. Checks each fragment
+/// contains `id="{id}"` for its own id as it reads it, rather than in a separate pass, since it has already paid the
+/// cost of reading the file at that point.
 fn render_panels(panels_dir: &Path) -> Result<String, AssembleError> {
     let mut body = String::new();
     for (i, entry) in MANIFEST.iter().enumerate() {
@@ -386,13 +428,13 @@ fn render_menu() -> String {
                     menu.push_str("            </details>\n\n");
                 }
                 menu.push_str("            <details class=\"menu-group\">\n");
-                menu.push_str(&format!("                <summary>{}</summary>\n", escape_amp(label)));
+                menu.push_str(&format!("                <summary>{}</summary>\n", escape_text(label)));
                 open = true;
             },
             Entry::Panel { id, label } => {
                 menu.push_str(&format!(
                     "                <button type=\"button\" class=\"menu-item\" data-target=\"{id}\">{}</button>\n",
-                    escape_amp(label)
+                    escape_text(label)
                 ));
             },
         }
@@ -403,11 +445,14 @@ fn render_menu() -> String {
     menu
 }
 
-/// `&` is the only special character any category label or panel label actually contains (checked against
-/// [`MANIFEST`] by [`super::validate`]), so this only handles that one case rather than pulling in a general HTML
-/// escaper for text this module itself fully controls.
-fn escape_amp(s: &str) -> String {
-    s.replace('&', "&amp;")
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Escapes `&`, `<` and `>` for safe insertion into an HTML text node — the full set that matters there. Labels are
+/// trusted source code, not user input, so this is not a security boundary; it exists so a future label (e.g. one
+/// containing `<`) is rendered as text rather than parsed as markup, without relying on every label happening to avoid
+/// HTML's special characters. Attribute values (panel ids) go through [`check_panel_id_format`] instead, which
+/// restricts them to a known-safe character set up front rather than escaping them here.
+fn escape_text(s: &str) -> String {
+    s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -421,6 +466,7 @@ fn read_to_string(path: &Path) -> Result<String, AssembleError> {
     })
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Every `*.html` filename present in `demo/panels/`, with the extension stripped, so it can be compared directly
 /// against [`MANIFEST`]'s panel ids — this is what catches a fragment orphaned by removing its `MANIFEST` entry
 /// (present on disk, absent from the id set) as well as a `MANIFEST` entry with no fragment ever created for it
