@@ -16,7 +16,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 - Update demo style sheet (`a12837b`)
 - Detect duplicate ids in demo_gallery! (`753a5f7`)
-- The validate module should return an error instead of terminating the process (`0127798`)
+- The validate module should return an error instead of terminating the process (`d331b8d`)
 
 ## [0.1.1] - 2026-07-28
 
