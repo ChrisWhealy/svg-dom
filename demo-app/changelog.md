@@ -12,7 +12,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 - Doc only: animations are started lazily but keep running when no longer selected (`2c03f1e`)
 - Add gallery pipeline tests to CI (`546316b`)
-- Doc only: update `append_source_frame()` documentation (``)
+- Doc only: update `append_source_frame()` documentation (`c9f3027`)
 
 ### Changed
 
