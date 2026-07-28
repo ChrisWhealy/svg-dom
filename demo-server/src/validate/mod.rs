@@ -8,7 +8,7 @@
 //! rather than depending on `demo-app` as a library: that crate builds to a wasm `cdylib` for the browser, not
 //! something a native binary like `demo-server` can link against.
 use crate::panels;
-use std::{fs, path::Path, process};
+use std::{collections::HashSet, fs, path::Path, process};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Checks that every panel id in `demo-server`'s [`panels::panel_ids`] has a matching `demo_gallery!` entry in
@@ -26,6 +26,12 @@ pub fn validate(root: &Path) {
     };
 
     let gallery_ids = extract_gallery_panel_ids(&lib_rs);
+
+    if let Some(dup) = find_duplicate_gallery_id(&gallery_ids) {
+        eprintln!("aborting: demo-app's demo_gallery! contains the panel id {dup:?} more than once");
+        process::exit(1);
+    }
+
     let manifest_ids = panels::panel_ids();
 
     let missing_from_gallery: Vec<_> = manifest_ids.iter().filter(|id| !gallery_ids.iter().any(|g| g == *id)).collect();
@@ -65,3 +71,22 @@ fn extract_gallery_panel_ids(lib_rs: &str) -> Vec<String> {
     }
     ids
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Returns the first id in `ids` that occurs more than once, using the same `HashSet::insert` pattern
+/// `demo-server/src/panels/mod.rs`'s `check_unique_manifest_ids` uses for `MANIFEST`. Without this check, a
+/// `demo_gallery!` entry duplicated in `demo-app/src/lib.rs` would pass every set comparison in [`validate`] — the
+/// id is present in both catalogues, just twice in one of them — while at runtime `DEMO_PANELS.iter().find()` would
+/// always return the first match, leaving the second entry silently unreachable.
+fn find_duplicate_gallery_id(ids: &[String]) -> Option<&str> {
+    let mut seen = HashSet::new();
+    for id in ids {
+        if !seen.insert(id.as_str()) {
+            return Some(id.as_str());
+        }
+    }
+    None
+}
+
+#[cfg(test)]
+mod unit_tests;
