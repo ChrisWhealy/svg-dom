@@ -44,7 +44,7 @@ impl SvgRoot {
     ///
     /// ```rust,no_run
     /// use svg_dom::{SvgRoot, root::utils::{Point, Size}};
-    ///
+    /// const NS_XHTML: &str = "http://www.w3.org/1999/xhtml";
     /// let svg = SvgRoot::attach("diagram")?;
     /// let fo  = svg.foreign_object(Point::new(10.0, 10.0), Size::new(200.0, 80.0))?;
     ///

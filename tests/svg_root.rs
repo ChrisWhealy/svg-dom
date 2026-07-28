@@ -6,6 +6,8 @@ use wasm_bindgen_test::*;
 
 mod common;
 
+const NS_XHTML: &str = "http://www.w3.org/1999/xhtml";
+
 wasm_bindgen_test_configure!(run_in_browser);
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
