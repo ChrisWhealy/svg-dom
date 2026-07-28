@@ -12,6 +12,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 - Make text-anchor demo interactive (`3dfbc85`)
 - Make dominant-baseline demo interactive (`26a7e69`)
+- Make start-offset demo interactive (``)
 
 ## [0.1.2] - 2026-07-28
 

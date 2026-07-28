@@ -3,8 +3,7 @@ use std::{
     rc::Rc,
 };
 
-use super::colours::*;
-use super::{BAND, H, PAD_Y, W, caption, keep_demo_anim, keep_demo_node};
+use super::{BAND, H, NS_XHTML, PAD_Y, W, caption, colours::*, keep_demo_anim, keep_demo_node};
 // `dom_err` is this crate's own private helper (defined in `lib.rs`, formerly `mod.rs`'s own DOM-error mapper), not
 // part of `svg_dom`'s public API — kept as a separate `use` from the `svg_dom::` import below for exactly that
 // reason.
@@ -875,9 +874,7 @@ pub(super) fn demo_foreign_object() -> Result<(), Error> {
         .as_element()
         .owner_document()
         .ok_or_else(|| Error::Dom("no owner document".into()))?;
-    let content = document
-        .create_element_ns(Some("http://www.w3.org/1999/xhtml"), "div")
-        .map_err(dom_err)?;
+    let content = document.create_element_ns(Some(NS_XHTML), "div").map_err(dom_err)?;
     content
         .set_attribute(
             "style",
@@ -886,9 +883,7 @@ pub(super) fn demo_foreign_object() -> Result<(), Error> {
         .map_err(dom_err)?;
 
     let make_inline = |tag: &str, text: &str| -> Result<web_sys::Element, Error> {
-        let el = document
-            .create_element_ns(Some("http://www.w3.org/1999/xhtml"), tag)
-            .map_err(dom_err)?;
+        let el = document.create_element_ns(Some(NS_XHTML), tag).map_err(dom_err)?;
         el.set_text_content(Some(text));
         Ok(el)
     };

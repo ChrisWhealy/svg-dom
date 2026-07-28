@@ -31,6 +31,8 @@ use colours::*;
 /// A raw `web_sys` event-listener closure, as stored in [`LIVE_DEMO_CLOSURES`].
 type DemoClosure = Closure<dyn FnMut(web_sys::Event)>;
 
+pub(crate) const NS_XHTML: &str = "http://www.w3.org/1999/xhtml";
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 thread_local! {
     /// Demo-only owner for interactive nodes whose managed listeners must remain attached after the demo function

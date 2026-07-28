@@ -1,4 +1,4 @@
-use super::{DemoClosure, H, PAD_Y, W, caption, colours::*, keep_demo_closure, keep_demo_node};
+use super::{DemoClosure, H, NS_XHTML, PAD_Y, W, caption, colours::*, keep_demo_closure, keep_demo_node};
 // `dom_err` is this crate's own private DOM-error mapper (defined in `lib.rs`) and is not part of `svg_dom`'s public
 // API.  It is kept as a separate `use` from the `svg_dom::` import below for exactly that reason (see structure.rs's
 // identical split for the same rationale).
@@ -42,9 +42,7 @@ pub(super) fn demo_text() -> Result<(), Error> {
         .owner_document()
         .ok_or_else(|| Error::Dom("cannot identify owner document for SVG foreignObject".into()))?;
 
-    let list = document
-        .create_element_ns(Some("http://www.w3.org/1999/xhtml"), "div")
-        .map_err(dom_err)?;
+    let list = document.create_element_ns(Some(NS_XHTML), "div").map_err(dom_err)?;
     list.set_attribute(
         "style",
         "display:flex; flex-direction:column; gap:6px; font:13px sans-serif; color:#c9d1d9;",
@@ -58,14 +56,12 @@ pub(super) fn demo_text() -> Result<(), Error> {
     ];
 
     for (value, label) in RADIO_OPTIONS {
-        let row = document
-            .create_element_ns(Some("http://www.w3.org/1999/xhtml"), "label")
-            .map_err(dom_err)?;
+        let row = document.create_element_ns(Some(NS_XHTML), "label").map_err(dom_err)?;
         row.set_attribute("style", "display:flex; align-items:center; gap:6px; cursor:pointer;")
             .map_err(dom_err)?;
 
         let input = document
-            .create_element_ns(Some("http://www.w3.org/1999/xhtml"), "input")
+            .create_element_ns(Some(NS_XHTML), "input")
             .map_err(dom_err)?
             .dyn_into::<web_sys::HtmlInputElement>()
             .map_err(|_| Error::Dom("createElement(\"input\") did not return an HtmlInputElement".into()))?;
@@ -122,9 +118,7 @@ pub(super) fn demo_text() -> Result<(), Error> {
         .owner_document()
         .ok_or_else(|| Error::Dom("cannot identify owner document for SVG foreignObject".into()))?;
 
-    let db_list = db_document
-        .create_element_ns(Some("http://www.w3.org/1999/xhtml"), "div")
-        .map_err(dom_err)?;
+    let db_list = db_document.create_element_ns(Some(NS_XHTML), "div").map_err(dom_err)?;
     db_list
         .set_attribute(
             "style",
@@ -139,14 +133,12 @@ pub(super) fn demo_text() -> Result<(), Error> {
     ];
 
     for (value, label) in BASELINE_OPTIONS {
-        let row = db_document
-            .create_element_ns(Some("http://www.w3.org/1999/xhtml"), "label")
-            .map_err(dom_err)?;
+        let row = db_document.create_element_ns(Some(NS_XHTML), "label").map_err(dom_err)?;
         row.set_attribute("style", "display:flex; align-items:center; gap:6px; cursor:pointer;")
             .map_err(dom_err)?;
 
         let input = db_document
-            .create_element_ns(Some("http://www.w3.org/1999/xhtml"), "input")
+            .create_element_ns(Some(NS_XHTML), "input")
             .map_err(dom_err)?
             .dyn_into::<web_sys::HtmlInputElement>()
             .map_err(|_| Error::Dom("createElement(\"input\") did not return an HtmlInputElement".into()))?;
@@ -290,11 +282,13 @@ fn sine_wave_path(x0: f64, y0: f64, width: f64, amplitude: f64, periods: f64) ->
 pub(super) fn demo_text_path() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-text-path", Size::new(W, H))?;
 
-    // ── follows a sine wave ──────────────────────────────────────────────────────
-    // The guide wave lives in <defs> — it is never rendered itself, only referenced by `href` — which is the usual
-    // way to use textPath: the geometry is a pure positioning aid for the text. The text only covers part of the
-    // path's full length, so more periods are packed in than will actually be traversed, letting several full
-    // up/down cycles show through the glyphs that do get drawn.
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // text follows a sine wave
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // The guide wave lives in <defs> which means it is never rendered unless it is first referenced by `href` — which
+    // is the usual way to use a textPath: the geometry is simply a positioning aid for the text.
+    //
+    // Four periods of the sine wave are defined, but the text only covers part of the path's full length.
     let wave_d = sine_wave_path(20.0, 90.0, 1000.0, 40.0, 4.0);
     let defs = svg.build_defs(|d| {
         d.path(&wave_d)?.set_attr("id", "demo-tp-wave")?;
@@ -309,10 +303,13 @@ pub(super) fn demo_text_path() -> Result<(), Error> {
 
     caption(&svg, 200.0, "textPath — follows a sine wave")?;
 
-    // ── startOffset ───────────────────────────────────────────────────────────────
-    // Here the guide arc is drawn directly on the canvas (dashed) rather than hidden in <defs>, so the effect of
-    // set_start_offset is visible: two independent <textPath> elements share the same path but start at different
-    // distances along it.
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // Interactive startOffset
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // The dashed guide arc is drawn directly on the canvas rather than being defined as a reusable object in <defs>, so
+    // the effect of `set_start_offset` is visible. A single `<textPath>` element reads "Offset <n>" and slides along
+    // the arc as the native HTML `<input type="range">` (housed in a `<foreignObject>`) is moved. The slider's own
+    // `max` is the arc's `total_length()`, so it can never let the offset run past the path's end.
     let guide = svg.path_from_defs(&[
         PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(430.0, 130.0))),
         PathDef::Abs(PathDefAbsolute::QuadraticBezierTo(
@@ -325,18 +322,120 @@ pub(super) fn demo_text_path() -> Result<(), Error> {
     guide.set_stroke(GUIDE)?;
     guide.set_attr("stroke-dasharray", "4 3")?;
 
-    let start = svg.text(Point::origin(), "")?;
-    let start_path = start.text_path("#demo-tp-offset-arc", "offset 0")?;
-    start_path.set_fill(PLAIN_TEXT)?;
-    start_path.set_font_size(14.0)?;
+    // Measured the path length once, right after guide is created
+    let offset_max = guide.total_length().unwrap_or(0.0);
+    let offset_text = svg.text(Point::origin(), "")?;
+    let offset_path = offset_text.text_path("#demo-tp-offset-arc", "Offset 0")?;
 
-    let shifted = svg.text(Point::origin(), "")?;
-    let shifted_path = shifted.text_path("#demo-tp-offset-arc", "offset 200")?;
-    shifted_path.set_fill(CORAL)?;
-    shifted_path.set_font_size(14.0)?;
-    shifted_path.set_start_offset(200.0)?;
+    offset_path.set_fill(WHITE)?;
+    offset_path.set_font_size(16.0)?;
 
-    caption(&svg, 600.0, "startOffset — slides text along the path")?;
+    // The slider sits above the curve. Tall enough now for two extra rows below the track itself: hand-drawn tick marks
+    // and a plain flex row giving the 0/max endpoints an explicit numeric label. Ticks are drawn by hand rather than
+    // via a <datalist> linked through the slider's `list` attribute, which, at first, appears to be the more obviously
+    // "native" choice.  However, the downside is that a <datalist>'s tick marks are only rendered by Chrome/Edge.
+    // Firefox and Safari apply its snap-to-value behaviour but do not render any visible marks at all, so when using
+    // those browsers, the ticks marks simply do not exist.
+    //
+    // As a reslut, we have to use hand-drawn marks positioned at the correct position along the track's width. These
+    // render identically everywhere. Shame about the inconsistent beahviour of a <datalist>...
+    let slider_fo = svg.foreign_object(Point::new(430.0, 6.0), Size::new(340.0, 50.0))?;
+    let slider_document = slider_fo
+        .as_element()
+        .owner_document()
+        .ok_or_else(|| Error::Dom("cannot identify owner document for SVG foreignObject".into()))?;
+
+    let slider_container = slider_document.create_element_ns(Some(NS_XHTML), "div").map_err(dom_err)?;
+    slider_container
+        .set_attribute("style", "display:flex; flex-direction:column; gap:2px;")
+        .map_err(dom_err)?;
+
+    let slider = slider_document
+        .create_element_ns(Some(NS_XHTML), "input")
+        .map_err(dom_err)?
+        .dyn_into::<web_sys::HtmlInputElement>()
+        .map_err(|_| Error::Dom("createElement(\"input\") did not return an HtmlInputElement".into()))?;
+    slider.set_type("range");
+    slider.set_min("0");
+    slider.set_max(&format!("{offset_max:.0}"));
+    slider.set_step("1");
+    slider.set_value("0");
+    slider.set_attribute("style", "width:100%;").map_err(dom_err)?;
+
+    // Tick marks every 25 units plus one at the end: a row exactly as wide as the slider.
+    // It uses `position:relative` and one `position:absolute` mark per tick at `left: {value / max * 100}%`
+    // to draw hand-drawn tick marks that look the same on browsers that don't render tick marks at all.
+    const TICK_STEP: i64 = 25;
+    let max_rounded = offset_max.round() as i64;
+    let ticks_row = slider_document.create_element_ns(Some(NS_XHTML), "div").map_err(dom_err)?;
+
+    ticks_row
+        .set_attribute("style", "position:relative; height:6px;")
+        .map_err(dom_err)?;
+
+    let add_tick = |value: i64| -> Result<(), Error> {
+        let percent = if max_rounded == 0 { 0.0 } else { value as f64 / max_rounded as f64 * 100.0 };
+        let mark = slider_document.create_element_ns(Some(NS_XHTML), "span").map_err(dom_err)?;
+        mark.set_attribute(
+            "style",
+            &format!(
+                "position:absolute; left:{percent:.2}%; top:0; width:1px; height:6px; \
+                 background:#8b949e; transform:translateX(-50%);"
+            ),
+        )
+        .map_err(dom_err)?;
+        ticks_row.append_child(&mark).map_err(dom_err)?;
+        Ok(())
+    };
+
+    let mut tick = 0;
+    while tick < max_rounded {
+        add_tick(tick)?;
+        tick += TICK_STEP;
+    }
+    add_tick(max_rounded)?;
+
+    let endpoint_labels = slider_document.create_element_ns(Some(NS_XHTML), "div").map_err(dom_err)?;
+    endpoint_labels
+        .set_attribute(
+            "style",
+            "display:flex; justify-content:space-between; font:11px sans-serif; color:#8b949e;",
+        )
+        .map_err(dom_err)?;
+
+    let label_zero = slider_document.create_element_ns(Some(NS_XHTML), "span").map_err(dom_err)?;
+    label_zero.set_text_content(Some("0"));
+
+    let label_max = slider_document.create_element_ns(Some(NS_XHTML), "span").map_err(dom_err)?;
+    label_max.set_text_content(Some(&max_rounded.to_string()));
+    endpoint_labels.append_child(&label_zero).map_err(dom_err)?;
+    endpoint_labels.append_child(&label_max).map_err(dom_err)?;
+
+    // The closure reads the slider's value directly (a clone of the same `HtmlInputElement`, not the event's target).
+    // While the slider is being dragged, the `input` event that fires continuously, rather than `change` that fires
+    // only once the user lets go.
+    let slider_value = slider.clone();
+    let target = offset_path.clone();
+    let mut label_buf = String::new();
+    let on_input: DemoClosure = Closure::new(move |_: web_sys::Event| {
+        let offset: f64 = slider_value.value().parse().unwrap_or(0.0);
+        let _ = target.set_start_offset(offset);
+        // When in the home position (offset 0), the text color is white; anywhere else along the path, is orange.
+        let _ = target.set_fill(if offset == 0.0 { WHITE } else { CORAL });
+        let _ = target.set_text_fmt(&mut label_buf, format_args!("Offset {offset:.0}"));
+    });
+    slider
+        .add_event_listener_with_callback("input", on_input.as_ref().unchecked_ref())
+        .map_err(dom_err)?;
+    keep_demo_closure(on_input);
+
+    slider_container.append_child(&slider).map_err(dom_err)?;
+    slider_container.append_child(&ticks_row).map_err(dom_err)?;
+    slider_container.append_child(&endpoint_labels).map_err(dom_err)?;
+    slider_fo.as_element().append_child(&slider_container).map_err(dom_err)?;
+    keep_demo_node(slider_fo);
+
+    caption(&svg, 600.0, "startOffset — drag the slider")?;
 
     Ok(())
 }

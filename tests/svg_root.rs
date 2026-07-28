@@ -786,7 +786,7 @@ fn should_treat_escape_hatch_html_content_as_opaque_to_tree_navigation() -> Resu
 
     let document = fo.as_element().owner_document().ok_or("foreignObject has no owner document")?;
     let div = document
-        .create_element_ns(Some("http://www.w3.org/1999/xhtml"), "div")
+        .create_element_ns(Some(NS_XHTML), "div")
         .map_err(|e| format!("{e:?}"))?;
     div.set_text_content(Some("real HTML content"));
     fo.as_element().append_child(&div).map_err(|e| format!("{e:?}"))?;
@@ -813,9 +813,9 @@ fn should_use_correct_namespaces_for_element_and_escape_hatch_content() -> Resul
 
     let document = fo.as_element().owner_document().ok_or("foreignObject has no owner document")?;
     let div = document
-        .create_element_ns(Some("http://www.w3.org/1999/xhtml"), "div")
+        .create_element_ns(Some(NS_XHTML), "div")
         .map_err(|e| format!("{e:?}"))?;
-    common::check_eq(div.namespace_uri(), Some("http://www.w3.org/1999/xhtml".to_owned()))
+    common::check_eq(div.namespace_uri(), Some(NS_XHTML.to_owned()))
 }
 
 /// Real proof that XHTML content added via the raw-DOM escape hatch is actually laid out inside a
@@ -831,7 +831,7 @@ fn should_render_xhtml_content_with_positive_dimensions() -> Result<(), String> 
 
     let document = fo.as_element().owner_document().ok_or("foreignObject has no owner document")?;
     let div = document
-        .create_element_ns(Some("http://www.w3.org/1999/xhtml"), "div")
+        .create_element_ns(Some(NS_XHTML), "div")
         .map_err(|e| format!("{e:?}"))?;
     div.set_attribute("style", "width: 80px; height: 30px;")
         .map_err(|e| format!("{e:?}"))?;
@@ -864,7 +864,7 @@ fn should_not_paint_xhtml_content_when_foreign_object_has_zero_area() -> Result<
             .foreign_object(Point::new(10.0, 10.0), Size::new(width, height))
             .map_err(|e| e.to_string())?;
         let div = document
-            .create_element_ns(Some("http://www.w3.org/1999/xhtml"), "div")
+            .create_element_ns(Some(NS_XHTML), "div")
             .map_err(|e| format!("{e:?}"))?;
         // A fixed CSS size independent of the foreignObject's own (possibly zero) size, so any collapse observed is
         // specifically the "zero width/height disables rendering" rule, not ordinary CSS percentage-width layout.

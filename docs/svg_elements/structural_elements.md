@@ -265,7 +265,7 @@ let document = fo.as_element().owner_document().expect("foreignObject element ha
 // Using `create_element_ns` makes the required namespace explicit and also works correctly in SVG/XML documents,
 // where `create_element` would create a null-namespace element instead.
 let div = document
-    .create_element_ns(Some("http://www.w3.org/1999/xhtml"), "div")
+    .create_element_ns(Some(NS_XHTML), "div")
     .expect("createElementNS failed");
 div.set_text_content(Some("Flows and wraps like ordinary HTML, unlike SVG <text>."));
 fo.as_element().append_child(&div).expect("appendChild failed");
