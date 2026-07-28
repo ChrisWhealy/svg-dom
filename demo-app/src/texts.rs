@@ -1,9 +1,13 @@
-use super::colours::*;
-use super::{H, PAD_Y, W, caption};
+use super::{DemoClosure, H, PAD_Y, W, caption, colours::*, keep_demo_closure, keep_demo_node};
+// `dom_err` is this crate's own private DOM-error mapper (defined in `lib.rs`) and is not part of `svg_dom`'s public
+// API.  It is kept as a separate `use` from the `svg_dom::` import below for exactly that reason (see structure.rs's
+// identical split for the same rationale).
+use crate::dom_err;
 use svg_dom::{
     DominantBaseline, Error, PathDef, PathDefAbsolute, SvgRoot, TextAnchor,
     root::utils::{Point, Size},
 };
+use wasm_bindgen::{JsCast, prelude::*};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // text
@@ -11,27 +15,83 @@ use svg_dom::{
 pub(super) fn demo_text() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-text", Size::new(W, H))?;
 
-    // ── text-anchor ───────────────────────────────────────────────────────────────
-    // Vertical dashed guide at x=100; three labels anchored at that x position each
-    // using a different TextAnchor variant so the visual spread makes the effect clear.
-    let vguide = svg.line(Point::new(100.0, 35.0), Point::new(100.0, 138.0))?;
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // text-anchor (interactive)
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // A single text element sits on the dashed vertical guide at x=100.
+    // Three real HTML `<input type="radio">` elements are laid out inside a `<foreignObject>` within the same
+    // SVG-space position.  When the radio buttons change, the text's `text-anchor` is updated live.
+    //
+    // The use of native HTML radio buttons was chosen over hand-drawn SVG ones specifically because of what they give
+    // for free: screen-reader semantics, keyboard navigation, and browser-enforced mutual exclusivity via the shared
+    // `name` attribute — all of which a custom-drawn SVG control would have had to implement by hand.
+    let vguide = svg.line(Point::new(100.0, 30.0), Point::new(100.0, 66.0))?;
     vguide.set_stroke(GUIDE)?;
     vguide.set_attr("stroke-dasharray", "4 3")?;
 
-    let ta_s = svg.text(Point::new(100.0, 58.0), "start")?;
-    ta_s.set_fill(PLAIN_TEXT)?;
-    ta_s.set_font_size(13.0)?;
-    ta_s.set_text_anchor(TextAnchor::Start)?;
+    let anchor_text = svg.text(Point::new(100.0, 56.0), "sample text")?;
+    anchor_text.set_fill(STEELBLUE)?;
+    anchor_text.set_font_size(13.0)?;
+    anchor_text.set_text_anchor(TextAnchor::Start)?;
 
-    let ta_m = svg.text(Point::new(100.0, 90.0), "middle")?;
-    ta_m.set_fill(STEELBLUE)?;
-    ta_m.set_font_size(13.0)?;
-    ta_m.set_text_anchor(TextAnchor::Middle)?;
+    // Use a foreignObject to house the HTML radio buttons and keep them within the SVG viewport.
+    let fo = svg.foreign_object(Point::new(6.0, 76.0), Size::new(180.0, 72.0))?;
+    let document = fo
+        .as_element()
+        .owner_document()
+        .ok_or_else(|| Error::Dom("cannot identify owner document for SVG foreignObject".into()))?;
 
-    let ta_e = svg.text(Point::new(100.0, 122.0), "end")?;
-    ta_e.set_fill(CORAL)?;
-    ta_e.set_font_size(13.0)?;
-    ta_e.set_text_anchor(TextAnchor::End)?;
+    let list = document
+        .create_element_ns(Some("http://www.w3.org/1999/xhtml"), "div")
+        .map_err(dom_err)?;
+    list.set_attribute(
+        "style",
+        "display:flex; flex-direction:column; gap:6px; font:13px sans-serif; color:#c9d1d9;",
+    )
+    .map_err(dom_err)?;
+
+    const RADIO_OPTIONS: [(TextAnchor, &str); 3] = [
+        (TextAnchor::Start, "start"),
+        (TextAnchor::Middle, "middle"),
+        (TextAnchor::End, "end"),
+    ];
+
+    for (value, label) in RADIO_OPTIONS {
+        let row = document
+            .create_element_ns(Some("http://www.w3.org/1999/xhtml"), "label")
+            .map_err(dom_err)?;
+        row.set_attribute("style", "display:flex; align-items:center; gap:6px; cursor:pointer;")
+            .map_err(dom_err)?;
+
+        let input = document
+            .create_element_ns(Some("http://www.w3.org/1999/xhtml"), "input")
+            .map_err(dom_err)?
+            .dyn_into::<web_sys::HtmlInputElement>()
+            .map_err(|_| Error::Dom("createElement(\"input\") did not return an HtmlInputElement".into()))?;
+        input.set_type("radio");
+        input.set_name("demo-text-anchor");
+        input.set_checked(value == TextAnchor::Start);
+
+        // Each radio button's closure already knows which TextAnchor it represents, so the handler needs no lookup.
+        // Had we attempted to "roll our own" radio buttons using SCG elements, we would be responsible for writing the
+        // logic to clear the other two dots itself.  Using HTML inside a foreignObject gives us all this standard
+        // functionality for free.
+        let target = anchor_text.clone();
+        let on_change: DemoClosure = Closure::new(move |_: web_sys::Event| {
+            let _ = target.set_text_anchor(value);
+        });
+        input
+            .add_event_listener_with_callback("change", on_change.as_ref().unchecked_ref())
+            .map_err(dom_err)?;
+        keep_demo_closure(on_change);
+
+        row.append_child(&input).map_err(dom_err)?;
+        row.append_child(&document.create_text_node(label)).map_err(dom_err)?;
+        list.append_child(&row).map_err(dom_err)?;
+    }
+
+    fo.as_element().append_child(&list).map_err(dom_err)?;
+    keep_demo_node(fo);
 
     caption(&svg, 100.0, "text-anchor")?;
 

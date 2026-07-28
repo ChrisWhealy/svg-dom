@@ -28,6 +28,9 @@ use wasm_bindgen::prelude::*;
 
 use colours::*;
 
+/// A raw `web_sys` event-listener closure, as stored in [`LIVE_DEMO_CLOSURES`].
+type DemoClosure = Closure<dyn FnMut(web_sys::Event)>;
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 thread_local! {
     /// Demo-only owner for interactive nodes whose managed listeners must remain attached after the demo function
@@ -44,6 +47,15 @@ thread_local! {
     /// `geometry::demo_geometry_path_follow`) runs its own independent `AnimationLoop`, and a single `Option` slot
     /// would let the second call silently drop and stop the first one's animation.
     static LIVE_DEMO_ANIMS: RefCell<Vec<AnimationLoop>> = const { RefCell::new(Vec::new()) };
+
+    /// Demo-only owner for raw `web_sys` event-listener `Closure`s attached outside `svg_dom`'s own managed `on_*`
+    /// wrappers — e.g. for an `<input>` element contained within a [`SvgRoot::foreign_object`]', the raw `as_element()`
+    /// escape hatch has no `SvgNode` of its own in which to hold a managed listener (like [`LIVE_DEMO_NODES`] does).
+    ///
+    /// Attempting to use `Closure::forget` as a workaround would leak these permanently.
+    /// Parking them here for the page's lifetime instead follows the same explicit, non-leaking ownership seen in
+    /// [`LIVE_DEMO_NODES`]/[`LIVE_DEMO_ANIMS`].
+    static LIVE_DEMO_CLOSURES: RefCell<Vec<DemoClosure>> = const { RefCell::new(Vec::new()) };
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -53,6 +65,10 @@ fn keep_demo_node(node: SvgNode) {
 
 fn keep_demo_anim(anim: AnimationLoop) {
     LIVE_DEMO_ANIMS.with(|anims| anims.borrow_mut().push(anim));
+}
+
+fn keep_demo_closure(closure: DemoClosure) {
+    LIVE_DEMO_CLOSURES.with(|closures| closures.borrow_mut().push(closure));
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
