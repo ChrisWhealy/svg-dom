@@ -7,9 +7,7 @@
 //! This reads `demo-app/src/lib.rs` as plain text and extracts every panel id from the `demo_gallery!` invocation,
 //! rather than depending on `demo-app` as a library: that crate builds to a wasm `cdylib` for the browser, not
 //! something a native binary like `demo-server` can link against.
-
 use std::{fs, path::Path, process};
-
 use crate::panels;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

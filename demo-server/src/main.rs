@@ -35,7 +35,6 @@
 //! other build output.
 //!
 //! The port number can be overridden using the `PORT` environment variable, e.g. `PORT=9000 cargo demo`.
-
 mod panels;
 mod validate;
 
