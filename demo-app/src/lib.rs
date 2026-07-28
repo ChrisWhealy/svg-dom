@@ -351,3 +351,6 @@ fn caption(svg: &SvgRoot, cx: f64, text: &str) -> Result<(), Error> {
         .apply([("font-size", "11"), ("text-anchor", "middle")])?;
     Ok(())
 }
+
+#[cfg(test)]
+mod unit_tests;

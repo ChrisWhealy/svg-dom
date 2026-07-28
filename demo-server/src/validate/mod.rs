@@ -36,7 +36,10 @@ impl fmt::Display for ValidationError {
                 write!(f, "demo-app's demo_gallery! contains the panel id {id:?} more than once")
             },
             Self::CatalogueMismatch(detail) => {
-                write!(f, "demo-server's panel manifest and demo-app's demo_gallery! have drifted apart\n{detail}")
+                write!(
+                    f,
+                    "demo-server's panel manifest and demo-app's demo_gallery! have drifted apart\n{detail}"
+                )
             },
         }
     }
@@ -52,7 +55,8 @@ impl std::error::Error for ValidationError {}
 /// treat that fatality (report and exit) is `main`'s job, not this function's.
 pub fn validate(root: &Path) -> Result<(), ValidationError> {
     let lib_rs_path = root.join("demo-app").join("src").join("lib.rs");
-    let lib_rs = fs::read_to_string(&lib_rs_path).map_err(|source| ValidationError::Io { path: lib_rs_path, source })?;
+    let lib_rs =
+        fs::read_to_string(&lib_rs_path).map_err(|source| ValidationError::Io { path: lib_rs_path, source })?;
 
     let gallery_ids = extract_gallery_panel_ids(&lib_rs);
 

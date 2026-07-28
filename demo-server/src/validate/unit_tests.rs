@@ -66,7 +66,10 @@ fn should_report_catalogue_mismatch() {
     fs::write(src_dir.join("lib.rs"), "no demo_gallery! entries here").expect("write lib.rs");
 
     let err = validate(tmp.path()).expect_err("an empty gallery must be reported as a catalogue mismatch");
-    assert!(matches!(err, ValidationError::CatalogueMismatch(_)), "wrong error variant: {err}");
+    assert!(
+        matches!(err, ValidationError::CatalogueMismatch(_)),
+        "wrong error variant: {err}"
+    );
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
