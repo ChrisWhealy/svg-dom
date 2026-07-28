@@ -122,6 +122,7 @@ body {
     color: #8b949e;
     font-size: 0.85rem;
     max-width: 120ch;
+    margin-bottom: 0.5rem;
 }
 
 .subtitle code {
@@ -204,29 +205,26 @@ figcaption code {
     color: #f0883e;
 }
 
-figcaption p {
+/* p, ul, ol and li inside a figcaption all share the same paragraph spacing; only li's line-height and ul/ol's
+   left indent (wider for ol, to fit two-digit numbers) actually differ per element. */
+figcaption p,
+figcaption ul,
+figcaption ol,
+figcaption li {
     margin-bottom: 0.5rem;
+}
+
+figcaption p,
+figcaption li {
     line-height: 1.15rem;
 }
 
 figcaption ul {
-    margin-bottom: 0.5rem;
     margin-left: 1.1rem;
 }
 
 figcaption ol {
-    margin-bottom: 0.5rem;
     margin-left: 1.3rem;
-}
-
-figcaption ul li {
-    margin-bottom: 0.5rem;
-    line-height: 1.15rem;
-}
-
-figcaption ol li {
-    margin-bottom: 0.5rem;
-    line-height: 1.15rem;
 }
 
 /* classList demo (Event handling → CSS class toggle, demo-app/src/events.rs). Rust only ever calls toggle_class on the
@@ -242,28 +240,28 @@ figcaption ol li {
     stroke: gold;
 }
 
-#error-banner {
-    display: none;
-    background: #3d1e1e;
-    border: 1px solid #f85149;
-    border-radius: 6px;
-    padding: 0.75rem 1rem;
-    margin-top: 1rem;
-    color: #f85149;
-    font-size: 0.85rem;
-}
-
-/* Per-panel failure banner appended by report_panel_error (src/lib.rs) when that one panel's demo function
-   returns an error at runtime — same colours as #error-banner, scoped to the one broken panel instead of the
-   whole page. */
+/* #error-banner (whole-page WASM load failure) and .demo-error (one panel's demo function failing at runtime,
+   appended by report_panel_error in demo-app/src/lib.rs) share the same red error colours; only their sizing and
+   how they're shown differ — #error-banner starts hidden and is toggled visible by JS, .demo-error is only ever
+   appended when there is something to show. */
+#error-banner,
 .demo-error {
     background: #3d1e1e;
     border: 1px solid #f85149;
     border-radius: 6px;
-    padding: 0.6rem 0.9rem;
-    margin-top: 0.75rem;
     color: #f85149;
     font-size: 0.85rem;
+}
+
+#error-banner {
+    display: none;
+    padding: 0.75rem 1rem;
+    margin-top: 1rem;
+}
+
+.demo-error {
+    padding: 0.6rem 0.9rem;
+    margin-top: 0.75rem;
 }
 
 /* Source-code frame injected below each demo by init_panel (see demo-app/src/lib.rs). The <code> holds the exact Rust
@@ -314,7 +312,10 @@ figcaption ol li {
     font-style: italic;
 }
 
-.source code .kw {
+/* Keywords and lifetimes share a colour, as do macros and call-position identifiers — kept as separate token
+   classes (the highlighter's decision, see highlight/mod.rs) even though the two pairs render identically here. */
+.source code .kw,
+.source code .lif {
     color: #ff7b72;
 }
 
@@ -330,14 +331,7 @@ figcaption ol li {
     color: #ffa657;
 }
 
-.source code .mac {
-    color: #d2a8ff;
-}
-
+.source code .mac,
 .source code .fnc {
     color: #d2a8ff;
-}
-
-.source code .lif {
-    color: #ff7b72;
 }

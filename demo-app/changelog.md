@@ -12,6 +12,10 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 - Make port number a placeholder in the HTML page (`acb2329`)
 
+### Fixed
+
+- Update demo style sheet (``)
+
 ## [0.1.1] - 2026-07-28
 
 ### Changed
