@@ -37,6 +37,7 @@ use std::{
 
 const PANELS_PLACEHOLDER: &str = "{{PANELS}}";
 const MENU_PLACEHOLDER: &str = "{{MENU}}";
+const SERVER_PORT: &str = "{{SERVER_PORT}}";
 
 /// Every category divider in the source uses this exact comment text, verified against the original hand-written
 /// `index.html` when this module was split out — see `docs/design_notes/` for how, if that history matters later.
@@ -205,7 +206,7 @@ impl std::error::Error for AssembleError {}
 /// live in). Every check runs, and the complete assembled output is validated, before anything is written — a
 /// call that returns `Err` never touches `out_path` on disk, so a broken run never overwrites a last-known-good
 /// file with a worse one.
-pub fn assemble(source_demo_dir: &Path, out_path: &Path) -> Result<PathBuf, AssembleError> {
+pub fn assemble(source_demo_dir: &Path, out_path: &Path, port: u16) -> Result<PathBuf, AssembleError> {
     let panels_dir = source_demo_dir.join("panels");
     let template_path = source_demo_dir.join("index.template.html");
 
@@ -220,7 +221,8 @@ pub fn assemble(source_demo_dir: &Path, out_path: &Path) -> Result<PathBuf, Asse
     let menu_body = render_menu();
     check_catalogue_consistency(&menu_body, &fragment_filenames)?;
 
-    let assembled = template.replacen(PANELS_PLACEHOLDER, &panels_body, 1);
+    let assembled = template.replacen(SERVER_PORT, &port.to_string(), 1);
+    let assembled = assembled.replacen(PANELS_PLACEHOLDER, &panels_body, 1);
     let assembled = assembled.replacen(MENU_PLACEHOLDER, &menu_body, 1);
     check_no_leftover_placeholders(&assembled)?;
 

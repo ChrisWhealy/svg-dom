@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Released]
 
+## [0.1.2] - 2026-07-28
+
+### Changed
+
+- Make port number a placeholder in the HTML page (``)
+
 ## [0.1.1] - 2026-07-28
 
 ### Changed

@@ -77,11 +77,14 @@ async fn main() -> std::io::Result<()> {
     // gallery, rather than after.
     validate::validate(&root);
 
+    let port: u16 = std::env::var("PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(DEFAULT_PORT);
+    let addr = ("127.0.0.1", port);
+
     // Rebuild index.html from the source template and panel fragments before wasm-pack or the server ever touch it,
     // so both always see the current assembled file, not some stale one from a previous run. The source demo/
     // directory is read from, never written to — panels::assemble takes its input and output paths independently.
     let source_demo_dir = root.join("demo");
-    if let Err(err) = panels::assemble(&source_demo_dir, &stage_demo_dir.join("index.html")) {
+    if let Err(err) = panels::assemble(&source_demo_dir, &stage_demo_dir.join("index.html"), port) {
         eprintln!("aborting: {err}");
         process::exit(1);
     }
@@ -92,9 +95,6 @@ async fn main() -> std::io::Result<()> {
     copy_or_die(&source_demo_dir.join("view-demo.svg"), &stage_demo_dir.join("view-demo.svg"));
 
     build_wasm(&root, &stage_pkg_dir);
-
-    let port: u16 = std::env::var("PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(DEFAULT_PORT);
-    let addr = ("127.0.0.1", port);
 
     println!("\n  svg-dom-demo running on http://127.0.0.1:{port}/demo/\n");
 
