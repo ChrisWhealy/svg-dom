@@ -14,7 +14,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 ### Fixed
 
-- Update demo style sheet (``)
+- Update demo style sheet (`a12837b`)
 
 ## [0.1.1] - 2026-07-28
 
