@@ -118,11 +118,14 @@ The coding used to create each demo is shown beneath each example.
    cargo run -p demo-server
    ```
 
-1. `demo-server`'s `main()` first checks that `demo-app`'s `demo_gallery!` list and its own panel manifest still agree
-   with each other, then assembles the gallery's `index.html` from `demo/index.template.html` and the individual
-   `demo/panels/*.html` fragments, and copies `demo/style.css` and `demo/view-demo.svg` alongside it. All of this is
-   written to `target/demo-gallery/demo/`, not into the `demo/` source directory itself — see `main.rs`'s own doc
-   comment for why.
+1. `demo-server`'s `main()` function does the following things:
+
+   1. Check that `demo-app`'s `demo_gallery!` list and its own panel manifest still agree
+   with each other.
+   1. Assemble the gallery's `index.html` by inserting the individual `demo/panels/*.html` fragments into
+     `demo/index.template.html`.
+   1. Copies `demo/style.css` and `demo/view-demo.svg` alongside it.
+   1. All of this is written to `target/demo-gallery/demo/`
 
 1. Next, `demo-server` spawns `wasm-pack` as a direct child process (via Rust's `Command`) running:
 
