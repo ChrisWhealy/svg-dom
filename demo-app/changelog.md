@@ -16,7 +16,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 ### Fixed
 
-- Correct broken links in demo (``)
+- Correct broken links in demo (`891510f`)
 
 ## [0.1.2] - 2026-07-28
 
