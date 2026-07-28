@@ -6,9 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Unreleased]
 
+## [0.1.1] - 2026-07-28
+
 ### Changed
 
 - Refactor demo gallery into individual panels (`d987feb`)
+- Significant restructuring of demo server (`5664c2d`)
 
 # [Released]
 
