@@ -50,7 +50,7 @@ mod validate;
 use actix_files::Files;
 use actix_web::{App, HttpServer, middleware::Logger};
 use build::StagePaths;
-use std::{path::PathBuf, process};
+use std::{env::VarError, path::PathBuf, process};
 
 const DEFAULT_PORT: u16 = 8080;
 
@@ -69,7 +69,17 @@ async fn main() -> std::io::Result<()> {
         .map(PathBuf::from)
         .unwrap_or_else(|| root.join("target"));
     let stage = StagePaths::new(&target_dir);
-    let port: u16 = std::env::var("PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(DEFAULT_PORT);
+
+    // Unlike CARGO_TARGET_DIR above (where any absence just means "use the default layout"), a *present but unparseable*
+    // PORT is a configuration mistake worth reporting rather than silently falling back to DEFAULT_PORT —
+    // `PORT=abc cargo demo` should fail loudly, not quietly start on 8080.
+    let port: u16 = match std::env::var("PORT") {
+        Ok(value) => value
+            .parse()
+            .map_err(|_| std::io::Error::other(format!("invalid PORT value: {value:?}")))?,
+        Err(VarError::NotPresent) => DEFAULT_PORT,
+        Err(err) => return Err(std::io::Error::other(err)),
+    };
 
     if std::env::args().any(|arg| arg == "--prepare-only") {
         if let Err(err) = build::prepare_gallery(&root, &stage, port) {
