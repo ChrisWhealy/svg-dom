@@ -273,16 +273,23 @@ fn report_panel_error(panel_id: &str, message: &str) {
 // from what is actually running — there is no separate copy of it to keep in sync by hand.
 //
 // The (panel id -> function) MAPPING that decides which source shows up in which panel is a different matter: it is
-// the hand-written `demo_gallery!` invocation above, not something derived automatically. demo-server's `validate`
-// step catches a mismatch there at server startup for the normal `cargo demo` pipeline (see
-// `demo-server/src/validate.rs`) — but append_source_frame below still fails silently rather than erroring if a panel
-// or function genuinely cannot be found, as a fallback for anything run outside that pipeline.
+// the hand-written `demo_gallery!` invocation above, not something derived automatically.
+//
+// demo-server's `validate` step will catch any mismatches when the normal `cargo demo` pipeline starts (see
+// `demo-server/src/validate.rs`), and `unit_tests::every_registered_demo_has_extractable_source` in
+// `demo-app/src/unit_tests.rs` verifies that `demo_fn_source` can actually locate every registered function's source.
+//
+// However, `append_source_frame` below still fails silently rather than erroring if a panel or function genuinely
+// cannot be found, as a fallback for anything run outside that validated pipeline.
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Builds `<details class="source"><summary>...</summary><pre><code>...</code></pre></details>` and appends it to the
-/// panel `<section>`. A missing panel or missing function is skipped rather than treated as an error, so the gallery
-/// still renders if `index.html` and this module drift apart.
+/// panel `<section>`. Missing panels or source functions are skipped defensively for callers running the WASM module
+/// outside the validated `cargo demo` pipeline.
+///
+/// Normal gallery builds reject catalogue mismatches during server startup and unit tests verify source extraction —
+/// see this section's own doc comment above.
 fn append_source_frame(document: &web_sys::Document, panel_id: &str, fn_name: &str) -> Result<(), Error> {
     let Some(section) = document.get_element_by_id(panel_id) else {
         return Ok(());
