@@ -76,7 +76,7 @@ thread_local! {
     /// growth over the course of a session; it grows once per interactive control that ever gets built, then stops.
     ///
     /// ***IMPORTANT***
-    /// 
+    ///
     /// Neither property is free, though: both come from specifically from the fact that this is a small, single-page,
     /// never-torn-down demo gallery. Treat this as *gallery*-lifetime ownership, not a pattern to copy unchanged into
     /// an application that repeatedly mounts and unmounts the same component: there, the closures (and the SVG nodes
