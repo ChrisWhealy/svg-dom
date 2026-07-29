@@ -10,7 +10,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 ### Added
 
-- Doc only: explain demo-app architecture is suitable for a demo, not a live application (``)
+- Doc only: explain demo-app architecture is suitable for a demo, not a live application (`39d0beb`)
 
 ### Fixed
 
