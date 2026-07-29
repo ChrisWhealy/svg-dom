@@ -7,8 +7,12 @@
 //! started exceeding the guide arc's real `total_length()` again. Only a real browser, with a real DOM and a real
 //! wasm-bindgen event listener actually firing, can prove that.
 //!
-//! Run via `wasm-pack test demo-app --headless --firefox` (or `--chrome`) — the same invocation the root `svg-dom`
-//! crate's own `tests/*.rs` use, just scoped to this crate's directory instead of the repo root. Compiled as an
+//! Run via `wasm-pack test --headless --firefox demo-app` (or `--chrome`) — note the package path comes *after*
+//! the flags: `wasm-pack test demo-app --headless --firefox` (path first) fails with "Must specify at least one
+//! of --node, --chrome, --firefox, or --safari", confirmed empirically — unlike `wasm-pack build`, `test`'s own
+//! `[PATH_AND_EXTRA_OPTIONS]...` argument swallows anything placed after it instead of parsing it as flags. This
+//! is otherwise the same invocation shape the root `svg-dom` crate's own `tests/*.rs` use, just scoped to this
+//! crate's directory instead of the repo root. Compiled as an
 //! ordinary `#[cfg(test)]` module (not gated on `target_arch = "wasm32"`) because `#[wasm_bindgen_test]` itself
 //! already degrades safely on a native target — it compiles cleanly but registers zero tests there (confirmed
 //! empirically against the root crate's own `tests/svg_root.rs`), so `cargo test -p svg-dom-demo` continues to
