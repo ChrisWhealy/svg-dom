@@ -20,6 +20,10 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 - Correct typos (`dfd6d8c`)
 - Correct broken wasm-pack argument order (`64bdab4`)
 
+### Changed
+
+- Refactor text demos (`60f676a`)
+
 ## [0.1.3] - 2026-07-28
 
 ### Added
