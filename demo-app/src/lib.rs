@@ -57,6 +57,32 @@ thread_local! {
     /// Attempting to use `Closure::forget` as a workaround would leak these permanently.
     /// Parking them here for the page's lifetime instead follows the same explicit, non-leaking ownership seen in
     /// [`LIVE_DEMO_NODES`]/[`LIVE_DEMO_ANIMS`].
+    ///
+    /// # Why page-lifetime ownership is the right call here, not just the convenient one
+    ///
+    /// Each closure parked here (e.g. `texts.rs`'s radio/slider handlers) strongly owns the `SvgNode` it updates — the
+    /// text node whose `text-anchor`, `dominant-baseline`, or `startOffset` the listener writes on every event.
+    ///
+    /// That is *not* the self-referential cycle the library's own managed `on_*` listeners exist to avoid: a managed
+    /// listener is owned by the very `SvgNode` it is attached to, so a node capturing a clone of itself can keep itself
+    /// alive forever. Here the listener is owned by the raw HTML `<input>` (via this thread-local, not via the input
+    /// itself), and it captures a *different* node (the SVG text/textPath element it updates), so there is no cycle for
+    /// anything to leak through in the first place; the ownership graph forms a straight line (this thread-local →
+    /// closure → SVG text node), not a loop.
+    ///
+    /// The other half of "is this actually bounded" is [`init_panel`]'s own idempotency via [`PANEL_STATE_ATTR`]: each
+    /// panel's build function (and therefore every `keep_demo_closure` call it makes) runs at most once per page load,
+    /// no matter how many times the user navigates back to that panel. So this `Vec` does not experience unbounded
+    /// growth over the course of a session; it grows once per interactive control that ever gets built, then stops.
+    ///
+    /// ***IMPORTANT***
+    /// 
+    /// Neither property is free, though: both come from specifically from the fact that this is a small, single-page,
+    /// never-torn-down demo gallery. Treat this as *gallery*-lifetime ownership, not a pattern to copy unchanged into
+    /// an application that repeatedly mounts and unmounts the same component: there, the closures (and the SVG nodes
+    /// they capture) would need to be dropped on unmount — e.g. by handing the caller a guard/handle that removes
+    /// the listener and clears this `Vec`'s corresponding entry — rather than accumulating here for as long as the
+    /// page happens to stay open.
     static LIVE_DEMO_CLOSURES: RefCell<Vec<DemoClosure>> = const { RefCell::new(Vec::new()) };
 }
 
