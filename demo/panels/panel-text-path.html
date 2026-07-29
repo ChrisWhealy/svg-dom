@@ -11,9 +11,10 @@
                             </li>
                             <li><strong>startOffset</strong>: Drag the slider above the dashed arc to set
                                 <code>&lt;textPath&gt;</code>'s <strong>set_start_offset</strong> live — the range
-                                runs from <code>0</code> to the arc's own measured <code>total_length()</code>. The
-                                label reads <code>white</code> at the home position (offset 0) and orange anywhere
-                                else along the path.
+                                runs from <code>0</code> to the arc's own measured <code>total_length()</code>,
+                                truncated to a whole user unit so the slider can never select a distance past the
+                                path's real end. The label reads <code>white</code> at the home position (offset 0)
+                                and orange anywhere else along the path.
                             </li>
                         </ul>
                     </figcaption>

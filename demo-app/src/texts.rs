@@ -309,7 +309,8 @@ pub(super) fn demo_text_path() -> Result<(), Error> {
     // The dashed guide arc is drawn directly on the canvas rather than being defined as a reusable object in <defs>, so
     // the effect of `set_start_offset` is visible. A single `<textPath>` element reads "Offset <n>" and slides along
     // the arc as the native HTML `<input type="range">` (housed in a `<foreignObject>`) is moved. The slider's own
-    // `max` is the arc's `total_length()`, so it can never let the offset run past the path's end.
+    // `max` is the arc's `total_length()`, truncated to a whole user unit so it can never let the offset run past the
+    // path's end.
     let guide = svg.path_from_defs(&[
         PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(430.0, 130.0))),
         PathDef::Abs(PathDefAbsolute::QuadraticBezierTo(
@@ -322,8 +323,18 @@ pub(super) fn demo_text_path() -> Result<(), Error> {
     guide.set_stroke(GUIDE)?;
     guide.set_attr("stroke-dasharray", "4 3")?;
 
-    // Measured the path length once, right after guide is created
-    let offset_max = guide.total_length().unwrap_or(0.0);
+    // Measured once, right after the (already-live) guide has been created. `guide` is unconditionally a <path>, which
+    // always implements `SVGGeometryElement` (see total_length's own doc comment for exactly which element types do
+    // not), so `None` here would mean the browser's own getTotalLength() failed on an element that must support it —
+    // which would represent a broken demo invariant rather than a normal runtime condition; hence an explicit
+    // construction error rather than an `unwrap_or(0.0)` that would otherwise leave the slider silently stuck at a max
+    // of zero.
+    let offset_max = guide
+        .total_length()
+        .ok_or_else(|| Error::Dom("demo-tp-offset-arc has no measurable path length".into()))?;
+    // Floored, not rounded: see this section's own doc comment above for why.
+    let max_rounded = offset_max.floor() as i64;
+
     let offset_text = svg.text(Point::origin(), "")?;
     let offset_path = offset_text.text_path("#demo-tp-offset-arc", "Offset 0")?;
 
@@ -357,7 +368,7 @@ pub(super) fn demo_text_path() -> Result<(), Error> {
         .map_err(|_| Error::Dom("createElement(\"input\") did not return an HtmlInputElement".into()))?;
     slider.set_type("range");
     slider.set_min("0");
-    slider.set_max(&format!("{offset_max:.0}"));
+    slider.set_max(&max_rounded.to_string());
     slider.set_step("1");
     slider.set_value("0");
     slider.set_attribute("style", "width:100%;").map_err(dom_err)?;
@@ -366,7 +377,6 @@ pub(super) fn demo_text_path() -> Result<(), Error> {
     // It uses `position:relative` and one `position:absolute` mark per tick at `left: {value / max * 100}%`
     // to draw hand-drawn tick marks that look the same on browsers that don't render tick marks at all.
     const TICK_STEP: i64 = 25;
-    let max_rounded = offset_max.round() as i64;
     let ticks_row = slider_document.create_element_ns(Some(NS_XHTML), "div").map_err(dom_err)?;
 
     ticks_row
