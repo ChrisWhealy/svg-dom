@@ -99,7 +99,7 @@ fn select_radio(radio: &web_sys::HtmlInputElement) {
 #[wasm_bindgen_test]
 fn demo_text_radio_groups_update_their_target_attributes() {
     container("demo-text");
-    super::texts::demo_text().expect("demo_text should build without error");
+    super::texts::demo_text::demo().expect("demo_text::demo should build without error");
 
     let root = document().get_element_by_id("demo-text").expect("container exists");
 
@@ -152,7 +152,7 @@ fn demo_text_radio_groups_update_their_target_attributes() {
 #[wasm_bindgen_test]
 fn start_offset_slider_updates_position_colour_text_and_stays_within_the_path_length() {
     container("demo-text-path");
-    super::texts::demo_text_path().expect("demo_text_path should build without error");
+    super::texts::demo_text_path::demo().expect("demo_text_path::demo should build without error");
 
     let root = document().get_element_by_id("demo-text-path").expect("container exists");
 
