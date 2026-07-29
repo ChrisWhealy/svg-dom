@@ -366,8 +366,12 @@ pub(super) fn demo_text_path() -> Result<(), Error> {
     // Firefox and Safari apply its snap-to-value behaviour but do not render any visible marks at all, so when using
     // those browsers, the ticks marks simply do not exist.
     //
-    // As a reslut, we have to use hand-drawn marks positioned at the correct position along the track's width. These
-    // render identically everywhere. Shame about the inconsistent beahviour of a <datalist>...
+    // As a result, we instead use hand-drawn marks (plain absolutely-positioned <span>s) at the correct percentage
+    // along the track's width — nothing here depends on any browser-specific rendering, so it is expected to render
+    // identically everywhere. That expectation is only actually verified for Firefox and Chrome, though: this
+    // repository's CI (see `browser-tests` in .github/workflows/ci.yml) tests both, but WebKit/Safari needs a macOS
+    // runner and lacks reliable headless support, so it is not exercised here and remains an unverified assumption,
+    // not a proven guarantee.
     let slider_fo = svg.foreign_object(Point::new(430.0, 6.0), Size::new(340.0, 50.0))?;
     let slider_document = slider_fo
         .as_element()

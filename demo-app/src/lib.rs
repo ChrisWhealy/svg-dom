@@ -390,3 +390,10 @@ fn caption(svg: &SvgRoot, cx: f64, text: &str) -> Result<(), Error> {
 
 #[cfg(test)]
 mod unit_tests;
+
+/// A wasm-bindgen-test browser suite for the interactive controls added to `texts.rs` (text-anchor/
+/// dominant-baseline radios, startOffset slider) — `unit_tests` above only proves every demo function's source is
+/// extractable, not that these controls actually dispatch to the right SVG attribute. See `browser_tests.rs`'s
+/// own doc comment for how it is run and why it is a separate module from `unit_tests`.
+#[cfg(test)]
+mod browser_tests;

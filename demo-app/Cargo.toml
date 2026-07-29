@@ -21,3 +21,17 @@ features = [
     "PointerEvent",
     "Window",
 ]
+
+# Only used by browser_tests.rs — a wasm-bindgen-test browser suite exercising the interactive controls in
+# texts.rs (text-anchor/dominant-baseline radios, startOffset slider), run via `wasm-pack test demo-app --headless
+# --firefox`/`--chrome`. Not run by the native `cargo test -p svg-dom-demo` step: #[wasm_bindgen_test] compiles
+# cleanly on any target but only actually registers tests when built for wasm32 (confirmed empirically — the root
+# svg-dom crate's own tests/*.rs report "0 tests run" rather than a compile error under a native `cargo test`).
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+
+[dev-dependencies.web-sys]
+version = "0.3"
+features = [
+    "SvgGeometryElement",
+]

@@ -140,6 +140,14 @@ jobs:
       - name: Run the browser integration tests
         run: wasm-pack test --headless --${{ matrix.browser }}
 
+      # demo-app/src/browser_tests.rs — dispatches real change/input events at the interactive controls texts.rs
+      # builds (text-anchor/dominant-baseline radios, startOffset slider) and asserts the resulting SVG attributes,
+      # rather than only proving (as demo-app's native unit_tests do) that the Rust source compiles and is
+      # extractable. Run from the demo-app directory, the same way the wasm-pack build step above does, since
+      # wasm-pack test takes a package path rather than a `-p` flag.
+      - name: Run the demo gallery's interactive-control browser tests
+        run: wasm-pack test demo-app --headless --${{ matrix.browser }}
+
   accessibility-tree-test:
     name: accessibility tree (CDP · Chrome)
     runs-on: ubuntu-latest

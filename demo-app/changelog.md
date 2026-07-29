@@ -11,7 +11,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 ### Fixed
 
 - Slider maximum can exceed the actual path length (`2fb3c88`)
-- foreignObject controls lack complete accessible names and grouping (``)
+- foreignObject controls lack complete accessible names and grouping (`9b87f85`)
 
 ## [0.1.3] - 2026-07-28
 
