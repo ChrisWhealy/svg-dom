@@ -82,7 +82,7 @@ pub(super) fn demo_text() -> Result<(), Error> {
         input.set_checked(value == TextAnchor::Start);
 
         // Each radio button's closure already knows which TextAnchor it represents, so the handler needs no lookup.
-        // Had we attempted to "roll our own" radio buttons using SCG elements, we would be responsible for writing the
+        // Had we attempted to "roll our own" radio buttons using SVG elements, we would be responsible for writing the
         // logic to clear the other two dots itself.  Using HTML inside a foreignObject gives us all this standard
         // functionality for free.
         let target = anchor_text.clone();
@@ -364,7 +364,7 @@ pub(super) fn demo_text_path() -> Result<(), Error> {
     // via a <datalist> linked through the slider's `list` attribute, which, at first, appears to be the more obviously
     // "native" choice.  However, the downside is that a <datalist>'s tick marks are only rendered by Chrome/Edge.
     // Firefox and Safari apply its snap-to-value behaviour but do not render any visible marks at all, so when using
-    // those browsers, the ticks marks simply do not exist.
+    // those browsers, the tick marks simply do not exist.
     //
     // As a result, we instead use hand-drawn marks (plain absolutely-positioned <span>s) at the correct percentage
     // along the track's width — nothing here depends on any browser-specific rendering, so it is expected to render

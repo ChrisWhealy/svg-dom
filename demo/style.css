@@ -313,7 +313,8 @@ figcaption ol {
 }
 
 /* Keywords and lifetimes share a colour, as do macros and call-position identifiers — kept as separate token
-   classes (the highlighter's decision, see highlight/mod.rs) even though the two pairs render identically here. */
+   classes (the highlighter's decision, see highlight/mod.rs) even though the two pairs remain visible across different
+   browsers here. */
 .source code .kw,
 .source code .lif {
     color: #ff7b72;
