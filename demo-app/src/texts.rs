@@ -42,12 +42,24 @@ pub(super) fn demo_text() -> Result<(), Error> {
         .owner_document()
         .ok_or_else(|| Error::Dom("cannot identify owner document for SVG foreignObject".into()))?;
 
-    let list = document.create_element_ns(Some(NS_XHTML), "div").map_err(dom_err)?;
+    // Use a <fieldset>/<legend> pair rather than a plain <div>, so assistive technology gets a programmatic group name
+    // ("text-anchor") it can use to tie the three radio buttons together.  The same relationship a sighted user gets
+    // for free just by seeing them clustered under a caption. A bare <div> wrapper leaves each radio individually
+    // labelled ("start"/"middle"/"end") but with no indication of what value they collectively control.
+    let list = document.create_element_ns(Some(NS_XHTML), "fieldset").map_err(dom_err)?;
     list.set_attribute(
         "style",
-        "display:flex; flex-direction:column; gap:6px; font:13px sans-serif; color:#c9d1d9;",
+        "display:flex; flex-direction:column; gap:6px; font:13px sans-serif; color:#c9d1d9; \
+         border:none; margin:0; padding:0;",
     )
     .map_err(dom_err)?;
+
+    let legend = document.create_element_ns(Some(NS_XHTML), "legend").map_err(dom_err)?;
+    legend
+        .set_attribute("style", "font-size:11px; color:#8b949e; padding:0; margin:0 0 4px;")
+        .map_err(dom_err)?;
+    legend.set_text_content(Some("text-anchor"));
+    list.append_child(&legend).map_err(dom_err)?;
 
     const RADIO_OPTIONS: [(TextAnchor, &str); 3] = [
         (TextAnchor::Start, "start"),
@@ -90,8 +102,6 @@ pub(super) fn demo_text() -> Result<(), Error> {
     fo.as_element().append_child(&list).map_err(dom_err)?;
     keep_demo_node(fo);
 
-    caption(&svg, 100.0, "text-anchor")?;
-
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // dominant-baseline (interactive)
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -118,13 +128,23 @@ pub(super) fn demo_text() -> Result<(), Error> {
         .owner_document()
         .ok_or_else(|| Error::Dom("cannot identify owner document for SVG foreignObject".into()))?;
 
-    let db_list = db_document.create_element_ns(Some(NS_XHTML), "div").map_err(dom_err)?;
+    // Use a <fieldset>/<legend> again — a plain <div> wrapper is not enough on its own to give assistive technology a
+    // programmatic name for what these three radio buttons collectively control.
+    let db_list = db_document.create_element_ns(Some(NS_XHTML), "fieldset").map_err(dom_err)?;
     db_list
         .set_attribute(
             "style",
-            "display:flex; flex-direction:column; gap:6px; font:13px sans-serif; color:#c9d1d9;",
+            "display:flex; flex-direction:column; gap:6px; font:13px sans-serif; color:#c9d1d9; \
+             border:none; margin:0; padding:0;",
         )
         .map_err(dom_err)?;
+
+    let db_legend = db_document.create_element_ns(Some(NS_XHTML), "legend").map_err(dom_err)?;
+    db_legend
+        .set_attribute("style", "font-size:11px; color:#8b949e; padding:0; margin:0 0 4px;")
+        .map_err(dom_err)?;
+    db_legend.set_text_content(Some("dominant-baseline"));
+    db_list.append_child(&db_legend).map_err(dom_err)?;
 
     const BASELINE_OPTIONS: [(DominantBaseline, &str); 3] = [
         (DominantBaseline::Alphabetic, "alphabetic"),
@@ -162,8 +182,6 @@ pub(super) fn demo_text() -> Result<(), Error> {
 
     db_fo.as_element().append_child(&db_list).map_err(dom_err)?;
     keep_demo_node(db_fo);
-
-    caption(&svg, demo_x + 50.0, "dominant-baseline")?;
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // font-family
@@ -373,6 +391,16 @@ pub(super) fn demo_text_path() -> Result<(), Error> {
     slider.set_value("0");
     slider.set_attribute("style", "width:100%;").map_err(dom_err)?;
 
+    // No visible <label> — the nearby "Offset <n>" SVG text already carries this information for sighted users, but SVG
+    // text content is not programmatically associated with an HTML control the way <label> and aria-labelledby are, so
+    // an explicit aria-label is needed to give this slider an accessible name.
+    slider.set_attribute("aria-label", "textPath startOffset").map_err(dom_err)?;
+    // aria-valuetext starts matching the slider's own initial value/text content below, and is kept in sync by every
+    // `input` event (see that handler below for why this is the right way to expose the current offset to assistive
+    // technology, rather than create a separate self-announcing live region (`aria-live`) on top of a control that
+    // already has its own accessible value semantics).
+    slider.set_attribute("aria-valuetext", "Offset 0").map_err(dom_err)?;
+
     // Tick marks every 25 units plus one at the end: a row exactly as wide as the slider.
     // It uses `position:relative` and one `position:absolute` mark per tick at `left: {value / max * 100}%`
     // to draw hand-drawn tick marks that look the same on browsers that don't render tick marks at all.
@@ -433,6 +461,9 @@ pub(super) fn demo_text_path() -> Result<(), Error> {
         // When in the home position (offset 0), the text color is white; anywhere else along the path, is orange.
         let _ = target.set_fill(if offset == 0.0 { WHITE } else { CORAL });
         let _ = target.set_text_fmt(&mut label_buf, format_args!("Offset {offset:.0}"));
+        // Keeps the accessible value in step with the same text sighted users see on the curve, rather than
+        // leaving assistive technology to announce just the bare number a native range input reports by default.
+        let _ = slider_value.set_attribute("aria-valuetext", &label_buf);
     });
     slider
         .add_event_listener_with_callback("input", on_input.as_ref().unchecked_ref())
