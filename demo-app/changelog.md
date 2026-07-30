@@ -12,11 +12,12 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 - Doc only: clarify that tick mark test does not cover WebKit/Safari or pixel-perfect alignment (`413e6d6`)
 - Make `set_view_box()` demo interactive (`e54b3ab`)
+- Add regression test to `set_view_box()` test (``)
 
 ### Fixed
 
 - Avoid hotpath String allocation in textPath demo (`91cce99`)
-- Correct description of `set_view_box()` demo (``)
+- Correct description of `set_view_box()` demo (`32da274`)
 
 ### Changed
 

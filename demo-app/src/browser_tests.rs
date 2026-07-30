@@ -1,5 +1,6 @@
-//! Browser tests for the interactive HTML controls `texts.rs` builds inside `<foreignObject>`s (the
-//! text-anchor/dominant-baseline radio groups in `demo_text`, and the startOffset slider in `demo_text_path`).
+//! Browser tests for the interactive HTML controls built inside `<foreignObject>`s: `texts.rs`'s
+//! text-anchor/dominant-baseline radio groups (`demo_text`) and startOffset slider (`demo_text_path`), and
+//! `structure.rs`'s marker viewBox zoom slider (`demo_marker_view_box`).
 //!
 //! These exist because `unit_tests::every_registered_demo_has_extractable_source` only proves every registered
 //! demo function's Rust *source* is extractable — it builds nothing and dispatches no events, so it cannot catch
@@ -232,4 +233,104 @@ fn start_offset_slider_updates_position_colour_text_and_stays_within_the_path_le
         Some("white"),
         "back at home position should read white again"
     );
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#[wasm_bindgen_test]
+fn marker_view_box_slider_updates_marker_and_readout_without_moving_the_line() {
+    container("demo-marker-view-box");
+    super::structure::demo_marker_view_box().expect("demo_marker_view_box should build without error");
+
+    let root = document().get_element_by_id("demo-marker-view-box").expect("container exists");
+
+    let marker = root
+        .query_selector("marker#arrow-zoom")
+        .expect("query marker")
+        .expect("arrow-zoom marker present");
+
+    let line = root.query_selector("line").expect("query line").expect("line present");
+    // Captured before any interaction, not hard-coded, so this test does not need to know the demo's own layout
+    // constants (PAD_Y etc.) to prove the line never moves.
+    let initial_x1 = line.get_attribute("x1");
+    let initial_y1 = line.get_attribute("y1");
+    let initial_x2 = line.get_attribute("x2");
+    let initial_y2 = line.get_attribute("y2");
+
+    // Neither the target <text> nor the slider carries an id, so both are found the same way the other tests in
+    // this file find their targets: by content/aria-label, not DOM position.
+    let readout = {
+        let texts = root.query_selector_all("text").expect("query text elements");
+        let mut found = None;
+        for i in 0..texts.length() {
+            let el = texts
+                .item(i)
+                .expect("text item")
+                .dyn_into::<web_sys::Element>()
+                .expect("Element");
+            if el.text_content().as_deref() == Some("viewBox 100 x 70") {
+                found = Some(el);
+                break;
+            }
+        }
+        found.expect("no <text> element with initial content \"viewBox 100 x 70\"")
+    };
+
+    let slider = root
+        .query_selector("input[aria-label='marker viewBox zoom']")
+        .expect("query slider")
+        .expect("slider with the expected aria-label present")
+        .dyn_into::<web_sys::HtmlInputElement>()
+        .expect("slider is an HtmlInputElement");
+
+    // Both start at the marker's own default (the full, unclipped triangle), asserted before any interaction so a
+    // later mismatch can only be attributed to the slider itself, not to the initial state. aria-valuetext is
+    // checked here too: it is set once, separately from the readout text, at construction time, so a regression
+    // there (e.g. a literal, unformatted string) would not otherwise be caught until the first `input` event.
+    assert_eq!(marker.get_attribute("viewBox").as_deref(), Some("0 0 100 70"));
+    assert_eq!(marker.get_attribute("refX").as_deref(), Some("100"));
+    assert_eq!(marker.get_attribute("refY").as_deref(), Some("35"));
+    assert_eq!(slider.get_attribute("aria-valuetext").as_deref(), Some("viewBox 100 x 70"));
+
+    let dispatch_input = |value: &str| {
+        slider.set_value(value);
+        let event = web_sys::Event::new("input").expect("create input event");
+        slider.dispatch_event(&event).expect("dispatch input");
+    };
+
+    dispatch_input("50");
+    assert_eq!(
+        marker.get_attribute("viewBox").as_deref(),
+        Some("0 0 50 35"),
+        "at +50% the viewBox should shrink to half its base size"
+    );
+    assert_eq!(
+        marker.get_attribute("refX").as_deref(),
+        Some("50"),
+        "refX should track the new viewBox's width"
+    );
+    assert_eq!(
+        marker.get_attribute("refY").as_deref(),
+        Some("17.5"),
+        "refY should track half the new viewBox's height"
+    );
+    assert_eq!(readout.text_content().as_deref(), Some("viewBox 50 x 35"));
+    assert_eq!(slider.get_attribute("aria-valuetext").as_deref(), Some("viewBox 50 x 35"));
+
+    dispatch_input("-50");
+    assert_eq!(
+        marker.get_attribute("viewBox").as_deref(),
+        Some("0 0 150 105"),
+        "at -50% the viewBox should grow to 1.5x its base size"
+    );
+    assert_eq!(marker.get_attribute("refX").as_deref(), Some("150"));
+    assert_eq!(marker.get_attribute("refY").as_deref(), Some("52.5"));
+    assert_eq!(readout.text_content().as_deref(), Some("viewBox 150 x 105"));
+    assert_eq!(slider.get_attribute("aria-valuetext").as_deref(), Some("viewBox 150 x 105"));
+
+    // Neither viewBox nor refX/refY on a marker has any way to reach the <line> that references it via
+    // marker-end: the shaft must keep its own length and position throughout, at both extremes of the slider.
+    assert_eq!(line.get_attribute("x1"), initial_x1);
+    assert_eq!(line.get_attribute("y1"), initial_y1);
+    assert_eq!(line.get_attribute("x2"), initial_x2);
+    assert_eq!(line.get_attribute("y2"), initial_y2);
 }

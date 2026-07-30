@@ -311,7 +311,8 @@ pub(super) fn demo_marker_view_box() -> Result<(), Error> {
     line.set_stroke_width(2.0)?;
     line.set_marker_end_ref(&arrow)?;
 
-    let readout = svg.text(Point::new(140.0, PAD_Y + 45.0), &format!("viewBox {BASE_W} x {BASE_H}"))?;
+    let initial_readout = format!("viewBox {BASE_W} x {BASE_H}");
+    let readout = svg.text(Point::new(140.0, PAD_Y + 45.0), &initial_readout)?;
     readout.set_fill(TEXT)?;
     readout.set_font_size(13.0)?;
 
@@ -357,19 +358,18 @@ pub(super) fn demo_marker_view_box() -> Result<(), Error> {
     slider.set_step("1");
     slider.set_value("0");
     slider.set_attribute("class", "demo-slider").map_err(dom_err)?;
-    // No visible <label>: the "zoom <n>%" SVG text above already carries this for sighted users, but SVG text
-    // content is not programmatically associated with an HTML control the way <label> is, so this needs its own
-    // accessible name. aria-valuetext is kept in sync with the same text on every `input` event, below.
+    // No visible <label>: the "viewBox <w> x <h>" SVG text above already carries this for sighted users, but SVG
+    // text content is not programmatically associated with an HTML control the way <label> is, so this needs its
+    // own accessible name. aria-valuetext is kept in sync with the same text on every `input` event, below.
     slider.set_attribute("aria-label", "marker viewBox zoom").map_err(dom_err)?;
-    slider
-        .set_attribute("aria-valuetext", "viewBox {BASE_W} x {BASE_H}")
-        .map_err(dom_err)?;
+    slider.set_attribute("aria-valuetext", &initial_readout).map_err(dom_err)?;
 
     let endpoint_labels = xhtml(&slider_document, "div")?;
     endpoint_labels
         .set_attribute("class", "demo-endpoint-labels")
         .map_err(dom_err)?;
-    for text in ["-66.7%", "0%", "+200%"] {
+
+    for text in ["-50%", "0%", "+50%"] {
         let label = xhtml(&slider_document, "span")?;
         label.set_text_content(Some(text));
         endpoint_labels.append_child(&label).map_err(dom_err)?;
