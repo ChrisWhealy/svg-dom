@@ -10,7 +10,11 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 ### Added
 
-- Doc only: clarify that tick mark test does not cover WebKit/Safari or pixel-perfect alignment (``)
+- Doc only: clarify that tick mark test does not cover WebKit/Safari or pixel-perfect alignment (`413e6d6`)
+
+### Fixed
+
+- Avoid hotpath String allocation in textPath demo (``)
 
 ### Changed
 

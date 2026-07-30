@@ -167,7 +167,7 @@ pub(crate) fn demo() -> Result<(), Error> {
     let target = offset_path.clone();
     let mut label_buf = String::new();
     let on_input: DemoClosure = Closure::new(move |_: web_sys::Event| {
-        let offset: f64 = slider_value.value().parse().unwrap_or(0.0);
+        let offset: f64 = slider_value.value_as_number();
         let _ = target.set_start_offset(offset);
         // When in the home position (offset 0), the text color is white; anywhere else along the path, is orange.
         let _ = target.set_fill(if offset == 0.0 { WHITE } else { CORAL });
