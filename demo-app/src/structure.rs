@@ -390,10 +390,8 @@ pub(super) fn demo_marker_view_box() -> Result<(), Error> {
         let _ = arrow.set_ref_x(width);
         let _ = arrow.set_ref_y(height / 2.0);
         let _ = arrow.set_view_box(0.0, 0.0, width, height);
-
-        let viewbox_text = format!("viewBox {width:.0} x {height:.0}");
-        let _ = readout_target.set_text_fmt(&mut label_buf, format_args!("{viewbox_text}"));
-        let _ = slider_value.set_attribute("aria-valuetext", &viewbox_text);
+        let _ = readout_target.set_text_fmt(&mut label_buf, format_args!("viewBox {width:.0} x {height:.0}"));
+        let _ = slider_value.set_attribute("aria-valuetext", &label_buf);
     });
     slider
         .add_event_listener_with_callback("input", on_input.as_ref().unchecked_ref())

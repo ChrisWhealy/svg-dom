@@ -18,10 +18,12 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 - Avoid hotpath String allocation in textPath demo (`91cce99`)
 - Correct description of `set_view_box()` demo (`32da274`)
+- Avoid hotpath String allocation in `set_view_box()` demo (``)
 
 ### Changed
 
 - Improve radio button test (`853209e`)
+- Refactor XHTML helpers into their own module (`8dbfff1`)
 
 ## [0.1.4] - 2026-07-29
 
