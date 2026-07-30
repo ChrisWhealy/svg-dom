@@ -73,7 +73,6 @@ pub(crate) fn demo() -> Result<(), Error> {
     slot(interactive_x)?;
     let interactive_img = svg.image(SRC, Point::new(interactive_x, y0), Size::new(img_w, img_h))?;
     interactive_img.set_attr("preserveAspectRatio", "xMidYMid meet")?;
-    caption(&svg, interactive_x + img_w / 2.0, "preserveAspectRatio")?;
 
     const OPTIONS: [(&str, &str); 3] = [("xMidYMid meet", "meet"), ("none", "none"), ("xMidYMid slice", "slice")];
 
