@@ -129,23 +129,31 @@ fn demo_text_radio_groups_update_their_target_attributes() {
     assert_eq!(anchor_text.get_attribute("text-anchor").as_deref(), Some("start"));
     assert_eq!(baseline_text.get_attribute("dominant-baseline").as_deref(), Some("alphabetic"));
 
-    select_radio(&find_radio(&root, "text-anchor", "middle"));
+    let middle = find_radio(&root, "text-anchor", "middle");
+    select_radio(&middle);
     assert_eq!(
         anchor_text.get_attribute("text-anchor").as_deref(),
         Some("middle"),
         "selecting Middle should update text-anchor"
     );
 
-    select_radio(&find_radio(&root, "dominant-baseline", "hanging"));
+    let hanging = find_radio(&root, "dominant-baseline", "hanging");
+    select_radio(&hanging);
     assert_eq!(
         baseline_text.get_attribute("dominant-baseline").as_deref(),
         Some("hanging"),
         "selecting Hanging should update dominant-baseline"
     );
 
-    // A change to one group must not leak into the other — same container, same demo_text() call, independent
-    // <input name="..."> groups.
-    assert_eq!(anchor_text.get_attribute("text-anchor").as_deref(), Some("middle"));
+    // Checking the SVG attributes alone does not prove the two <input name="..."> groups are independent: a browser
+    // only fires `change` on the radio that becomes newly checked, not on one a same-name group silently unchecks.
+    // So if a regression merged the two `name` values, selecting `hanging` would silently uncheck `middle` without ever
+    // calling `set_text_anchor` again, leaving `anchor_text`'s attribute at "middle" by accident rather than by proof
+    // — the assertions above would pass either way. Inspecting the inputs' own `checked`/`name` state is what actually
+    // pins down group independence.
+    assert!(middle.checked(), "middle should still be checked after selecting hanging in the other group");
+    assert!(hanging.checked());
+    assert_ne!(middle.name(), hanging.name(), "the two radio groups must not share a name");
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
