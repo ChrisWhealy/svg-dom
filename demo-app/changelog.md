@@ -24,6 +24,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 - Improve radio button test (`853209e`)
 - Refactor XHTML helpers into their own module (`8dbfff1`)
+- Refactor paint and structure demos (`1398d54`)
 
 ## [0.1.4] - 2026-07-29
 
