@@ -1,35 +1,42 @@
-            <!-- feMorphology -->
-            <section class="section" id="panel-morphology">
-                <h2><code>&lt;feMorphology&gt;</code> — component-wise minimum/maximum over a radius</h2>
-                <figure>
-                    <div class="canvas" id="demo-morphology"></div>
-                    <figcaption>
-                        <ul>
-                            <li><strong>original</strong>: Bold text, no filter</li>
-                            <li><strong>Erode(1.2)</strong>: Shrinks the glyphs' strokes inward, thinning them</li>
-                            <li><strong>Dilate(1.2)</strong>: Grows the glyphs' strokes outward, thickening them
-                                (and fusing tightly-spaced letters slightly at this radius)</li>
-                            <li><strong>bold outline</strong>: <code>morphology</code> dilates
-                                <code>SourceAlpha</code>, named via <code>result</code>, then <code>merge</code>
-                                stacks it underneath the original text — only the grown-outward fringe shows
-                                through, giving a bolder outline without changing the glyphs' own weight or
-                                colour
-                            </li>
-                        </ul>
-                        <p>
-                            <code>feMorphology</code> takes a per-pixel minimum (<strong>Erode</strong>) or maximum
-                            (<strong>Dilate</strong>) across the input's premultiplied R/G/B/A channels within
-                            <strong>radius</strong>. The direct <strong>Erode</strong> and <strong>Dilate</strong>
-                            panels above operate on their implicit <code>SourceGraphic</code> input (neither sets
-                            <code>in</code>, and each is the first primitive in its own filter) — with this single,
-                            uniformly-coloured source text, taking the minimum/maximum across colour channels too has no
-                            visible effect beyond the alpha silhouette, but that is a property of this particular
-                            source, not a guarantee of the primitive. The <strong>bold outline</strong> panel instead
-                            explicitly sets <code>in</code> to <code>SourceAlpha</code>, where alpha is the only
-                            non-degenerate channel by construction — deliberately, since an uncomposited
-                            <code>SourceAlpha</code> result has zero-valued colour channels and would not preserve
-                            the text's own steel-blue fill once merged back with <code>SourceGraphic</code>.
-                        </p>
-                    </figcaption>
-                </figure>
-            </section>
+<!-- feMorphology -->
+<section class="section" id="panel-morphology">
+    <h2><code>&lt;feMorphology&gt;</code> — component-wise minimum/maximum over a radius</h2>
+    <figure>
+        <div class="canvas" id="demo-morphology"></div>
+        <figcaption>
+            <ul>
+                <li><strong>original</strong>: Bold text, no filter</li>
+                <li><strong>Erode(1.2)</strong>: Shrinks the glyphs' strokes inward, thinning them</li>
+                <li><strong>Dilate(1.2)</strong>: Grows the glyphs' strokes outward, thickening them
+                    (and fusing tightly-spaced letters slightly at this radius)</li>
+                <li><strong>bold outline</strong> <code>morphology</code> dilates
+                    <code>SourceAlpha</code>, named via <code>result</code>. <code>merge</code> then
+                    stacks it underneath the original text. Only the grown-outward fringe shows through.
+                    This gives a bolder outline, without changing the glyphs' own weight or colour.
+                </li>
+            </ul>
+            <p>
+                <code>feMorphology</code> takes a per-pixel minimum (<strong>Erode</strong>) or maximum
+                (<strong>Dilate</strong>). It works across the input's premultiplied R/G/B/A channels,
+                within <strong>radius</strong>.
+            </p>
+            <p>
+                The direct <strong>Erode</strong> and <strong>Dilate</strong> panels above operate on
+                their implicit <code>SourceGraphic</code> input. Neither sets <code>in</code>, and each
+                is the first primitive in its own filter.
+            </p>
+            <p>
+                This source text has a single, uniform colour. So taking the minimum or maximum across
+                colour channels has no visible effect here, beyond the alpha silhouette. That is a
+                property of this particular source, not a guarantee of the primitive.
+            </p>
+            <p>
+                The <strong>bold outline</strong> panel instead explicitly sets <code>in</code> to
+                <code>SourceAlpha</code>. Alpha is the only non-degenerate channel there, by
+                construction. This choice is deliberate: an uncomposited <code>SourceAlpha</code> result
+                has zero-valued colour channels. Merging it back with <code>SourceGraphic</code> would
+                not otherwise preserve the text's own steel-blue fill.
+            </p>
+        </figcaption>
+    </figure>
+</section>

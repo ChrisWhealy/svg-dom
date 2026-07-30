@@ -1,16 +1,17 @@
-            <!-- geometry: bounding box -->
-            <section class="section" id="panel-geometry-bbox">
-                <h2>Bounding box — <code>bounding_box</code> / <code>bounding_client_rect</code></h2>
-                <figure>
-                    <div class="canvas" id="demo-geometry-bbox"></div>
-                    <figcaption>
-                        <p>Click on one of the shapes above and a dashed frame is drawn directly from
-                            <strong>bounding_box()</strong>. This is a tight, local-space rect around all three
-                            overlapping shapes.
-                        </p>
-                        <p>The text compares <strong>bounding_client_rect()</strong>, the same element measured in rendered
-                            viewport CSS pixels — a different coordinate space, not just different units.</p>
-                        <p>Click outside the icon to clear the frame.</p>
-                    </figcaption>
-                </figure>
-            </section>
+<!-- geometry: bounding box -->
+<section class="section" id="panel-geometry-bbox">
+    <h2>Bounding box — <code>bounding_box</code> / <code>bounding_client_rect</code></h2>
+    <figure>
+        <div class="canvas" id="demo-geometry-bbox"></div>
+        <figcaption>
+            <p>Click one of the shapes above. A dashed frame is drawn directly from
+                <strong>bounding_box()</strong>. This is a tight, local-space rect around all three
+                overlapping shapes.
+            </p>
+            <p>The text compares <strong>bounding_client_rect()</strong>. This measures the same
+                element in rendered viewport CSS pixels. That is a different coordinate space, not just
+                different units.</p>
+            <p>Click outside the icon to clear the frame.</p>
+        </figcaption>
+    </figure>
+</section>

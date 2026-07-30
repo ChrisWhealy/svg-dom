@@ -12,7 +12,8 @@
     <div id="app">
         <!-- Menu panel  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
         <!--
-            Loosely based on docs/svg_elements/README.md's own categories, not an exact match to it:
+            This menu is loosely based on docs/svg_elements/README.md's own categories.
+            It is not an exact match:
 
             * Basic Shapes
             * Path
@@ -22,26 +23,29 @@
             * Clipping & Masking
             * Filters
 
-            <g> sits under Basic Shapes here purely for construction-grouping convenience. The docs themselves flag
-            the same tension without resolving it either way — they note "<g> is a structural/container element
-            ... despite sharing this factory grouping with the others for construction purposes" but never actually
-            place <g> in their own Structural and Reusable Elements section; it just sits in their flat top-level
-            list of every supported element. The gallery picks a side: <g> lives here, since it is what most people
-            reach for right after the basic shapes.
+            <g> sits under Basic Shapes here for construction-grouping convenience only.
+            The docs note the same tension but do not resolve it. They state that "<g> is a structural/container
+            element", despite grouping it with the others for construction purposes. The docs never place <g> in their
+            own Structural and Reusable Elements section. Instead, <g> sits in their flat top-level list of every
+            supported element.
+            
+            This gallery places <g> under Basic Shapes instead, since most people expect it there.
 
-            The docs bundle tree navigation, events, geometry and accessibility helpers into one "Core Operations"
-            category (core_operations.md). The gallery instead splits that same material into three menu groups —
-            a single ~15-item group would defeat the point of having categories:
+            The docs group tree navigation, events, geometry and accessibility helpers into one "Core Operations"
+            category (core_operations.md). This gallery then splits that material into three menu groups. A single group
+            of about 15 items would defeat the point of having categories:
 
             * Core Operations (tree navigation, set_view_box, accessibility),
             * Event Handling, and
             * Geometry Read-back
 
-            Animation is the one category genuinely outside the docs' own structure: AnimationLoop is a crate
-            utility, not an SVG element, so it has no page there to belong to at all.
+            Animation is the one category genuinely outside the docs' own structure since AnimationLoop is a crate
+            utility, not an SVG element. So it has no page of its own to belong to.
 
-            Each category is a <details> disclosure widget (an expandable tree node) rather than one long
-            undifferentiated list; see style.css's .menu-group rules.
+            Each category is an expandable tree node (a <details> disclosure widget). This avoids asking users to find
+            their way around a single, long undifferentiated list.
+            
+            See style.css's .menu-group rules for the styling.
         -->
         <nav id="menu">
             <h1 class="brand">svg-dom</h1>
@@ -53,13 +57,13 @@
         <header id="title">
             <h1>Feature Gallery</h1>
             <p class="subtitle">
-                Every demo is created programmatically from Rust/WebAssembly using the <code>svg-dom</code> crate.
-                Pick a demo from the menu on the left; hover, click and drag the highlighted elements to see live
-                event handling.
+                Every demo is created programmatically from Rust/WebAssembly, using the <code>svg-dom</code> crate.
+                Pick a demo from the menu on the left.
+                Point at, click, and drag the highlighted elements to see live event handling.
             </p>
             <p class="subtitle">
-                Build &amp; serve with <code>cargo demo</code> from the project root, then open
-                <code>http://127.0.0.1:{{SERVER_PORT}}/demo/</code>
+                Build and serve with <code>cargo demo</code> from the project root.
+                Then open <code>http://127.0.0.1:{{SERVER_PORT}}/demo/</code>.
             </p>
             <div id="error-banner"></div>
         </header>
@@ -71,81 +75,92 @@
     </div>
 
     <script type="module">
-        import init, {init_panel} from '../pkg/svg_dom_demo.js';
+        import init, {init_panel} from '../pkg/svg_dom_demo.js'
 
-        // False until the wasm module has finished loading; guards against a menu click or hashchange racing in
-        // before init_panel exists to call, during the brief window `await init()` below is still pending.
-        let wasmReady = false;
+        // wasmReady remains `false` until the WASM module finishes loading.
+        // This guards against a menu click or hashchange event that arrives before `init_panel` exists.
+        // That race is possible during the brief window while `await init()` below is still pending.
+        let wasmReady = false
 
-        // The full set of valid panel ids, taken directly from the rendered menu — itself generated server-side
-        // from the same catalogue (`demo-server/src/panels.rs`'s MANIFEST) that the panel fragments come from.
-        // This is what lets `route` validate a hash against the actual catalogue, rather than merely checking
-        // whether *some* element with that id exists anywhere on the page — a child SVG shape's own id would
-        // satisfy that just as well as a real panel's, and previously did.
-        const menuItems = [...document.querySelectorAll('#menu .menu-item')];
-        const validPanelIds = new Set(menuItems.map(item => item.dataset.target));
+        // The full set of valid panel ids, taken directly from the rendered menu.
+        // The menu itself is generated server-side, from the same catalogue the panel fragments come from.
+        // That catalogue is stored in `MANIFEST` in `demo-server/src/panels.rs`.
+        // This list lets `route` validate a hash against the actual catalogue.
+        // Without it, `route` could only check whether some element with that id exists anywhere on the page.
+        // A child SVG shape's own id would satisfy that check just as well as a real panel's id.
+        // That false match actually happened before this list existed.
+        const menuItems = [...document.querySelectorAll('#menu .menu-item')]
+        const validPanelIds = new Set(menuItems.map(item => item.dataset.target))
 
-        // Shows `target`'s section, opens its menu group, marks its menu button as the current page, and builds
-        // its content. Only ever called with an id already confirmed to be in `validPanelIds` — see `route` below,
-        // the only caller.
-        function selectDemo(target) {
+        // Shows target's section.
+        // Opens its menu group and marks its menu button as the current page.
+        // Builds its content.
+        // The caller must first confirm the id is in validPanelIds.
+        // See route below, the only caller.
+        const selectDemo = target => {
             for (const section of document.querySelectorAll('#stage .section')) {
-                section.classList.toggle('active', section.id === target);
+                section.classList.toggle('active', section.id === target)
             }
+
             for (const item of menuItems) {
-                const isActive = item.dataset.target === target;
-                item.classList.toggle('active', isActive);
+                const isActive = item.dataset.target === target
+                item.classList.toggle('active', isActive)
                 if (isActive) {
-                    item.setAttribute('aria-current', 'page');
-                    item.closest('details.menu-group')?.setAttribute('open', '');
+                    item.setAttribute('aria-current', 'page')
+                    item.closest('details.menu-group')?.setAttribute('open', '')
                 } else {
-                    item.removeAttribute('aria-current');
+                    item.removeAttribute('aria-current')
                 }
             }
-            // init_panel is a no-op if this panel was already built on an earlier visit, so switching back and
-            // forth between panels never rebuilds one that is already there.
-            if (wasmReady) init_panel(target);
+            // init_panel does nothing if this panel was already built on an earlier visit.
+            // So switching between panels never rebuilds one that already exists.
+            if (wasmReady) init_panel(target)
         }
 
-        // The single routing path every panel selection goes through, whatever triggered it: a menu click, a deep
-        // link, the browser's back/forward buttons, or the initial load below. A hash that does not name a real
-        // panel — including one that happens to match some other element's id on the page — is rejected here
-        // instead of reaching `selectDemo`, which would otherwise hide every panel: none of the `.section`
-        // elements would have that id, so its `classList.toggle('active', section.id === target)` loop would
-        // clear `active` from all of them.
-        function route(target) {
-            if (validPanelIds.has(target)) selectDemo(target);
+        // Every panel selection goes through this one routing path.
+        // This includes a menu click, a deep link, the browser's back/forward buttons, and the initial load below.
+        // A hash that does not name a real panel is rejected here.
+        // This includes a hash that happens to match some other element's id on the page.
+        // A rejected hash never reaches selectDemo.
+        // Otherwise, selectDemo would hide every panel.
+        // None of the .section elements would have that id.
+        // So its classList.toggle('active', section.id === target) loop would clear active from all of them.
+        const route = target => {
+          if (validPanelIds.has(target)) selectDemo(target)
         }
 
-        // A menu click updates the URL instead of selecting the panel directly, so every selection — including
-        // this one — flows through the same `hashchange` → `route` path below, and clicking through the gallery
-        // produces bookmarkable, shareable URLs the same way a deep link already did.
+        // A menu click updates the URL instead of selecting the panel directly.
+        // So every selection, including this one, flows through the same hashchange -> route path below.
+        // This also gives every click through the gallery a bookmarkable, shareable URL.
+        // A deep link already had this property.
         for (const item of menuItems) {
             item.addEventListener('click', () => {
-                location.hash = item.dataset.target;
-            });
+                location.hash = item.dataset.target
+            })
         }
 
-        window.addEventListener('hashchange', () => route(location.hash.slice(1)));
+        window.addEventListener('hashchange', () => route(location.hash.slice(1)))
 
         try {
-            await init();
-            wasmReady = true;
+            await init()
+            wasmReady = true
         } catch (err) {
-            const banner = document.getElementById('error-banner');
-            banner.style.display = 'block';
-            banner.textContent = `WASM error: ${err}`;
-            console.error(err);
+            const banner = document.getElementById('error-banner')
+            banner.style.display = 'block'
+            banner.textContent = `WASM error: ${err}`
+            console.error(err)
         }
 
-        // Route to the panel named by the URL fragment, if it names a real one; otherwise the first panel.
-        // Setting `location.hash` would not reliably reach `route` here — assigning the fragment its own current
-        // value does not fire `hashchange` — so this calls `route` directly and then, only if the URL does not
-        // already name the panel actually shown (no fragment yet, or an invalid one), brings it in sync via
-        // `replaceState` rather than `location.hash =`, so the page's starting state does not add a spurious
-        // back-button stop of its own.
-        const requested = location.hash.slice(1);
-        const initial = validPanelIds.has(requested) ? requested : menuItems[0]?.dataset.target;
+        // Route to the panel named by the URL fragment.
+        // If the fragment does not name a real panel, route to the first panel instead.
+        // Setting location.hash here would not reliably work since assigning the fragment its own current value does
+        // not fire a hashchange. So this code calls route directly instead.
+        // The URL may not yet name the panel actually shown, for example when there is no fragment, or an invalid one.
+        // In that case, this code syncs the URL via replaceState, not location.hash =.
+        // This way, the page's starting state adds no extra back-button stop of its own.
+        const requested = location.hash.slice(1)
+        const initial = validPanelIds.has(requested) ? requested : menuItems[0]?.dataset.target
+        
         if (initial) {
             route(initial);
             if (location.hash.slice(1) !== initial) {

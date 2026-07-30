@@ -1,42 +1,41 @@
-            <!-- bubbling -->
-            <section class="section" id="panel-events-group">
-                <h2>Bubbling vs non-bubbling: <code>mouseover</code> vs <code>pointerenter</code> on grouped SVG</h2>
-                <figure>
-                    <div class="canvas" id="demo-events-group"></div>
-                    <figcaption>
-                        <p>
-                            Each bordered group holds two child shapes and has its own event handler to track how the
-                            pointer moves over the group as a whole.</p>
-                        <p>Group 1 works as expected: the counter is bumped only once per genuine group-boundary
-                            crossing.</p>
-                        <p>Group 2 however, has the unexpected side effect that the counter is also bumped when the
-                            pointer moves over the child elements in the group - in spite of the fact that these
-                            elements do not have any event handlers defined for them.</p>
-                        <ul>
-                            <li><strong>Group 1 <code>on_pointerenter</code></strong>
-                                <p>The <code>on_pointerenter</code> event is attached to the group and fires when
-                                    the mouse pointer enters the group; however, since this is a non-bubbling event, it
-                                    will not be automatically "bubbled" to the child elements within the group.
-                                    Consequently, the event handler is only called once per genuine group-boundary
-                                    crossing.</p>
-                                <p>Moving over the two child shapes inside the group does not bump the counter.</p>
-                            </li>
-                            <li><strong>Group 2 <code>on_mouseover</code></strong>
-                                <p>The <code>on_mouseover</code> event is also attached to the group and also fires when
-                                    the pointer enters the group. However, <code>on_mouseover</code> is a bubbled event
-                                    which means that all the child elements within the group automatically inherit this
-                                    event handler.</p>
-                                <p>So moving from one child element to the other also cause the counter to be bumped -
-                                    even though this event handler has <strong>not</strong> been explicitly attached to
-                                    either of the child elements.</p>
-                        </ul>
-                        <p>
-                            As you move the pointer across both children within each group, you will see the counters
-                            diverge.</p>
-                        <p>Hopefully, this demo makes it clear why <code>on_mouseover</code> and
-                            <code>on_mouseout</code> have been deprecated in this crate in favour of
-                            <code>on_pointerenter</code> and <code>on_pointerleave</code>.
-                        </p>
-                    </figcaption>
-                </figure>
-            </section>
+<!-- bubbling -->
+<section class="section" id="panel-events-group">
+    <h2>Bubbling vs non-bubbling: <code>mouseover</code> vs <code>pointerenter</code> on grouped SVG</h2>
+    <figure>
+        <div class="canvas" id="demo-events-group"></div>
+        <figcaption>
+            <p>
+                Each bordered group holds two child shapes. Each group has its own event handler. That
+                handler tracks how the pointer moves over the group as a whole.</p>
+            <p>Group 1 works as expected. Its counter is bumped only once per genuine group-boundary
+                crossing.</p>
+            <p>Group 2 has an unexpected side effect. Its counter is also bumped when the pointer moves
+                over the child elements in the group. This happens even though those elements have no
+                event handlers of their own.</p>
+            <ul>
+                <li><strong>Group 1 <code>on_pointerenter</code></strong>
+                    <p>The <code>on_pointerenter</code> event is attached to the group. It fires when
+                        the pointer enters the group. This is a non-bubbling event, so it does not reach
+                        the child elements inside the group. The event handler is therefore only called
+                        once per genuine group-boundary crossing.</p>
+                    <p>Moving over the two child shapes inside the group does not bump the counter.</p>
+                </li>
+                <li><strong>Group 2 <code>on_mouseover</code></strong>
+                    <p>The <code>on_mouseover</code> event is also attached to the group, and also fires
+                        when the pointer enters the group. <code>on_mouseover</code> is a bubbled event.
+                        So all the child elements inside the group inherit this event handler
+                        automatically.</p>
+                    <p>Moving from one child element to the other also bumps the counter. This happens
+                        even though this event handler is <strong>not</strong> attached to either child
+                        element directly.</p>
+                </li>
+            </ul>
+            <p>
+                Move the pointer across both children in each group. Watch the two counters diverge.</p>
+            <p>This demo shows why this crate deprecates <code>on_mouseover</code> and
+                <code>on_mouseout</code>. It favours <code>on_pointerenter</code> and
+                <code>on_pointerleave</code> instead.
+            </p>
+        </figcaption>
+    </figure>
+</section>

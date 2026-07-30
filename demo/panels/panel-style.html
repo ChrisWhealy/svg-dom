@@ -1,36 +1,37 @@
-            <!-- style -->
-            <section class="section" id="panel-style">
-                <h2><code>&lt;style&gt;</code> — a document-wide CSS stylesheet</h2>
-                <figure>
-                    <div class="canvas" id="demo-style"></div>
-                    <figcaption>
-                        <p>Three dots, three different CSS features driven by a <code>:hover</code> rule inside a
-                            single <code>&lt;style&gt;</code> element, not a per-element attribute:</p>
-                        <ul>
-                            <li>
-                                <strong>fill + stroke</strong>: recolours and outlines
-                            </li>
-                            <li>
-                                <strong>transform: scale</strong>: grows the shape
-                            </li>
-                            <li>
-                                <strong>filter: drop-shadow</strong>: a CSS glow — a CSS <em>property</em>, distinct
-                                from this crate's own <code>SvgFilter</code> or <code>&lt;feGaussianBlur&gt;</code>
-                                etc., which reference an SVG <code>&lt;filter&gt;</code> element instead.
-                            </li>
-                        </ul>
-                        <p>
-                            <code>set_attr</code> and the presentation-property setters can express any state a shape is
-                            <em>currently</em> in, but not a state transition triggered purely by the pointer entering
-                            or leaving. That needs either a declarative CSS rule (such as the one declared here), or an
-                            implementation of the <code>on_pointerenter</code> and <code>on_pointerleave</code> events
-                            wired up by hand.
-                        </p>
-                        <p>
-                            <code>&lt;style&gt;</code> applies document-wide regardless of where in the tree it sits —
-                            SVG's CSS cascade does not scope by DOM position the way <code>&lt;defs&gt;</code> content
-                            is only reachable by reference.
-                        </p>
-                    </figcaption>
-                </figure>
-            </section>
+<!-- style -->
+<section class="section" id="panel-style">
+    <h2><code>&lt;style&gt;</code> — a document-wide CSS stylesheet</h2>
+    <figure>
+        <div class="canvas" id="demo-style"></div>
+        <figcaption>
+            <p>Three dots, three different CSS features driven by a <code>:hover</code> rule inside a
+                single <code>&lt;style&gt;</code> element, not a per-element attribute:</p>
+            <ul>
+                <li>
+                    <strong>fill + stroke</strong>: recolours and outlines
+                </li>
+                <li>
+                    <strong>transform: scale</strong>: grows the shape
+                </li>
+                <li>
+                    <strong>filter: drop-shadow</strong> A CSS glow. This is a CSS <em>property</em>,
+                    distinct from this crate's own <code>SvgFilter</code> or
+                    <code>&lt;feGaussianBlur&gt;</code> etc. Those instead reference an SVG
+                    <code>&lt;filter&gt;</code> element.
+                </li>
+            </ul>
+            <p>
+                <code>set_attr</code> and the presentation-property setters can express any state a shape
+                is <em>currently</em> in. They cannot express a state transition triggered only by the
+                pointer entering or leaving. That needs a declarative CSS rule, such as the one declared
+                here. It can also use the <code>on_pointerenter</code> and <code>on_pointerleave</code>
+                events, wired up by hand.
+            </p>
+            <p>
+                <code>&lt;style&gt;</code> applies document-wide, regardless of where in the tree it
+                sits. SVG's CSS cascade does not scope by DOM position. This differs from
+                <code>&lt;defs&gt;</code> content, which is only reachable by reference.
+            </p>
+        </figcaption>
+    </figure>
+</section>

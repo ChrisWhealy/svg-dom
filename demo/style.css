@@ -13,7 +13,7 @@ body {
     min-height: 100vh;
 }
 
-/* App shell: full-height menu on the left; title above the stage on the right. */
+/* App shell. The menu spans the full height on the left. The title sits above the stage on the right. */
 #app {
     display: grid;
     grid-template-columns: 240px minmax(0, 1fr);
@@ -38,10 +38,12 @@ body {
     margin-bottom: 1rem;
 }
 
-/* Each category is a native <details> disclosure widget so the menu reads as an expandable tree instead of one long
-   flat list — see demo/index.html's nav comment for the category list. All groups start collapsed; expanding one is
-   a per-user choice, not required to reach any demo (the first item of the first group is still selected on load —
-   see the script at the bottom of index.html — even though its group starts closed). */
+/* Each category is a native <details> disclosure widget.
+   This makes the menu read as an expandable tree, instead of a single long list of undifferentiated items.
+   See demo/index.html's nav comment for the category list.
+   All groups start collapsed. Expanding a group requires a user choice.
+   The first item of the first group is still selected on load. See the script at the bottom of index.html.
+   This happens even though that group starts closed. */
 .menu-group {
     margin: 1.25rem 0 0.4rem;
 }
@@ -63,8 +65,9 @@ body {
     display: none;
 }
 
-/* Custom disclosure triangle (the default marker is hidden above) so it can share the group label's muted colour
-   and rotate on open/close instead of switching between the browser's own triangle/pointer glyphs. */
+/* This is a custom disclosure triangle. The default marker is hidden above.
+   This custom triangle can share the group label's muted colour.
+   It also rotates on open and close, instead of the browser's own triangle or pointer glyphs. */
 .menu-group>summary::before {
     content: "▸";
     display: inline-block;
@@ -164,10 +167,12 @@ figure {
     margin: 0;
 }
 
-/* Each demo section injects an <svg> into the matching <div>. The <svg> sizes itself from the width/height
-   attributes that the Rust code sets via SvgRoot::create_in (see W/H in demo-app/src/lib.rs) — the single source of
-   truth — so the dimensions are deliberately NOT repeated here. .canvas is inline-block so its border hugs the
-   canvas; the stage scrolls if the window is too narrow. */
+/* Each demo section injects an <svg> into the matching <div>.
+   The <svg> sizes itself from its own width/height attributes.
+   Rust sets those attributes via SvgRoot::create_in (see W/H in demo-app/src/lib.rs).
+   That is the single source of truth, so the dimensions are deliberately not repeated here.
+   .canvas is inline-block, so its border hugs the canvas.
+   The stage scrolls if the window is too narrow. */
 .canvas {
     display: inline-block;
     border-radius: 6px;
@@ -181,9 +186,10 @@ figure {
     background: #161b22;
 }
 
-/* A handful of panels (e.g. set_view_box) compare several mini canvases side by side rather than showing one big
-   one; each still gets its own .canvas border via the markup, this just lays them out in a row and lets them wrap
-   on a narrow window instead of overflowing. */
+/* A few panels, for example set_view_box, compare several mini canvases side by side.
+   Each canvas still gets its own .canvas border, from the markup.
+   This rule only lays the canvases out in a row.
+   It also lets them wrap on a narrow window, instead of overflowing. */
 .canvas-row {
     display: flex;
     flex-wrap: wrap;
@@ -205,8 +211,9 @@ figcaption code {
     color: #f0883e;
 }
 
-/* p, ul, ol and li inside a figcaption all share the same paragraph spacing; only li's line-height and ul/ol's
-   left indent (wider for ol, to fit two-digit numbers) actually differ per element. */
+/* p, ul, ol and li inside a figcaption all share the same paragraph spacing.
+   Only li's line-height and ul/ol's left indent differ per element.
+   ol's indent is wider, to allow for two-digit numbers. */
 figcaption p,
 figcaption ul,
 figcaption ol,
@@ -227,9 +234,11 @@ figcaption ol {
     margin-left: 1.3rem;
 }
 
-/* classList demo (Event handling → CSS class toggle, demo-app/src/events.rs). Rust only ever calls toggle_class on the
-   tile's `class` attribute; this rule is what makes that visible — the gold stroke appears purely because the
-   browser matches `.tile.selected`, not because any Rust code touched fill/stroke directly. */
+/* classList demo (Event handling, CSS class toggle, demo-app/src/events.rs).
+   Rust only ever calls toggle_class on the tile's class attribute.
+   This rule is what makes that change visible.
+   The gold stroke appears because the browser matches .tile.selected.
+   No Rust code touches fill or stroke directly. */
 #demo-events-classlist .tile {
     stroke: transparent;
     stroke-width: 4px;
@@ -240,10 +249,13 @@ figcaption ol {
     stroke: gold;
 }
 
-/* #error-banner (whole-page WASM load failure) and .demo-error (one panel's demo function failing at runtime,
-   appended by report_panel_error in demo-app/src/lib.rs) share the same red error colours; only their sizing and
-   how they're shown differ — #error-banner starts hidden and is toggled visible by JS, .demo-error is only ever
-   appended when there is something to show. */
+/* #error-banner and .demo-error share the same red error colours.
+   #error-banner reports a whole-page WASM load failure.
+   .demo-error reports one panel's demo function failing at runtime.
+   report_panel_error in demo-app/src/lib.rs appends .demo-error.
+   Only their sizing and appearance differ.
+   #error-banner starts hidden, and JS toggles it visible.
+   .demo-error only ever appears when there is something to show. */
 #error-banner,
 .demo-error {
     background: #3d1e1e;
@@ -264,8 +276,9 @@ figcaption ol {
     margin-top: 0.75rem;
 }
 
-/* Source-code frame injected below each demo by init_panel (see demo-app/src/lib.rs). The <code> holds the exact Rust
-   function that built the demo above it, embedded at compile time so it never drifts from the running code. */
+/* This is the source-code frame init_panel injects below each demo (see demo-app/src/lib.rs).
+   The <code> element holds the exact Rust function that built the demo above it.
+   This text is embedded at compile time, so it never drifts from the running code. */
 .source {
     margin-top: 1.25rem;
     max-width: 110ch;
@@ -312,9 +325,9 @@ figcaption ol {
     font-style: italic;
 }
 
-/* Keywords and lifetimes share a colour, as do macros and call-position identifiers — kept as separate token
-   classes (the highlighter's decision, see highlight/mod.rs) even though the two pairs remain visible across different
-   browsers here. */
+/* Keywords and lifetimes share a colour. Macros and call-position identifiers share a different colour.
+   The highlighter keeps each pair as a separate token class. This is the highlighter's own choice, see
+   highlight/mod.rs. That choice holds even though each pair looks the same colour, in every browser. */
 .source code .kw,
 .source code .lif {
     color: #ff7b72;
@@ -380,8 +393,9 @@ figcaption ol {
     width: 100%;
 }
 
-/* One row exactly as wide as .demo-slider, holding one .demo-tick-mark span per tick — see demo_text_path's own
-   doc comment for why these are hand-drawn rather than a <datalist>. */
+/* This row is exactly as wide as .demo-slider.
+   It holds one .demo-tick-mark span per tick.
+   See demo_text_path's own doc comment for why these marks are hand-drawn, rather than a <datalist>. */
 .demo-tick-row {
     position: relative;
     height: 6px;
@@ -394,8 +408,9 @@ figcaption ol {
     height: 6px;
     background: #8b949e;
     transform: translateX(-50%);
-    /* `left` is set inline per mark in Rust — the one property that is genuinely dynamic per tick, computed from
-       its value's fraction of the slider's max. */
+    /* Rust sets `left` inline, per mark.
+       This is the one property that is genuinely dynamic per tick.
+       Rust computes it from the tick's value, as a fraction of the slider's max. */
 }
 
 .demo-endpoint-labels {

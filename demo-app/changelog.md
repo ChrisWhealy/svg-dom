@@ -10,7 +10,8 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 ### Changed
 
-- Rerun prepare_gallery on each HTTP request for live reload (``)
+- Rerun prepare_gallery on each HTTP request for live reload (`4f1fc2c`)
+- Adapt all demo documentation to use simplified technical English style guide (``)
 
 ## [0.1.5] - 2026-07-30
 

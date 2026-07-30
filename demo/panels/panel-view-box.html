@@ -1,28 +1,29 @@
-            <!-- SvgRoot::set_view_box -->
-            <section class="section" id="panel-view-box">
-                <h2><code>SvgRoot::set_view_box</code> — the root's internal coordinate system</h2>
-                <figure>
-                    <div class="canvas-row">
-                        <div class="canvas" id="demo-view-box-1"></div>
-                        <div class="canvas" id="demo-view-box-2"></div>
-                        <div class="canvas" id="demo-view-box-3"></div>
-                    </div>
-                    <figcaption>
-                        <p>
-                            The identical scene shows four coloured quadrants and a white landmark dot fixed inside
-                            the bottom-right one, all drawn with exactly the same coordinates: 200px &times; 200px
-                            canvases; only the <strong>set_view_box</strong> call differs.
-                        </p>
-                        <ul>
-                            <li><strong>Left</strong>: No <code>viewBox</code>, so 1 drawing unit = 1 pixel making
-                                everything visible.</li>
-                            <li><strong>Middle</strong>: <code>viewBox(0, 0, 100, 100)</code> magnifies the top-left
-                                quadrant by a factor of 2. This pushes the landmark dot outside the visible region
-                                and is therefore clipped.</li>
-                            <li><strong>Right</strong>: <code>viewBox(50, 50, 150, 150)</code> is both panned and
-                                slightly magnified, cropping the outer ring of the other three quadrants while
-                                bringing the bottom-right one — and the landmark dot — fully back into view.</li>
-                        </ul>
-                    </figcaption>
-                </figure>
-            </section>
+<!-- SvgRoot::set_view_box -->
+<section class="section" id="panel-view-box">
+    <h2><code>SvgRoot::set_view_box</code> — the root's internal coordinate system</h2>
+    <figure>
+        <div class="canvas-row">
+            <div class="canvas" id="demo-view-box-1"></div>
+            <div class="canvas" id="demo-view-box-2"></div>
+            <div class="canvas" id="demo-view-box-3"></div>
+        </div>
+        <figcaption>
+            <p>
+                The identical scene shows four coloured quadrants and a white landmark dot, fixed
+                inside the bottom-right one. All three canvases use exactly the same drawing
+                coordinates, on 200px &times; 200px canvases. Only the <strong>set_view_box</strong>
+                call differs between them.
+            </p>
+            <ul>
+                <li><strong>Left</strong> No <code>viewBox</code>. So 1 drawing unit equals 1 pixel.
+                    Everything is visible.</li>
+                <li><strong>Middle</strong> <code>viewBox(0, 0, 100, 100)</code> magnifies the top-left
+                    quadrant, by a factor of 2. This pushes the landmark dot outside the visible region.
+                    The dot is therefore clipped.</li>
+                <li><strong>Right</strong> <code>viewBox(50, 50, 150, 150)</code> is both panned and
+                    slightly magnified. This crops the outer ring of the other three quadrants. It
+                    brings the bottom-right quadrant, and the landmark dot, fully back into view.</li>
+            </ul>
+        </figcaption>
+    </figure>
+</section>

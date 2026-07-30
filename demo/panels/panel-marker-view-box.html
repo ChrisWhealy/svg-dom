@@ -1,38 +1,31 @@
-            <!-- SvgMarker::set_view_box -->
-            <section class="section" id="panel-marker-view-box">
-                <h2><code>SvgMarker::set_view_box</code> creates a viewBox window onto the same shape</h2>
-                <figure>
-                    <div class="canvas" id="demo-marker-view-box"></div>
-                    <figcaption>
-                        <p>First, create a triangle polygon.
-                            Then, reference it from a single marker sized to keep the triangle's aspect ratio of
-                            10:7. This means calling <code>set_marker_width(24.0)</code> and
-                            <code>set_marker_height(16.8)</code>.
-                        </p>
-                        <p>The slider sets a zoom percentage from -50% to +50%, centered on 0%.
-                            Each change calls <code>set_view_box(0, 0, width, height)</code> with a new width and
-                            height. Both values scale by the same factor, so the view box keeps its 10:7 aspect
-                            ratio at every position.
-                        </p>
-                        <p>Each change also calls <code>set_ref_x(width)</code> and
-                            <code>set_ref_y(height / 2)</code>. refX and refY name a point in the marker's own
-                            coordinate space, not a fixed pixel offset. Moving them keeps the reference point at
-                            the right edge, vertical center, of the new view box. Without this, the arrowhead
-                            would drift away from the end of the line as the slider moves. This demo shows the
-                            view box and the reference point working together, not <code>set_view_box()</code>
-                            alone.
-                        </p>
-                        <p>Neither attribute reaches past the marker's own content, the arrowhead. The line that
-                           references the marker keeps its own length and position no matter what the slider does.
-                        </p>
-                        <ul>
-                            <li>At 0%, the view box covers the full extent of the polygon and shows the whole
-                                arrowhead.</li>
-                            <li>A positive value shrinks the view box. This magnifies the arrowhead and clips off
-                                its tip.</li>
-                            <li>A negative value enlarges the view box. This shrinks the arrowhead within the
-                                marker cell.</li>
-                        </ul>
-                    </figcaption>
-                </figure>
-            </section>
+<!-- SvgMarker::set_view_box -->
+<section class="section" id="panel-marker-view-box">
+    <h2><code>SvgMarker::set_view_box</code> creates a viewBox window onto the same shape</h2>
+    <figure>
+        <div class="canvas" id="demo-marker-view-box"></div>
+        <figcaption>
+            <p>First, create a triangle polygon. Then, reference it from a single marker sized to keep the triangle's
+                aspect ratio of 10:7. This means calling <code>set_marker_width(24.0)</code> and
+                <code>set_marker_height(16.8)</code>.
+            </p>
+            <p>The slider sets a zoom percentage from -50% to +50%, centered on 0%. Each change calls
+                <code>set_view_box(0, 0, width, height)</code> with a new width and height. Both values scale by the
+                same factor. So the view box keeps its 10:7 aspect ratio at every position.
+            </p>
+            <p>Each change also calls <code>set_ref_x(width)</code> and <code>set_ref_y(height / 2)</code>.
+                <code>refX</code> and <code>refY</code> name a point in the marker's own coordinate space, not a fixed
+                pixel offset. Moving them keeps the reference point at the right edge, vertical center, of the new view
+                box. Without this, the arrowhead would drift away from the end of the line as the slider moves. This
+                demo shows the view box and the reference point working together, not <code>set_view_box()</code> alone.
+            </p>
+            <p>Neither attribute reaches past the marker's own content, the arrowhead. The line that references the
+                marker keeps its own length and position no matter what the slider does.
+            </p>
+            <ul>
+                <li>At 0%, the view box covers the full extent of the polygon. It shows the whole arrowhead.</li>
+                <li>A positive value shrinks the view box. This magnifies the arrowhead. It also clips its tip.</li>
+                <li>A negative value enlarges the view box. This shrinks the arrowhead within the marker cell.</li>
+            </ul>
+        </figcaption>
+    </figure>
+</section>

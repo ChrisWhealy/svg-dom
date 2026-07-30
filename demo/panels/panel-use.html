@@ -1,23 +1,23 @@
-            <!-- use -->
-            <section class="section" id="panel-use">
-                <h2><code>&lt;use&gt;</code> — stamp copies of a shape defined in <code>&lt;defs&gt;</code></h2>
-                <figure>
-                    <div class="canvas" id="demo-use"></div>
-                    <figcaption>
-                        <p>First, create the path for a diamond-shaped polygon and store it in <code>&lt;defs&gt;</code>
-                            using the id <code>gem</code>.</p>
-                        <p>
-                            Next, start a loop, that does the following:
-                        </p>
-                        <ol>
-                            <li>Calculate a new angle and <code>x</code> position</li>
-                            <li>Call <code>use_node()</code> to stamp a copy of the <code>gem</code> shape at the new
-                                position. Notice that the id of the referenced object must be prefixed with
-                                <code>#</code>.
-                            </li>
-                            <li>Call <code>set_transform_fmt()</code> to position the element and rotate it about its
-                                own centre</li>
-                        </ol>
-                    </figcaption>
-                </figure>
-            </section>
+<!-- use -->
+<section class="section" id="panel-use">
+    <h2><code>&lt;use&gt;</code> — stamp copies of a shape defined in <code>&lt;defs&gt;</code></h2>
+    <figure>
+        <div class="canvas" id="demo-use"></div>
+        <figcaption>
+            <p>First, create the path for a diamond-shaped polygon.
+                Store it in <code>&lt;defs&gt;</code> using the id <code>gem</code>.</p>
+            <p>
+                Next, start a loop, that does the following:
+            </p>
+            <ol>
+                <li>Calculate a new angle and <code>x</code> position</li>
+                <li>Call <code>use_node()</code> to stamp a copy of the <code>gem</code> shape at the new
+                    position. Notice that the id of the referenced object must be prefixed with
+                    <code>#</code>.
+                </li>
+                <li>Call <code>set_transform_fmt()</code> to position the element and rotate it about its
+                    own centre</li>
+            </ol>
+        </figcaption>
+    </figure>
+</section>

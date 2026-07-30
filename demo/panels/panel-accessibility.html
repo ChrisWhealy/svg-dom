@@ -1,44 +1,43 @@
-            <!-- accessibility: desc / title -->
-            <section class="section" id="panel-accessibility">
-                <h2><code>&lt;title&gt;</code> / <code>&lt;desc&gt;</code> child elements</h2>
-                <figure>
-                    <div class="canvas" id="demo-accessibility"></div>
-                    <figcaption>
-                        <p>
-                            Three static, non-interactive icons have each been given a <code>&lt;title&gt;</code>
-                            child using <code>set_title()</code> and a <code>&lt;desc&gt;</code> child using
-                            <code>set_desc()</code>.
-                        </p>
-                        <p>
-                            Hovering over an icon shows the browser's native tooltip, driven by its
-                            <code>&lt;title&gt;</code> - no extra code is needed for that part.
-                        </p>
-                        <p>
-                            <code>&lt;desc&gt;</code> has no visible tooltip in any browser; this value is made
-                            available to someone using assistive technology such as a screen reader. The readout
-                            below echoes both back via the <strong>title()</strong> / <strong>desc()</strong>
-                            getters so the otherwise invisible description is visible for this demo.
-                        </p>
-                        <ul>
-                            <li><strong>Note:</strong> a <code>&lt;title&gt;</code>/<code>&lt;desc&gt;</code> child
-                                feeds into, but does not unconditionally determine, the element's computed
-                                accessible name/description — When present, <code>aria-label</code>,
-                                <code>aria-labelledby</code> and <code>aria-describedby</code> take precedence.
-                            </li>
-                            <li><strong>Use judiciously:</strong> these icons are meaningful on their own, which is
-                                why each one earns a name here. Attaching a
-                                <code>&lt;title&gt;</code>/<code>&lt;desc&gt;</code> to every decorative path or
-                                primitive instead would just make the accessibility tree noisy and harder to
-                                navigate.
-                            </li>
-                            <li><strong>Not a button:</strong> <code>&lt;title&gt;</code>/<code>&lt;desc&gt;</code>
-                                make a graphic describable, not interactive. On purpose, these icons have no pointer
-                                cursor, no role, no keyboard focus, and no keyboard activation — a genuinely
-                                clickable icon would need all of that added explicitly (e.g. a
-                                <code>role="button"</code> attribute, a <code>tabindex</code>, and keyboard event
-                                handling), which this demo deliberately does not do.
-                            </li>
-                        </ul>
-                    </figcaption>
-                </figure>
-            </section>
+<!-- accessibility: desc / title -->
+<section class="section" id="panel-accessibility">
+    <h2><code>&lt;title&gt;</code> / <code>&lt;desc&gt;</code> child elements</h2>
+    <figure>
+        <div class="canvas" id="demo-accessibility"></div>
+        <figcaption>
+            <p>
+                Three static, non-interactive icons have each been given a <code>&lt;title&gt;</code>
+                child using <code>set_title()</code> and a <code>&lt;desc&gt;</code> child using
+                <code>set_desc()</code>.
+            </p>
+            <p>
+                Point at an icon to show the browser's native tooltip, driven by its
+                <code>&lt;title&gt;</code>. No extra code is needed for that part.
+            </p>
+            <p>
+                <code>&lt;desc&gt;</code> has no visible tooltip in any browser. Assistive technology
+                can read this value, for example a screen reader. The readout below echoes both back,
+                via the <strong>title()</strong> / <strong>desc()</strong> getters. This makes the
+                otherwise invisible description visible for this demo.
+            </p>
+            <ul>
+                <li><strong>Note</strong> A <code>&lt;title&gt;</code>/<code>&lt;desc&gt;</code> child
+                    contributes to the element's computed accessible name and description. It does not
+                    always determine them. When present, <code>aria-label</code>,
+                    <code>aria-labelledby</code> and <code>aria-describedby</code> take precedence.
+                </li>
+                <li><strong>Use judiciously</strong> These icons are meaningful on their own. That is
+                    why each one earns a name here. Attaching a
+                    <code>&lt;title&gt;</code>/<code>&lt;desc&gt;</code> to every decorative path or
+                    primitive instead would make the accessibility tree noisy and harder to navigate.
+                </li>
+                <li><strong>Not a button</strong> <code>&lt;title&gt;</code>/<code>&lt;desc&gt;</code>
+                    make a graphic describable, not interactive. On purpose, these icons have no
+                    pointer cursor, no role, no keyboard focus, and no keyboard activation. A genuinely
+                    clickable icon would need all of that added explicitly. For example, a
+                    <code>role="button"</code> attribute, a <code>tabindex</code>, and keyboard event
+                    handling. This demo deliberately omits all of that.
+                </li>
+            </ul>
+        </figcaption>
+    </figure>
+</section>

@@ -1,37 +1,38 @@
-            <!-- feBlend -->
-            <section class="section" id="panel-blend">
-                <h2><code>&lt;feBlend&gt;</code> — colour blending, independent of the shadow primitives</h2>
-                <figure>
-                    <div class="canvas" id="demo-blend"></div>
-                    <figcaption>
-                        <p>
-                            Four copies of the same multi-hue gradient <strong>circle</strong>, each referencing a
-                            separate <code>&lt;filter&gt;</code> built with <strong>flood</strong> (the same orange
-                            tint every time), then <strong>blend</strong>, then a final
-                            <strong>composite(In)</strong>:
-                        </p>
-                        <ul>
-                            <li><strong>original</strong>: No filter</li>
-                            <li><strong>Multiply</strong>: Always darkens, or leaves unchanged</li>
-                            <li><strong>Screen</strong>: Always lightens, or leaves unchanged</li>
-                            <li><strong>Difference</strong>: Inverts wherever the tint and the source differ</li>
-                        </ul>
-                        <p>
-                            <code>BlendMode</code> has twelve further keywords not shown here — the sixteen standard
-                            <code>&lt;blend-mode&gt;</code> keywords shared with CSS compositing, not the full CSS
-                            <code>mix-blend-mode</code> value set (which also has two CSS-only modes this crate does
-                            not offer). SVG filters also blend in <code>linearRGB</code> by default, not the
-                            <code>sRGB</code> space CSS uses, so the same mode can look different here than in CSS —
-                            set <code>color-interpolation-filters="sRGB"</code> to match.
-                        </p>
-                        <p>
-                            <strong>Why a circle, not a rectangle?</strong><br>
-                            <code>flood</code> paints its colour opaquely across the entire filter region, and
-                            <code>blend</code> alone only changes colour, not alpha — so without that final
-                            <code>composite(In)</code> clipping the result back to the circle's own alpha coverage, the
-                            flood colour would leak through the fully transparent corners of its bounding box. A
-                            rectangle has no transparency there to reveal the mistake.
-                        </p>
-                    </figcaption>
-                </figure>
-            </section>
+<!-- feBlend -->
+<section class="section" id="panel-blend">
+    <h2><code>&lt;feBlend&gt;</code> — colour blending, independent of the shadow primitives</h2>
+    <figure>
+        <div class="canvas" id="demo-blend"></div>
+        <figcaption>
+            <p>
+                Four copies of the same multi-hue gradient <strong>circle</strong>. Each references a
+                separate <code>&lt;filter&gt;</code>. Each filter is built with <strong>flood</strong>
+                (the same orange tint every time), then <strong>blend</strong>, then a final
+                <strong>composite(In)</strong>.
+            </p>
+            <ul>
+                <li><strong>original</strong>: No filter</li>
+                <li><strong>Multiply</strong>: Always darkens, or leaves unchanged</li>
+                <li><strong>Screen</strong>: Always lightens, or leaves unchanged</li>
+                <li><strong>Difference</strong>: Inverts wherever the tint and the source differ</li>
+            </ul>
+            <p>
+                <code>BlendMode</code> has twelve further keywords not shown here. These are the sixteen
+                standard <code>&lt;blend-mode&gt;</code> keywords shared with CSS compositing. This is
+                not the full CSS <code>mix-blend-mode</code> value set, which also has two CSS-only
+                modes this crate does not offer. SVG filters also blend in <code>linearRGB</code> by
+                default, not the <code>sRGB</code> space CSS uses. So the same mode can look different
+                here than in CSS. Set <code>color-interpolation-filters="sRGB"</code> to match CSS.
+            </p>
+            <p>
+                <strong>Why a circle, not a rectangle?</strong><br>
+                <code>flood</code> paints its colour opaquely across the entire filter region.
+                <code>blend</code> alone only changes colour, not alpha. Without a final
+                <code>composite(In)</code> step, the flood colour would leak through the fully
+                transparent corners of the circle's bounding box. <code>composite(In)</code> clips the
+                result back to the circle's own alpha coverage. A rectangle has no transparency there to
+                reveal the mistake.
+            </p>
+        </figcaption>
+    </figure>
+</section>

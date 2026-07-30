@@ -1,22 +1,22 @@
-            <!-- tree navigation -->
-            <section class="section" id="panel-tree-nav">
-                <h2>Tree navigation — <code>first_child</code> / <code>next_sibling</code> / <code>query_selector</code>
-                </h2>
-                <figure>
-                    <div class="canvas" id="demo-tree-nav"></div>
-                    <figcaption>
-                        <p>Seven bars built inside one <code>&lt;g&gt;</code> via a single batch, keeping only the
-                            group's own handle — no handle to any individual bar is kept.</p>
-                        <p>Click <strong>Walk →</strong> repeatedly: each click is one <strong>first_child</strong> /
-                            <strong>next_sibling</strong> call, colouring the newly visited bar and reporting which
-                            method it used.
-                        </p>
-                        <p>Click <strong>Find target</strong> to run
-                            <strong>query_selector("[data-role='target']")</strong> and outline the one bar tagged with
-                            that attribute in gold.
-                        </p>
-                        <p><strong>Reset</strong> walks the bars again to restore them, and rewinds the walk to the
-                            start.</p>
-                    </figcaption>
-                </figure>
-            </section>
+<!-- tree navigation -->
+<section class="section" id="panel-tree-nav">
+    <h2>Tree navigation — <code>first_child</code> / <code>next_sibling</code> / <code>query_selector</code>
+    </h2>
+    <figure>
+        <div class="canvas" id="demo-tree-nav"></div>
+        <figcaption>
+            <p>Seven bars, built inside one <code>&lt;g&gt;</code> via a single batch. Only the
+                group's own handle is kept. No handle to any individual bar is kept.</p>
+            <p>Click <strong>Walk →</strong> repeatedly. Each click is one <strong>first_child</strong>
+                / <strong>next_sibling</strong> call. Each click colours the newly visited bar and
+                reports which method it used.
+            </p>
+            <p>Click <strong>Find target</strong> to run
+                <strong>query_selector("[data-role='target']")</strong>. This outlines the one bar
+                tagged with that attribute, in gold.
+            </p>
+            <p><strong>Reset</strong> walks the bars again, to restore them. It also rewinds the walk
+                to the start.</p>
+        </figcaption>
+    </figure>
+</section>

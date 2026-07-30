@@ -1,16 +1,18 @@
-            <!-- native drag/drop + touch -->
-            <section class="section" id="panel-events-drag-drop-touch">
-                <h2>Native drag/drop, touch and generic events</h2>
-                <figure>
-                    <div class="canvas" id="demo-events-drag-drop-touch"></div>
-                    <figcaption>
-                        <p>In order to relocate the blue card, it must be dragged entirely with the drop zone border:
-                            pointer capture keeps the box moving instead of selecting page text.</p>
-                        <p>The card and drop zone make use of the managed <strong>dragstart</strong> /
-                            <strong>drag</strong> / <strong>dragend</strong> / <strong>dragenter</strong> /
-                            <strong>dragleave</strong> / <strong>dragover</strong> / <strong>drop</strong>,
-                            <strong>touchstart</strong> / <strong>touchmove</strong> / <strong>touchend</strong> /
-                            <strong>touchcancel</strong> and a generic <strong>on_event("auxclick")</strong> handler.
-                    </figcaption>
-                </figure>
-            </section>
+<!-- native drag/drop + touch -->
+<section class="section" id="panel-events-drag-drop-touch">
+    <h2>Native drag/drop, touch and generic events</h2>
+    <figure>
+        <div class="canvas" id="demo-events-drag-drop-touch"></div>
+        <figcaption>
+            <p>To relocate the blue card, drag it entirely within the drop zone border. Pointer capture
+                keeps the card moving, instead of selecting page text.</p>
+            <p>The card and drop zone use the managed <strong>dragstart</strong> /
+                <strong>drag</strong> / <strong>dragend</strong> / <strong>dragenter</strong> /
+                <strong>dragleave</strong> / <strong>dragover</strong> / <strong>drop</strong>
+                handlers. They also use <strong>touchstart</strong> / <strong>touchmove</strong> /
+                <strong>touchend</strong> / <strong>touchcancel</strong>, and a generic
+                <strong>on_event("auxclick")</strong> handler.
+            </p>
+        </figcaption>
+    </figure>
+</section>
