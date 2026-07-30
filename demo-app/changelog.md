@@ -14,6 +14,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 - Make `set_view_box()` demo interactive (`e54b3ab`)
 - Add regression test to `set_view_box()` test (`4c76973`)
 - Make image demo interactive (`eb9abbc`)
+- Test shared radio button behaviour in `svg-dom-demo` (``)
 
 ### Fixed
 
@@ -22,7 +23,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 - Avoid hotpath String allocation in `set_view_box()` demo (`3291dab`)
 - Remove redundant caption (`b137ab5`)
 - Resize foreignObject dashed bounding box (`d21ee6d`)
-- Correct stale comments in CSS file (``)
+- Correct stale comments in CSS file (`0809e54`)
 
 ### Changed
 

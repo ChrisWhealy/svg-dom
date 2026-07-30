@@ -3,6 +3,10 @@
 //! (`demo_text_path`). `structure` contributes the marker viewBox zoom slider (`demo_marker_view_box`) and the
 //! preserveAspectRatio radio group (`demo_image`).
 //!
+//! One test below builds `foreign_html::radio_group` directly, not through a demo panel.
+//! Three panels now share this helper: `demo_text`'s two groups, and `demo_image`'s preserveAspectRatio group.
+//! A single direct test covers the helper's own behaviour once, instead of duplicating it per panel.
+//!
 //! These exist because `unit_tests::every_registered_demo_has_extractable_source` only proves every registered
 //! demo function's Rust *source* is extractable — it builds nothing and dispatches no events, so it cannot catch
 //! a regression where, say, selecting "Middle" stopped updating `text-anchor`, or the startOffset slider's `max`
@@ -19,6 +23,8 @@
 //! already degrades safely on a native target — it compiles cleanly but registers zero tests there (confirmed
 //! empirically against the root crate's own `tests/svg_root.rs`), so `cargo test -p svg-dom-demo` continues to
 //! exercise only `unit_tests`'s native tests, unaffected by this module's presence.
+use std::{cell::RefCell, rc::Rc};
+
 use wasm_bindgen::JsCast;
 use wasm_bindgen_test::*;
 
@@ -386,4 +392,40 @@ fn demo_image_radio_group_updates_preserve_aspect_ratio() {
         .expect("query swap image")
         .expect("swap image present");
     assert!(swap_image.get_attribute("preserveAspectRatio").is_none());
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// This test calls `foreign_html::radio_group` directly, with no demo panel and no SVG target attribute.
+// Three demos build a radio group through this one shared function.
+// A single direct test at this level covers all three, instead of testing the same mechanics three times.
+#[wasm_bindgen_test]
+fn radio_group_checks_default_clears_prior_selection_and_calls_on_select() {
+    let root = container("foreign-html-radio-group");
+
+    const OPTIONS: [(&str, &str); 2] = [("a", "Alpha"), ("b", "Beta")];
+
+    // `on_select` only records the values it receives here. No SVG attribute is involved, unlike every other
+    // test in this file. That keeps this test focused on radio_group's own contract, not on any one caller.
+    let selected: Rc<RefCell<Vec<&'static str>>> = Rc::new(RefCell::new(Vec::new()));
+    let recorder = selected.clone();
+    let fieldset =
+        super::foreign_html::radio_group(&document(), "demo-legend", "radio-group-test", &OPTIONS, "a", move |value| {
+            recorder.borrow_mut().push(value)
+        })
+        .expect("radio_group should build without error");
+    root.append_child(&fieldset).expect("append fieldset to container");
+
+    let alpha = find_radio(&root, "demo-legend", "Alpha");
+    let beta = find_radio(&root, "demo-legend", "Beta");
+
+    // The default value starts checked. Asserted before any interaction, so a later mismatch can only come
+    // from the selection itself, not from construction.
+    assert!(alpha.checked(), "the default option should start checked");
+    assert!(!beta.checked());
+    assert!(selected.borrow().is_empty(), "on_select should not fire before any selection");
+
+    select_radio(&beta);
+    assert!(beta.checked());
+    assert!(!alpha.checked(), "selecting Beta should clear Alpha");
+    assert_eq!(selected.borrow().as_slice(), ["b"], "on_select should receive Beta's own value");
 }
