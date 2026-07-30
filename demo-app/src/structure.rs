@@ -284,18 +284,17 @@ pub(super) fn demo_marker() -> Result<(), Error> {
 // SvgMarker::set_view_box — one shared triangle, a slider drives the viewBox window onto it
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 pub(super) fn demo_marker_view_box() -> Result<(), Error> {
-    let svg = SvgRoot::create_in("demo-marker-view-box", Size::new(W, H))?;
-
-    let defs = svg.defs()?;
-
-    // The marker always renders the same polygon: a triangle from (0,0) to (100,35) to (0,70). Its markerWidth and
-    // markerHeight stay fixed maintaining the triangle's 10:7 aspect ratio. Only the viewBox applied to that shared
-    // polygon changes, and the slider below drives that change directly.
-    let triangle = [Point::new(0.0, 0.0), Point::new(100.0, 35.0), Point::new(0.0, 70.0)];
-
     const BASE_W: f64 = 100.0;
     const BASE_H: f64 = 70.0;
 
+    let svg = SvgRoot::create_in("demo-marker-view-box", Size::new(W, H))?;
+    let defs = svg.defs()?;
+
+    // The marker always renders the same polygon: a triangle from (0,0) to (100,35) to (0,70). Its markerWidth and
+    // markerHeight stay fixed, maintaining the triangle's 10:7 aspect ratio. The slider below drives set_view_box()
+    // directly, but it also has to move refX/refY in step (see that section's own comment for why) — this is not a
+    // pure single-method demo, and the comments below say so explicitly.
+    let triangle = [Point::new(0.0, 0.0), Point::new(100.0, 35.0), Point::new(0.0, 70.0)];
     let arrow = defs.build_marker("arrow-zoom", |m| {
         m.set_ref_x(BASE_W)?;
         m.set_ref_y(BASE_H / 2.0)?;
@@ -312,26 +311,35 @@ pub(super) fn demo_marker_view_box() -> Result<(), Error> {
     line.set_stroke_width(2.0)?;
     line.set_marker_end_ref(&arrow)?;
 
-    let readout = svg.text(Point::new(140.0, PAD_Y + 45.0), "zoom 0%")?;
+    let readout = svg.text(Point::new(140.0, PAD_Y + 45.0), &format!("viewBox {BASE_W} x {BASE_H}"))?;
     readout.set_fill(TEXT)?;
     readout.set_font_size(13.0)?;
 
     caption(
         &svg,
         W / 2.0,
-        "one shared set_view_box() window onto the arrowhead only — drag the slider to zoom",
+        "one slider drives set_view_box() and its matching refX/refY — drag to zoom the arrowhead",
     )?;
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // Interactive zoom slider
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // Ranges from -50 to 50 (percent), zero at the centre. A positive value shrinks the viewBox, so it magnifies the
-    // triangle and crops more of it away. A negative value enlarges the viewBox, so it zooms out. Width and height
+    // arrowhead and crops more of it away. A negative value enlarges the viewBox, so it zooms out. Width and height
     // always scale by the same factor, so the viewBox keeps its 10:7 aspect ratio at every position on the slider.
     //
-    // This only ever changes the marker's own content. A marker's viewBox has no way to reach the <line> that
-    // references it via marker-end, so the line keeps its own length and position no matter what the slider does — that
-    // scoping is exactly what this demo exists to show.
+    // Every slider event also moves refX/refY to (width, height / 2.0), the right-centre of the new viewBox. This is
+    // not a side effect of set_view_box() itself: refX and refY are separate marker attributes, and this demo sets both
+    // together so the arrowhead's tip stays aligned with the end of the line at every zoom level.
+    //
+    // refX and refY name a point in the marker's own coordinate space, not a fixed pixel offset, so as the viewBox's
+    // width and height shrink or grow, the old refX/refY values would no longer point at the same place in the new
+    // viewBox. Without moving them, set_view_box() alone would leave the arrowhead visibly drifting off the end of the
+    // line as the slider moved — so in spite of the panel title, this demo shows viewBox and refX/refY working
+    // together, not set_view_box() in isolation.
+    //
+    // Neither attribute reaches past the marker's own content, though. The <line> that references this marker via
+    // marker-end keeps its own length and position no matter what the slider does.
     let slider_fo = svg.foreign_object(Point::new(140.0, 6.0), Size::new(400.0, 50.0))?;
     let slider_document = foreign_object_document(&slider_fo)?;
 
@@ -353,13 +361,15 @@ pub(super) fn demo_marker_view_box() -> Result<(), Error> {
     // content is not programmatically associated with an HTML control the way <label> is, so this needs its own
     // accessible name. aria-valuetext is kept in sync with the same text on every `input` event, below.
     slider.set_attribute("aria-label", "marker viewBox zoom").map_err(dom_err)?;
-    slider.set_attribute("aria-valuetext", "zoom 0%").map_err(dom_err)?;
+    slider
+        .set_attribute("aria-valuetext", "viewBox {BASE_W} x {BASE_H}")
+        .map_err(dom_err)?;
 
     let endpoint_labels = xhtml(&slider_document, "div")?;
     endpoint_labels
         .set_attribute("class", "demo-endpoint-labels")
         .map_err(dom_err)?;
-    for text in ["-50%", "0%", "+50%"] {
+    for text in ["-66.7%", "0%", "+200%"] {
         let label = xhtml(&slider_document, "span")?;
         label.set_text_content(Some(text));
         endpoint_labels.append_child(&label).map_err(dom_err)?;
@@ -371,7 +381,7 @@ pub(super) fn demo_marker_view_box() -> Result<(), Error> {
     let readout_target = readout.clone();
     let mut label_buf = String::new();
     let on_input: DemoClosure = Closure::new(move |_: web_sys::Event| {
-        let percent: f64 = slider_value.value().parse().unwrap_or(0.0);
+        let percent: f64 = slider_value.value_as_number();
         let factor = 1.0 - percent / 100.0;
         let width = BASE_W * factor;
         let height = BASE_H * factor;
@@ -380,13 +390,9 @@ pub(super) fn demo_marker_view_box() -> Result<(), Error> {
         let _ = arrow.set_ref_y(height / 2.0);
         let _ = arrow.set_view_box(0.0, 0.0, width, height);
 
-        let percent_text = if percent > 0.0 {
-            format!("zoom +{percent:.0}%")
-        } else {
-            format!("zoom {percent:.0}%")
-        };
-        let _ = readout_target.set_text_fmt(&mut label_buf, format_args!("{percent_text}"));
-        let _ = slider_value.set_attribute("aria-valuetext", &percent_text);
+        let viewbox_text = format!("viewBox {width:.0} x {height:.0}");
+        let _ = readout_target.set_text_fmt(&mut label_buf, format_args!("{viewbox_text}"));
+        let _ = slider_value.set_attribute("aria-valuetext", &viewbox_text);
     });
     slider
         .add_event_listener_with_callback("input", on_input.as_ref().unchecked_ref())

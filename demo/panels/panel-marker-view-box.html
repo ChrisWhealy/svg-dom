@@ -14,9 +14,16 @@
                             height. Both values scale by the same factor, so the view box keeps its 10:7 aspect
                             ratio at every position.
                         </p>
-                        <p>A marker's view box only affects the marker's own content, the arrowhead.
-                            It cannot affect the line that references the marker.
-                            The line keeps its own length and position no matter what the slider does.
+                        <p>Each change also calls <code>set_ref_x(width)</code> and
+                            <code>set_ref_y(height / 2)</code>. refX and refY name a point in the marker's own
+                            coordinate space, not a fixed pixel offset. Moving them keeps the reference point at
+                            the right edge, vertical center, of the new view box. Without this, the arrowhead
+                            would drift away from the end of the line as the slider moves. This demo shows the
+                            view box and the reference point working together, not <code>set_view_box()</code>
+                            alone.
+                        </p>
+                        <p>Neither attribute reaches past the marker's own content, the arrowhead. The line that
+                           references the marker keeps its own length and position no matter what the slider does.
                         </p>
                         <ul>
                             <li>At 0%, the view box covers the full extent of the polygon and shows the whole
