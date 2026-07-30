@@ -110,14 +110,21 @@ pub(crate) fn demo() -> Result<(), Error> {
     // already has its own accessible value semantics).
     slider.set_attribute("aria-valuetext", "Offset 0").map_err(dom_err)?;
 
-    // Tick marks every 25 units plus one at the end, hand-drawn (a `<span class="demo-tick-mark">` per tick,
-    // `position:absolute` at `left: {value / max * 100}%`) rather than via a <datalist> linked through the slider's
-    // `list` attribute — the more obviously "native" choice, and the first one tried here. A <datalist>'s tick marks
-    // are only actually rendered by Chrome/Edge; Firefox and Safari apply its snap-to-value behaviour but draw no
-    // visible marks at all, so on those browsers the ticks this demo asks for would simply not exist. Hand-drawn
-    // marks render identically everywhere nothing here depends on browser-specific behaviour for — an expectation
-    // verified for Firefox and Chrome by this repository's CI (`browser-tests` in .github/workflows/ci.yml), though
-    // not for WebKit/Safari, which needs a macOS runner and lacks reliable headless support there.
+    // Tick marks every 25 units plus one at the end, hand-drawn using a `<span class="demo-tick-mark">` per tick, and a
+    // `position:absolute` at `left: {value / max * 100}%`, rather than via a <datalist> linked through the slider's
+    // `list` attribute.
+    //
+    // A <datalist>'s tick marks are only actually rendered by Chrome/Edge. Firefox and Safari apply the snap-to-value
+    // behaviour but do not draw any visible marks at all, so on those browsers the ticks this demo asks for would not
+    // be rendered. The hand-drawn marks do not depend on that browser-specific rendering gap.
+    //
+    // When CI invokes `browser-tests` in .github/workflows/ci.yml, it runs this file's interaction tests in Firefox and
+    // Chrome. These tests dispatch DOM events and check attribute/value state, so they can confirm the slider still
+    // works correctly in both browsers. They do not however, take screenshots or compare computed layout, so they
+    // cannot confirm that there is pixel-perfect alignment between different browsers.
+    //
+    // No test coverage is provided for WebKit/Safari, because it needs a macOS runner which unfortunately lacks reliable
+    // headless support.
     const TICK_STEP: i64 = 25;
     let ticks_row = xhtml(&slider_document, "div")?;
     ticks_row.set_attribute("class", "demo-tick-row").map_err(dom_err)?;

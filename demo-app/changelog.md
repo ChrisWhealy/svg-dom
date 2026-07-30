@@ -8,9 +8,13 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 ## [0.1.5] - 2026-07-30
 
+### Added
+
+- Doc only: clarify that tick mark test does not cover WebKit/Safari or pixel-perfect alignment (``)
+
 ### Changed
 
-- Improve radio button test (``)
+- Improve radio button test (`853209e`)
 
 ## [0.1.4] - 2026-07-29
 
