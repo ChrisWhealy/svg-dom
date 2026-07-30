@@ -22,6 +22,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 - Avoid hotpath String allocation in `set_view_box()` demo (`3291dab`)
 - Remove redundant caption (`b137ab5`)
 - Resize foreignObject dashed bounding box (`d21ee6d`)
+- Correct stale comments in CSS file (``)
 
 ### Changed
 
