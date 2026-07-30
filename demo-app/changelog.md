@@ -18,7 +18,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 - Avoid hotpath String allocation in textPath demo (`91cce99`)
 - Correct description of `set_view_box()` demo (`32da274`)
-- Avoid hotpath String allocation in `set_view_box()` demo (``)
+- Avoid hotpath String allocation in `set_view_box()` demo (`3291dab`)
 
 ### Changed
 
