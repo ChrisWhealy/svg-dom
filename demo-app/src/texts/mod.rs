@@ -5,9 +5,11 @@ use std::rc::Rc;
 // `demo_tspan` imports those itself, directly from `crate::`, rather than this file re-exporting them via
 // `super::` for children to find — re-exporting would make this file's own `use` list satisfy the unused-import
 // lint only by accident (whether an item here is "used" would depend on what the children happen to need), not
-// because this file's own code (`xhtml`/`foreign_object_document`/`radio_group`/`sine_wave_path`) actually uses it.
-use crate::{DemoClosure, NS_XHTML, dom_err, keep_demo_closure};
-use svg_dom::{Error, SvgNode};
+// because this file's own code (`radio_group`/`sine_wave_path`) actually uses it. `xhtml` is `foreign_html`'s
+// general-purpose helper for building plain HTML inside any `<foreignObject>` — `radio_group` below is one of
+// several callers, alongside every demo module that builds a `<foreignObject>` control directly.
+use crate::{DemoClosure, dom_err, foreign_html::xhtml, keep_demo_closure};
+use svg_dom::Error;
 use wasm_bindgen::{JsCast, prelude::*};
 
 pub(crate) mod demo_text;
@@ -15,29 +17,17 @@ pub(crate) mod demo_text_path;
 pub(crate) mod demo_tspan;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// Shared plumbing for the HTML controls the interactive demos below build inside a <foreignObject>. Kept private
-// and local to this file, not hoisted to lib.rs — nothing outside texts.rs needs it.
+// radio_group — the one piece of HTML-control plumbing that really is specific to this file's two radio-driven
+// demos (`demo_text`'s text-anchor/dominant-baseline groups). `xhtml`/`foreign_object_document` used to live here
+// too, until `structure::demo_marker_view_box`'s slider needed them and they moved to `foreign_html`; `radio_group`
+// stayed, because nothing outside `texts.rs` builds a radio group.
 //
 // Deliberately *not* abstracted any further than this: each demo's own `set_text_anchor`/`set_dominant_baseline`/
 // `set_start_offset` call stays written out at its own call site (see `radio_group`'s `on_select` parameter) rather
-// than being folded into these helpers too. The point of this gallery is the "Rust source" frame each panel shows
+// than being folded into this helper too. The point of this gallery is the "Rust source" frame each panel shows
 // underneath itself — if the actual svg_dom call being demonstrated moved into shared gallery machinery, that frame
 // would stop teaching it.
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-/// Creates an XHTML-namespaced element — the `create_element_ns(Some(NS_XHTML), tag).map_err(dom_err)` every plain
-/// HTML element built inside a `<foreignObject>` in this file needs, shortened to one call.
-pub(crate) fn xhtml(document: &web_sys::Document, tag: &str) -> Result<web_sys::Element, Error> {
-    document.create_element_ns(Some(NS_XHTML), tag).map_err(dom_err)
-}
-
-/// The owner `Document` of an SVG node built via `SvgRoot::foreign_object` — every interactive control in this file
-/// needs it, to build the plain HTML it puts inside that `<foreignObject>`.
-pub(crate) fn foreign_object_document(fo: &SvgNode) -> Result<web_sys::Document, Error> {
-    fo.as_element()
-        .owner_document()
-        .ok_or_else(|| Error::Dom("cannot identify owner document for SVG foreignObject".into()))
-}
 
 /// Builds a `<fieldset class="demo-control-group">` containing a `<legend>` and one
 /// `<label class="demo-control-row">`-wrapped `<input type="radio">` per entry in `options`, with `default`

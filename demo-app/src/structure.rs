@@ -6,12 +6,13 @@ use std::{
 use super::{BAND, H, NS_XHTML, PAD_Y, W, caption, colours::*, keep_demo_anim, keep_demo_node};
 // `dom_err` is this crate's own private helper (defined in `lib.rs`, formerly `mod.rs`'s own DOM-error mapper), not
 // part of `svg_dom`'s public API — kept as a separate `use` from the `svg_dom::` import below for exactly that
-// reason. `DemoClosure`/`keep_demo_closure` are also `lib.rs`-local; `foreign_object_document`/`xhtml` are the
-// `texts` module's shared slider-building helpers (see that module's own doc comment for why they are `pub(crate)`
-// rather than folded into `demo-app`'s public surface).
+// reason. `DemoClosure`/`keep_demo_closure` are also `lib.rs`-local; `foreign_object_document`/`xhtml` are
+// `foreign_html`'s general-purpose helpers for building plain HTML inside a `<foreignObject>` (see that module's
+// own doc comment for why they are `pub(crate)` rather than folded into `demo-app`'s public surface).
 use crate::{
-    DemoClosure, dom_err, keep_demo_closure,
-    texts::{foreign_object_document, xhtml},
+    DemoClosure, dom_err,
+    foreign_html::{foreign_object_document, xhtml},
+    keep_demo_closure,
 };
 use svg_dom::{
     AnimationLoop, Error, PathDef, PathDefAbsolute, SvgNode, SvgRoot,

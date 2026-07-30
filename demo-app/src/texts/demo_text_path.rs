@@ -1,5 +1,11 @@
-use super::{foreign_object_document, sine_wave_path, xhtml};
-use crate::{DemoClosure, H, W, caption, colours::*, dom_err, keep_demo_closure, keep_demo_node};
+use super::sine_wave_path;
+use crate::{
+    DemoClosure, H, W, caption,
+    colours::*,
+    dom_err,
+    foreign_html::{foreign_object_document, xhtml},
+    keep_demo_closure, keep_demo_node,
+};
 
 use svg_dom::{
     Error, PathDef, PathDefAbsolute, SvgRoot,
@@ -44,12 +50,12 @@ pub(crate) fn demo() -> Result<(), Error> {
     // path's end.
     //
     // Unlike the two radio-driven demos above, this control is not built via a shared helper: it is the only slider
-    // in the gallery, with its own tick-mark/endpoint-label rows that neither radio group needs, so there is no
-    // second call site for a `slider_group` abstraction to actually serve. It still reuses `xhtml`/
-    // `foreign_object_document` for the parts that genuinely are shared (creating XHTML elements, finding the
-    // `<foreignObject>`'s owner document), and `demo/style.css`'s `.demo-slider*`/`.demo-tick-*`/
-    // `.demo-endpoint-labels` classes for the parts of its styling that would otherwise repeat the dark-theme
-    // palette inline in Rust.
+    // with its own tick-mark row (a `structure::demo_marker_view_box` slider exists too, but has no ticks), so
+    // there is no second call site for a `slider_group` abstraction to actually serve. It still reuses `xhtml`/
+    // `foreign_object_document` from `foreign_html` for the parts that genuinely are shared (creating XHTML
+    // elements, finding the `<foreignObject>`'s owner document), and `demo/style.css`'s `.demo-slider*`/
+    // `.demo-tick-*`/`.demo-endpoint-labels` classes for the parts of its styling that would otherwise repeat the
+    // dark-theme palette inline in Rust.
     let guide = svg.path_from_defs(&[
         PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(430.0, 130.0))),
         PathDef::Abs(PathDefAbsolute::QuadraticBezierTo(

@@ -15,6 +15,7 @@
 
 mod colours;
 mod events;
+mod foreign_html;
 mod geometry;
 mod highlight;
 mod paint;

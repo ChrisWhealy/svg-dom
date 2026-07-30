@@ -337,11 +337,12 @@ figcaption ol {
     color: #d2a8ff;
 }
 
-/* Plain HTML controls demo-app/src/texts.rs embeds inside <foreignObject> (the text-anchor/dominant-baseline radio
-   groups, the startOffset slider) — shared classes so the dark-theme colours those controls use live here, once,
-   the same as every other themed element on this page, rather than as inline-style string literals duplicated
-   across each interactive demo in Rust. Pixel-sized, not rem-based, like the rest of this file: these sit inside an
-   SVG canvas at a fixed scale set by W/H in demo-app/src/lib.rs, not the page's own root font size. */
+/* Plain HTML controls demo-app/src builds inside <foreignObject> (texts.rs's text-anchor/dominant-baseline radio
+   groups and startOffset slider, and structure.rs's marker viewBox zoom slider) — shared classes so the dark-theme
+   colours those controls use live here, once, the same as every other themed element on this page, rather than as
+   inline-style string literals duplicated across each interactive demo in Rust. Pixel-sized, not rem-based, like
+   the rest of this file: these sit inside an SVG canvas at a fixed scale set by W/H in demo-app/src/lib.rs, not the
+   page's own root font size. */
 .demo-control-group {
     display: flex;
     flex-direction: column;
