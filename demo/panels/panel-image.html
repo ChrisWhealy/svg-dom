@@ -5,24 +5,25 @@
                     <div class="canvas" id="demo-image"></div>
                     <figcaption>
                         <p>
-                            A four-quadrant colour grid image has a natural size of 60&times;40 pixels, marked with a
-                            small dot near its left edge.
+                            A four-quadrant colour grid image has a natural size of 60&times;40 pixels.
+                            A small dot marks a point near its left edge.
                         </p>
                         <p>
-                            This image is then placed in a 100&times;100 box with three different
-                            <strong>preserveAspectRatio</strong> modes. Watch the dot and the grey guide outline:
+                            The image sits inside a 100&times;100 box.
+                            Radio buttons choose the box's <strong>preserveAspectRatio</strong> value.
+                            Watch the dot and the grey guide outline as you switch between them:
                         </p>
                         <ul>
-                            <li><strong>meet</strong> (default) shrinks the whole image to fit, leaving guide-coloured
-                                bars above and below &mdash; the dot stays visible.</li>
-                            <li><strong>none</strong> stretches the image to fill the box exactly, distorting its
-                                aspect ratio &mdash; no bars, and the dot stays visible.</li>
-                            <li><strong>slice</strong> scales the image up to fill the box and crops the sides causing
-                                the dot to be cropped away entirely.</li>
+                            <li><strong>meet</strong> (default) shrinks the whole image to fit inside the box.
+                                Guide-coloured bars appear above and below. The dot stays visible.</li>
+                            <li><strong>none</strong> stretches the image to fill the box exactly.
+                                This distorts the image's aspect ratio. No bars appear, and the dot stays visible.</li>
+                            <li><strong>slice</strong> scales the image up to fill the box.
+                                This crops the sides. The crop removes the dot entirely.</li>
                         </ul>
                         <p>
-                            The fourth slot demonstrates using <code>set_href</code> to swap the image source after its
-                            creation.
+                            A second image on the right demonstrates <code>set_href</code>.
+                            This method swaps the image source after creation.
                         </p>
                     </figcaption>
                 </figure>

@@ -1,5 +1,10 @@
-use super::radio_group;
-use crate::{H, W, caption, colours::*, dom_err, foreign_html::foreign_object_document, keep_demo_node};
+use crate::{
+    H, W, caption,
+    colours::*,
+    dom_err,
+    foreign_html::{foreign_object_document, radio_group},
+    keep_demo_node,
+};
 
 use svg_dom::{
     DominantBaseline, Error, SvgRoot, TextAnchor,

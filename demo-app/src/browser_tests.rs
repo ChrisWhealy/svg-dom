@@ -1,6 +1,7 @@
-//! Browser tests for the interactive HTML controls built inside `<foreignObject>`s: `texts`'s
-//! text-anchor/dominant-baseline radio groups (`demo_text`) and startOffset slider (`demo_text_path`), and
-//! `structure`'s marker viewBox zoom slider (`demo_marker_view_box`).
+//! Browser tests for the interactive HTML controls built inside `<foreignObject>`s.
+//! `texts` contributes the text-anchor/dominant-baseline radio groups (`demo_text`) and the startOffset slider
+//! (`demo_text_path`). `structure` contributes the marker viewBox zoom slider (`demo_marker_view_box`) and the
+//! preserveAspectRatio radio group (`demo_image`).
 //!
 //! These exist because `unit_tests::every_registered_demo_has_extractable_source` only proves every registered
 //! demo function's Rust *source* is extractable — it builds nothing and dispatches no events, so it cannot catch
@@ -333,4 +334,56 @@ fn marker_view_box_slider_updates_marker_and_readout_without_moving_the_line() {
     assert_eq!(line.get_attribute("y1"), initial_y1);
     assert_eq!(line.get_attribute("x2"), initial_x2);
     assert_eq!(line.get_attribute("y2"), initial_y2);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#[wasm_bindgen_test]
+fn demo_image_radio_group_updates_preserve_aspect_ratio() {
+    container("demo-image");
+    super::structure::demo_image::demo().expect("demo_image::demo should build without error");
+
+    let root = document().get_element_by_id("demo-image").expect("container exists");
+
+    // Only the interactive image carries a preserveAspectRatio attribute. The set_href swap image never sets one.
+    // This attribute is what tells the two <image> elements apart.
+    let image = root
+        .query_selector("image[preserveAspectRatio]")
+        .expect("query image")
+        .expect("interactive image present");
+
+    // Starts at the demo's own default, asserted before any interaction. A later mismatch can then only come
+    // from the radio click itself, not from the initial state.
+    assert_eq!(image.get_attribute("preserveAspectRatio").as_deref(), Some("xMidYMid meet"));
+
+    let none = find_radio(&root, "preserveAspectRatio", "none");
+    select_radio(&none);
+    assert_eq!(
+        image.get_attribute("preserveAspectRatio").as_deref(),
+        Some("none"),
+        "selecting none should update preserveAspectRatio"
+    );
+
+    let slice = find_radio(&root, "preserveAspectRatio", "slice");
+    select_radio(&slice);
+    assert_eq!(
+        image.get_attribute("preserveAspectRatio").as_deref(),
+        Some("xMidYMid slice"),
+        "selecting slice should update preserveAspectRatio"
+    );
+
+    let meet = find_radio(&root, "preserveAspectRatio", "meet");
+    select_radio(&meet);
+    assert_eq!(
+        image.get_attribute("preserveAspectRatio").as_deref(),
+        Some("xMidYMid meet"),
+        "selecting meet should update preserveAspectRatio"
+    );
+
+    // The radio group must only ever touch the interactive image. This check confirms the swap-demo image
+    // still carries no preserveAspectRatio attribute of its own.
+    let swap_image = root
+        .query_selector("image:not([preserveAspectRatio])")
+        .expect("query swap image")
+        .expect("swap image present");
+    assert!(swap_image.get_attribute("preserveAspectRatio").is_none());
 }
