@@ -28,6 +28,7 @@ use std::{
 /// Where the gallery's generated `index.html` and wasm package are staged (see `main`'s own doc comment for the
 /// full directory layout). Bundled into one struct since every phase below needs some subset of these same three
 /// paths, derived together from a single `target_dir`.
+#[derive(Clone)]
 pub struct StagePaths {
     pub stage_dir: PathBuf,
     pub demo_dir: PathBuf,

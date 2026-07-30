@@ -34,6 +34,11 @@
 //!
 //! The port number can be overridden using the `PORT` environment variable, e.g. `PORT=9000 cargo demo`.
 //!
+//! [`build::prepare_gallery`] also reruns before every request the server handles, not just once at startup. So
+//! editing `demo/index.template.html`, a file under `demo/panels/`, `demo/style.css`, or `demo/view-demo.svg` is
+//! visible on the next browser refresh alone. Nothing restages the wasm package per request: `wasm-pack` is too
+//! slow for that, and editing Rust source needs a restart regardless, for the wasm rebuild to even happen.
+//!
 //! The build pipeline itself — resolving staging paths through to a wasm package ready to serve — lives in [`build`],
 //! as a `Result`-returning [`build::build_gallery`] rather than something that reports errors and exits on its own.
 //! That keeps every "how do we build the gallery" decision testable and reusable independently of Actix, and leaves
@@ -48,7 +53,7 @@ mod panels;
 mod validate;
 
 use actix_files::Files;
-use actix_web::{App, HttpServer, middleware::Logger};
+use actix_web::{App, HttpServer, dev::Service, middleware::Logger};
 use build::StagePaths;
 use std::{env::VarError, path::PathBuf, process};
 
@@ -99,22 +104,41 @@ async fn main() -> std::io::Result<()> {
     }
 
     let addr = ("127.0.0.1", port);
-    let stage_dir = stage.stage_dir;
+    let stage_dir = stage.stage_dir.clone();
 
     println!("\n  svg-dom-demo running on http://127.0.0.1:{port}/demo/\n");
 
     HttpServer::new(move || {
-        App::new().wrap(Logger::default()).service(
-            // Without `redirect_to_slash_directory`, a request for a bare directory path (e.g. `/demo`, with no
-            // trailing slash — exactly what a typed or bookmarked URL naturally looks like) serves index.html's bytes
-            // in place rather than redirecting to `/demo/`. That leaves the browser's base URI one path segment too
-            // shallow, so every plain-relative reference the generated page makes (view-demo.svg or style.css)
-            // resolve one directory level too high and consequently 404s. The documented URL already has the trailing
-            // slash (see this file's own top-level doc comment), but nothing enforced it without this.
-            Files::new("/", stage_dir.clone())
-                .index_file("index.html")
-                .redirect_to_slash_directory(),
-        )
+        let root = root.clone();
+        let stage = stage.clone();
+
+        App::new()
+            .wrap(Logger::default())
+            // Re-runs prepare_gallery (validate, reassemble index.html, recopy style.css and view-demo.svg) before
+            // every request reaches Files below, so an edit to a source file under demo/ is visible on the very next
+            // browser refresh. build_gallery's wasm rebuild is deliberately not repeated here: wasm-pack is far too
+            // slow to run per request and editing Rust source already requires restarting cargo demo regardless.
+            //
+            // A refresh failure (e.g. a source file was left mid-edit) is only logged, not fatal: the previous
+            // successfully staged files are left in place and keep being served, the same file-not-found-yet
+            // tolerance an editor's own autosave already needs.
+            .wrap_fn(move |req, srv| {
+                if let Err(err) = build::prepare_gallery(&root, &stage, port) {
+                    eprintln!("warning: could not refresh gallery ({err})");
+                }
+                srv.call(req)
+            })
+            .service(
+                // Without `redirect_to_slash_directory`, a request for a bare directory path (e.g. `/demo`, with no
+                // trailing slash) serves index.html's bytes in place rather than redirecting to `/demo/`. That leaves
+                // the browser's base URI one path segment too shallow, so every plain-relative reference the generated
+                // page makes (view-demo.svg or style.css) resolve one directory level too high and consequently 404s.
+                // The documented URL already has the trailing slash (see this file's own top-level doc comment), but
+                // nothing enforced it without this.
+                Files::new("/", stage_dir.clone())
+                    .index_file("index.html")
+                    .redirect_to_slash_directory(),
+            )
     })
     .bind(addr)?
     .run()
