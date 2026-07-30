@@ -14,7 +14,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 ### Fixed
 
-- Avoid hotpath String allocation in textPath demo (``)
+- Avoid hotpath String allocation in textPath demo (`91cce99`)
 
 ### Changed
 

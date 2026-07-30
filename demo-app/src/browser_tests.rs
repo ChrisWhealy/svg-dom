@@ -151,7 +151,10 @@ fn demo_text_radio_groups_update_their_target_attributes() {
     // calling `set_text_anchor` again, leaving `anchor_text`'s attribute at "middle" by accident rather than by proof
     // — the assertions above would pass either way. Inspecting the inputs' own `checked`/`name` state is what actually
     // pins down group independence.
-    assert!(middle.checked(), "middle should still be checked after selecting hanging in the other group");
+    assert!(
+        middle.checked(),
+        "middle should still be checked after selecting hanging in the other group"
+    );
     assert!(hanging.checked());
     assert_ne!(middle.name(), hanging.name(), "the two radio groups must not share a name");
 }
