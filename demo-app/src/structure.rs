@@ -6,12 +6,18 @@ use std::{
 use super::{BAND, H, NS_XHTML, PAD_Y, W, caption, colours::*, keep_demo_anim, keep_demo_node};
 // `dom_err` is this crate's own private helper (defined in `lib.rs`, formerly `mod.rs`'s own DOM-error mapper), not
 // part of `svg_dom`'s public API — kept as a separate `use` from the `svg_dom::` import below for exactly that
-// reason.
-use crate::dom_err;
+// reason. `DemoClosure`/`keep_demo_closure` are also `lib.rs`-local; `foreign_object_document`/`xhtml` are the
+// `texts` module's shared slider-building helpers (see that module's own doc comment for why they are `pub(crate)`
+// rather than folded into `demo-app`'s public surface).
+use crate::{
+    DemoClosure, dom_err, keep_demo_closure,
+    texts::{foreign_object_document, xhtml},
+};
 use svg_dom::{
     AnimationLoop, Error, PathDef, PathDefAbsolute, SvgNode, SvgRoot,
     root::utils::{Matrix2D, Point, Size},
 };
+use wasm_bindgen::{JsCast, prelude::*};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // symbol — reusable scaled viewport
@@ -275,70 +281,122 @@ pub(super) fn demo_marker() -> Result<(), Error> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// SvgMarker::set_view_box — same authored triangle, two different viewBox windows onto it
+// SvgMarker::set_view_box — one shared triangle, a slider drives the viewBox window onto it
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 pub(super) fn demo_marker_view_box() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-marker-view-box", Size::new(W, H))?;
 
     let defs = svg.defs()?;
 
-    // Both markers render the *same* polygon — a triangle from (0,0) to (100,35) to (0,70) — through the same
-    // markerWidth/markerHeight (24x16.8, matching the triangle's own 10:7 aspect ratio so neither viewBox below
-    // needs any preserveAspectRatio letterboxing). Only the viewBox each one applies to that shared polygon
-    // differs, and that alone is enough to make them look quite different.
+    // The marker always renders the same polygon: a triangle from (0,0) to (100,35) to (0,70). Its markerWidth and
+    // markerHeight stay fixed maintaining the triangle's 10:7 aspect ratio. Only the viewBox applied to that shared
+    // polygon changes, and the slider below drives that change directly.
     let triangle = [Point::new(0.0, 0.0), Point::new(100.0, 35.0), Point::new(0.0, 70.0)];
 
-    // Marker A: viewBox covers the polygon's full 100x70 extent, so the whole sharp-pointed triangle is visible.
-    let full = defs.build_marker("arrow-full", |m| {
-        m.set_ref_x(100.0)?;
-        m.set_ref_y(35.0)?;
+    const BASE_W: f64 = 100.0;
+    const BASE_H: f64 = 70.0;
+
+    let arrow = defs.build_marker("arrow-zoom", |m| {
+        m.set_ref_x(BASE_W)?;
+        m.set_ref_y(BASE_H / 2.0)?;
         m.set_marker_width(24.0)?;
         m.set_marker_height(16.8)?;
-        m.set_view_box(0.0, 0.0, 100.0, 70.0)?;
+        m.set_view_box(0.0, 0.0, BASE_W, BASE_H)?;
         m.set_orient("auto")?;
         m.polygon(&triangle)?.set_fill(ACCENT_BLUE)?;
         Ok(())
     })?;
 
-    // Marker B: viewBox covers only the polygon's top-left 50x35 quarter — half the width and half the height, so
-    // the content is magnified 2x, and the triangle's pointed tip (which lives outside x:50-100) is clipped away
-    // entirely. What is left is a blunt, roughly trapezoidal wedge: a visibly different shape, at a visibly
-    // different scale, from the same polygon data.
-    let cropped = defs.build_marker("arrow-cropped", |m| {
-        m.set_ref_x(50.0)?;
-        m.set_ref_y(26.0)?;
-        m.set_marker_width(24.0)?;
-        m.set_marker_height(16.8)?;
-        m.set_view_box(0.0, 0.0, 50.0, 35.0)?;
-        m.set_orient("auto")?;
-        m.polygon(&triangle)?.set_fill(DARK_ORANGE)?;
-        Ok(())
-    })?;
+    let line = svg.line(Point::new(140.0, PAD_Y + 65.0), Point::new(650.0, PAD_Y + 65.0))?;
+    line.set_stroke(ACCENT_BLUE)?;
+    line.set_stroke_width(2.0)?;
+    line.set_marker_end_ref(&arrow)?;
 
-    let label = |cx: f64, y: f64, text: &str| -> Result<(), Error> {
-        let t = svg.text(Point::new(cx, y), text)?;
-        t.set_fill(TEXT)?;
-        t.set_attrs([("font-size", "13"), ("text-anchor", "end")])?;
-        Ok(())
-    };
-
-    let l1 = svg.line(Point::new(140.0, PAD_Y + 35.0), Point::new(650.0, PAD_Y + 35.0))?;
-    l1.set_stroke(ACCENT_BLUE)?;
-    l1.set_stroke_width(2.0)?;
-    l1.set_marker_end_ref(&full)?;
-    label(120.0, PAD_Y + 39.0, "full shape")?;
-
-    let l2 = svg.line(Point::new(140.0, PAD_Y + 95.0), Point::new(650.0, PAD_Y + 95.0))?;
-    l2.set_stroke(DARK_ORANGE)?;
-    l2.set_stroke_width(2.0)?;
-    l2.set_marker_end_ref(&cropped)?;
-    label(120.0, PAD_Y + 99.0, "zoomed 2×")?;
+    let readout = svg.text(Point::new(140.0, PAD_Y + 45.0), "zoom 0%")?;
+    readout.set_fill(TEXT)?;
+    readout.set_font_size(13.0)?;
 
     caption(
         &svg,
         W / 2.0,
-        "the same figure, two different set_view_box windows: a half-size viewBox both magnifies 2× and clips the tip off",
+        "one shared set_view_box() window onto the arrowhead only — drag the slider to zoom",
     )?;
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // Interactive zoom slider
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // Ranges from -50 to 50 (percent), zero at the centre. A positive value shrinks the viewBox, so it magnifies the
+    // triangle and crops more of it away. A negative value enlarges the viewBox, so it zooms out. Width and height
+    // always scale by the same factor, so the viewBox keeps its 10:7 aspect ratio at every position on the slider.
+    //
+    // This only ever changes the marker's own content. A marker's viewBox has no way to reach the <line> that
+    // references it via marker-end, so the line keeps its own length and position no matter what the slider does — that
+    // scoping is exactly what this demo exists to show.
+    let slider_fo = svg.foreign_object(Point::new(140.0, 6.0), Size::new(400.0, 50.0))?;
+    let slider_document = foreign_object_document(&slider_fo)?;
+
+    let slider_container = xhtml(&slider_document, "div")?;
+    slider_container
+        .set_attribute("class", "demo-slider-container")
+        .map_err(dom_err)?;
+
+    let slider = xhtml(&slider_document, "input")?
+        .dyn_into::<web_sys::HtmlInputElement>()
+        .map_err(|_| Error::Dom("createElement(\"input\") did not return an HtmlInputElement".into()))?;
+    slider.set_type("range");
+    slider.set_min("-50");
+    slider.set_max("50");
+    slider.set_step("1");
+    slider.set_value("0");
+    slider.set_attribute("class", "demo-slider").map_err(dom_err)?;
+    // No visible <label>: the "zoom <n>%" SVG text above already carries this for sighted users, but SVG text
+    // content is not programmatically associated with an HTML control the way <label> is, so this needs its own
+    // accessible name. aria-valuetext is kept in sync with the same text on every `input` event, below.
+    slider.set_attribute("aria-label", "marker viewBox zoom").map_err(dom_err)?;
+    slider.set_attribute("aria-valuetext", "zoom 0%").map_err(dom_err)?;
+
+    let endpoint_labels = xhtml(&slider_document, "div")?;
+    endpoint_labels
+        .set_attribute("class", "demo-endpoint-labels")
+        .map_err(dom_err)?;
+    for text in ["-50%", "0%", "+50%"] {
+        let label = xhtml(&slider_document, "span")?;
+        label.set_text_content(Some(text));
+        endpoint_labels.append_child(&label).map_err(dom_err)?;
+    }
+
+    // `SvgMarker` is not `Clone` (unlike `SvgNode`), so `arrow` moves into this closure outright — there is only
+    // ever one handle to it, and nothing after this point needs a second one.
+    let slider_value = slider.clone();
+    let readout_target = readout.clone();
+    let mut label_buf = String::new();
+    let on_input: DemoClosure = Closure::new(move |_: web_sys::Event| {
+        let percent: f64 = slider_value.value().parse().unwrap_or(0.0);
+        let factor = 1.0 - percent / 100.0;
+        let width = BASE_W * factor;
+        let height = BASE_H * factor;
+
+        let _ = arrow.set_ref_x(width);
+        let _ = arrow.set_ref_y(height / 2.0);
+        let _ = arrow.set_view_box(0.0, 0.0, width, height);
+
+        let percent_text = if percent > 0.0 {
+            format!("zoom +{percent:.0}%")
+        } else {
+            format!("zoom {percent:.0}%")
+        };
+        let _ = readout_target.set_text_fmt(&mut label_buf, format_args!("{percent_text}"));
+        let _ = slider_value.set_attribute("aria-valuetext", &percent_text);
+    });
+    slider
+        .add_event_listener_with_callback("input", on_input.as_ref().unchecked_ref())
+        .map_err(dom_err)?;
+    keep_demo_closure(on_input);
+
+    slider_container.append_child(&slider).map_err(dom_err)?;
+    slider_container.append_child(&endpoint_labels).map_err(dom_err)?;
+    slider_fo.as_element().append_child(&slider_container).map_err(dom_err)?;
+    keep_demo_node(slider_fo);
 
     Ok(())
 }

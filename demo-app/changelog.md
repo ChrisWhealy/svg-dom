@@ -11,6 +11,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 ### Added
 
 - Doc only: clarify that tick mark test does not cover WebKit/Safari or pixel-perfect alignment (`413e6d6`)
+- Make `set_view_box()` demo interactive (``)
 
 ### Fixed
 

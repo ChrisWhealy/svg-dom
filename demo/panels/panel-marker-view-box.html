@@ -4,21 +4,27 @@
                 <figure>
                     <div class="canvas" id="demo-marker-view-box"></div>
                     <figcaption>
-                        <p>First, create a triangle polygon</p>
-                        <p>Then, reference it using two markers that have been sized so they preserve the triangle's
-                            aspect ratio of 10:7. This means calling <code>set_marker_width(24.0)</code> followed by
+                        <p>First, create a triangle polygon.
+                            Then, reference it from a single marker sized to keep the triangle's aspect ratio of
+                            10:7. This means calling <code>set_marker_width(24.0)</code> and
                             <code>set_marker_height(16.8)</code>.
                         </p>
+                        <p>The slider sets a zoom percentage from -50% to +50%, centered on 0%.
+                            Each change calls <code>set_view_box(0, 0, width, height)</code> with a new width and
+                            height. Both values scale by the same factor, so the view box keeps its 10:7 aspect
+                            ratio at every position.
+                        </p>
+                        <p>A marker's view box only affects the marker's own content, the arrowhead.
+                            It cannot affect the line that references the marker.
+                            The line keeps its own length and position no matter what the slider does.
+                        </p>
                         <ul>
-                            <li>
-                                <strong>Top</strong>: <code>set_view_box(0, 0, 100, 70)</code> creates a view box that
-                                covers the full extent of the polygon, making the entire arrow visible.<br>
-                            </li>
-                            <li>
-                                <strong>Bottom</strong>: <code>set_view_box(0, 0, 50, 35)</code> creates a view that
-                                covers only the triangle's top-left quarter, effectively magnifying the triangle by a
-                                factor of 2. Consequently, the triangle's tip has been clipped off entirely.
-                            </li>
+                            <li>At 0%, the view box covers the full extent of the polygon and shows the whole
+                                arrowhead.</li>
+                            <li>A positive value shrinks the view box. This magnifies the arrowhead and clips off
+                                its tip.</li>
+                            <li>A negative value enlarges the view box. This shrinks the arrowhead within the
+                                marker cell.</li>
                         </ul>
                     </figcaption>
                 </figure>
