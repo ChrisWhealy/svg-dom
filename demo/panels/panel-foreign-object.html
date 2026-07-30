@@ -6,45 +6,44 @@
         <div class="canvas" id="demo-foreign-object"></div>
         <figcaption>
             <p>
-                The dashed rectangle shows the <code>&lt;foreignObject&gt;</code>'s own bounds. It
-                paints nothing of its own, so it would otherwise be invisible.
+                The dashed rectangle shows the <code>&lt;foreignObject&gt;</code>'s own bounds. It paints nothing of its
+                own, so it would otherwise be invisible.
             </p>
             <p>
-                The paragraph inside it, however, is a genuine HTML element. The browser's normal
-                engine lays it out. It <strong>wraps to the box width</strong>, the way any ordinary
-                web content does. SVG's own <code>&lt;text&gt;</code> element cannot do this by itself.
+                The paragraph inside it, however, is a genuine HTML element. Since the browser's normal render engine
+                lays it out, it <strong>wraps to the box width</strong> the way any ordinary web content does.
             </p>
             <p>
-                This rectangle is a bounding box, not an unconditional clip. Browsers clip to it by
-                default, using <code>overflow: hidden</code> from the UA stylesheet.
-                <code>&lt;svg&gt;</code>, <code>&lt;symbol&gt;</code> and <code>&lt;marker&gt;</code>
-                use the same default. This clip is an ordinary, overridable CSS property. SVG's
-                rendering model does not enforce it.
+                SVG's own <code>&lt;text&gt;</code> element cannot do this by itself.
             </p>
             <p>
-                <code>SvgRoot::foreign_object(top_left, size)</code> returns an <em>empty</em> element.
-                It has neither a <code>set_inner_html()</code> nor a <code>set_content()</code> method
-                to fill it.
+                This rectangle is a bounding box rather than an unconditional clip, so browsers clip to it by default,
+                using <code>overflow: hidden</code> from the UA stylesheet.
             </p>
             <p>
-                This is a deliberate design choice. A string-based HTML convenience method would need
-                to parse caller-supplied markup, typically via a parsing API such as
-                <code>innerHTML</code>. Parsing arbitrary markup brings sanitisation and trust
-                concerns. This crate has no business maintaining those concerns.
+                <code>&lt;svg&gt;</code>, <code>&lt;symbol&gt;</code> and <code>&lt;marker&gt;</code> use the same
+                default. This clip is an ordinary, overridable CSS property. SVG's rendering model does not enforce it.
+            </p>
+            <p>
+                <code>SvgRoot::foreign_object(top_left, size)</code> returns an <em>empty</em> element. The deliberate
+                design choice was made to provide neither a <code>set_inner_html()</code> nor a
+                <code>set_content()</code> method to fill it. Any such string-based HTML convenience methods would need
+                to parse caller-supplied markup, typically via a parsing API such as <code>innerHTML</code>.
+            </p>
+            <p>
+                Parsing arbitrary markup brings sanitisation and trust concerns that this crate has no business
+                maintaining.
             </p>
             <p>No part of this crate's public API parses a string as markup anywhere.</p>
             <p>
-                The HTML above was built through the raw DOM, via
-                <code>SvgNode::as_element()</code>. This is already a first-class, intentional escape
-                hatch in this crate.
+                The HTML above was built through the raw DOM, via <code>SvgNode::as_element()</code>. This is already a
+                first-class, intentional escape hatch in this crate.
             </p>
             <p>
-                That content is real and present in the DOM. This crate's tree-navigation methods treat
-                it like any other non-SVG node. Functions such as <code>children()</code> and
-                <code>query_selector_all()</code> exclude it from their results.
-                <code>first_child()</code>, <code>query_selector()</code>, and their single-result
-                siblings return <code>None</code> instead, if the one candidate they examine is
-                non-SVG.
+                That content is real and present in the DOM. This crate's tree-navigation methods treat it like any
+                other non-SVG node. Functions such as <code>children()</code> and <code>query_selector_all()</code>
+                exclude it from their results. <code>first_child()</code>, <code>query_selector()</code>, and their
+                single-result siblings return <code>None</code> instead, if the one candidate they examine is non-SVG.
             </p>
         </figcaption>
     </figure>
