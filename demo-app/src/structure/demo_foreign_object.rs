@@ -12,12 +12,12 @@ pub(crate) fn demo() -> Result<(), Error> {
 
     // <foreignObject> paints nothing of its own — without a visible boundary, the demo would just show floating
     // text with no indication of the SVG-space rectangle it's laid out (and, by default, clipped) within.
-    let boundary = svg.rect(Point::new(40.0, PAD_Y), Size::new(340.0, BAND))?;
+    let boundary = svg.rect(Point::new(40.0, PAD_Y), Size::new(340.0, BAND - 30.0))?;
     boundary.set_fill(NONE)?;
     boundary.set_stroke(GUIDE)?;
     boundary.set_attr("stroke-dasharray", "4 3")?;
 
-    let fo = svg.foreign_object(Point::new(40.0, PAD_Y), Size::new(340.0, BAND))?;
+    let fo = svg.foreign_object(Point::new(40.0, PAD_Y), Size::new(340.0, BAND - 30.0))?;
 
     // svg-dom's own API deliberately stops here: no set_inner_html or set_content method exists on the returned SvgNode
     // — see SvgRoot::foreign_object's doc comment for why a string-based convenience method isn't offered (parsing
