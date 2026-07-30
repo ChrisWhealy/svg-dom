@@ -1,6 +1,6 @@
-//! Browser tests for the interactive HTML controls built inside `<foreignObject>`s: `texts.rs`'s
+//! Browser tests for the interactive HTML controls built inside `<foreignObject>`s: `texts`'s
 //! text-anchor/dominant-baseline radio groups (`demo_text`) and startOffset slider (`demo_text_path`), and
-//! `structure.rs`'s marker viewBox zoom slider (`demo_marker_view_box`).
+//! `structure`'s marker viewBox zoom slider (`demo_marker_view_box`).
 //!
 //! These exist because `unit_tests::every_registered_demo_has_extractable_source` only proves every registered
 //! demo function's Rust *source* is extractable — it builds nothing and dispatches no events, so it cannot catch
@@ -239,7 +239,7 @@ fn start_offset_slider_updates_position_colour_text_and_stays_within_the_path_le
 #[wasm_bindgen_test]
 fn marker_view_box_slider_updates_marker_and_readout_without_moving_the_line() {
     container("demo-marker-view-box");
-    super::structure::demo_marker_view_box().expect("demo_marker_view_box should build without error");
+    super::structure::demo_marker_view_box::demo().expect("demo_marker_view_box::demo should build without error");
 
     let root = document().get_element_by_id("demo-marker-view-box").expect("container exists");
 
