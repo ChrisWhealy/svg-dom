@@ -13,6 +13,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 - Rerun prepare_gallery on each HTTP request for live reload (`4f1fc2c`)
 - Adapt all demo documentation to use simplified technical English style guide (`2e59696`)
 - Tidy up foreignObject demo description and bump version number (`2c67bb1`)
+- Refactor remaining demo modules (`0900e53`)
 
 ### Fixed
 
