@@ -14,7 +14,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 - Add regression test for linearGradient demos (`74b08b4`)
 - Add initial `aria-valuetext` values to linearGradient demo sliders (`dfdf881`)
 - Expose spectrum constraints to UI controls (`ef81567`)
-- Improve descriptive clarity of `aria-label` names (``)
+- Improve descriptive clarity of `aria-label` names (`0a0ac89`)
 
 ## [0.1.6] - 2026-07-30
 
