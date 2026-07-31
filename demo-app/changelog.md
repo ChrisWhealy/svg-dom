@@ -16,11 +16,12 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 - Expose spectrum constraints to UI controls (`ef81567`)
 - Improve descriptive clarity of `aria-label` names (`0a0ac89`)
 - Improve `aria-valuetext` test coverage (`cfd9301`)
-- Correct stale doc comments (`c6c40b6`)
 
 ### Fixed
 
 - Correct `aria-valuetext` for linearGradient demo slider (``)
+- Correct stale doc comments (`c6c40b6`)
+- Correct accuracy of spectrum bounds (``)
 
 ## [0.1.6] - 2026-07-30
 

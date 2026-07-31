@@ -572,6 +572,43 @@ fn demo_linear_gradient_sliders_update_stops_and_respect_ordering() {
     );
     assert_eq!(s3_slider.max(), "99", "stop 3's absolute upper bound never changes");
 
+    // The visible endpoint labels and tick marks beside each slider must describe the same live range its own
+    // min/max attribute does, not the absolute range it was first built with — otherwise the rightmost tick and
+    // the "64%" position on screen would silently disagree with what the thumb can actually reach.
+    let endpoint_texts = |slider: &web_sys::HtmlInputElement| -> (String, String) {
+        let container = slider
+            .closest(".demo-slider-container")
+            .expect("query closest container")
+            .expect("slider has a .demo-slider-container ancestor");
+        let labels = container
+            .query_selector(".demo-endpoint-labels")
+            .expect("query endpoint labels")
+            .expect("endpoint-labels row present");
+        let spans = labels.query_selector_all("span").expect("query endpoint spans");
+        let lo = spans.item(0).expect("lo span").text_content().unwrap_or_default();
+        let hi = spans.item(1).expect("hi span").text_content().unwrap_or_default();
+        (lo, hi)
+    };
+    let tick_count = |slider: &web_sys::HtmlInputElement| -> u32 {
+        let container = slider
+            .closest(".demo-slider-container")
+            .expect("query closest container")
+            .expect("slider has a .demo-slider-container ancestor");
+        let ticks_row = container
+            .query_selector(".demo-tick-row")
+            .expect("query tick row")
+            .expect("tick row present");
+        ticks_row
+            .query_selector_all(".demo-tick-mark")
+            .expect("query tick marks")
+            .length()
+    };
+
+    assert_eq!(endpoint_texts(&s2_slider), ("1%".to_owned(), "64%".to_owned()));
+    assert_eq!(endpoint_texts(&s3_slider), ("36%".to_owned(), "99%".to_owned()));
+    assert_eq!(tick_count(&s2_slider), 4, "1..64 in steps of 25, plus a trailing tick at 64");
+    assert_eq!(tick_count(&s3_slider), 4, "36..99 in steps of 25, plus a trailing tick at 99");
+
     // Push stop 2 past stop 3's current value (65). The native max attribute above already stops it at 64,
     // before this demo's own `on_input` handler ever runs.
     dispatch_input(&s2_slider, "70");
@@ -591,6 +628,16 @@ fn demo_linear_gradient_sliders_update_stops_and_respect_ordering() {
         s3_slider.min(),
         "65",
         "stop 3's live lower bound should follow stop 2's new value"
+    );
+    assert_eq!(
+        endpoint_texts(&s3_slider),
+        ("65%".to_owned(), "99%".to_owned()),
+        "stop 3's own visible endpoint label should follow its live min, not stay at the original 36%"
+    );
+    assert_eq!(
+        tick_count(&s3_slider),
+        3,
+        "65..99 in steps of 25, plus a trailing tick at 99 — fewer ticks fit the narrower live range"
     );
 
     // Push stop 3 down past stop 2's new current value (64), not its original one (35). The native min

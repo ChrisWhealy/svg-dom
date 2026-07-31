@@ -116,15 +116,56 @@ fn select_el(svg: &SvgRoot, selector: &str) -> Result<web_sys::Element, Error> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Fills `ticks_row` with tick marks proportioned across `[min, max]`, every `tick_step` units from `min`, plus
+/// one final tick at `max`.
+/// That final tick may sit closer than `tick_step` to its neighbour.
+/// `texts::demo_text_path`'s own hand-drawn ticks use this same trailing-tick shape.
+///
+/// Clears any tick marks `ticks_row` already holds first, so this doubles as a refresh: the spectrum demo's two
+/// sliders each call this again whenever the other slider changes their own live `min`/`max`, keeping their tick
+/// marks proportioned to the *current* range, not the range they were first built with.
+fn fill_ticks(ticks_row: &web_sys::Element, min: i32, max: i32, tick_step: i32) -> Result<(), Error> {
+    let document = ticks_row
+        .owner_document()
+        .ok_or_else(|| Error::Dom("tick row has no owner document".into()))?;
+    ticks_row.set_inner_html("");
+
+    let span = f64::from(max - min);
+    let mut tick = min;
+    while tick < max {
+        let percent = f64::from(tick - min) / span * 100.0;
+        let mark = xhtml(&document, "span")?;
+        mark.set_attribute("class", "demo-tick-mark").map_err(dom_err)?;
+        mark.set_attribute("style", &format!("left:{percent:.2}%;")).map_err(dom_err)?;
+        ticks_row.append_child(&mark).map_err(dom_err)?;
+        tick += tick_step;
+    }
+    let final_mark = xhtml(&document, "span")?;
+    final_mark.set_attribute("class", "demo-tick-mark").map_err(dom_err)?;
+    final_mark.set_attribute("style", "left:100%;").map_err(dom_err)?;
+    ticks_row.append_child(&final_mark).map_err(dom_err)?;
+    Ok(())
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// The pieces of a slider built by [`build_h_slider`] that the spectrum demo's two sliders need to keep updated
+/// after construction: their own live endpoint text and tick marks, alongside the `<input>` itself.
+/// The other two callers of `build_h_slider` only ever need `input`, and simply ignore the rest.
+#[derive(Clone)]
+struct HSlider {
+    input: web_sys::HtmlInputElement,
+    lo_label: web_sys::Element,
+    hi_label: web_sys::Element,
+    ticks_row: web_sys::Element,
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Builds one labelled horizontal `<input type="range">`.
 /// It includes tick marks and endpoint value text.
 /// The control sits inside its own `<foreignObject>` at `pos`, sized `(w, SLIDER_ROW_H)`.
 ///
 /// `range` is `(min, max, default)`.
-/// `tick_step` places a tick mark every `tick_step` units from `min`.
-/// It also places one final tick at `max`.
-/// That final tick may sit closer than `tick_step` to its neighbour.
-/// `texts::demo_text_path`'s own hand-drawn ticks use this same trailing-tick shape.
+/// `tick_step` is passed straight through to [`fill_ticks`].
 /// `endpoints` is the `(min, max)` text shown on either side of the track, for example `"10%"`/`"100%"` or
 /// `"-90°"`/`"+90°"`.
 /// This text is free-form, since not every slider's endpoints share its raw `i32` value's unit.
@@ -145,7 +186,7 @@ fn build_h_slider(
     range: (i32, i32, i32),
     tick_step: i32,
     endpoints: (&str, &str),
-) -> Result<web_sys::HtmlInputElement, Error> {
+) -> Result<HSlider, Error> {
     let (visible_label, accessible_label) = labels;
     let (min, max, default) = range;
     let (min_label, max_label) = endpoints;
@@ -175,37 +216,51 @@ fn build_h_slider(
 
     let ticks_row = xhtml(&document, "div")?;
     ticks_row.set_attribute("class", "demo-tick-row").map_err(dom_err)?;
-    let span = f64::from(max - min);
-    let mut tick = min;
-    while tick < max {
-        let percent = f64::from(tick - min) / span * 100.0;
-        let mark = xhtml(&document, "span")?;
-        mark.set_attribute("class", "demo-tick-mark").map_err(dom_err)?;
-        mark.set_attribute("style", &format!("left:{percent:.2}%;")).map_err(dom_err)?;
-        ticks_row.append_child(&mark).map_err(dom_err)?;
-        tick += tick_step;
-    }
-    let final_mark = xhtml(&document, "span")?;
-    final_mark.set_attribute("class", "demo-tick-mark").map_err(dom_err)?;
-    final_mark.set_attribute("style", "left:100%;").map_err(dom_err)?;
-    ticks_row.append_child(&final_mark).map_err(dom_err)?;
+    fill_ticks(&ticks_row, min, max, tick_step)?;
     container.append_child(&ticks_row).map_err(dom_err)?;
 
     let endpoint_labels = xhtml(&document, "div")?;
     endpoint_labels
         .set_attribute("class", "demo-endpoint-labels")
         .map_err(dom_err)?;
-    let lo = xhtml(&document, "span")?;
-    lo.set_text_content(Some(min_label));
-    let hi = xhtml(&document, "span")?;
-    hi.set_text_content(Some(max_label));
-    endpoint_labels.append_child(&lo).map_err(dom_err)?;
-    endpoint_labels.append_child(&hi).map_err(dom_err)?;
+    let lo_label = xhtml(&document, "span")?;
+    lo_label.set_text_content(Some(min_label));
+    let hi_label = xhtml(&document, "span")?;
+    hi_label.set_text_content(Some(max_label));
+    endpoint_labels.append_child(&lo_label).map_err(dom_err)?;
+    endpoint_labels.append_child(&hi_label).map_err(dom_err)?;
     container.append_child(&endpoint_labels).map_err(dom_err)?;
 
     fo.as_element().append_child(&container).map_err(dom_err)?;
     keep_demo_node(fo);
-    Ok(slider)
+    Ok(HSlider {
+        input: slider,
+        lo_label,
+        hi_label,
+        ticks_row,
+    })
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Updates stop 3's own live lower bound to follow stop 2's current value: its `min` attribute, its own endpoint
+/// label, and its own tick marks all move together, so none of the three describes a different range than the
+/// other two. `99` and `25` are stop 3's own fixed absolute max and tick step (see its own `build_h_slider` call
+/// below), unaffected by stop 2's movement.
+fn sync_s3_min(s3: &HSlider, s2_value: f64) -> Result<(), Error> {
+    let new_min = (s2_value + 1.0).round() as i32;
+    s3.input.set_min(&new_min.to_string());
+    s3.lo_label.set_text_content(Some(&format!("{new_min}%")));
+    fill_ticks(&s3.ticks_row, new_min, 99, 25)
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Updates stop 2's own live upper bound to follow stop 3's current value, the same way [`sync_s3_min`] updates
+/// stop 3's. `1` and `25` are stop 2's own fixed absolute min and tick step.
+fn sync_s2_max(s2: &HSlider, s3_value: f64) -> Result<(), Error> {
+    let new_max = (s3_value - 1.0).round() as i32;
+    s2.input.set_max(&new_max.to_string());
+    s2.hi_label.set_text_content(Some(&format!("{new_max}%")));
+    fill_ticks(&s2.ticks_row, 1, new_max, 25)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -280,7 +335,8 @@ pub(crate) fn demo() -> Result<(), Error> {
         (10, 100, 100),
         30,
         ("10%", "100%"),
-    )?;
+    )?
+    .input;
     // Matches the slider's own default value (100) above, set once here so a screen reader announces the real
     // starting value, not "no value", before any interaction happens.
     h_slider.set_attribute("aria-valuetext", "100%").map_err(dom_err)?;
@@ -391,7 +447,8 @@ pub(crate) fn demo() -> Result<(), Error> {
         (-45, 135, 45),
         45,
         ("-45°", "135°"),
-    )?;
+    )?
+    .input;
     // Matches the slider's own default value (45) above, set once here so a screen reader announces the real
     // starting value, not "no value", before any interaction happens.
     rotate_slider.set_attribute("aria-valuetext", "rotate 45°").map_err(dom_err)?;
@@ -432,7 +489,7 @@ pub(crate) fn demo() -> Result<(), Error> {
     // total range each stop could ever reach, distinct from the live `max`/`min` this section maintains.
     let s2_stop = select_el(&svg, "#demo-lg-s stop:nth-child(2)")?;
     let s3_stop = select_el(&svg, "#demo-lg-s stop:nth-child(3)")?;
-    let s2_slider = build_h_slider(
+    let s2 = build_h_slider(
         &svg,
         Point::new(ROW2_S_X, ROW2_TOP),
         RECT_W,
@@ -443,8 +500,8 @@ pub(crate) fn demo() -> Result<(), Error> {
     )?;
     // Matches this slider's own default value (35) above, set once here rather than only after the first input
     // event, the same reason every other slider in this file sets its own initial aria-valuetext.
-    s2_slider.set_attribute("aria-valuetext", "35%").map_err(dom_err)?;
-    let s3_slider = build_h_slider(
+    s2.input.set_attribute("aria-valuetext", "35%").map_err(dom_err)?;
+    let s3 = build_h_slider(
         &svg,
         Point::new(ROW2_S_X, ROW2_TOP + SLIDER_ROW_H + SLIDER_GAP),
         RECT_W,
@@ -454,38 +511,39 @@ pub(crate) fn demo() -> Result<(), Error> {
         ("2%", "99%"),
     )?;
     // Matches this slider's own default value (65) above, for the same reason.
-    s3_slider.set_attribute("aria-valuetext", "65%").map_err(dom_err)?;
+    s3.input.set_attribute("aria-valuetext", "65%").map_err(dom_err)?;
 
     // Establishes the live one-point gap from each slider's own default value, before either has fired an
-    // `on_input` event of its own.
-    s2_slider.set_max(&(s3_slider.value_as_number() - 1.0).to_string());
-    s3_slider.set_min(&(s2_slider.value_as_number() + 1.0).to_string());
+    // `on_input` event of its own — syncing each other's live bound, endpoint label, and tick marks together,
+    // the same [`sync_s3_min`]/[`sync_s2_max`] every later `on_input` event below also calls.
+    sync_s2_max(&s2, s3.input.value_as_number())?;
+    sync_s3_min(&s3, s2.input.value_as_number())?;
     {
-        let this_slider = s2_slider.clone();
-        let other_slider = s3_slider.clone();
+        let this_slider = s2.input.clone();
+        let other = s3.clone();
         let stop = s2_stop.clone();
         let on_input: DemoClosure = Closure::new(move |_: web_sys::Event| {
             let value = this_slider.value_as_number();
             let _ = stop.set_attribute("offset", &format!("{:.3}", value / 100.0));
             let _ = this_slider.set_attribute("aria-valuetext", &format!("{value:.0}%"));
-            other_slider.set_min(&(value + 1.0).to_string());
+            let _ = sync_s3_min(&other, value);
         });
-        s2_slider
+        s2.input
             .add_event_listener_with_callback("input", on_input.as_ref().unchecked_ref())
             .map_err(dom_err)?;
         keep_demo_closure(on_input);
     }
     {
-        let this_slider = s3_slider.clone();
-        let other_slider = s2_slider.clone();
+        let this_slider = s3.input.clone();
+        let other = s2.clone();
         let stop = s3_stop.clone();
         let on_input: DemoClosure = Closure::new(move |_: web_sys::Event| {
             let value = this_slider.value_as_number();
             let _ = stop.set_attribute("offset", &format!("{:.3}", value / 100.0));
             let _ = this_slider.set_attribute("aria-valuetext", &format!("{value:.0}%"));
-            other_slider.set_max(&(value - 1.0).to_string());
+            let _ = sync_s2_max(&other, value);
         });
-        s3_slider
+        s3.input
             .add_event_listener_with_callback("input", on_input.as_ref().unchecked_ref())
             .map_err(dom_err)?;
         keep_demo_closure(on_input);
