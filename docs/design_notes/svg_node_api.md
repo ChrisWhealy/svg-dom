@@ -65,7 +65,7 @@ Attempting to compute that with the first four methods required a `has_class` re
 The wrapper (`set_class_enabled`) is both simpler at the call site and cheaper than using the `has_class`-then-branch construct.
 It returns `Result<(), Error>` rather than echoing the resulting `bool` back — unlike `toggle_class`, where the caller does not know the outcome in advance, here the caller already supplied `enabled` and asking for it back would be redundant.
 
-The demo (`demo_events_classlist` in `demo-app/src/events.rs`) deliberately keeps all styling in `style.css`.
+The demo (`demo-app/src/events/demo_events_classlist.rs`) deliberately keeps all styling in `style.css`.
 Each tile's `on_click` handler calls only `toggle_class("selected")`, never `set_fill`/`set_attr` on `stroke` directly, and the gold highlight comes purely from a `.tile.selected` CSS rule.
 This is the whole point of the demo: it shows that a `class` attribute change alone is enough to restyle an element, which is the actual reason `classList` helpers are useful over `set_attr("class", ...)` string-splicing.
 The "selected: n / 3" readout is recomputed from `has_class` on every tile after each click, rather than tracked in a separate Rust state, so it cannot drift from what the DOM actually contains.
