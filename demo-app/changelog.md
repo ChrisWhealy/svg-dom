@@ -22,7 +22,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 - Correct `aria-valuetext` for linearGradient demo slider (``)
 - Correct stale doc comments (`c6c40b6`)
 - Correct accuracy of spectrum bounds (`8ce802e`)
-- Correct `aria-orientation` for vertical slider (``)
+- Correct `aria-orientation` for vertical slider (`5b3ab74`)
 
 ## [0.1.6] - 2026-07-30
 
