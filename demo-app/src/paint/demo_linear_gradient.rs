@@ -276,6 +276,9 @@ pub(crate) fn demo() -> Result<(), Error> {
         30,
         ("10%", "100%"),
     )?;
+    // Matches the slider's own default value (100) above, set once here so a screen reader announces the real
+    // starting value, not "no value", before any interaction happens.
+    h_slider.set_attribute("aria-valuetext", "100%").map_err(dom_err)?;
     {
         let slider = h_slider.clone();
         let stop = h_stop.clone();
@@ -337,6 +340,9 @@ pub(crate) fn demo() -> Result<(), Error> {
     v_slider
         .set_attribute("aria-label", "shift the vertical gradient's second stop")
         .map_err(dom_err)?;
+    // Matches the slider's own default value (100) above, set once here for the same reason the horizontal
+    // slider's own aria-valuetext is set at construction, not only after the first input event.
+    v_slider.set_attribute("aria-valuetext", "100%").map_err(dom_err)?;
     v_wrap.append_child(&v_slider).map_err(dom_err)?;
     v_slider_fo.as_element().append_child(&v_wrap).map_err(dom_err)?;
     keep_demo_node(v_slider_fo);
@@ -378,6 +384,13 @@ pub(crate) fn demo() -> Result<(), Error> {
         45,
         ("-90°", "+90°"),
     )?;
+    // Matches the slider's own default value (0, i.e. ROTATE_BASE + 0) above, set once here so the accessible
+    // value starts as the absolute angle "rotate 45°", the same text `rotate_label` shows, not the raw slider
+    // value "0". Without this, a screen reader would announce "0" until the first interaction, then jump to an
+    // unrelated absolute angle on the very first move.
+    rotate_slider
+        .set_attribute("aria-valuetext", &format!("rotate {ROTATE_BASE:.0}°"))
+        .map_err(dom_err)?;
     {
         let slider = rotate_slider.clone();
         let gradient = d_gradient.clone();
@@ -420,6 +433,9 @@ pub(crate) fn demo() -> Result<(), Error> {
         25,
         ("1%", "98%"),
     )?;
+    // Matches this slider's own default value (35) above, set once here rather than only after the first input
+    // event, the same reason every other slider in this file sets its own initial aria-valuetext.
+    s2_slider.set_attribute("aria-valuetext", "35%").map_err(dom_err)?;
     let s3_slider = build_h_slider(
         &svg,
         Point::new(ROW2_S_X, ROW2_TOP + SLIDER_ROW_H + SLIDER_GAP),
@@ -429,6 +445,8 @@ pub(crate) fn demo() -> Result<(), Error> {
         25,
         ("2%", "99%"),
     )?;
+    // Matches this slider's own default value (65) above, for the same reason.
+    s3_slider.set_attribute("aria-valuetext", "65%").map_err(dom_err)?;
     {
         let this_slider = s2_slider.clone();
         let other_slider = s3_slider.clone();

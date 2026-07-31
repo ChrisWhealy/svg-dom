@@ -433,12 +433,17 @@ fn radio_group_checks_default_clears_prior_selection_and_calls_on_select() {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// `demo_linear_gradient` writes to raw `<stop>` and gradient elements via `select_el`, not through a typed
-/// `SvgLinearGradient` handle. Source extraction cannot prove those CSS selectors still resolve correctly, or that
-/// the two spectrum sliders still keep their middle stops ordered. Only a real browser can prove that.
+/// `SvgLinearGradient` handle.
+/// Source extraction cannot prove those CSS selectors still resolve.
+/// It also cannot prove the two spectrum sliders still keep their middle stops ordered.
+/// Only a real browser can prove either.
 ///
-/// The spectrum's mutual clamp gets two explicit boundary checks, not just one. The clamp reads each slider's
-/// *live* value from the other, not a value fixed at construction time. The second check pushes stop 3 against
-/// stop 2's own updated value, not its original one, to prove that.
+/// The spectrum's mutual clamp gets two explicit boundary checks, not just one.
+/// The clamp reads each slider's live value from the other, not a value fixed at construction time.
+/// The second check pushes stop 3 against stop 2's own updated value, not its original one, to prove that.
+///
+/// Every slider's `aria-valuetext` is also checked before any interaction.
+/// Each one must already report its real starting value there, not only after the first input event.
 #[wasm_bindgen_test]
 fn demo_linear_gradient_sliders_update_stops_and_respect_ordering() {
     container("demo-linear-gradient");
@@ -471,6 +476,8 @@ fn demo_linear_gradient_sliders_update_stops_and_respect_ordering() {
     assert_eq!(h_stop.get_attribute("offset").as_deref(), Some("1"));
 
     let h_slider = find_slider("input[aria-label='shift stop 2']");
+    // Set at construction time, before any interaction, so a screen reader announces the real starting value.
+    assert_eq!(h_slider.get_attribute("aria-valuetext").as_deref(), Some("100%"));
     dispatch_input(&h_slider, "40");
     assert_eq!(
         h_stop.get_attribute("offset").as_deref(),
@@ -483,6 +490,7 @@ fn demo_linear_gradient_sliders_update_stops_and_respect_ordering() {
     assert_eq!(v_stop.get_attribute("offset").as_deref(), Some("1"));
 
     let v_slider = find_slider("input[aria-label=\"shift the vertical gradient's second stop\"]");
+    assert_eq!(v_slider.get_attribute("aria-valuetext").as_deref(), Some("100%"));
     dispatch_input(&v_slider, "25");
     assert_eq!(
         v_stop.get_attribute("offset").as_deref(),
@@ -517,6 +525,11 @@ fn demo_linear_gradient_sliders_update_stops_and_respect_ordering() {
     };
 
     let rotate_slider = find_slider("input[aria-label='rotate']");
+    // The slider's own raw value starts at 0 (a relative displacement), but the rendered gradient and the visible
+    // readout both start at the absolute 45° base. aria-valuetext must report that same absolute angle from
+    // construction, not the raw 0, and not merely from the first input event onward.
+    assert_eq!(rotate_slider.value(), "0");
+    assert_eq!(rotate_slider.get_attribute("aria-valuetext").as_deref(), Some("rotate 45°"));
     dispatch_input(&rotate_slider, "-30");
     assert_eq!(
         d_gradient.get_attribute("gradientTransform").as_deref(),
@@ -534,6 +547,8 @@ fn demo_linear_gradient_sliders_update_stops_and_respect_ordering() {
 
     let s2_slider = find_slider("input[aria-label='stop 2']");
     let s3_slider = find_slider("input[aria-label='stop 3']");
+    assert_eq!(s2_slider.get_attribute("aria-valuetext").as_deref(), Some("35%"));
+    assert_eq!(s3_slider.get_attribute("aria-valuetext").as_deref(), Some("65%"));
 
     // Push stop 2 past stop 3's current value (65). The clamp must stop it just below, not let it pass.
     dispatch_input(&s2_slider, "70");
