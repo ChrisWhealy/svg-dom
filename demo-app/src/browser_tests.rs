@@ -527,16 +527,18 @@ fn demo_linear_gradient_sliders_update_stops_and_respect_ordering() {
     };
 
     let rotate_slider = find_slider("input[aria-label='diagonal gradient rotation']");
-    // The slider's own raw value starts at 0 (a relative displacement), but the rendered gradient and the visible
-    // readout both start at the absolute 45° base. aria-valuetext must report that same absolute angle from
-    // construction, not the raw 0, and not merely from the first input event onward.
-    assert_eq!(rotate_slider.value(), "0");
+    // The slider's min, max, and value all share one coordinate system: the total angle applied to the gradient.
+    // Its raw value starts at 45, matching the rendered gradient and the visible readout, not a relative
+    // displacement that would need translating before it means anything.
+    assert_eq!(rotate_slider.min(), "-45");
+    assert_eq!(rotate_slider.max(), "135");
+    assert_eq!(rotate_slider.value(), "45");
     assert_eq!(rotate_slider.get_attribute("aria-valuetext").as_deref(), Some("rotate 45°"));
-    dispatch_input(&rotate_slider, "-30");
+    dispatch_input(&rotate_slider, "15");
     assert_eq!(
         d_gradient.get_attribute("gradientTransform").as_deref(),
         Some("rotate(15, 0.5, 0.5)"),
-        "rotating -30 from the 45° base should give 15°"
+        "the slider's own value should apply directly as the gradient's rotation angle"
     );
     assert_eq!(rotate_readout.text_content().as_deref(), Some("rotate 15°"));
     assert_eq!(rotate_slider.get_attribute("aria-valuetext").as_deref(), Some("rotate 15°"));

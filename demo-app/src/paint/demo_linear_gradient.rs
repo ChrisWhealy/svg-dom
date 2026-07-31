@@ -379,30 +379,29 @@ pub(crate) fn demo() -> Result<(), Error> {
         .apply([("font-size", "11"), ("text-anchor", "middle")])?;
 
     let d_gradient = select_el(&svg, "#demo-lg-d")?;
-    const ROTATE_BASE: f64 = 45.0;
+    // The slider's own min/max/value all share one coordinate system: the total angle applied to the gradient,
+    // not a displacement from some other base folded in afterwards. `45` (the initial rotation) sits 90° in from
+    // each end, giving the same ±90° of travel the earlier relative-displacement version offered, without the
+    // slider's own numeric range and its spoken aria-valuetext describing two different scales.
     let rotate_slider = build_h_slider(
         &svg,
         Point::new(ROW2_D_X, ROW2_SINGLE_SLIDER_Y),
         RECT_W,
         ("rotate", "diagonal gradient rotation"),
-        (-90, 90, 0),
+        (-45, 135, 45),
         45,
-        ("-90°", "+90°"),
+        ("-45°", "135°"),
     )?;
-    // Matches the slider's own default value (0, i.e. ROTATE_BASE + 0) above, set once here so the accessible
-    // value starts as the absolute angle "rotate 45°", the same text `rotate_label` shows, not the raw slider
-    // value "0". Without this, a screen reader would announce "0" until the first interaction, then jump to an
-    // unrelated absolute angle on the very first move.
-    rotate_slider
-        .set_attribute("aria-valuetext", &format!("rotate {ROTATE_BASE:.0}°"))
-        .map_err(dom_err)?;
+    // Matches the slider's own default value (45) above, set once here so a screen reader announces the real
+    // starting value, not "no value", before any interaction happens.
+    rotate_slider.set_attribute("aria-valuetext", "rotate 45°").map_err(dom_err)?;
     {
         let slider = rotate_slider.clone();
         let gradient = d_gradient.clone();
         let label = rotate_label.clone();
         let mut buf = String::new();
         let on_input: DemoClosure = Closure::new(move |_: web_sys::Event| {
-            let total = ROTATE_BASE + slider.value_as_number();
+            let total = slider.value_as_number();
             let _ = gradient.set_attribute("gradientTransform", &format!("rotate({total}, 0.5, 0.5)"));
             let _ = label.set_text_fmt(&mut buf, format_args!("rotate {total:.0}°"));
             let _ = slider.set_attribute("aria-valuetext", &buf);
