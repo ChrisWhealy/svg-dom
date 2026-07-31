@@ -6,7 +6,9 @@
 //! demo's slider, radio group, and slider pair (`demo_radial_gradient`).
 //!
 //! One test below builds `foreign_html::radio_group` directly, not through a demo panel.
-//! Three panels now share this helper: `demo_text`'s two groups, and `demo_image`'s preserveAspectRatio group.
+//! Three demo panels now share this helper: `demo_text`'s two groups, `demo_image`'s preserveAspectRatio
+//! group, and `demo_radial_gradient`'s spreadMethod group.
+//! That is four radio groups in total.
 //! A single direct test covers the helper's own behaviour once, instead of duplicating it per panel.
 //!
 //! These exist because `unit_tests::every_registered_demo_has_extractable_source` only proves every registered
@@ -839,6 +841,16 @@ fn demo_radial_gradient_controls_update_stops_spread_and_focal_point() {
         fy_slider.get_attribute("aria-orientation").as_deref(),
         Some("vertical"),
         "a rotated <input type=range> stays a horizontal slider to assistive technology without this"
+    );
+    // build_v_slider's own inline `style="width:..."` (its pre-rotation length) must track this caller's own
+    // track length, not the `.demo-slider-vertical` CSS class's own residual value. Without this assertion, a
+    // regression that dropped the inline style would silently fall back to that class's own width and every
+    // other assertion here would still pass, since none of them checks the track's own physical length.
+    let expected_fy_width = format!("width:{rect_h}px");
+    assert_eq!(
+        fy_slider.get_attribute("style").as_deref(),
+        Some(expected_fy_width.as_str()),
+        "the fy track's own inline width should match the focal rectangle's real height, not a hard-coded value"
     );
     dispatch_input(&fy_slider, "60");
     assert_eq!(

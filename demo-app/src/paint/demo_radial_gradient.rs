@@ -77,7 +77,7 @@ pub(crate) fn demo() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-radial-gradient", Size::new(W, RG_H))?;
 
     let defs = svg.build_defs(|d| {
-        // 1. Centred glow: white hot core fading to deep transparent blue (default cx/cy/r = 0.5/0.5/0.5).
+        // 1. Centred glow: white hot core fading to an opaque deep blue (default cx/cy/r = 0.5/0.5/0.5).
         d.build_radial_gradient("demo-rg-c", |g| {
             g.add_stop_opacity(0.0, "white", 1.0)?;
             g.add_stop_opacity(0.5, STEELBLUE, 0.9)?;

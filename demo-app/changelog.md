@@ -14,7 +14,8 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 ### Fixed
 
-- Explain SVG 2 edge-case when focal point move outside circle (``)
+- Explain SVG 2 edge-case when focal point move outside circle (`205a04a`)
+- Test shared vertical-slider sizing contract (``)
 
 ## [0.1.7] - 2026-07-31
 
