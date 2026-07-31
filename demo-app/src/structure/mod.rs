@@ -3,7 +3,8 @@
 // reason: `demo_gallery!`'s `$path:path` grammar accepts any nesting depth, so `structure::demo_symbol::demo` works
 // exactly like `texts::demo_text::demo`, and DEMO_SOURCE_FILES (lib.rs) keys each file by its own module path so
 // two files can each define `fn demo()` without colliding on lookup. No shared helper functions live here: unlike
-// `texts`'s `radio_group`/`sine_wave_path`, nothing below is used by more than one of these files.
+// `texts`'s own `sine_wave_path`, or `foreign_html`'s `radio_group` (shared across both `texts` and `structure`),
+// nothing below is used by more than one of these files.
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 pub(crate) mod demo_accessibility;
 pub(crate) mod demo_anchor;

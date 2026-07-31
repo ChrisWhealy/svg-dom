@@ -111,7 +111,7 @@ fn demo_text_radio_groups_update_their_target_attributes() {
 
     let root = document().get_element_by_id("demo-text").expect("container exists");
 
-    // Neither target <text> element carries an id (see texts.rs), so they are told apart by their own static
+    // Neither target <text> element carries an id (see texts/demo_text.rs), so they are told apart by their own static
     // text content — which the interactive controls never touch, only their text-anchor/dominant-baseline
     // attributes — rather than by DOM position.
     let find_text = |content: &str| -> web_sys::Element {

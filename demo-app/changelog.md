@@ -14,6 +14,10 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 - Adapt all demo documentation to use simplified technical English style guide (`2e59696`)
 - Tidy up foreignObject demo description and bump version number (`2c67bb1`)
 
+### Fixed
+
+- Doc only: Update stale file references (``)
+
 ## [0.1.5] - 2026-07-30
 
 ### Added

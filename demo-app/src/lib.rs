@@ -61,8 +61,9 @@ thread_local! {
     ///
     /// # Why page-lifetime ownership is the right call here, not just the convenient one
     ///
-    /// Each closure parked here (e.g. `texts.rs`'s radio/slider handlers) strongly owns the `SvgNode` it updates — the
-    /// text node whose `text-anchor`, `dominant-baseline`, or `startOffset` the listener writes on every event.
+    /// Each closure parked here (the interactive demo controls implemented through `foreign_html.rs`, such as radio
+    /// and slider handlers) strongly owns the `SvgNode` it updates — the element whose attribute the listener writes
+    /// on every event.
     ///
     /// That is *not* the self-referential cycle the library's own managed `on_*` listeners exist to avoid: a managed
     /// listener is owned by the very `SvgNode` it is attached to, so a node capturing a clone of itself can keep itself
@@ -518,9 +519,9 @@ fn caption(svg: &SvgRoot, cx: f64, text: &str) -> Result<(), Error> {
 #[cfg(test)]
 mod unit_tests;
 
-/// A wasm-bindgen-test browser suite for the interactive controls added to `texts.rs` (text-anchor/
-/// dominant-baseline radios, startOffset slider) — `unit_tests` above only proves every demo function's source is
-/// extractable, not that these controls actually dispatch to the right SVG attribute. See `browser_tests.rs`'s
-/// own doc comment for how it is run and why it is a separate module from `unit_tests`.
+/// A wasm-bindgen-test browser suite for the interactive demo controls implemented through `foreign_html.rs`
+/// (radio groups, sliders) — `unit_tests` above only proves every demo function's source is extractable, not that
+/// these controls actually dispatch to the right SVG attribute. See `browser_tests.rs`'s own doc comment for how it
+/// is run and why it is a separate module from `unit_tests`.
 #[cfg(test)]
 mod browser_tests;

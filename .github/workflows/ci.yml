@@ -140,8 +140,8 @@ jobs:
       - name: Run the browser integration tests
         run: wasm-pack test --headless --${{ matrix.browser }}
 
-      # demo-app/src/browser_tests.rs — dispatches real change/input events at the interactive controls texts.rs
-      # builds (text-anchor/dominant-baseline radios, startOffset slider) and asserts the resulting SVG attributes,
+      # demo-app/src/browser_tests.rs — dispatches real change/input events at the interactive demo controls
+      # implemented through foreign_html.rs (radio groups, sliders) and asserts the resulting SVG attributes,
       # rather than only proving (as demo-app's native unit_tests do) that the Rust source compiles and is
       # extractable. The package path has to come *after* the flags here — unlike `wasm-pack build`, confirmed
       # empirically: `wasm-pack test demo-app --headless --firefox` fails with "Must specify at least one of
