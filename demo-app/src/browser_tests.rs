@@ -486,6 +486,7 @@ fn demo_linear_gradient_sliders_update_stops_and_respect_ordering() {
         Some("0.40"),
         "moving the horizontal slider should update the second stop's offset"
     );
+    assert_eq!(h_slider.get_attribute("aria-valuetext").as_deref(), Some("40%"));
 
     // --- vertical: the slider shifts #demo-lg-v's second stop ---
     let v_stop = find_el("#demo-lg-v stop:nth-child(2)");
@@ -499,6 +500,7 @@ fn demo_linear_gradient_sliders_update_stops_and_respect_ordering() {
         Some("0.25"),
         "moving the vertical slider should update the second stop's offset"
     );
+    assert_eq!(v_slider.get_attribute("aria-valuetext").as_deref(), Some("25%"));
 
     // --- diagonal: the slider rotates #demo-lg-d and updates the visible readout ---
     let d_gradient = find_el("#demo-lg-d");
@@ -579,6 +581,7 @@ fn demo_linear_gradient_sliders_update_stops_and_respect_ordering() {
         "the browser's own max attribute should stop stop 2 at one point below stop 3"
     );
     assert_eq!(s2_stop.get_attribute("offset").as_deref(), Some("0.640"));
+    assert_eq!(s2_slider.get_attribute("aria-valuetext").as_deref(), Some("64%"));
     assert_eq!(
         s3_stop.get_attribute("offset").as_deref(),
         Some("0.65"),
@@ -605,6 +608,7 @@ fn demo_linear_gradient_sliders_update_stops_and_respect_ordering() {
         "stop 2 must stay put while stop 3 moves"
     );
     assert_eq!(s3_stop.get_attribute("offset").as_deref(), Some("0.650"));
+    assert_eq!(s3_slider.get_attribute("aria-valuetext").as_deref(), Some("65%"));
     assert_eq!(
         s2_slider.max(),
         "64",
