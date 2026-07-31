@@ -16,7 +16,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 ### Fixed
 
-- Doc only: Update stale file references (``)
+- Doc only: Update stale file references (`781b1db`)
 
 ## [0.1.5] - 2026-07-30
 
