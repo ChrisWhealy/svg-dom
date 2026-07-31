@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 The `svg-dom-demo` gallery is not published as part of the crate's release, so the changes listed here are not tied to any version number known to `crates.io`.
 
+## [0.1.8] - 2026-07-31
+
+### Added
+
+- Make radialGradient demos interactive (``)
+
 ## [0.1.7] - 2026-07-31
 
 ### Added

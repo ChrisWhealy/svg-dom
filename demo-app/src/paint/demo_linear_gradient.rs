@@ -1,10 +1,4 @@
-use crate::{
-    DemoClosure, W,
-    colours::*,
-    dom_err,
-    foreign_html::{foreign_object_document, xhtml},
-    keep_demo_closure, keep_demo_node,
-};
+use crate::{DemoClosure, W, colours::*, dom_err, keep_demo_closure};
 use svg_dom::{
     Error, SvgAttrs, SvgRoot,
     root::utils::{Point, Size},
@@ -21,24 +15,10 @@ use wasm_bindgen::{JsCast, prelude::*};
 // This demo therefore needs its own row geometry.
 // It does not use the crate-wide PAD_Y, BAND, or caption helpers.
 //
-// Every interactive control reads a slider's own value.
-// It writes that value straight to a `<stop>`'s `offset` attribute, or to the gradient's own `gradientTransform`.
-// `select_el` below finds the target element by CSS selector.
-// This bypasses the typed `SvgLinearGradient` handle, which offers no way to reach these targets directly.
-// `add_stop` appends a `<stop>` but does not return a handle to it.
-// `SvgLinearGradient` itself is not `Clone`, so one handle cannot move into two closures.
-// Selecting the live DOM element avoids both limits.
-//
-// The vertical-shift slider is a plain horizontal `<input type="range">`.
-// A `transform: rotate(...)` rule rotates it (see `.demo-slider-vertical` in demo/style.css).
-// It does not use `writing-mode: vertical-lr`.
-// Chrome only gained `writing-mode` support for range inputs recently.
-// Safari's support for it is still unreliable.
-// A CSS `transform` rotation works in every browser.
-// This control must render vertically everywhere, not only in the browser it was last tested in.
-// Its label, tick marks, and endpoint values are plain SVG text and line elements, not HTML.
-// A rotated HTML tick row or endpoint row would need extra CSS positioning.
-// Plain SVG elements avoid that need.
+// `row_caption`, `side_label`, `select_el`, `build_h_slider`, and `build_v_slider` (called below via `super::`)
+// live in `paint/mod.rs`, shared with `demo_radial_gradient` — the other demo whose own controls need this same
+// custom row layout, rather than the shared W/H/PAD_Y/BAND/caption convention every other demo uses. See their
+// own doc comments there for what each one does and why.
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 const RECT_W: f64 = 130.0;
@@ -80,187 +60,25 @@ const ROW3_X: f64 = LEFT_MARGIN;
 const LG_H: f64 = ROW3_CAPTION_Y + 12.0;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Draws one row's caption text at an explicit `y`.
-/// It matches `crate::caption`'s own visual style: `CAPTION` fill, 11px, centred.
-/// This demo cannot use `crate::caption` directly.
-/// That helper hard-codes `y` to the shared PAD_Y/BAND band.
-/// This taller canvas does not follow that band.
-fn row_caption(svg: &SvgRoot, cx: f64, y: f64, text: &str) -> Result<(), Error> {
-    let t = svg.text(Point::new(cx, y), text)?;
-    let mut attrs = SvgAttrs::new();
-    t.attrs(&mut attrs)
-        .fill(CAPTION)?
-        .apply([("font-size", "11"), ("text-anchor", "middle")])?;
-    Ok(())
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Draws the vertical-shift slider's endpoint values as plain SVG text, starting at `x`.
-/// The text is left-aligned, not centred like `row_caption`'s own text.
-/// These values sit beside the vertical track, where left-aligned text reads better.
-fn side_label(svg: &SvgRoot, x: f64, y: f64, text: &str) -> Result<(), Error> {
-    let t = svg.text(Point::new(x, y), text)?;
-    let mut attrs = SvgAttrs::new();
-    t.attrs(&mut attrs).fill(CAPTION)?.apply([("font-size", "11")])?;
-    Ok(())
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Selects one live element inside this demo's own `<svg>`, by CSS selector.
-/// This file's own doc comment above explains why this escape hatch is needed.
-fn select_el(svg: &SvgRoot, selector: &str) -> Result<web_sys::Element, Error> {
-    svg.root
-        .query_selector(selector)
-        .map_err(dom_err)?
-        .ok_or_else(|| Error::Dom(format!("linearGradient demo: no element matching {selector:?}")))
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Fills `ticks_row` with tick marks proportioned across `[min, max]`, every `tick_step` units from `min`, plus
-/// one final tick at `max`.
-/// That final tick may sit closer than `tick_step` to its neighbour.
-/// `texts::demo_text_path`'s own hand-drawn ticks use this same trailing-tick shape.
-///
-/// Clears any tick marks `ticks_row` already holds first, so this doubles as a refresh: the spectrum demo's two
-/// sliders each call this again whenever the other slider changes their own live `min`/`max`, keeping their tick
-/// marks proportioned to the *current* range, not the range they were first built with.
-fn fill_ticks(ticks_row: &web_sys::Element, min: i32, max: i32, tick_step: i32) -> Result<(), Error> {
-    let document = ticks_row
-        .owner_document()
-        .ok_or_else(|| Error::Dom("tick row has no owner document".into()))?;
-    ticks_row.set_inner_html("");
-
-    let span = f64::from(max - min);
-    let mut tick = min;
-    while tick < max {
-        let percent = f64::from(tick - min) / span * 100.0;
-        let mark = xhtml(&document, "span")?;
-        mark.set_attribute("class", "demo-tick-mark").map_err(dom_err)?;
-        mark.set_attribute("style", &format!("left:{percent:.2}%;")).map_err(dom_err)?;
-        ticks_row.append_child(&mark).map_err(dom_err)?;
-        tick += tick_step;
-    }
-    let final_mark = xhtml(&document, "span")?;
-    final_mark.set_attribute("class", "demo-tick-mark").map_err(dom_err)?;
-    final_mark.set_attribute("style", "left:100%;").map_err(dom_err)?;
-    ticks_row.append_child(&final_mark).map_err(dom_err)?;
-    Ok(())
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// The pieces of a slider built by [`build_h_slider`] that the spectrum demo's two sliders need to keep updated
-/// after construction: their own live endpoint text and tick marks, alongside the `<input>` itself.
-/// The other two callers of `build_h_slider` only ever need `input`, and simply ignore the rest.
-#[derive(Clone)]
-struct HSlider {
-    input: web_sys::HtmlInputElement,
-    lo_label: web_sys::Element,
-    hi_label: web_sys::Element,
-    ticks_row: web_sys::Element,
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Builds one labelled horizontal `<input type="range">`.
-/// It includes tick marks and endpoint value text.
-/// The control sits inside its own `<foreignObject>` at `pos`, sized `(w, SLIDER_ROW_H)`.
-///
-/// `range` is `(min, max, default)`.
-/// `tick_step` is passed straight through to [`fill_ticks`].
-/// `endpoints` is the `(min, max)` text shown on either side of the track, for example `"10%"`/`"100%"` or
-/// `"-90°"`/`"+90°"`.
-/// This text is free-form, since not every slider's endpoints share its raw `i32` value's unit.
-/// `labels` is `(visible, accessible)`.
-/// `visible` is the short caption drawn above the track, read alongside the row's own caption below the rect.
-/// `accessible` is the control's `aria-label`, read alone by assistive technology, with no such visual context.
-/// A screen reader user needs `accessible` to name the gradient too, for example "horizontal gradient stop 2",
-/// not just "stop 2".
-///
-/// Four of this demo's five interactive controls are a plain horizontal slider like this one.
-/// Only the vertical-shift slider needs a different shape.
-/// Its own call site builds it by hand instead.
-fn build_h_slider(
-    svg: &SvgRoot,
-    pos: Point,
-    w: f64,
-    labels: (&str, &str),
-    range: (i32, i32, i32),
-    tick_step: i32,
-    endpoints: (&str, &str),
-) -> Result<HSlider, Error> {
-    let (visible_label, accessible_label) = labels;
-    let (min, max, default) = range;
-    let (min_label, max_label) = endpoints;
-
-    let fo = svg.foreign_object(pos, Size::new(w, SLIDER_ROW_H))?;
-    let document = foreign_object_document(&fo)?;
-
-    let container = xhtml(&document, "div")?;
-    container.set_attribute("class", "demo-slider-container").map_err(dom_err)?;
-
-    let label_el = xhtml(&document, "div")?;
-    label_el.set_attribute("class", "demo-slider-label").map_err(dom_err)?;
-    label_el.set_text_content(Some(visible_label));
-    container.append_child(&label_el).map_err(dom_err)?;
-
-    let slider = xhtml(&document, "input")?
-        .dyn_into::<web_sys::HtmlInputElement>()
-        .map_err(|_| Error::Dom("createElement(\"input\") did not return an HtmlInputElement".into()))?;
-    slider.set_type("range");
-    slider.set_min(&min.to_string());
-    slider.set_max(&max.to_string());
-    slider.set_step("1");
-    slider.set_value(&default.to_string());
-    slider.set_attribute("class", "demo-slider").map_err(dom_err)?;
-    slider.set_attribute("aria-label", accessible_label).map_err(dom_err)?;
-    container.append_child(&slider).map_err(dom_err)?;
-
-    let ticks_row = xhtml(&document, "div")?;
-    ticks_row.set_attribute("class", "demo-tick-row").map_err(dom_err)?;
-    fill_ticks(&ticks_row, min, max, tick_step)?;
-    container.append_child(&ticks_row).map_err(dom_err)?;
-
-    let endpoint_labels = xhtml(&document, "div")?;
-    endpoint_labels
-        .set_attribute("class", "demo-endpoint-labels")
-        .map_err(dom_err)?;
-    let lo_label = xhtml(&document, "span")?;
-    lo_label.set_text_content(Some(min_label));
-    let hi_label = xhtml(&document, "span")?;
-    hi_label.set_text_content(Some(max_label));
-    endpoint_labels.append_child(&lo_label).map_err(dom_err)?;
-    endpoint_labels.append_child(&hi_label).map_err(dom_err)?;
-    container.append_child(&endpoint_labels).map_err(dom_err)?;
-
-    fo.as_element().append_child(&container).map_err(dom_err)?;
-    keep_demo_node(fo);
-    Ok(HSlider {
-        input: slider,
-        lo_label,
-        hi_label,
-        ticks_row,
-    })
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Updates stop 3's own live lower bound to follow stop 2's current value: its `min` attribute, its own endpoint
 /// label, and its own tick marks all move together, so none of the three describes a different range than the
 /// other two. `99` and `25` are stop 3's own fixed absolute max and tick step (see its own `build_h_slider` call
 /// below), unaffected by stop 2's movement.
-fn sync_s3_min(s3: &HSlider, s2_value: f64) -> Result<(), Error> {
+fn sync_s3_min(s3: &super::HSlider, s2_value: f64) -> Result<(), Error> {
     let new_min = (s2_value + 1.0).round() as i32;
     s3.input.set_min(&new_min.to_string());
     s3.lo_label.set_text_content(Some(&format!("{new_min}%")));
-    fill_ticks(&s3.ticks_row, new_min, 99, 25)
+    super::fill_ticks(&s3.ticks_row, new_min, 99, 25)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Updates stop 2's own live upper bound to follow stop 3's current value, the same way [`sync_s3_min`] updates
 /// stop 3's. `1` and `25` are stop 2's own fixed absolute min and tick step.
-fn sync_s2_max(s2: &HSlider, s3_value: f64) -> Result<(), Error> {
+fn sync_s2_max(s2: &super::HSlider, s3_value: f64) -> Result<(), Error> {
     let new_max = (s3_value - 1.0).round() as i32;
     s2.input.set_max(&new_max.to_string());
     s2.hi_label.set_text_content(Some(&format!("{new_max}%")));
-    fill_ticks(&s2.ticks_row, 1, new_max, 25)
+    super::fill_ticks(&s2.ticks_row, 1, new_max, 25)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -324,13 +142,13 @@ pub(crate) fn demo() -> Result<(), Error> {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     let r1 = svg.rect(Point::new(ROW1_H_X, ROW1_RECT_Y), Size::new(RECT_W, RECT_H))?;
     r1.set_fill_gradient("demo-lg-h")?;
-    row_caption(&svg, ROW1_H_X + RECT_W / 2.0, ROW1_CAPTION_Y, "horizontal")?;
+    super::row_caption(&svg, ROW1_H_X + RECT_W / 2.0, ROW1_CAPTION_Y, "horizontal")?;
 
-    let h_stop = select_el(&svg, "#demo-lg-h stop:nth-child(2)")?;
-    let h_slider = build_h_slider(
+    let h_stop = super::select_el(&svg, "#demo-lg-h stop:nth-child(2)")?;
+    let h_slider = super::build_h_slider(
         &svg,
         Point::new(ROW1_H_X, ROW1_TOP),
-        RECT_W,
+        Size::new(RECT_W, SLIDER_ROW_H),
         ("shift stop 2", "horizontal gradient stop 2"),
         (10, 100, 100),
         30,
@@ -356,22 +174,22 @@ pub(crate) fn demo() -> Result<(), Error> {
 
     let r2 = svg.rect(Point::new(ROW1_V_X, ROW1_RECT_Y), Size::new(RECT_W, RECT_H))?;
     r2.set_fill_gradient("demo-lg-v")?;
-    row_caption(&svg, ROW1_V_X + RECT_W / 2.0, ROW1_CAPTION_Y, "vertical")?;
+    super::row_caption(&svg, ROW1_V_X + RECT_W / 2.0, ROW1_CAPTION_Y, "vertical")?;
 
-    // Vertical-shift control: a plain <input type="range">, rotated with `transform`.
-    // See this file's own doc comment above for why not `writing-mode`.
-    // Plain SVG text and line elements decorate it, not HTML.
-    // Once the control is rotated, these SVG elements need no CSS positioning of their own.
-    let v_stop = select_el(&svg, "#demo-lg-v stop:nth-child(2)")?;
+    // Vertical-shift control: see `build_v_slider`'s own doc comment (paint/mod.rs) for the CSS rotation and
+    // keyboard remapping it needs.
+    // Plain SVG text and line elements decorate it here, not HTML: once the control is rotated, an HTML tick row
+    // or endpoint-label row would need extra CSS positioning these plain SVG elements do not.
+    let v_stop = super::select_el(&svg, "#demo-lg-v stop:nth-child(2)")?;
     let v_track_x = ROW1_V_X + RECT_W + V_TRACK_GAP;
 
-    row_caption(&svg, v_track_x + V_TRACK_W / 2.0, ROW1_TOP + 10.0, "shift stop 2")?;
+    super::row_caption(&svg, v_track_x + V_TRACK_W / 2.0, ROW1_TOP + 10.0, "shift stop 2")?;
 
     // Endpoint values: min (10%) sits at the top of the track, max (100%) at the bottom.
-    // This matches the track's own top-is-min orientation, established below.
+    // This matches the track's own top-is-min orientation, set by `build_v_slider` below.
     // Up therefore moves the stop up, the same spatial logic the horizontal slider's left-is-smaller framing uses.
-    side_label(&svg, v_track_x + V_TRACK_W + 6.0, ROW1_RECT_Y + 4.0, "10%")?;
-    side_label(&svg, v_track_x + V_TRACK_W + 6.0, ROW1_RECT_Y + RECT_H - 2.0, "100%")?;
+    super::side_label(&svg, v_track_x + V_TRACK_W + 6.0, ROW1_RECT_Y + 4.0, "10%")?;
+    super::side_label(&svg, v_track_x + V_TRACK_W + 6.0, ROW1_RECT_Y + RECT_H - 2.0, "100%")?;
 
     // Three tick marks mark the min, middle, and max values.
     // Each is a short line crossing the track.
@@ -385,32 +203,17 @@ pub(crate) fn demo() -> Result<(), Error> {
         mark.set_stroke_width(1.0)?;
     }
 
-    let v_slider_fo = svg.foreign_object(Point::new(v_track_x, ROW1_RECT_Y), Size::new(V_TRACK_W, RECT_H))?;
-    let v_document = foreign_object_document(&v_slider_fo)?;
-    let v_wrap = xhtml(&v_document, "div")?;
-    v_wrap.set_attribute("class", "demo-slider-vertical-wrap").map_err(dom_err)?;
-    let v_slider = xhtml(&v_document, "input")?
-        .dyn_into::<web_sys::HtmlInputElement>()
-        .map_err(|_| Error::Dom("createElement(\"input\") did not return an HtmlInputElement".into()))?;
-    v_slider.set_type("range");
-    v_slider.set_min("10");
-    v_slider.set_max("100");
-    v_slider.set_step("1");
-    v_slider.set_value("100");
-    v_slider.set_attribute("class", "demo-slider-vertical").map_err(dom_err)?;
-    v_slider
-        .set_attribute("aria-label", "shift the vertical gradient's second stop")
-        .map_err(dom_err)?;
-    // A rotated <input type="range"> stays a horizontal slider as far as the DOM and assistive technology know:
-    // nothing about the CSS transform that turns it visually vertical reaches ARIA. Without this, a screen
-    // reader may still announce it as a horizontal slider.
-    v_slider.set_attribute("aria-orientation", "vertical").map_err(dom_err)?;
+    let v_slider = super::build_v_slider(
+        &svg,
+        Point::new(v_track_x, ROW1_RECT_Y),
+        V_TRACK_W,
+        RECT_H,
+        "shift the vertical gradient's second stop",
+        (10, 100, 100),
+    )?;
     // Matches the slider's own default value (100) above, set once here for the same reason the horizontal
     // slider's own aria-valuetext is set at construction, not only after the first input event.
     v_slider.set_attribute("aria-valuetext", "100%").map_err(dom_err)?;
-    v_wrap.append_child(&v_slider).map_err(dom_err)?;
-    v_slider_fo.as_element().append_child(&v_wrap).map_err(dom_err)?;
-    keep_demo_node(v_slider_fo);
     {
         let slider = v_slider.clone();
         let stop = v_stop.clone();
@@ -423,30 +226,6 @@ pub(crate) fn demo() -> Result<(), Error> {
             .add_event_listener_with_callback("input", on_input.as_ref().unchecked_ref())
             .map_err(dom_err)?;
         keep_demo_closure(on_input);
-    }
-    // The rotated track's own top-is-min orientation (see this file's own doc comment) means "up" is the visual
-    // direction for a smaller value, the opposite of a native horizontal slider's own ArrowUp-increments default.
-    // Left/right keep their ordinary decrement/increment behaviour unchanged: only up/down need remapping to
-    // match what the rotation shows on screen.
-    {
-        let slider = v_slider.clone();
-        let on_keydown: DemoClosure = Closure::new(move |e: web_sys::Event| {
-            let e: web_sys::KeyboardEvent = e.unchecked_into();
-            let delta = match e.key().as_str() {
-                "ArrowUp" => -1.0,
-                "ArrowDown" => 1.0,
-                _ => return,
-            };
-            e.prevent_default();
-            let new_value = slider.value_as_number() + delta;
-            slider.set_value(&new_value.to_string());
-            let input_event = web_sys::Event::new("input").expect("create input event");
-            let _ = slider.dispatch_event(&input_event);
-        });
-        v_slider
-            .add_event_listener_with_callback("keydown", on_keydown.as_ref().unchecked_ref())
-            .map_err(dom_err)?;
-        keep_demo_closure(on_keydown);
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -462,15 +241,15 @@ pub(crate) fn demo() -> Result<(), Error> {
         .fill(CAPTION)?
         .apply([("font-size", "11"), ("text-anchor", "middle")])?;
 
-    let d_gradient = select_el(&svg, "#demo-lg-d")?;
+    let d_gradient = super::select_el(&svg, "#demo-lg-d")?;
     // The slider's own min/max/value all share one coordinate system: the total angle applied to the gradient,
     // not a displacement from some other base folded in afterwards. `45` (the initial rotation) sits 90° in from
     // each end, giving the same ±90° of travel the earlier relative-displacement version offered, without the
     // slider's own numeric range and its spoken aria-valuetext describing two different scales.
-    let rotate_slider = build_h_slider(
+    let rotate_slider = super::build_h_slider(
         &svg,
         Point::new(ROW2_D_X, ROW2_SINGLE_SLIDER_Y),
-        RECT_W,
+        Size::new(RECT_W, SLIDER_ROW_H),
         ("rotate", "diagonal gradient rotation"),
         (-45, 135, 45),
         45,
@@ -499,14 +278,14 @@ pub(crate) fn demo() -> Result<(), Error> {
 
     let r4 = svg.rect(Point::new(ROW2_S_X, ROW2_RECT_Y), Size::new(RECT_W, RECT_H))?;
     r4.set_fill_gradient("demo-lg-s")?;
-    row_caption(&svg, ROW2_S_X + RECT_W / 2.0, ROW2_CAPTION_Y, "4-stop spectrum")?;
+    super::row_caption(&svg, ROW2_S_X + RECT_W / 2.0, ROW2_CAPTION_Y, "4-stop spectrum")?;
 
     // The middle two stops start at 0.35 (index 1) and 0.65 (index 2).
     // These two stops stay ordered by construction, both against each other and against the fixed outer stops
     // (0.0 and 1.0).
     //
-    // stop2/stop3 keep a live one-point gap between each other. `s2_slider`'s own `max` attribute always tracks
-    // `s3_slider.value - 1`. `s3_slider`'s own `min` attribute always tracks `s2_slider.value + 1`. The browser
+    // stop2/stop3 keep a live one-point gap between each other. `s2.input`'s own `max` attribute always tracks
+    // `s3.input.value - 1`. `s3.input`'s own `min` attribute always tracks `s2.input.value + 1`. The browser
     // itself then refuses to move either thumb past the other, keyboard included, before this demo's own
     // `on_input` handler ever runs. Neither handler clamps or writes back a value any more: each slider's native
     // sanitisation already guarantees the value it reports is in range.
@@ -515,12 +294,12 @@ pub(crate) fn demo() -> Result<(), Error> {
     // `build_h_slider` draws from them, describe each slider's absolute possible range against the fixed outer
     // stops, not its live range against the other slider. Those stay fixed on purpose, as a description of the
     // total range each stop could ever reach, distinct from the live `max`/`min` this section maintains.
-    let s2_stop = select_el(&svg, "#demo-lg-s stop:nth-child(2)")?;
-    let s3_stop = select_el(&svg, "#demo-lg-s stop:nth-child(3)")?;
-    let s2 = build_h_slider(
+    let s2_stop = super::select_el(&svg, "#demo-lg-s stop:nth-child(2)")?;
+    let s3_stop = super::select_el(&svg, "#demo-lg-s stop:nth-child(3)")?;
+    let s2 = super::build_h_slider(
         &svg,
         Point::new(ROW2_S_X, ROW2_TOP),
-        RECT_W,
+        Size::new(RECT_W, SLIDER_ROW_H),
         ("stop 2", "spectrum gradient stop 2"),
         (1, 98, 35),
         25,
@@ -529,10 +308,10 @@ pub(crate) fn demo() -> Result<(), Error> {
     // Matches this slider's own default value (35) above, set once here rather than only after the first input
     // event, the same reason every other slider in this file sets its own initial aria-valuetext.
     s2.input.set_attribute("aria-valuetext", "35%").map_err(dom_err)?;
-    let s3 = build_h_slider(
+    let s3 = super::build_h_slider(
         &svg,
         Point::new(ROW2_S_X, ROW2_TOP + SLIDER_ROW_H + SLIDER_GAP),
-        RECT_W,
+        Size::new(RECT_W, SLIDER_ROW_H),
         ("stop 3", "spectrum gradient stop 3"),
         (2, 99, 65),
         25,
@@ -597,7 +376,7 @@ pub(crate) fn demo() -> Result<(), Error> {
     stroke_path.set_stroke_gradient("demo-lg-stroke")?;
     stroke_path.set_stroke_width(14.0)?;
     stroke_path.set_attr("stroke-linecap", "round")?;
-    row_caption(&svg, ROW3_X + RECT_W / 2.0, ROW3_CAPTION_Y, "gradient stroke")?;
+    super::row_caption(&svg, ROW3_X + RECT_W / 2.0, ROW3_CAPTION_Y, "gradient stroke")?;
 
     Ok(())
 }

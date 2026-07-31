@@ -48,6 +48,8 @@ pub const WIRE: &str = "#aaa";
 pub const SWATCH_EMPTY: &str = "#222";
 /// The reset button while there is nothing to reset.
 pub const RESET_IDLE: &str = "#555";
+/// The deep outer edge of the centred radial-gradient glow.
+pub const NIGHT_SKY_BLUE: &str = "#0d1b2a";
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Named CSS palette — the bright fills used across the shape demos
