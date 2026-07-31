@@ -2,6 +2,7 @@
 //! `texts` contributes the text-anchor/dominant-baseline radio groups (`demo_text`) and the startOffset slider
 //! (`demo_text_path`). `structure` contributes the marker viewBox zoom slider (`demo_marker_view_box`) and the
 //! preserveAspectRatio radio group (`demo_image`).
+//! `paint` contributes the linearGradient demo's five sliders (`demo_linear_gradient`).
 //!
 //! One test below builds `foreign_html::radio_group` directly, not through a demo panel.
 //! Three panels now share this helper: `demo_text`'s two groups, and `demo_image`'s preserveAspectRatio group.
@@ -428,4 +429,152 @@ fn radio_group_checks_default_clears_prior_selection_and_calls_on_select() {
     assert!(beta.checked());
     assert!(!alpha.checked(), "selecting Beta should clear Alpha");
     assert_eq!(selected.borrow().as_slice(), ["b"], "on_select should receive Beta's own value");
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// `demo_linear_gradient` writes to raw `<stop>` and gradient elements via `select_el`, not through a typed
+/// `SvgLinearGradient` handle. Source extraction cannot prove those CSS selectors still resolve correctly, or that
+/// the two spectrum sliders still keep their middle stops ordered. Only a real browser can prove that.
+///
+/// The spectrum's mutual clamp gets two explicit boundary checks, not just one. The clamp reads each slider's
+/// *live* value from the other, not a value fixed at construction time. The second check pushes stop 3 against
+/// stop 2's own updated value, not its original one, to prove that.
+#[wasm_bindgen_test]
+fn demo_linear_gradient_sliders_update_stops_and_respect_ordering() {
+    container("demo-linear-gradient");
+    super::paint::demo_linear_gradient::demo().expect("demo_linear_gradient::demo should build without error");
+
+    let root = document().get_element_by_id("demo-linear-gradient").expect("container exists");
+
+    let dispatch_input = |slider: &web_sys::HtmlInputElement, value: &str| {
+        slider.set_value(value);
+        let event = web_sys::Event::new("input").expect("create input event");
+        slider.dispatch_event(&event).expect("dispatch input");
+    };
+
+    let find_el = |selector: &str| -> web_sys::Element {
+        root.query_selector(selector)
+            .unwrap_or_else(|_| panic!("invalid selector {selector:?}"))
+            .unwrap_or_else(|| panic!("no element matching {selector:?}"))
+    };
+
+    let find_slider = |aria_label_selector: &str| -> web_sys::HtmlInputElement {
+        root.query_selector(aria_label_selector)
+            .expect("query slider")
+            .unwrap_or_else(|| panic!("no slider matching {aria_label_selector:?}"))
+            .dyn_into::<web_sys::HtmlInputElement>()
+            .expect("slider is an HtmlInputElement")
+    };
+
+    // --- horizontal: the slider shifts #demo-lg-h's second stop ---
+    let h_stop = find_el("#demo-lg-h stop:nth-child(2)");
+    assert_eq!(h_stop.get_attribute("offset").as_deref(), Some("1"));
+
+    let h_slider = find_slider("input[aria-label='shift stop 2']");
+    dispatch_input(&h_slider, "40");
+    assert_eq!(
+        h_stop.get_attribute("offset").as_deref(),
+        Some("0.40"),
+        "moving the horizontal slider should update the second stop's offset"
+    );
+
+    // --- vertical: the slider shifts #demo-lg-v's second stop ---
+    let v_stop = find_el("#demo-lg-v stop:nth-child(2)");
+    assert_eq!(v_stop.get_attribute("offset").as_deref(), Some("1"));
+
+    let v_slider = find_slider("input[aria-label=\"shift the vertical gradient's second stop\"]");
+    dispatch_input(&v_slider, "25");
+    assert_eq!(
+        v_stop.get_attribute("offset").as_deref(),
+        Some("0.25"),
+        "moving the vertical slider should update the second stop's offset"
+    );
+
+    // --- diagonal: the slider rotates #demo-lg-d and updates the visible readout ---
+    let d_gradient = find_el("#demo-lg-d");
+    assert_eq!(
+        d_gradient.get_attribute("gradientTransform").as_deref(),
+        Some("rotate(45, 0.5, 0.5)")
+    );
+
+    // The readout text starts at "rotate 45°", the demo's own initial caption. No id distinguishes it from any
+    // other <text>, so it is found by that starting content, the same way other tests in this file find theirs.
+    let rotate_readout = {
+        let texts = root.query_selector_all("text").expect("query text elements");
+        let mut found = None;
+        for i in 0..texts.length() {
+            let el = texts
+                .item(i)
+                .expect("text item")
+                .dyn_into::<web_sys::Element>()
+                .expect("Element");
+            if el.text_content().as_deref() == Some("rotate 45°") {
+                found = Some(el);
+                break;
+            }
+        }
+        found.expect("no <text> element with initial content \"rotate 45°\"")
+    };
+
+    let rotate_slider = find_slider("input[aria-label='rotate']");
+    dispatch_input(&rotate_slider, "-30");
+    assert_eq!(
+        d_gradient.get_attribute("gradientTransform").as_deref(),
+        Some("rotate(15, 0.5, 0.5)"),
+        "rotating -30 from the 45° base should give 15°"
+    );
+    assert_eq!(rotate_readout.text_content().as_deref(), Some("rotate 15°"));
+    assert_eq!(rotate_slider.get_attribute("aria-valuetext").as_deref(), Some("rotate 15°"));
+
+    // --- 4-stop spectrum: the two middle stops stay ordered ---
+    let s2_stop = find_el("#demo-lg-s stop:nth-child(2)");
+    let s3_stop = find_el("#demo-lg-s stop:nth-child(3)");
+    assert_eq!(s2_stop.get_attribute("offset").as_deref(), Some("0.35"));
+    assert_eq!(s3_stop.get_attribute("offset").as_deref(), Some("0.65"));
+
+    let s2_slider = find_slider("input[aria-label='stop 2']");
+    let s3_slider = find_slider("input[aria-label='stop 3']");
+
+    // Push stop 2 past stop 3's current value (65). The clamp must stop it just below, not let it pass.
+    dispatch_input(&s2_slider, "70");
+    assert_eq!(
+        s2_slider.value(),
+        "64",
+        "stop 2 should clamp to one point below stop 3's current value"
+    );
+    assert_eq!(s2_stop.get_attribute("offset").as_deref(), Some("0.640"));
+    assert_eq!(
+        s3_stop.get_attribute("offset").as_deref(),
+        Some("0.65"),
+        "stop 3 must stay put while stop 2 moves"
+    );
+
+    // Push stop 3 down past stop 2's new current value (64), not its original one (35). The clamp must stop it
+    // just above. This proves the clamp reads a live value, not one fixed when the sliders were built.
+    dispatch_input(&s3_slider, "50");
+    assert_eq!(
+        s3_slider.value(),
+        "65",
+        "stop 3 should clamp to one point above stop 2's current value"
+    );
+    assert_eq!(
+        s2_stop.get_attribute("offset").as_deref(),
+        Some("0.640"),
+        "stop 2 must stay put while stop 3 moves"
+    );
+    assert_eq!(s3_stop.get_attribute("offset").as_deref(), Some("0.650"));
+
+    // The fixed outer stops never move, however far the middle two are dragged.
+    let s1_stop = find_el("#demo-lg-s stop:nth-child(1)");
+    let s4_stop = find_el("#demo-lg-s stop:nth-child(4)");
+    assert_eq!(s1_stop.get_attribute("offset").as_deref(), Some("0"));
+    assert_eq!(s4_stop.get_attribute("offset").as_deref(), Some("1"));
+
+    // --- gradient stroke: untouched by every slider above ---
+    let stroke_stop_1 = find_el("#demo-lg-stroke stop:nth-child(1)");
+    let stroke_stop_2 = find_el("#demo-lg-stroke stop:nth-child(2)");
+    assert_eq!(stroke_stop_1.get_attribute("offset").as_deref(), Some("0"));
+    assert_eq!(stroke_stop_1.get_attribute("stop-color").as_deref(), Some("mediumseagreen"));
+    assert_eq!(stroke_stop_2.get_attribute("offset").as_deref(), Some("1"));
+    assert_eq!(stroke_stop_2.get_attribute("stop-color").as_deref(), Some("coral"));
 }

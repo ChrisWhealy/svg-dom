@@ -10,7 +10,8 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 ### Added
 
-- Make the linearGradient demos interactive (``)
+- Make the linearGradient demos interactive (`ea0f6e4`)
+- Add regression test for linearGradient demos (``)
 
 ## [0.1.6] - 2026-07-30
 
