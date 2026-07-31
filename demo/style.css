@@ -393,6 +393,38 @@ figcaption ol {
     width: 100%;
 }
 
+/* The visible caption above a .demo-slider, matching .demo-control-group>legend's own look so every labelled
+   control in this file reads consistently. */
+.demo-slider-label {
+    font-size: 11px;
+    color: #8b949e;
+}
+
+/* Centres the vertical-shift slider (see .demo-slider-vertical below) within its own narrow, tall foreignObject
+   box, both before and after that slider's own rotation. */
+.demo-slider-vertical-wrap {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* A vertical range input, used by the linearGradient demo's vertical-shift slider: a plain horizontal
+   <input type="range">, rotated 90 degrees with `transform`, rather than styled vertical with `writing-mode`.
+   `transform` is universally supported; `writing-mode` on a range input is not -- Chrome only gained it recently
+   and Safari's support is still unreliable, and this control needs to actually render vertically in every browser.
+   Its own pre-rotation width (90px) is hard-coded to match RECT_H in demo_linear_gradient.rs, the vertical length
+   this one demo's track needs to be -- an acceptable coupling since this is a single, demo-specific control, not a
+   reusable sized-by-caller component.
+   rotate(90deg), not -90deg: that maps the pre-rotation left end (the slider's minimum) to the top, so dragging the
+   thumb up decreases the value -- matching the demo's own "up moves the stop up" framing, since a smaller offset
+   sits higher in the gradient. */
+.demo-slider-vertical {
+    width: 90px;
+    transform: rotate(90deg);
+}
+
 /* This row is exactly as wide as .demo-slider.
    It holds one .demo-tick-mark span per tick.
    See demo_text_path's own doc comment for why these marks are hand-drawn, rather than a <datalist>. */
