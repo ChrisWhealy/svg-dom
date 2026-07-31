@@ -788,6 +788,33 @@ fn demo_radial_gradient_controls_update_stops_spread_and_focal_point() {
     assert_eq!(f_gradient.get_attribute("fx").as_deref(), Some("0.25"));
     assert_eq!(f_gradient.get_attribute("fy").as_deref(), Some("0.25"));
 
+    // The focal marker reads its own position straight from the rectangle's live x/y/width/height, rather than
+    // this test hard-coding the demo's own layout constants, the same reason `marker_view_box_slider_...` above
+    // captures the line's own initial attributes instead of recomputing them.
+    let focal_rect = find_el("rect");
+    let rect_x: f64 = focal_rect.get_attribute("x").expect("rect x").parse().expect("numeric x");
+    let rect_y: f64 = focal_rect.get_attribute("y").expect("rect y").parse().expect("numeric y");
+    let rect_w: f64 = focal_rect
+        .get_attribute("width")
+        .expect("rect width")
+        .parse()
+        .expect("numeric width");
+    let rect_h: f64 = focal_rect
+        .get_attribute("height")
+        .expect("rect height")
+        .parse()
+        .expect("numeric height");
+
+    // `fill="none"` is what distinguishes the marker from the two gradient-filled circles elsewhere on this panel.
+    let focal_marker = find_el("circle[fill='none']");
+    let marker_cx =
+        |el: &web_sys::Element| -> f64 { el.get_attribute("cx").expect("marker cx").parse().expect("numeric cx") };
+    let marker_cy =
+        |el: &web_sys::Element| -> f64 { el.get_attribute("cy").expect("marker cy").parse().expect("numeric cy") };
+
+    assert!((marker_cx(&focal_marker) - (rect_x + 0.25 * rect_w)).abs() < 0.1);
+    assert!((marker_cy(&focal_marker) - (rect_y + 0.25 * rect_h)).abs() < 0.1);
+
     let fx_slider = find_slider("input[aria-label='off-centre focal gradient fx']");
     assert_eq!(fx_slider.get_attribute("aria-valuetext").as_deref(), Some("25%"));
     dispatch_input(&fx_slider, "60");
@@ -797,6 +824,14 @@ fn demo_radial_gradient_controls_update_stops_spread_and_focal_point() {
         "moving the fx slider should update the gradient's fx"
     );
     assert_eq!(fx_slider.get_attribute("aria-valuetext").as_deref(), Some("60%"));
+    assert!(
+        (marker_cx(&focal_marker) - (rect_x + 0.60 * rect_w)).abs() < 0.1,
+        "the focal marker's cx should follow the fx slider"
+    );
+    assert!(
+        (marker_cy(&focal_marker) - (rect_y + 0.25 * rect_h)).abs() < 0.1,
+        "the focal marker's cy should stay put while only fx moves"
+    );
 
     let fy_slider = find_slider("input[aria-label='off-centre focal gradient fy']");
     assert_eq!(fy_slider.get_attribute("aria-valuetext").as_deref(), Some("25%"));
@@ -812,6 +847,14 @@ fn demo_radial_gradient_controls_update_stops_spread_and_focal_point() {
         "moving the fy slider should update the gradient's fy"
     );
     assert_eq!(fy_slider.get_attribute("aria-valuetext").as_deref(), Some("60%"));
+    assert!(
+        (marker_cy(&focal_marker) - (rect_y + 0.60 * rect_h)).abs() < 0.1,
+        "the focal marker's cy should follow the fy slider"
+    );
+    assert!(
+        (marker_cx(&focal_marker) - (rect_x + 0.60 * rect_w)).abs() < 0.1,
+        "the focal marker's cx should stay put while only fy moves"
+    );
 
     // The fy slider's own keydown handler remaps ArrowUp/ArrowDown to match the visual "up is smaller" scale, the
     // same reason and mechanism `demo_linear_gradient`'s own vertical slider needs it. A synthetic keydown

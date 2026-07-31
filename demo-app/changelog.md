@@ -10,7 +10,11 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 ### Added
 
-- Make radialGradient demos interactive (``)
+- Make radialGradient demos interactive (`0308224`)
+
+### Fixed
+
+- Explain SVG 2 edge-case when focal point move outside circle (``)
 
 ## [0.1.7] - 2026-07-31
 

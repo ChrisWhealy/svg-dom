@@ -205,6 +205,21 @@ pub(crate) fn demo() -> Result<(), Error> {
     rf.set_fill_gradient("demo-rg-f")?;
     super::row_caption(&svg, ROW2_A_X + FOCAL_RECT_W / 2.0, ROW2_CAPTION_Y, "off-centre focal")?;
 
+    // A small hollow marker tracks fx/fy directly on the rectangle, at the same 0%-100% -> left/right or
+    // top/bottom mapping the gradient's own objectBoundingBox coordinates use. Near the corners this marker
+    // visibly sits outside #demo-rg-f's own end circle (its default cx/cy/r = 0.5/0.5/0.5) — SVG 2 accepts a
+    // focal point outside the end circle, unlike SVG 1.1, which moved it back onto the circle instead. The
+    // marker makes that relationship visible: it does not explain on its own why the gradient outside the cone
+    // it forms then reads transparent black, which is why the panel's own figcaption spells that out too.
+    let focal_marker = svg.circle(
+        Point::new(ROW2_A_X + 0.25 * FOCAL_RECT_W, ROW2_RECT_Y + 0.25 * FOCAL_RECT_H),
+        5.0,
+    )?;
+    focal_marker.set_fill(NONE)?;
+    focal_marker.set_stroke(WHITE)?;
+    focal_marker.set_stroke_width(2.0)?;
+    focal_marker.set_attr("pointer-events", NONE)?;
+
     let f_gradient = super::select_el(&svg, "#demo-rg-f")?;
     let fx_slider = super::build_h_slider(
         &svg,
@@ -220,10 +235,13 @@ pub(crate) fn demo() -> Result<(), Error> {
     {
         let slider = fx_slider.clone();
         let gradient = f_gradient.clone();
+        let marker = focal_marker.clone();
         let on_input: DemoClosure = Closure::new(move |_: web_sys::Event| {
             let percent = slider.value_as_number();
             let _ = gradient.set_attribute("fx", &format!("{:.2}", percent / 100.0));
             let _ = slider.set_attribute("aria-valuetext", &format!("{percent:.0}%"));
+            let cx = ROW2_A_X + percent / 100.0 * FOCAL_RECT_W;
+            let _ = marker.set_attr("cx", &format!("{cx:.1}"));
         });
         fx_slider
             .add_event_listener_with_callback("input", on_input.as_ref().unchecked_ref())
@@ -266,10 +284,13 @@ pub(crate) fn demo() -> Result<(), Error> {
     {
         let slider = fy_slider.clone();
         let gradient = f_gradient.clone();
+        let marker = focal_marker.clone();
         let on_input: DemoClosure = Closure::new(move |_: web_sys::Event| {
             let percent = slider.value_as_number();
             let _ = gradient.set_attribute("fy", &format!("{:.2}", percent / 100.0));
             let _ = slider.set_attribute("aria-valuetext", &format!("{percent:.0}%"));
+            let cy = ROW2_RECT_Y + percent / 100.0 * FOCAL_RECT_H;
+            let _ = marker.set_attr("cy", &format!("{cy:.1}"));
         });
         fy_slider
             .add_event_listener_with_callback("input", on_input.as_ref().unchecked_ref())
