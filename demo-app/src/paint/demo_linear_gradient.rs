@@ -415,13 +415,17 @@ pub(crate) fn demo() -> Result<(), Error> {
     // The middle two stops start at 0.35 (index 1) and 0.65 (index 2).
     // These two stops stay ordered by construction, both against each other and against the fixed outer stops
     // (0.0 and 1.0).
-    // Stop 2's slider range is [1, 98].
-    // This keeps it above stop 1 (0.0) and below 99.
-    // Stop 3's slider range is [2, 99].
-    // This keeps it below stop 4 (1.0) and above 1.
-    // Each slider's own `on_input` handler also clamps against the other slider's current value, with a 1-point
-    // margin.
-    // So stop 2 can never reach or pass stop 3.
+    //
+    // stop2/stop3 keep a live one-point gap between each other. `s2_slider`'s own `max` attribute always tracks
+    // `s3_slider.value - 1`. `s3_slider`'s own `min` attribute always tracks `s2_slider.value + 1`. The browser
+    // itself then refuses to move either thumb past the other, keyboard included, before this demo's own
+    // `on_input` handler ever runs. Neither handler clamps or writes back a value any more: each slider's native
+    // sanitisation already guarantees the value it reports is in range.
+    //
+    // `(1, 98)` and `(2, 99)` below, and the "1%"/"98%"/"2%"/"99%" endpoint labels and tick marks
+    // `build_h_slider` draws from them, describe each slider's absolute possible range against the fixed outer
+    // stops, not its live range against the other slider. Those stay fixed on purpose, as a description of the
+    // total range each stop could ever reach, distinct from the live `max`/`min` this section maintains.
     let s2_stop = select_el(&svg, "#demo-lg-s stop:nth-child(2)")?;
     let s3_stop = select_el(&svg, "#demo-lg-s stop:nth-child(3)")?;
     let s2_slider = build_h_slider(
@@ -447,19 +451,20 @@ pub(crate) fn demo() -> Result<(), Error> {
     )?;
     // Matches this slider's own default value (65) above, for the same reason.
     s3_slider.set_attribute("aria-valuetext", "65%").map_err(dom_err)?;
+
+    // Establishes the live one-point gap from each slider's own default value, before either has fired an
+    // `on_input` event of its own.
+    s2_slider.set_max(&(s3_slider.value_as_number() - 1.0).to_string());
+    s3_slider.set_min(&(s2_slider.value_as_number() + 1.0).to_string());
     {
         let this_slider = s2_slider.clone();
         let other_slider = s3_slider.clone();
         let stop = s2_stop.clone();
         let on_input: DemoClosure = Closure::new(move |_: web_sys::Event| {
-            let other = other_slider.value_as_number();
-            let mut value = this_slider.value_as_number();
-            if value >= other - 1.0 {
-                value = other - 1.0;
-                this_slider.set_value(&value.to_string());
-            }
+            let value = this_slider.value_as_number();
             let _ = stop.set_attribute("offset", &format!("{:.3}", value / 100.0));
             let _ = this_slider.set_attribute("aria-valuetext", &format!("{value:.0}%"));
+            other_slider.set_min(&(value + 1.0).to_string());
         });
         s2_slider
             .add_event_listener_with_callback("input", on_input.as_ref().unchecked_ref())
@@ -471,14 +476,10 @@ pub(crate) fn demo() -> Result<(), Error> {
         let other_slider = s2_slider.clone();
         let stop = s3_stop.clone();
         let on_input: DemoClosure = Closure::new(move |_: web_sys::Event| {
-            let other = other_slider.value_as_number();
-            let mut value = this_slider.value_as_number();
-            if value <= other + 1.0 {
-                value = other + 1.0;
-                this_slider.set_value(&value.to_string());
-            }
+            let value = this_slider.value_as_number();
             let _ = stop.set_attribute("offset", &format!("{:.3}", value / 100.0));
             let _ = this_slider.set_attribute("aria-valuetext", &format!("{value:.0}%"));
+            other_slider.set_max(&(value - 1.0).to_string());
         });
         s3_slider
             .add_event_listener_with_callback("input", on_input.as_ref().unchecked_ref())

@@ -438,9 +438,11 @@ fn radio_group_checks_default_clears_prior_selection_and_calls_on_select() {
 /// It also cannot prove the two spectrum sliders still keep their middle stops ordered.
 /// Only a real browser can prove either.
 ///
-/// The spectrum's mutual clamp gets two explicit boundary checks, not just one.
-/// The clamp reads each slider's live value from the other, not a value fixed at construction time.
-/// The second check pushes stop 3 against stop 2's own updated value, not its original one, to prove that.
+/// The spectrum's mutual constraint gets two explicit boundary checks, not just one.
+/// Each slider's own `min`/`max` attribute enforces the constraint, not a JavaScript clamp reacting after the
+/// fact. This test checks those attributes directly, not only the values they produce.
+/// The second boundary check pushes stop 3 against stop 2's own updated value, not its original one, to prove
+/// the live attribute tracks the other slider, not a value fixed at construction time.
 ///
 /// Every slider's `aria-valuetext` is also checked before any interaction.
 /// Each one must already report its real starting value there, not only after the first input event.
@@ -550,12 +552,29 @@ fn demo_linear_gradient_sliders_update_stops_and_respect_ordering() {
     assert_eq!(s2_slider.get_attribute("aria-valuetext").as_deref(), Some("35%"));
     assert_eq!(s3_slider.get_attribute("aria-valuetext").as_deref(), Some("65%"));
 
-    // Push stop 2 past stop 3's current value (65). The clamp must stop it just below, not let it pass.
+    // Each slider's own min/max attribute already exposes the live constraint at construction, before either
+    // slider has fired an input event of its own. Stop 2's absolute min (1) and stop 3's absolute max (99) never
+    // change; only the shared boundary between the two stops does.
+    assert_eq!(s2_slider.min(), "1", "stop 2's absolute lower bound never changes");
+    assert_eq!(
+        s2_slider.max(),
+        "64",
+        "stop 2's live upper bound should track stop 3's value minus one"
+    );
+    assert_eq!(
+        s3_slider.min(),
+        "36",
+        "stop 3's live lower bound should track stop 2's value plus one"
+    );
+    assert_eq!(s3_slider.max(), "99", "stop 3's absolute upper bound never changes");
+
+    // Push stop 2 past stop 3's current value (65). The native max attribute above already stops it at 64,
+    // before this demo's own `on_input` handler ever runs.
     dispatch_input(&s2_slider, "70");
     assert_eq!(
         s2_slider.value(),
         "64",
-        "stop 2 should clamp to one point below stop 3's current value"
+        "the browser's own max attribute should stop stop 2 at one point below stop 3"
     );
     assert_eq!(s2_stop.get_attribute("offset").as_deref(), Some("0.640"));
     assert_eq!(
@@ -563,14 +582,20 @@ fn demo_linear_gradient_sliders_update_stops_and_respect_ordering() {
         Some("0.65"),
         "stop 3 must stay put while stop 2 moves"
     );
+    assert_eq!(
+        s3_slider.min(),
+        "65",
+        "stop 3's live lower bound should follow stop 2's new value"
+    );
 
-    // Push stop 3 down past stop 2's new current value (64), not its original one (35). The clamp must stop it
-    // just above. This proves the clamp reads a live value, not one fixed when the sliders were built.
+    // Push stop 3 down past stop 2's new current value (64), not its original one (35). The native min
+    // attribute, already updated above, stops it at 65 — proving the constraint tracks a live value, not one
+    // fixed when the sliders were built.
     dispatch_input(&s3_slider, "50");
     assert_eq!(
         s3_slider.value(),
         "65",
-        "stop 3 should clamp to one point above stop 2's current value"
+        "the browser's own min attribute should stop stop 3 at one point above stop 2"
     );
     assert_eq!(
         s2_stop.get_attribute("offset").as_deref(),
@@ -578,6 +603,11 @@ fn demo_linear_gradient_sliders_update_stops_and_respect_ordering() {
         "stop 2 must stay put while stop 3 moves"
     );
     assert_eq!(s3_stop.get_attribute("offset").as_deref(), Some("0.650"));
+    assert_eq!(
+        s2_slider.max(),
+        "64",
+        "stop 2's live upper bound should still track stop 3's value minus one"
+    );
 
     // The fixed outer stops never move, however far the middle two are dragged.
     let s1_stop = find_el("#demo-lg-s stop:nth-child(1)");
