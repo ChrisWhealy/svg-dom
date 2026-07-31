@@ -128,7 +128,11 @@ fn select_el(svg: &SvgRoot, selector: &str) -> Result<web_sys::Element, Error> {
 /// `endpoints` is the `(min, max)` text shown on either side of the track, for example `"10%"`/`"100%"` or
 /// `"-90°"`/`"+90°"`.
 /// This text is free-form, since not every slider's endpoints share its raw `i32` value's unit.
-/// `label` serves two roles: it is both the visible caption above the track and the control's `aria-label`.
+/// `labels` is `(visible, accessible)`.
+/// `visible` is the short caption drawn above the track, read alongside the row's own caption below the rect.
+/// `accessible` is the control's `aria-label`, read alone by assistive technology, with no such visual context.
+/// A screen reader user needs `accessible` to name the gradient too, for example "horizontal gradient stop 2",
+/// not just "stop 2".
 ///
 /// Four of this demo's five interactive controls are a plain horizontal slider like this one.
 /// Only the vertical-shift slider needs a different shape.
@@ -137,11 +141,12 @@ fn build_h_slider(
     svg: &SvgRoot,
     pos: Point,
     w: f64,
-    label: &str,
+    labels: (&str, &str),
     range: (i32, i32, i32),
     tick_step: i32,
     endpoints: (&str, &str),
 ) -> Result<web_sys::HtmlInputElement, Error> {
+    let (visible_label, accessible_label) = labels;
     let (min, max, default) = range;
     let (min_label, max_label) = endpoints;
 
@@ -153,7 +158,7 @@ fn build_h_slider(
 
     let label_el = xhtml(&document, "div")?;
     label_el.set_attribute("class", "demo-slider-label").map_err(dom_err)?;
-    label_el.set_text_content(Some(label));
+    label_el.set_text_content(Some(visible_label));
     container.append_child(&label_el).map_err(dom_err)?;
 
     let slider = xhtml(&document, "input")?
@@ -165,7 +170,7 @@ fn build_h_slider(
     slider.set_step("1");
     slider.set_value(&default.to_string());
     slider.set_attribute("class", "demo-slider").map_err(dom_err)?;
-    slider.set_attribute("aria-label", label).map_err(dom_err)?;
+    slider.set_attribute("aria-label", accessible_label).map_err(dom_err)?;
     container.append_child(&slider).map_err(dom_err)?;
 
     let ticks_row = xhtml(&document, "div")?;
@@ -271,7 +276,7 @@ pub(crate) fn demo() -> Result<(), Error> {
         &svg,
         Point::new(ROW1_H_X, ROW1_TOP),
         RECT_W,
-        "shift stop 2",
+        ("shift stop 2", "horizontal gradient stop 2"),
         (10, 100, 100),
         30,
         ("10%", "100%"),
@@ -379,7 +384,7 @@ pub(crate) fn demo() -> Result<(), Error> {
         &svg,
         Point::new(ROW2_D_X, ROW2_SINGLE_SLIDER_Y),
         RECT_W,
-        "rotate",
+        ("rotate", "diagonal gradient rotation"),
         (-90, 90, 0),
         45,
         ("-90°", "+90°"),
@@ -432,7 +437,7 @@ pub(crate) fn demo() -> Result<(), Error> {
         &svg,
         Point::new(ROW2_S_X, ROW2_TOP),
         RECT_W,
-        "stop 2",
+        ("stop 2", "spectrum gradient stop 2"),
         (1, 98, 35),
         25,
         ("1%", "98%"),
@@ -444,7 +449,7 @@ pub(crate) fn demo() -> Result<(), Error> {
         &svg,
         Point::new(ROW2_S_X, ROW2_TOP + SLIDER_ROW_H + SLIDER_GAP),
         RECT_W,
-        "stop 3",
+        ("stop 3", "spectrum gradient stop 3"),
         (2, 99, 65),
         25,
         ("2%", "99%"),

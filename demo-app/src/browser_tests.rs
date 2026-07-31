@@ -477,7 +477,7 @@ fn demo_linear_gradient_sliders_update_stops_and_respect_ordering() {
     let h_stop = find_el("#demo-lg-h stop:nth-child(2)");
     assert_eq!(h_stop.get_attribute("offset").as_deref(), Some("1"));
 
-    let h_slider = find_slider("input[aria-label='shift stop 2']");
+    let h_slider = find_slider("input[aria-label='horizontal gradient stop 2']");
     // Set at construction time, before any interaction, so a screen reader announces the real starting value.
     assert_eq!(h_slider.get_attribute("aria-valuetext").as_deref(), Some("100%"));
     dispatch_input(&h_slider, "40");
@@ -526,7 +526,7 @@ fn demo_linear_gradient_sliders_update_stops_and_respect_ordering() {
         found.expect("no <text> element with initial content \"rotate 45°\"")
     };
 
-    let rotate_slider = find_slider("input[aria-label='rotate']");
+    let rotate_slider = find_slider("input[aria-label='diagonal gradient rotation']");
     // The slider's own raw value starts at 0 (a relative displacement), but the rendered gradient and the visible
     // readout both start at the absolute 45° base. aria-valuetext must report that same absolute angle from
     // construction, not the raw 0, and not merely from the first input event onward.
@@ -547,8 +547,8 @@ fn demo_linear_gradient_sliders_update_stops_and_respect_ordering() {
     assert_eq!(s2_stop.get_attribute("offset").as_deref(), Some("0.35"));
     assert_eq!(s3_stop.get_attribute("offset").as_deref(), Some("0.65"));
 
-    let s2_slider = find_slider("input[aria-label='stop 2']");
-    let s3_slider = find_slider("input[aria-label='stop 3']");
+    let s2_slider = find_slider("input[aria-label='spectrum gradient stop 2']");
+    let s3_slider = find_slider("input[aria-label='spectrum gradient stop 3']");
     assert_eq!(s2_slider.get_attribute("aria-valuetext").as_deref(), Some("35%"));
     assert_eq!(s3_slider.get_attribute("aria-valuetext").as_deref(), Some("65%"));
 
