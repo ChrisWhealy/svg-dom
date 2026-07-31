@@ -494,12 +494,47 @@ fn demo_linear_gradient_sliders_update_stops_and_respect_ordering() {
 
     let v_slider = find_slider("input[aria-label=\"shift the vertical gradient's second stop\"]");
     assert_eq!(v_slider.get_attribute("aria-valuetext").as_deref(), Some("100%"));
+    assert_eq!(
+        v_slider.get_attribute("aria-orientation").as_deref(),
+        Some("vertical"),
+        "a rotated <input type=range> stays a horizontal slider to assistive technology without this"
+    );
     dispatch_input(&v_slider, "25");
     assert_eq!(
         v_stop.get_attribute("offset").as_deref(),
         Some("0.25"),
         "moving the vertical slider should update the second stop's offset"
     );
+    assert_eq!(v_slider.get_attribute("aria-valuetext").as_deref(), Some("25%"));
+
+    // The vertical slider's own keydown handler remaps ArrowUp/ArrowDown to match the visual "up is smaller"
+    // scale, the opposite of a native horizontal range input's own default ArrowUp-increments behaviour. A
+    // synthetic keydown dispatch never triggers a browser's native default action in the first place, so this
+    // exercises only the demo's own handler, not any native fallback behaviour.
+    let dispatch_keydown = |slider: &web_sys::HtmlInputElement, key: &str| {
+        let init = web_sys::KeyboardEventInit::new();
+        init.set_key(key);
+        let event =
+            web_sys::KeyboardEvent::new_with_keyboard_event_init_dict("keydown", &init).expect("create keydown event");
+        slider.dispatch_event(&event).expect("dispatch keydown");
+    };
+
+    dispatch_keydown(&v_slider, "ArrowUp");
+    assert_eq!(
+        v_slider.value(),
+        "24",
+        "ArrowUp should decrement, matching the visual up-is-smaller scale"
+    );
+    assert_eq!(v_stop.get_attribute("offset").as_deref(), Some("0.24"));
+    assert_eq!(v_slider.get_attribute("aria-valuetext").as_deref(), Some("24%"));
+
+    dispatch_keydown(&v_slider, "ArrowDown");
+    assert_eq!(
+        v_slider.value(),
+        "25",
+        "ArrowDown should increment, matching the visual down-is-larger scale"
+    );
+    assert_eq!(v_stop.get_attribute("offset").as_deref(), Some("0.25"));
     assert_eq!(v_slider.get_attribute("aria-valuetext").as_deref(), Some("25%"));
 
     // --- diagonal: the slider rotates #demo-lg-d and updates the visible readout ---

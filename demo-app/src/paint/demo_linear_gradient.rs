@@ -401,6 +401,10 @@ pub(crate) fn demo() -> Result<(), Error> {
     v_slider
         .set_attribute("aria-label", "shift the vertical gradient's second stop")
         .map_err(dom_err)?;
+    // A rotated <input type="range"> stays a horizontal slider as far as the DOM and assistive technology know:
+    // nothing about the CSS transform that turns it visually vertical reaches ARIA. Without this, a screen
+    // reader may still announce it as a horizontal slider.
+    v_slider.set_attribute("aria-orientation", "vertical").map_err(dom_err)?;
     // Matches the slider's own default value (100) above, set once here for the same reason the horizontal
     // slider's own aria-valuetext is set at construction, not only after the first input event.
     v_slider.set_attribute("aria-valuetext", "100%").map_err(dom_err)?;
@@ -419,6 +423,30 @@ pub(crate) fn demo() -> Result<(), Error> {
             .add_event_listener_with_callback("input", on_input.as_ref().unchecked_ref())
             .map_err(dom_err)?;
         keep_demo_closure(on_input);
+    }
+    // The rotated track's own top-is-min orientation (see this file's own doc comment) means "up" is the visual
+    // direction for a smaller value, the opposite of a native horizontal slider's own ArrowUp-increments default.
+    // Left/right keep their ordinary decrement/increment behaviour unchanged: only up/down need remapping to
+    // match what the rotation shows on screen.
+    {
+        let slider = v_slider.clone();
+        let on_keydown: DemoClosure = Closure::new(move |e: web_sys::Event| {
+            let e: web_sys::KeyboardEvent = e.unchecked_into();
+            let delta = match e.key().as_str() {
+                "ArrowUp" => -1.0,
+                "ArrowDown" => 1.0,
+                _ => return,
+            };
+            e.prevent_default();
+            let new_value = slider.value_as_number() + delta;
+            slider.set_value(&new_value.to_string());
+            let input_event = web_sys::Event::new("input").expect("create input event");
+            let _ = slider.dispatch_event(&input_event);
+        });
+        v_slider
+            .add_event_listener_with_callback("keydown", on_keydown.as_ref().unchecked_ref())
+            .map_err(dom_err)?;
+        keep_demo_closure(on_keydown);
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
