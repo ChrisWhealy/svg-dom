@@ -249,7 +249,7 @@ pub(crate) fn demo() -> Result<(), Error> {
             Ok(())
         })?;
 
-        // 5. Gradient stroke: a thin-to-thick colour sweep applied to stroke, not fill.
+        // 5. Gradient stroke: a colour sweep applied to a stroke rather than a fill.
         d.build_linear_gradient("demo-lg-stroke", |g| {
             g.add_stop(0.0, MEDIUM_SEA_GREEN)?;
             g.add_stop(1.0, CORAL)?;

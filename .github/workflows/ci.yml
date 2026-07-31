@@ -140,14 +140,9 @@ jobs:
       - name: Run the browser integration tests
         run: wasm-pack test --headless --${{ matrix.browser }}
 
-      # demo-app/src/browser_tests.rs — dispatches real change/input events at the interactive demo controls
-      # implemented through foreign_html.rs (radio groups, sliders) and asserts the resulting SVG attributes,
-      # rather than only proving (as demo-app's native unit_tests do) that the Rust source compiles and is
-      # extractable. The package path has to come *after* the flags here — unlike `wasm-pack build`, confirmed
-      # empirically: `wasm-pack test demo-app --headless --firefox` fails with "Must specify at least one of
-      # --node, --chrome, --firefox, or --safari" (the trailing flags get swallowed into `test`'s own
-      # `[PATH_AND_EXTRA_OPTIONS]...` catch-all instead of being parsed as options), while
-      # `wasm-pack test --headless --firefox demo-app` works.
+      # demo-app/src/browser_tests.rs — dispatches real change/input events at the demo gallery's interactive controls
+      # and asserts the resulting SVG attributes, rather than only proving (as demo-app's native unit_tests do) that the
+      # Rust source compiles and is extractable.
       - name: Run the demo gallery's interactive-control browser tests
         run: wasm-pack test --headless --${{ matrix.browser }} demo-app
 
