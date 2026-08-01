@@ -10,7 +10,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 ### Added
 
-- Make feFilter demos interactive (``)
+- Make feFilter demos interactive (`d87401c`)
 
 ## [0.1.8] - 2026-07-31
 
