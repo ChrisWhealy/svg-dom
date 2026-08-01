@@ -917,7 +917,14 @@ fn demo_radial_gradient_controls_update_stops_spread_and_focal_point() {
 /// `set_attr`. Source extraction cannot prove any slider still reaches its own target attribute through that
 /// retained node, or that the two live captions still track them.
 /// It also cannot prove the four controls stay independent of one another.
-/// Only a real browser can prove any of that.
+///
+/// It also cannot prove either filter's own region is actually sized against the sliders' own documented
+/// extremes, not just the SVG default: this test pins both regions' `x`/`y`/`width`/`height` (and `filterUnits`),
+/// pins each slider's own `min`/`max` to the same bounds those regions are sized against, and finally drives
+/// every slider to its documented maximum simultaneously to confirm neither region shrinks at that point. That
+/// proves the DOM state matches the intended worst case; it cannot by itself prove no pixel is actually clipped
+/// at that combination, which only a rendered, visually inspected browser can show.
+/// Only a real browser can prove any of the above.
 #[wasm_bindgen_test]
 fn demo_filter_sliders_update_blur_and_drop_shadow_independently() {
     container("demo-filter");
@@ -973,6 +980,11 @@ fn demo_filter_sliders_update_blur_and_drop_shadow_independently() {
     let blur_slider = find_slider("input[aria-label='gaussian blur standard deviation']");
     // Set at construction time, before any interaction, so a screen reader announces the real starting value.
     assert_eq!(blur_slider.get_attribute("aria-valuetext").as_deref(), Some("stdDeviation 3"));
+    // Pins the slider's own reachable range to demo_filter.rs's MIN_BLUR/MAX_BLUR — the same bounds the blur
+    // filter's own region margin below is sized against. If a future edit widened this range without widening
+    // that margin to match, this assertion is what would catch the mismatch, not the region check alone.
+    assert_eq!(blur_slider.min(), "0");
+    assert_eq!(blur_slider.max(), "20");
 
     let blur_caption = find_text("stdDeviation: 3");
 
@@ -1076,6 +1088,15 @@ fn demo_filter_sliders_update_blur_and_drop_shadow_independently() {
         Some("vertical"),
         "a rotated <input type=range> stays a horizontal slider to assistive technology without this"
     );
+    // Pins each slider's own reachable range to demo_filter.rs's MIN_OFFSET/MAX_OFFSET/MIN_SHADOW_BLUR/
+    // MAX_SHADOW_BLUR — the same bounds the shadow filter's own region margin above is sized against, for the
+    // same reason the blur slider's own min/max are pinned above.
+    assert_eq!(dx_slider.min(), "-10");
+    assert_eq!(dx_slider.max(), "10");
+    assert_eq!(dy_slider.min(), "-10");
+    assert_eq!(dy_slider.max(), "10");
+    assert_eq!(stddev_slider.min(), "0");
+    assert_eq!(stddev_slider.max(), "20");
 
     let shadow_caption = find_text("dx 6 · dy 6 · stdDeviation 4");
 
@@ -1171,6 +1192,37 @@ fn demo_filter_sliders_update_blur_and_drop_shadow_independently() {
         "the blur circle's own stdDeviation must stay at its own last value, untouched by any shadow slider"
     );
     assert_eq!(blur_caption.text_content().as_deref(), Some("stdDeviation: 12"));
+
+    // --- every slider at its documented maximum simultaneously: the combination the filter regions above are
+    // sized for, per demo_filter.rs's own BLUR_SPREAD/MAX_ margin comments ---
+    // This proves the DOM state — the attribute values a browser's own renderer reads to paint the effect —
+    // matches the documented worst case, and that neither region is recomputed (and so silently narrowed) as a
+    // slider's live value changes rather than staying fixed at the build-time worst case. It cannot by itself
+    // prove no pixel is actually clipped at that combination; only a rendered, visually inspected browser can
+    // show that (confirmed separately, manually, during this demo's own development).
+    dispatch_input(&blur_slider, "20");
+    dispatch_input(&dx_slider, "10");
+    dispatch_input(&dy_slider, "10");
+    dispatch_input(&stddev_slider, "20");
+    assert_eq!(blur.get_attribute("stdDeviation").as_deref(), Some("20"));
+    assert_eq!(shadow.get_attribute("dx").as_deref(), Some("10"));
+    assert_eq!(shadow.get_attribute("dy").as_deref(), Some("10"));
+    assert_eq!(shadow.get_attribute("stdDeviation").as_deref(), Some("20"));
+    assert!(
+        (parse_region_attr(&blur_filter, "x") + expected_circle_margin).abs() < 1e-6,
+        "the blur filter's own region must stay fixed at its build-time worst-case size, not shrink at the live value"
+    );
+    assert!((parse_region_attr(&blur_filter, "y") + expected_circle_margin).abs() < 1e-6);
+    assert!((parse_region_attr(&blur_filter, "width") - (1.0 + 2.0 * expected_circle_margin)).abs() < 1e-6);
+    assert!((parse_region_attr(&blur_filter, "height") - (1.0 + 2.0 * expected_circle_margin)).abs() < 1e-6);
+    assert_eq!(
+        shadow_filter.get_attribute("x").as_deref(),
+        Some("230"),
+        "the shadow filter's own region must stay fixed at its build-time worst-case size too"
+    );
+    assert_eq!(shadow_filter.get_attribute("y").as_deref(), Some("8"));
+    assert_eq!(shadow_filter.get_attribute("width").as_deref(), Some("420"));
+    assert_eq!(shadow_filter.get_attribute("height").as_deref(), Some("200"));
 
     let banner = find_el("text[font-weight='bold']");
     assert_eq!(banner.text_content().as_deref(), Some("DROP SHADOW"));
