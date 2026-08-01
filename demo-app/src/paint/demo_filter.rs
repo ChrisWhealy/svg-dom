@@ -9,12 +9,19 @@ use wasm_bindgen::{JsCast, prelude::*};
 // filter — one circle whose feGaussianBlur stdDeviation is driven live by a slider, plus a tinted drop shadow
 // whose feDropShadow dx/dy/stdDeviation are each driven live by their own slider, applied via set_filter
 //
-// `select_el`, `build_h_slider`, `build_v_slider`, and `side_label` (called below via `super::`) live in
-// `paint/mod.rs`. The blurred circle uses the same slider-above-shape layout `demo_radial_gradient`'s own
-// "centred" row uses. The drop-shadow banner uses the same dx-above/dy-beside layout `demo_radial_gradient`'s
-// own "off-centre focal" row uses for fx/fy, plus a third slider below for stdDeviation, with its dy track on
-// the banner's left rather than the rectangle's right, spanning the whole control column rather than just the
-// height of the banner's own text box.
+// `build_h_slider`, `build_v_slider`, and `side_label` (called below via `super::`) live in `paint/mod.rs`. The
+// blurred circle uses the same slider-above-shape layout `demo_radial_gradient`'s own "centred" row uses. The
+// drop-shadow banner uses the same dx-above/dy-beside layout `demo_radial_gradient`'s own "off-centre focal" row
+// uses for fx/fy, plus a third slider below for stdDeviation, with its dy track on the banner's left rather than
+// the rectangle's right, spanning the whole control column rather than just the height of the banner's own text
+// box.
+//
+// Unlike the gradient demos, this file never needs `select_el`: `gaussian_blur`/`drop_shadow` both return a live
+// `SvgNode`, so `svg.defs()` + `SvgDefs::filter(id)` (rather than the closure-based `build_defs`/`build_filter`)
+// are used here instead, letting the primitive handles be retained directly as `blur`/`shadow` below. Each
+// slider's `on_input` handler then calls that retained node's own `set_attr`, the same generic escape hatch
+// every other primitive attribute not wrapped by a named setter uses — not a raw `web_sys::Element` reached back
+// into via a CSS selector.
 //
 // Neither filter uses `super::widen_filter_region`: that helper's fixed -50%/-50%/200%/200% region is sized for
 // the smaller, fixed stdDeviation values other callers (`demo_turbulence`, `demo_morphology`, `demo_fe_image`,
@@ -96,57 +103,53 @@ fn shadow_caption_text(dx: f64, dy: f64, std_deviation: f64) -> String {
 pub(crate) fn demo() -> Result<(), Error> {
     let svg = SvgRoot::create_in("demo-filter", Size::new(W, FILTER_H))?;
 
-    svg.build_defs(|d| {
-        // Blur-only filter. Its stdDeviation starts at DEFAULT_BLUR and is then updated live by the slider
-        // below, up to MAX_BLUR. The circle's own bounding box is exactly 2*CIRCLE_R on each side — known
-        // precisely at build time, unlike the banner text below — so its region is widened by an
-        // objectBoundingBox fraction sized against that: BLUR_SPREAD * MAX_BLUR of margin, expressed as a
-        // fraction of the circle's own diameter.
-        d.build_filter("demo-filter-blur", |f| {
-            let margin = BLUR_SPREAD * f64::from(MAX_BLUR) / (CIRCLE_R * 2.0);
-            f.set_x(-margin)?;
-            f.set_y(-margin)?;
-            f.set_width(1.0 + 2.0 * margin)?;
-            f.set_height(1.0 + 2.0 * margin)?;
-            f.gaussian_blur(f64::from(DEFAULT_BLUR))?;
-            Ok(())
-        })?;
+    let defs = svg.defs()?;
 
-        // True tinted drop shadow via the feDropShadow shorthand: one primitive call blurs the source alpha,
-        // offsets the blurred mask, floods a colour, composites it into that offset mask, and merges it
-        // underneath the original — no separate merge() call needed, since feDropShadow's result already has the
-        // original graphic composited on top.
-        // A plain black shadow would be nearly invisible against this dark canvas background, so the flood colour
-        // is a saturated one instead, which also demonstrates that the shadow's colour is independently
-        // controllable, not just a blurred copy of the source graphic's own fill. Its stdDeviation/dx/dy start at
-        // their own DEFAULT_ constants and are then updated live by the three sliders below, up to MAX_SHADOW_BLUR
-        // and +/-MAX_OFFSET.
-        //
-        // This filter's own source (the banner text) has no bounding box known at build time the way the
-        // circle's is, so filterUnits="userSpaceOnUse" widens an absolute region around this file's own
-        // SHADOW_BOX_X/Y/W/H layout constants instead of guessing an objectBoundingBox fraction against an
-        // unmeasured bbox — those constants are already confirmed (by live getBBox() measurement during this
-        // demo's own development) to comfortably contain the rendered "DROP SHADOW" glyphs. The margin covers
-        // the worst case: BLUR_SPREAD * MAX_SHADOW_BLUR of blur spread, plus MAX_OFFSET, since dx/dy can shift
-        // the shadow that far from the original text before any blur spread is even added on top.
-        d.build_filter("demo-filter-shadow", |f| {
-            f.set_filter_units(FilterUnits::UserSpaceOnUse)?;
-            let margin = BLUR_SPREAD * f64::from(MAX_SHADOW_BLUR) + f64::from(MAX_OFFSET);
-            f.set_x(SHADOW_BOX_X - margin)?;
-            f.set_y(SHADOW_BOX_Y - margin)?;
-            f.set_width(SHADOW_BOX_W + 2.0 * margin)?;
-            f.set_height(SHADOW_BOX_H + 2.0 * margin)?;
-            f.drop_shadow(
-                f64::from(DEFAULT_SHADOW_BLUR),
-                f64::from(DEFAULT_DX),
-                f64::from(DEFAULT_DY),
-                CRIMSON,
-                0.85,
-            )?;
-            Ok(())
-        })?;
-        Ok(())
-    })?;
+    // Blur-only filter. Its stdDeviation starts at DEFAULT_BLUR and is then updated live by the slider below, up
+    // to MAX_BLUR. The circle's own bounding box is exactly 2*CIRCLE_R on each side — known precisely at build
+    // time, unlike the banner text below — so its region is widened by an objectBoundingBox fraction sized
+    // against that: BLUR_SPREAD * MAX_BLUR of margin, expressed as a fraction of the circle's own diameter.
+    let blur_filter = defs.filter("demo-filter-blur")?;
+    let blur_margin = BLUR_SPREAD * f64::from(MAX_BLUR) / (CIRCLE_R * 2.0);
+    blur_filter.set_x(-blur_margin)?;
+    blur_filter.set_y(-blur_margin)?;
+    blur_filter.set_width(1.0 + 2.0 * blur_margin)?;
+    blur_filter.set_height(1.0 + 2.0 * blur_margin)?;
+    // Retaining the returned SvgNode is what lets the slider below update stdDeviation live via set_attr, rather
+    // than reaching back into the DOM through a CSS selector.
+    let blur = blur_filter.gaussian_blur(f64::from(DEFAULT_BLUR))?;
+
+    // True tinted drop shadow via the feDropShadow shorthand: one primitive call blurs the source alpha, offsets
+    // the blurred mask, floods a colour, composites it into that offset mask, and merges it underneath the
+    // original — no separate merge() call needed, since feDropShadow's result already has the original graphic
+    // composited on top.
+    // A plain black shadow would be nearly invisible against this dark canvas background, so the flood colour is
+    // a saturated one instead, which also demonstrates that the shadow's colour is independently controllable,
+    // not just a blurred copy of the source graphic's own fill. Its stdDeviation/dx/dy start at their own
+    // DEFAULT_ constants and are then updated live by the three sliders below, up to MAX_SHADOW_BLUR and
+    // +/-MAX_OFFSET, via the same retained-node set_attr pattern the blur filter above uses.
+    //
+    // This filter's own source (the banner text) has no bounding box known at build time the way the circle's
+    // is, so filterUnits="userSpaceOnUse" widens an absolute region around this file's own SHADOW_BOX_X/Y/W/H
+    // layout constants instead of guessing an objectBoundingBox fraction against an unmeasured bbox — those
+    // constants are already confirmed (by live getBBox() measurement during this demo's own development) to
+    // comfortably contain the rendered "DROP SHADOW" glyphs. The margin covers the worst case: BLUR_SPREAD *
+    // MAX_SHADOW_BLUR of blur spread, plus MAX_OFFSET, since dx/dy can shift the shadow that far from the
+    // original text before any blur spread is even added on top.
+    let shadow_filter = defs.filter("demo-filter-shadow")?;
+    shadow_filter.set_filter_units(FilterUnits::UserSpaceOnUse)?;
+    let shadow_margin = BLUR_SPREAD * f64::from(MAX_SHADOW_BLUR) + f64::from(MAX_OFFSET);
+    shadow_filter.set_x(SHADOW_BOX_X - shadow_margin)?;
+    shadow_filter.set_y(SHADOW_BOX_Y - shadow_margin)?;
+    shadow_filter.set_width(SHADOW_BOX_W + 2.0 * shadow_margin)?;
+    shadow_filter.set_height(SHADOW_BOX_H + 2.0 * shadow_margin)?;
+    let shadow = shadow_filter.drop_shadow(
+        f64::from(DEFAULT_SHADOW_BLUR),
+        f64::from(DEFAULT_DX),
+        f64::from(DEFAULT_DY),
+        CRIMSON,
+        0.85,
+    )?;
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // Blurred circle — a slider above it drives feGaussianBlur's stdDeviation live
@@ -163,7 +166,6 @@ pub(crate) fn demo() -> Result<(), Error> {
     blur_caption.set_attr("font-size", "11")?;
     blur_caption.set_text_anchor(TextAnchor::Middle)?;
 
-    let blur = super::select_el(&svg, "#demo-filter-blur feGaussianBlur")?;
     let blur_slider = super::build_h_slider(
         &svg,
         Point::new(LEFT_MARGIN, TOP),
@@ -185,7 +187,7 @@ pub(crate) fn demo() -> Result<(), Error> {
         let blur_caption = blur_caption.clone();
         let on_input: DemoClosure = Closure::new(move |_: web_sys::Event| {
             let value = slider.value_as_number();
-            let _ = blur.set_attribute("stdDeviation", &format!("{value:.0}"));
+            let _ = blur.set_attr("stdDeviation", &format!("{value:.0}"));
             let _ = slider.set_attribute("aria-valuetext", &format!("stdDeviation {value:.0}"));
             blur_caption.set_text(&format!("stdDeviation: {value:.0}"));
         });
@@ -219,8 +221,6 @@ pub(crate) fn demo() -> Result<(), Error> {
     shadow_caption.set_fill(CAPTION)?;
     shadow_caption.set_attr("font-size", "11")?;
     shadow_caption.set_text_anchor(TextAnchor::Middle)?;
-
-    let shadow = super::select_el(&svg, "#demo-filter-shadow feDropShadow")?;
 
     let dx_slider = super::build_h_slider(
         &svg,
@@ -300,7 +300,7 @@ pub(crate) fn demo() -> Result<(), Error> {
         let caption = shadow_caption.clone();
         let on_input: DemoClosure = Closure::new(move |_: web_sys::Event| {
             let value = dx.value_as_number();
-            let _ = shadow.set_attribute("dx", &format!("{value:.0}"));
+            let _ = shadow.set_attr("dx", &format!("{value:.0}"));
             let _ = dx.set_attribute("aria-valuetext", &format!("dx {value:.0}"));
             caption.set_text(&shadow_caption_text(value, dy.value_as_number(), stddev.value_as_number()));
         });
@@ -317,7 +317,7 @@ pub(crate) fn demo() -> Result<(), Error> {
         let caption = shadow_caption.clone();
         let on_input: DemoClosure = Closure::new(move |_: web_sys::Event| {
             let value = dy.value_as_number();
-            let _ = shadow.set_attribute("dy", &format!("{value:.0}"));
+            let _ = shadow.set_attr("dy", &format!("{value:.0}"));
             let _ = dy.set_attribute("aria-valuetext", &format!("dy {value:.0}"));
             caption.set_text(&shadow_caption_text(dx.value_as_number(), value, stddev.value_as_number()));
         });
@@ -334,7 +334,7 @@ pub(crate) fn demo() -> Result<(), Error> {
         let caption = shadow_caption.clone();
         let on_input: DemoClosure = Closure::new(move |_: web_sys::Event| {
             let value = stddev.value_as_number();
-            let _ = shadow.set_attribute("stdDeviation", &format!("{value:.0}"));
+            let _ = shadow.set_attr("stdDeviation", &format!("{value:.0}"));
             let _ = stddev.set_attribute("aria-valuetext", &format!("stdDeviation {value:.0}"));
             caption.set_text(&shadow_caption_text(dx.value_as_number(), dy.value_as_number(), value));
         });

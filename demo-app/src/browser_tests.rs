@@ -912,10 +912,10 @@ fn demo_radial_gradient_controls_update_stops_spread_and_focal_point() {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// `demo_filter` writes to the raw `<feGaussianBlur>` and `<feDropShadow>` elements via `select_el`, the same
-/// escape-hatch reason `demo_linear_gradient`'s own doc comment gives.
-/// Source extraction cannot prove any slider still reaches its own target attribute, or that the two live
-/// captions still track them.
+/// Unlike `demo_linear_gradient`/`demo_radial_gradient`, `demo_filter` needs no `select_el` escape hatch:
+/// `gaussian_blur`/`drop_shadow` both return a live `SvgNode`, which the demo retains directly and updates via
+/// `set_attr`. Source extraction cannot prove any slider still reaches its own target attribute through that
+/// retained node, or that the two live captions still track them.
 /// It also cannot prove the four controls stay independent of one another.
 /// Only a real browser can prove any of that.
 #[wasm_bindgen_test]
