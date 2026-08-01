@@ -2,8 +2,9 @@
 //! `texts` contributes the text-anchor/dominant-baseline radio groups (`demo_text`) and the startOffset slider
 //! (`demo_text_path`). `structure` contributes the marker viewBox zoom slider (`demo_marker_view_box`) and the
 //! preserveAspectRatio radio group (`demo_image`).
-//! `paint` contributes the linearGradient demo's five sliders (`demo_linear_gradient`), and the radialGradient
-//! demo's slider, radio group, and slider pair (`demo_radial_gradient`).
+//! `paint` contributes the linearGradient demo's five sliders (`demo_linear_gradient`), the radialGradient
+//! demo's slider, radio group, and slider pair (`demo_radial_gradient`), and the filter demo's four sliders —
+//! blur, dx, dy, and drop-shadow blur (`demo_filter`).
 //!
 //! One test below builds `foreign_html::radio_group` directly, not through a demo panel.
 //! Three demo panels now share this helper: `demo_text`'s two groups, `demo_image`'s preserveAspectRatio
@@ -908,4 +909,211 @@ fn demo_radial_gradient_controls_update_stops_spread_and_focal_point() {
     assert_eq!(e_stop_2.get_attribute("stop-color").as_deref(), Some("mediumseagreen"));
     assert_eq!(e_stop_3.get_attribute("offset").as_deref(), Some("1"));
     assert_eq!(e_stop_3.get_attribute("stop-color").as_deref(), Some("#003d1f"));
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// `demo_filter` writes to the raw `<feGaussianBlur>` and `<feDropShadow>` elements via `select_el`, the same
+/// escape-hatch reason `demo_linear_gradient`'s own doc comment gives.
+/// Source extraction cannot prove any slider still reaches its own target attribute, or that the two live
+/// captions still track them.
+/// It also cannot prove the four controls stay independent of one another.
+/// Only a real browser can prove any of that.
+#[wasm_bindgen_test]
+fn demo_filter_sliders_update_blur_and_drop_shadow_independently() {
+    container("demo-filter");
+    super::paint::demo_filter::demo().expect("demo_filter::demo should build without error");
+
+    let root = document().get_element_by_id("demo-filter").expect("container exists");
+
+    let dispatch_input = |slider: &web_sys::HtmlInputElement, value: &str| {
+        slider.set_value(value);
+        let event = web_sys::Event::new("input").expect("create input event");
+        slider.dispatch_event(&event).expect("dispatch input");
+    };
+
+    let find_el = |selector: &str| -> web_sys::Element {
+        root.query_selector(selector)
+            .unwrap_or_else(|_| panic!("invalid selector {selector:?}"))
+            .unwrap_or_else(|| panic!("no element matching {selector:?}"))
+    };
+
+    let find_slider = |aria_label_selector: &str| -> web_sys::HtmlInputElement {
+        root.query_selector(aria_label_selector)
+            .expect("query slider")
+            .unwrap_or_else(|| panic!("no slider matching {aria_label_selector:?}"))
+            .dyn_into::<web_sys::HtmlInputElement>()
+            .expect("slider is an HtmlInputElement")
+    };
+
+    // No id distinguishes either live caption from any other <text>, so both are found by their own initial
+    // content, the same way other tests in this file find theirs.
+    let find_text = |content: &str| -> web_sys::Element {
+        let texts = root.query_selector_all("text").expect("query text elements");
+        for i in 0..texts.length() {
+            let el = texts
+                .item(i)
+                .expect("text item")
+                .dyn_into::<web_sys::Element>()
+                .expect("Element");
+            if el.text_content().as_deref() == Some(content) {
+                return el;
+            }
+        }
+        panic!("no <text> element with content {content:?}");
+    };
+
+    // --- blur circle: the slider drives #demo-filter-blur's feGaussianBlur stdDeviation ---
+    let blur = find_el("#demo-filter-blur feGaussianBlur");
+    assert_eq!(
+        blur.get_attribute("stdDeviation").as_deref(),
+        Some("3"),
+        "3 is this demo's own initial default"
+    );
+
+    let blur_slider = find_slider("input[aria-label='gaussian blur standard deviation']");
+    // Set at construction time, before any interaction, so a screen reader announces the real starting value.
+    assert_eq!(blur_slider.get_attribute("aria-valuetext").as_deref(), Some("stdDeviation 3"));
+
+    let blur_caption = find_text("stdDeviation: 3");
+
+    dispatch_input(&blur_slider, "12");
+    assert_eq!(
+        blur.get_attribute("stdDeviation").as_deref(),
+        Some("12"),
+        "moving the slider should update stdDeviation"
+    );
+    assert_eq!(blur_slider.get_attribute("aria-valuetext").as_deref(), Some("stdDeviation 12"));
+    assert_eq!(blur_caption.text_content().as_deref(), Some("stdDeviation: 12"));
+
+    // --- drop-shadow banner: dx, dy, and stdDeviation each have their own slider on #demo-filter-shadow's
+    // feDropShadow, and none of them affect the blur circle above ---
+    let shadow = find_el("#demo-filter-shadow feDropShadow");
+    assert_eq!(
+        shadow.get_attribute("stdDeviation").as_deref(),
+        Some("4"),
+        "4 is this demo's own initial default"
+    );
+    assert_eq!(
+        shadow.get_attribute("dx").as_deref(),
+        Some("6"),
+        "6 is this demo's own initial default"
+    );
+    assert_eq!(
+        shadow.get_attribute("dy").as_deref(),
+        Some("6"),
+        "6 is this demo's own initial default"
+    );
+    assert_eq!(shadow.get_attribute("flood-color").as_deref(), Some("crimson"));
+    assert_eq!(shadow.get_attribute("flood-opacity").as_deref(), Some("0.85"));
+
+    let dx_slider = find_slider("input[aria-label='drop shadow dx offset']");
+    let dy_slider = find_slider("input[aria-label='drop shadow dy offset']");
+    let stddev_slider = find_slider("input[aria-label='drop shadow standard deviation']");
+    assert_eq!(dx_slider.get_attribute("aria-valuetext").as_deref(), Some("dx 6"));
+    assert_eq!(dy_slider.get_attribute("aria-valuetext").as_deref(), Some("dy 6"));
+    assert_eq!(stddev_slider.get_attribute("aria-valuetext").as_deref(), Some("stdDeviation 4"));
+    assert_eq!(
+        dy_slider.get_attribute("aria-orientation").as_deref(),
+        Some("vertical"),
+        "a rotated <input type=range> stays a horizontal slider to assistive technology without this"
+    );
+
+    let shadow_caption = find_text("dx 6 · dy 6 · stdDeviation 4");
+
+    dispatch_input(&dx_slider, "-8");
+    assert_eq!(
+        shadow.get_attribute("dx").as_deref(),
+        Some("-8"),
+        "moving dx should update the shadow's own dx"
+    );
+    assert_eq!(dx_slider.get_attribute("aria-valuetext").as_deref(), Some("dx -8"));
+    assert_eq!(shadow_caption.text_content().as_deref(), Some("dx -8 · dy 6 · stdDeviation 4"));
+    assert_eq!(
+        shadow.get_attribute("dy").as_deref(),
+        Some("6"),
+        "dy must stay put while only dx moves"
+    );
+    assert_eq!(
+        shadow.get_attribute("stdDeviation").as_deref(),
+        Some("4"),
+        "stdDeviation must stay put while only dx moves"
+    );
+
+    dispatch_input(&dy_slider, "9");
+    assert_eq!(
+        shadow.get_attribute("dy").as_deref(),
+        Some("9"),
+        "moving dy should update the shadow's own dy"
+    );
+    assert_eq!(dy_slider.get_attribute("aria-valuetext").as_deref(), Some("dy 9"));
+    assert_eq!(shadow_caption.text_content().as_deref(), Some("dx -8 · dy 9 · stdDeviation 4"));
+    assert_eq!(
+        shadow.get_attribute("dx").as_deref(),
+        Some("-8"),
+        "dx must stay put while only dy moves"
+    );
+
+    // The dy slider's own keydown handler remaps ArrowUp/ArrowDown to match the visual "up is smaller" scale, the
+    // same reason and mechanism `demo_radial_gradient`'s own fy slider needs it. A synthetic keydown dispatch
+    // never triggers a browser's native default action in the first place, so this exercises only the demo's own
+    // handler, not any native fallback behaviour.
+    let dispatch_keydown = |slider: &web_sys::HtmlInputElement, key: &str| {
+        let init = web_sys::KeyboardEventInit::new();
+        init.set_key(key);
+        let event =
+            web_sys::KeyboardEvent::new_with_keyboard_event_init_dict("keydown", &init).expect("create keydown event");
+        slider.dispatch_event(&event).expect("dispatch keydown");
+    };
+
+    dispatch_keydown(&dy_slider, "ArrowUp");
+    assert_eq!(
+        dy_slider.value(),
+        "8",
+        "ArrowUp should decrement, matching the visual up-is-smaller scale"
+    );
+    assert_eq!(shadow.get_attribute("dy").as_deref(), Some("8"));
+    assert_eq!(dy_slider.get_attribute("aria-valuetext").as_deref(), Some("dy 8"));
+
+    dispatch_keydown(&dy_slider, "ArrowDown");
+    assert_eq!(
+        dy_slider.value(),
+        "9",
+        "ArrowDown should increment, matching the visual down-is-larger scale"
+    );
+    assert_eq!(shadow.get_attribute("dy").as_deref(), Some("9"));
+    assert_eq!(dy_slider.get_attribute("aria-valuetext").as_deref(), Some("dy 9"));
+
+    dispatch_input(&stddev_slider, "15");
+    assert_eq!(
+        shadow.get_attribute("stdDeviation").as_deref(),
+        Some("15"),
+        "moving the shadow's own blur slider should update its stdDeviation"
+    );
+    assert_eq!(
+        stddev_slider.get_attribute("aria-valuetext").as_deref(),
+        Some("stdDeviation 15")
+    );
+    assert_eq!(shadow_caption.text_content().as_deref(), Some("dx -8 · dy 9 · stdDeviation 15"));
+    assert_eq!(
+        shadow.get_attribute("dx").as_deref(),
+        Some("-8"),
+        "dx must stay put while only stdDeviation moves"
+    );
+    assert_eq!(
+        shadow.get_attribute("dy").as_deref(),
+        Some("9"),
+        "dy must stay put while only stdDeviation moves"
+    );
+
+    // --- the blur circle and the drop-shadow banner never touch one another's filter ---
+    assert_eq!(
+        blur.get_attribute("stdDeviation").as_deref(),
+        Some("12"),
+        "the blur circle's own stdDeviation must stay at its own last value, untouched by any shadow slider"
+    );
+    assert_eq!(blur_caption.text_content().as_deref(), Some("stdDeviation: 12"));
+
+    let banner = find_el("text[font-weight='bold']");
+    assert_eq!(banner.text_content().as_deref(), Some("DROP SHADOW"));
+    assert_eq!(banner.get_attribute("filter").as_deref(), Some("url(#demo-filter-shadow)"));
 }

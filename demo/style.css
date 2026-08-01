@@ -420,9 +420,16 @@ figcaption ol {
    sized vertical sliders call it.
    rotate(90deg), not -90deg: that maps the pre-rotation left end (the slider's minimum) to the top, so dragging the
    thumb up decreases the value -- matching each caller's own "up moves the stop up" framing, since a smaller
-   offset or fraction sits higher in the gradient. */
+   offset or fraction sits higher in the gradient.
+   flex-shrink: 0 is required, not cosmetic: .demo-slider-vertical-wrap's own width is only the track's thickness
+   (16px), far narrower than a native <input type="range">'s own intrinsic content width (~129px in Chromium).
+   Row-direction flexbox shrinks an overflowing child towards fitting its container, but never below that
+   intrinsic width -- so without this, any track_length request past ~129px is silently capped there instead of
+   reaching the caller's own requested length, confirmed empirically once a track long enough to expose it (196px)
+   was requested. */
 .demo-slider-vertical {
     transform: rotate(90deg);
+    flex-shrink: 0;
 }
 
 /* This row is exactly as wide as .demo-slider.

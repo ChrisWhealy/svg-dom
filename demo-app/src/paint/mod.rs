@@ -21,7 +21,8 @@ use wasm_bindgen::{JsCast, prelude::*};
 // `widen_filter_region`/`exact_filter_region` below are used by more than one demo file (`demo_filter`,
 // `demo_turbulence`, `demo_morphology`, `demo_fe_image`, `demo_fe_tile`).
 // `row_caption`/`side_label`/`select_el`/`fill_ticks`/`HSlider`/`build_h_slider`/`build_v_slider` below are used
-// by both gradient demos (`demo_linear_gradient`, `demo_radial_gradient`), which each lay their own controls out
+// by the gradient demos (`demo_linear_gradient`, `demo_radial_gradient`) and by `demo_filter`'s blur circle and
+// drop-shadow sliders (the latter including its own vertical dy slider), which each lay their own controls out
 // in custom rows rather than following the shared W/H/PAD_Y/BAND/caption convention every other demo uses.
 // All of these live here rather than being duplicated per file. Plain private `fn`s, not `pub(crate)`: nothing
 // outside `paint` needs them, and a private item defined here is already visible to every descendant module

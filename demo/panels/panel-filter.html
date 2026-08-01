@@ -7,11 +7,12 @@
         <div class="canvas" id="demo-filter"></div>
         <figcaption>
             <p>
-                Four identical circles, each referencing a separate <code>&lt;filter&gt;</code> defined in
-                <code>&lt;defs&gt;</code> and applied via <strong>set_filter</strong>:
+                One circle references a <code>&lt;filter&gt;</code> defined in <code>&lt;defs&gt;</code> and
+                applied via <strong>set_filter</strong>.
             </p>
             <p>
-                <strong>stdDeviation</strong>: 0 (no blur), 3, 6, 12
+                Drag the <strong>blur</strong> slider above it to change <strong>stdDeviation</strong> live,
+                from 0 (no blur) to 20.
             </p>
             <p>
                 <strong>tinted drop-shadow banner</strong> uses the single <code>feDropShadow</code>
@@ -20,6 +21,12 @@
                 <code>feComposite</code> → <code>feOffset</code> → <code>feMerge</code>. Its flood
                 colour is independent of the text's own fill. It is applied to real
                 <code>&lt;text&gt;</code> content, the effect's most common real-world use.
+            </p>
+            <p>
+                Three sliders control the shadow live. <strong>dx</strong> (above the banner) and
+                <strong>dy</strong> (left of the banner) shift the shadow's offset from -10 to 10.
+                <strong>blur</strong> (below the banner) changes the shadow's own <strong>stdDeviation</strong>
+                from 0 to 20, independently of the circle's own blur slider.
             </p>
             <p>Each filter widens its region beyond the SVG default so nothing is clipped at the edge.</p>
         </figcaption>
