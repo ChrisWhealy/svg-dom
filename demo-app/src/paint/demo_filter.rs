@@ -201,7 +201,7 @@ pub(crate) fn demo() -> Result<(), Error> {
     // Drop-shadow banner — dx (above), dy (left), and stdDeviation (below) sliders drive feDropShadow live
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // Drop-shadow banner text: the feDropShadow filter applied to real text content rather than a plain shape,
-    // the effect's most common real-world use. White fill with a narrow dark grey border keeps the glyphs legible
+    // a common real-world use. White fill with a narrow dark grey border keeps the glyphs legible
     // against the dark canvas background; independently of that, the shadow's own colour comes from
     // feDropShadow's flood-color, not from the text's fill, so it stays the same crimson regardless of what
     // colour the banner itself is set to.

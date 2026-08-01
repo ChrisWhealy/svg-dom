@@ -105,14 +105,16 @@ fn side_label(svg: &SvgRoot, x: f64, y: f64, text: &str) -> Result<(), Error> {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Selects one live element inside `svg`, by CSS selector.
-/// An escape hatch for the gradient demos: `add_stop`/`set_gradient_transform`/`set_fx`/`set_fy` and friends
-/// write a gradient once, at construction, and return no handle a later interactive control could hold onto to
-/// change it again. Selecting the live DOM element directly reaches it anyway.
+/// An escape hatch for a demo whose own setter writes an attribute once, at construction, and returns no handle
+/// a later interactive control could hold onto to change it again — currently only the gradient demos
+/// (`add_stop`/`set_gradient_transform`/`set_fx`/`set_fy` and friends). Selecting the live DOM element directly
+/// reaches it anyway. A demo whose own primitive constructor *does* return a retained handle (for example
+/// `demo_filter`'s `gaussian_blur`/`drop_shadow`) should hold onto that instead of calling this.
 fn select_el(svg: &SvgRoot, selector: &str) -> Result<web_sys::Element, Error> {
     svg.root
         .query_selector(selector)
         .map_err(dom_err)?
-        .ok_or_else(|| Error::Dom(format!("gradient demo: no element matching {selector:?}")))
+        .ok_or_else(|| Error::Dom(format!("no element matching {selector:?}")))
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -258,9 +260,9 @@ fn build_h_slider(
 /// pre-rotation width is set inline to `track_length`, rather than through a fixed CSS value, so this one
 /// function serves any caller's own track length, not just one hard-coded pixel size.
 ///
-/// Unlike [`build_h_slider`], this returns just the `<input>`: neither of this file's callers draws HTML tick
-/// marks or endpoint labels for a vertical track. Both draw plain SVG text/line elements alongside it instead,
-/// which need no CSS positioning of their own once the control itself is already rotated.
+/// Unlike [`build_h_slider`], this returns just the `<input>`: none of this file's callers draws HTML tick marks
+/// or endpoint labels for a vertical track. Each draws plain SVG text/line elements alongside it instead, which
+/// need no CSS positioning of their own once the control itself is already rotated.
 fn build_v_slider(
     svg: &SvgRoot,
     pos: Point,

@@ -410,17 +410,18 @@ figcaption ol {
     justify-content: center;
 }
 
-/* A vertical range input, built by `paint::build_v_slider` (demo-app/src/paint/mod.rs) for both the
-   linearGradient and radialGradient demos' own vertical-shift sliders: a plain horizontal <input type="range">,
-   rotated 90 degrees with `transform`, rather than styled vertical with `writing-mode`.
+/* A vertical range input, built by `paint::build_v_slider` (demo-app/src/paint/mod.rs) for the linearGradient
+   and radialGradient demos' own vertical-shift sliders and the filter demo's dy slider: a plain horizontal
+   <input type="range">, rotated 90 degrees with `transform`, rather than styled vertical with `writing-mode`.
    `transform` is universally supported; `writing-mode` on a range input is not -- Chrome only gained it recently
    and Safari's support is still unreliable, and this control needs to actually render vertically in every browser.
    Its own pre-rotation width is set inline, per instance, by `build_v_slider` itself (to that caller's own track
    length), not hard-coded here -- this class only supplies the rotation, shared across however many differently
    sized vertical sliders call it.
    rotate(90deg), not -90deg: that maps the pre-rotation left end (the slider's minimum) to the top, so dragging the
-   thumb up decreases the value -- matching each caller's own "up moves the stop up" framing, since a smaller
-   offset or fraction sits higher in the gradient.
+   thumb up decreases the value -- matching each caller's own "up is smaller" framing, whether that value is a
+   gradient stop's offset/fraction (smaller sits higher in the gradient) or a signed pixel offset like the filter
+   demo's dy (a smaller, more negative value shifts the shadow further up).
    flex-shrink: 0 is required, not cosmetic: .demo-slider-vertical-wrap's own width is only the track's thickness
    (16px), far narrower than a native <input type="range">'s own intrinsic content width (~129px in Chromium).
    Row-direction flexbox shrinks an overflowing child towards fitting its container, but never below that
