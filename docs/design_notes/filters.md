@@ -66,7 +66,7 @@ This is a second data point (after `merge`'s slice-of-`&str` parameter) that a f
 `gaussian_blur` + `offset` + `merge` alone can only produce a shadow that is a blurred *copy* of the source graphic's own fill.
 However, using these tools alone cannot give a shadow an independent colour or opacity without hand-writing the `feFlood` and `feComposite` effects through the generic escape hatch on some other primitive's returned `SvgNode` (which does not exist, since `<feFlood>` and `<feComposite>` are not children of another primitive).
 
-This gap is now closed with the implementation of `flood` and `composite`, and together with the above three effects are enough for the textbook drop-shadow recipe: blur `SourceAlpha`, flood a colour, composite it `In` the blurred mask, offset, then merge underneath the original.
+This gap is now closed with the implementation of `flood` and `composite`, and together with the above three effects are enough for the textbook drop-shadow recipe: blur `SourceAlpha`, offset the blurred mask, flood a colour, composite it `In` that offset mask, then merge underneath the original.
 
 `flood(color, opacity)` takes both parameters positionally, unlike `gaussian_blur`'s single `std_deviation`, both `flood-color` and `flood-opacity` are core to what a flood *is* for the shadow-tinting use case (an untinted, fully-opaque flood is rarely useful on its own), so neither belongs behind the generic `set_attr` escape hatch the way `in` and `result` do for every primitive.
 
@@ -81,7 +81,7 @@ A typo in a bare string silently produces an unrecognised operator the browser i
 
 `<feDropShadow>` is not a new effect; the SVG specification defines it as a browser-native shorthand for exactly this effect sequence:
 
-   `gaussian_blur` → `flood` → `composite` → `offset` → `merge`
+   `gaussian_blur` → `offset` → `flood` → `composite` → `merge`
 
 This is the chain the previous section describes, collapsed into one element that the browser expands internally.
 

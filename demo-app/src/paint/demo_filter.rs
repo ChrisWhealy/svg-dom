@@ -113,8 +113,9 @@ pub(crate) fn demo() -> Result<(), Error> {
         })?;
 
         // True tinted drop shadow via the feDropShadow shorthand: one primitive call blurs the source alpha,
-        // floods a colour into the blurred mask, offsets it, and merges it underneath the original — no separate
-        // merge() call needed, since feDropShadow's result already has the original graphic composited on top.
+        // offsets the blurred mask, floods a colour, composites it into that offset mask, and merges it
+        // underneath the original — no separate merge() call needed, since feDropShadow's result already has the
+        // original graphic composited on top.
         // A plain black shadow would be nearly invisible against this dark canvas background, so the flood colour
         // is a saturated one instead, which also demonstrates that the shadow's colour is independently
         // controllable, not just a blurred copy of the source graphic's own fill. Its stdDeviation/dx/dy start at

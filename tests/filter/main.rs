@@ -38,7 +38,7 @@
 //!   `src/root/filter/light_source.rs`.
 //! - [`specular_lighting`] — `specular_lighting`, and the `specular_exponent`-vs-`LightSource::Spot`'s own
 //!   `specular_exponent` field distinction — mirrors `src/root/filter/primitives/specular_lighting.rs`.
-//! - [`chains`] — cross-primitive integration tests (the manual blur+offset+merge and blur+flood+composite+offset+merge
+//! - [`chains`] — cross-primitive integration tests (the manual blur+offset+merge and blur+offset+flood+composite+merge
 //!   drop-shadow chains, the flood+blend+composite tint chain, the turbulence+displacement_map noise-distortion chain,
 //!   the morphology+merge bold-outline chain, the image+color_matrix filtered-image chain, the image+composite+blend
 //!   textured-object chain, the turbulence+tile tiled-noise chain, the convolve_matrix emboss recipe, and the

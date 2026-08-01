@@ -70,9 +70,9 @@ mod region;
 /// - [`specular_lighting`](Self::specular_lighting) (`<feSpecularLighting>`)
 ///
 /// The first five, taken together, can be used to build a *true* tinted, opacity-controlled drop shadow (blur the
-/// source alpha, composite a flood colour into the blurred mask, offset it, then merge it underneath the original
-/// graphic; see [`composite`](Self::composite)'s example) rather than just a blurred copy of the source graphic's
-/// own colour.
+/// source alpha, offset the blurred mask, flood a colour, composite it into that offset mask, then merge
+/// underneath the original graphic; see [`composite`](Self::composite)'s example) rather than just a blurred copy
+/// of the source graphic's own colour.
 ///
 /// [`drop_shadow`](Self::drop_shadow) achieves the same effect using a single primitive, since the SVG specification
 /// defines it as a browser-native shorthand for exactly that chain.

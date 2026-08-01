@@ -50,8 +50,9 @@ fn should_build_drop_shadow_filter_chain() -> Result<(), String> {
     check_eq(filter.as_element().child_element_count(), 3)
 }
 
-/// Adding `flood` + `composite` composes into a working *tinted* drop-shadow filter: blur the source alpha,
-/// composite a flood colour into the blurred mask, offset it, then merge it underneath the original graphic.
+/// Adding `offset` + `flood` + `composite` composes into a working *tinted* drop-shadow filter, matching the SVG
+/// specification's own `feDropShadow` expansion: blur the source alpha, offset the blurred mask, flood a colour,
+/// composite it into that offset mask, then merge it underneath the original graphic.
 #[wasm_bindgen_test]
 fn should_build_tinted_drop_shadow_filter_chain() -> Result<(), String> {
     let svg = make_svg("filter-tinted-drop-shadow");
@@ -59,11 +60,11 @@ fn should_build_tinted_drop_shadow_filter_chain() -> Result<(), String> {
     let filter = defs
         .build_filter("tinted-shadow", |f| {
             f.gaussian_blur(4.0)?.set_attrs([("in", "SourceAlpha"), ("result", "blur")])?;
+            f.offset(4.0, 4.0)?.set_attrs([("in", "blur"), ("result", "offset-blur")])?;
             f.flood("black", 0.5)?.set_attr("result", "colour")?;
-            f.composite("blur", CompositeOperator::In)?
+            f.composite("offset-blur", CompositeOperator::In)?
                 .set_attrs([("in", "colour"), ("result", "tinted")])?;
-            f.offset(4.0, 4.0)?.set_attrs([("in", "tinted"), ("result", "offset-shadow")])?;
-            f.merge(&["offset-shadow", "SourceGraphic"])?;
+            f.merge(&["tinted", "SourceGraphic"])?;
             Ok(())
         })
         .map_err(|e| e.to_string())?;

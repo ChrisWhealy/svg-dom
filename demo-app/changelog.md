@@ -15,6 +15,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 ### Fixed
 
 - Expand filter region for ma stdDeviation value (``)
+- Correct feDropShadow expansion order (``)
 
 ## [0.1.8] - 2026-07-31
 

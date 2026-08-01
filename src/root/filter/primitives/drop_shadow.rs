@@ -7,8 +7,8 @@ impl SvgFilter {
     /// Appends a `<feDropShadow>` primitive to this filter, which is SVG shorthand for the entire chain shown in
     /// [`composite`](Self::composite)'s example:
     ///
-    /// [`gaussian_blur`](Self::gaussian_blur) → [`flood`](Self::flood) → [`composite`](Self::composite) →
-    /// [`offset`](Self::offset) → [`merge`](Self::merge),
+    /// [`gaussian_blur`](Self::gaussian_blur) → [`offset`](Self::offset) → [`flood`](Self::flood) →
+    /// [`composite`](Self::composite) → [`merge`](Self::merge),
     ///
     /// - `std_deviation` is the blur radius (as [`gaussian_blur`](Self::gaussian_blur))
     /// - `dx`/`dy` are the shadow offset (as [`offset`](Self::offset))

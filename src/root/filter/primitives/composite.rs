@@ -26,8 +26,9 @@ impl SvgFilter {
     /// # Example
     ///
     /// A true tinted, semi-transparent drop shadow (as opposed to the blurred-copy approximation produced by
-    /// [`merge`](Self::merge)) by flooding a colour and compositing it into the blurred alpha mask before offsetting
-    /// and merging it underneath the original graphic:
+    /// [`merge`](Self::merge)), matching the SVG specification's own `feDropShadow` expansion: offset the blurred
+    /// alpha mask first, then flood a colour and composite it into that offset mask before merging underneath the
+    /// original graphic:
     ///
     /// ```rust,no_run
     /// use svg_dom::{SvgRoot, root::filter::CompositeOperator};
@@ -36,10 +37,10 @@ impl SvgFilter {
     /// let defs = svg.defs()?;
     /// let shadow = defs.filter("shadow")?;
     /// shadow.gaussian_blur(4.0)?.set_attrs([("in", "SourceAlpha"), ("result", "blur")])?;
+    /// shadow.offset(4.0, 4.0)?.set_attrs([("in", "blur"), ("result", "offset-blur")])?;
     /// shadow.flood("black", 0.5)?.set_attr("result", "colour")?;
-    /// shadow.composite("blur", CompositeOperator::In)?.set_attrs([("in", "colour"), ("result", "tinted")])?;
-    /// shadow.offset(4.0, 4.0)?.set_attrs([("in", "tinted"), ("result", "offset-shadow")])?;
-    /// shadow.merge(&["offset-shadow", "SourceGraphic"])?;
+    /// shadow.composite("offset-blur", CompositeOperator::In)?.set_attrs([("in", "colour"), ("result", "tinted")])?;
+    /// shadow.merge(&["tinted", "SourceGraphic"])?;
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     pub fn composite(&self, in2: &str, operator: CompositeOperator) -> Result<SvgNode, Error> {
