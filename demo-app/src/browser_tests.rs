@@ -976,6 +976,37 @@ fn demo_filter_sliders_update_blur_and_drop_shadow_independently() {
 
     let blur_caption = find_text("stdDeviation: 3");
 
+    // The circle's own filter region must stay wide enough for MAX_BLUR (20), not the SVG default: margin =
+    // BLUR_SPREAD(3) * MAX_BLUR(20) / (2*CIRCLE_R(45)) = 60/90, as an objectBoundingBox fraction.
+    let blur_filter = find_el("#demo-filter-blur");
+    assert!(
+        blur_filter.get_attribute("filterUnits").is_none(),
+        "the blur filter should keep the SVG default objectBoundingBox filterUnits"
+    );
+    let parse_region_attr = |el: &web_sys::Element, attr: &str| -> f64 {
+        el.get_attribute(attr)
+            .unwrap_or_else(|| panic!("missing {attr}"))
+            .parse()
+            .unwrap_or_else(|_| panic!("{attr} is not numeric"))
+    };
+    let expected_circle_margin = 60.0_f64 / 90.0;
+    assert!(
+        (parse_region_attr(&blur_filter, "x") + expected_circle_margin).abs() < 1e-6,
+        "blur filter region x should be -margin"
+    );
+    assert!(
+        (parse_region_attr(&blur_filter, "y") + expected_circle_margin).abs() < 1e-6,
+        "blur filter region y should be -margin"
+    );
+    assert!(
+        (parse_region_attr(&blur_filter, "width") - (1.0 + 2.0 * expected_circle_margin)).abs() < 1e-6,
+        "blur filter region width should be 1 + 2*margin"
+    );
+    assert!(
+        (parse_region_attr(&blur_filter, "height") - (1.0 + 2.0 * expected_circle_margin)).abs() < 1e-6,
+        "blur filter region height should be 1 + 2*margin"
+    );
+
     dispatch_input(&blur_slider, "12");
     assert_eq!(
         blur.get_attribute("stdDeviation").as_deref(),
@@ -1005,6 +1036,34 @@ fn demo_filter_sliders_update_blur_and_drop_shadow_independently() {
     );
     assert_eq!(shadow.get_attribute("flood-color").as_deref(), Some("crimson"));
     assert_eq!(shadow.get_attribute("flood-opacity").as_deref(), Some("0.85"));
+
+    // The banner's own filter region uses filterUnits="userSpaceOnUse" with an absolute region computed from
+    // this demo's own SHADOW_BOX_X/Y/W/H layout constants, widened by margin = BLUR_SPREAD(3) *
+    // MAX_SHADOW_BLUR(20) + MAX_OFFSET(10) = 70 on every side, wide enough for the worst-case blur/offset
+    // combination the sliders below allow — not the SVG default, and not an objectBoundingBox guess against the
+    // text's own unmeasured bbox.
+    let shadow_filter = find_el("#demo-filter-shadow");
+    assert_eq!(shadow_filter.get_attribute("filterUnits").as_deref(), Some("userSpaceOnUse"));
+    assert_eq!(
+        shadow_filter.get_attribute("x").as_deref(),
+        Some("230"),
+        "300 (SHADOW_BOX_X) - 70 (margin)"
+    );
+    assert_eq!(
+        shadow_filter.get_attribute("y").as_deref(),
+        Some("8"),
+        "78 (SHADOW_BOX_Y) - 70 (margin)"
+    );
+    assert_eq!(
+        shadow_filter.get_attribute("width").as_deref(),
+        Some("420"),
+        "280 (SHADOW_BOX_W) + 2*70 (margin)"
+    );
+    assert_eq!(
+        shadow_filter.get_attribute("height").as_deref(),
+        Some("200"),
+        "60 (SHADOW_BOX_H) + 2*70 (margin)"
+    );
 
     let dx_slider = find_slider("input[aria-label='drop shadow dx offset']");
     let dy_slider = find_slider("input[aria-label='drop shadow dy offset']");

@@ -1,6 +1,6 @@
 use crate::{DemoClosure, W, colours::*, dom_err, keep_demo_closure};
 use svg_dom::{
-    Error, SvgRoot, TextAnchor,
+    Error, FilterUnits, SvgRoot, TextAnchor,
     root::utils::{Point, Size},
 };
 use wasm_bindgen::{JsCast, prelude::*};
@@ -9,13 +9,23 @@ use wasm_bindgen::{JsCast, prelude::*};
 // filter — one circle whose feGaussianBlur stdDeviation is driven live by a slider, plus a tinted drop shadow
 // whose feDropShadow dx/dy/stdDeviation are each driven live by their own slider, applied via set_filter
 //
-// `select_el`, `build_h_slider`, `build_v_slider`, `side_label`, and `widen_filter_region` (called below via
-// `super::`) live in `paint/mod.rs`. The blurred circle uses the same slider-above-shape layout
-// `demo_radial_gradient`'s own "centred" row uses. The drop-shadow banner uses the same dx-above/dy-beside
-// layout `demo_radial_gradient`'s own "off-centre focal" row uses for fx/fy, plus a third slider below for
-// stdDeviation, with its dy track on the banner's left rather than the rectangle's right, spanning the whole
-// control column rather than just the height of the banner's own text box.
+// `select_el`, `build_h_slider`, `build_v_slider`, and `side_label` (called below via `super::`) live in
+// `paint/mod.rs`. The blurred circle uses the same slider-above-shape layout `demo_radial_gradient`'s own
+// "centred" row uses. The drop-shadow banner uses the same dx-above/dy-beside layout `demo_radial_gradient`'s
+// own "off-centre focal" row uses for fx/fy, plus a third slider below for stdDeviation, with its dy track on
+// the banner's left rather than the rectangle's right, spanning the whole control column rather than just the
+// height of the banner's own text box.
+//
+// Neither filter uses `super::widen_filter_region`: that helper's fixed -50%/-50%/200%/200% region is sized for
+// the smaller, fixed stdDeviation values other callers (`demo_turbulence`, `demo_morphology`, `demo_fe_image`,
+// `demo_fe_tile`) use, not for sliders whose own MAX_ constants below reach 20. A Gaussian blur's own visible
+// output falls below about 1% of its peak by 3 standard deviations from the original edge, so BLUR_SPREAD * a
+// filter's own maximum stdDeviation is this file's own margin allowance for how far a blur can visibly reach —
+// a conventional rule of thumb, not a value the SVG spec itself guarantees. Both regions below are sized against
+// that allowance for this file's own MAX_ constants, not the SVG default's fixed percentage.
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+const BLUR_SPREAD: f64 = 3.0;
 
 const LEFT_MARGIN: f64 = 40.0; // the blur circle's own slider/circle column starts here
 const SLIDER_W: f64 = 140.0;
@@ -88,11 +98,16 @@ pub(crate) fn demo() -> Result<(), Error> {
 
     svg.build_defs(|d| {
         // Blur-only filter. Its stdDeviation starts at DEFAULT_BLUR and is then updated live by the slider
-        // below. The SVG default filter region (-10%/-10%/120%/120% of the referencing element's bounding box)
-        // clips visibly once stdDeviation nears MAX_BLUR, so the region is widened up front for the whole slider
-        // range, not just its default.
+        // below, up to MAX_BLUR. The circle's own bounding box is exactly 2*CIRCLE_R on each side — known
+        // precisely at build time, unlike the banner text below — so its region is widened by an
+        // objectBoundingBox fraction sized against that: BLUR_SPREAD * MAX_BLUR of margin, expressed as a
+        // fraction of the circle's own diameter.
         d.build_filter("demo-filter-blur", |f| {
-            super::widen_filter_region(f)?;
+            let margin = BLUR_SPREAD * f64::from(MAX_BLUR) / (CIRCLE_R * 2.0);
+            f.set_x(-margin)?;
+            f.set_y(-margin)?;
+            f.set_width(1.0 + 2.0 * margin)?;
+            f.set_height(1.0 + 2.0 * margin)?;
             f.gaussian_blur(f64::from(DEFAULT_BLUR))?;
             Ok(())
         })?;
@@ -103,11 +118,23 @@ pub(crate) fn demo() -> Result<(), Error> {
         // A plain black shadow would be nearly invisible against this dark canvas background, so the flood colour
         // is a saturated one instead, which also demonstrates that the shadow's colour is independently
         // controllable, not just a blurred copy of the source graphic's own fill. Its stdDeviation/dx/dy start at
-        // their own DEFAULT_ constants and are then updated live by the three sliders below; the region is
-        // widened for the same reason the blur filter's is, since both the offset and the blur can push the
-        // shadow past the SVG default region.
+        // their own DEFAULT_ constants and are then updated live by the three sliders below, up to MAX_SHADOW_BLUR
+        // and +/-MAX_OFFSET.
+        //
+        // This filter's own source (the banner text) has no bounding box known at build time the way the
+        // circle's is, so filterUnits="userSpaceOnUse" widens an absolute region around this file's own
+        // SHADOW_BOX_X/Y/W/H layout constants instead of guessing an objectBoundingBox fraction against an
+        // unmeasured bbox — those constants are already confirmed (by live getBBox() measurement during this
+        // demo's own development) to comfortably contain the rendered "DROP SHADOW" glyphs. The margin covers
+        // the worst case: BLUR_SPREAD * MAX_SHADOW_BLUR of blur spread, plus MAX_OFFSET, since dx/dy can shift
+        // the shadow that far from the original text before any blur spread is even added on top.
         d.build_filter("demo-filter-shadow", |f| {
-            super::widen_filter_region(f)?;
+            f.set_filter_units(FilterUnits::UserSpaceOnUse)?;
+            let margin = BLUR_SPREAD * f64::from(MAX_SHADOW_BLUR) + f64::from(MAX_OFFSET);
+            f.set_x(SHADOW_BOX_X - margin)?;
+            f.set_y(SHADOW_BOX_Y - margin)?;
+            f.set_width(SHADOW_BOX_W + 2.0 * margin)?;
+            f.set_height(SHADOW_BOX_H + 2.0 * margin)?;
             f.drop_shadow(
                 f64::from(DEFAULT_SHADOW_BLUR),
                 f64::from(DEFAULT_DX),

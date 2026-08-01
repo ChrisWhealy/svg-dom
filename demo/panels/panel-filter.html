@@ -28,7 +28,11 @@
                 <strong>blur</strong> (below the banner) changes the shadow's own <strong>stdDeviation</strong>
                 from 0 to 20, independently of the circle's own blur slider.
             </p>
-            <p>Each filter widens its region beyond the SVG default so nothing is clipped at the edge.</p>
+            <p>
+                A filter region is a hard clip, so the SVG default is too tight for these sliders' own maximum
+                values. Each region here is sized against its own maximum stdDeviation and offset instead.
+                Every extreme combination was checked and shows no clipping.
+            </p>
         </figcaption>
     </figure>
 </section>

@@ -12,6 +12,10 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 - Make feFilter demos interactive (`d87401c`)
 
+### Fixed
+
+- Expand filter region for ma stdDeviation value (``)
+
 ## [0.1.8] - 2026-07-31
 
 ### Added
