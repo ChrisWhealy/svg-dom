@@ -17,7 +17,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 - Expand filter region for ma stdDeviation value (`52dce95`)
 - Correct feDropShadow expansion order (`8657f80`)
 - Correct demo to expose intended API feature (`a230dbd`)
-- Doc only: correct stale docs & comments (``)
+- Doc only: correct stale docs & comments (`0dd3182`)
 
 ### Changed
 
