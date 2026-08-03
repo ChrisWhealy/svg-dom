@@ -134,7 +134,10 @@ pub(crate) fn select_dropdown<T: Copy + PartialEq + 'static>(
     let container = xhtml(document, "label")?;
     container.set_attribute("class", "demo-slider-container").map_err(dom_err)?;
 
-    let label_el = xhtml(document, "div")?;
+    // Use a <span>, not a <div>: <label>'s permitted content model allows only for phrasing content, but a `<div>`
+    // defines flow content. `build_h_slider`'s own `label_el` (`paint/mod.rs`) sits inside a plain `<div>` container
+    // instead, where that restriction does not apply, so it keeps its own `<div>` unchanged.
+    let label_el = xhtml(document, "span")?;
     label_el.set_attribute("class", "demo-slider-label").map_err(dom_err)?;
     label_el.set_text_content(Some(visible_label));
     container.append_child(&label_el).map_err(dom_err)?;
