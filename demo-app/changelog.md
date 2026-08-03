@@ -22,7 +22,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 - Associate visible label programmatically (`ef4d586`)
 - Doc only: correct explanation of feBlend alpha-compositing behaviour (`e8bd15a`)
 - `<label>` should contain `<span>` not `<div>` (`185bc9a`)
-- Test that BlendMode's members and in order and labels are correct (``)
+- Test that BlendMode's members and in order and labels are correct (`e7bfe86`)
 
 ## [0.1.9] - 2026-08-01
 
