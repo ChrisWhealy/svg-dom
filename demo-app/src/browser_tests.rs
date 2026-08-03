@@ -1237,6 +1237,11 @@ fn demo_filter_sliders_update_blur_and_drop_shadow_independently() {
 /// `feBlend`'s own `mode` attribute, that its own sixteen options stay in `BlendMode`'s declared order, or that
 /// the live caption below the blended circle tracks the current selection rather than staying at its build-time
 /// default. Only a real browser, with a real `<select>` dispatching a real `change` event, can prove that.
+///
+/// This test also pins the static wiring around `feBlend` — `feFlood`'s own `result`, `feBlend`'s own `in2`/
+/// `result`, and the final `feComposite`'s own `in`/`in2`/`operator` — that none of the mode-switching assertions
+/// above touch. Without those, a regression dropping or miswiring the final `composite(In)` step could pass every
+/// other assertion here while silently breaking the alpha-clipping behaviour the panel's own figcaption teaches.
 #[wasm_bindgen_test]
 fn demo_blend_dropdown_updates_feblend_mode_and_caption() {
     container("demo-blend");
@@ -1273,6 +1278,47 @@ fn demo_blend_dropdown_updates_feblend_mode_and_caption() {
         "Multiply is this demo's own initial default"
     );
     assert_eq!(blend.get_attribute("in").as_deref(), Some("SourceGraphic"));
+
+    // --- the rest of the chain around feBlend is exactly what the panel's own figcaption teaches: flood, then
+    // blend, then a final composite(In) clipping the tinted result back to the source's own alpha coverage. None
+    // of the mode-switching assertions above touch these three elements, so they cannot catch a regression that
+    // drops or miswires the flood or the final composite while every mode/caption assertion still passes. ---
+    let flood = find_el("#demo-blend-filter feFlood");
+    assert_eq!(
+        flood.get_attribute("result").as_deref(),
+        Some("tint"),
+        "feBlend's own in2 (checked below) reads this same result name"
+    );
+
+    assert_eq!(
+        blend.get_attribute("in2").as_deref(),
+        Some("tint"),
+        "feBlend blends SourceGraphic against the flood's own tint, not some other input"
+    );
+    assert_eq!(
+        blend.get_attribute("result").as_deref(),
+        Some("tinted"),
+        "the final composite (checked below) reads this same result name"
+    );
+
+    let composite = find_el("#demo-blend-filter feComposite");
+    assert_eq!(
+        composite.get_attribute("in").as_deref(),
+        Some("tinted"),
+        "the final step composites feBlend's own tinted result, not SourceGraphic directly"
+    );
+    assert_eq!(
+        composite.get_attribute("in2").as_deref(),
+        Some("SourceGraphic"),
+        "clipping back to the source's own alpha coverage is the whole point of this step"
+    );
+    assert_eq!(
+        composite.get_attribute("operator").as_deref(),
+        Some("in"),
+        "operator=\"in\" is what actually clips the opaque flood back to the circle's own transparent corners \
+         — any other operator would leave the flood colour leaking through them, the exact mistake the panel's \
+         own figcaption warns about"
+    );
 
     let select = root
         .query_selector("select[aria-label='feBlend blend mode']")
