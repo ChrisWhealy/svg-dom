@@ -18,7 +18,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 - Correct feDropShadow expansion order (`8657f80`)
 - Correct demo to expose intended API feature (`a230dbd`)
 - Doc only: correct stale docs & comments (`0dd3182`)
-- Improve shadow region test to document font-family change (``)
+- Improve shadow region test to document font-family change (`3c3f0a7`)
 
 ### Changed
 
