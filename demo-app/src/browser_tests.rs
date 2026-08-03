@@ -1327,6 +1327,35 @@ fn demo_blend_dropdown_updates_feblend_mode_and_caption() {
         .dyn_into::<web_sys::HtmlSelectElement>()
         .expect("select is an HtmlSelectElement");
 
+    // select_dropdown wraps its own <select> in a native <label>, not a plain <div>, so the browser's own
+    // HTMLSelectElement.labels associates them without any hand-written for/id pair to keep in sync. This is the
+    // one thing source extraction cannot prove: that the wrapping element is actually a <label> the DOM recognises
+    // as this select's own label, not merely a sibling <div> that happens to sit next to it visually.
+    let associated_labels = select.labels();
+    assert_eq!(
+        associated_labels.length(),
+        1,
+        "the select should have exactly one native label associated with it"
+    );
+    let associated_label = associated_labels
+        .item(0)
+        .expect("first associated label")
+        .dyn_into::<web_sys::Element>()
+        .expect("Element");
+    assert_eq!(associated_label.tag_name(), "LABEL");
+    // The label's own text_content would also pick up every <option>'s own text (they are still descendants of
+    // the <select>, hence of the wrapping <label>, even though only one renders at a time), so this checks the
+    // dedicated caption element inside it rather than the label's own full text_content.
+    assert_eq!(
+        associated_label
+            .query_selector(".demo-slider-label")
+            .expect("query caption")
+            .and_then(|el| el.text_content())
+            .as_deref(),
+        Some("blend mode"),
+        "the associated label should contain select_dropdown's own visible caption"
+    );
+
     // The dropdown's own initial selection already matches feBlend's own initial mode, both driven by the same
     // DEFAULT_MODE constant, before any interaction happens.
     assert_eq!(

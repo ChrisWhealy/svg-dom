@@ -389,6 +389,13 @@ figcaption ol {
     gap: 2px;
 }
 
+/* select_dropdown's own container is a <label>, not a <div>: build_h_slider's own range-input container shares
+   this same class but stays a plain <div>, so this selector's own element-type qualifier keeps the pointer cursor
+   scoped to the actual clickable label, rather than every .demo-slider-container everywhere. */
+label.demo-slider-container {
+    cursor: pointer;
+}
+
 .demo-slider {
     width: 100%;
 }

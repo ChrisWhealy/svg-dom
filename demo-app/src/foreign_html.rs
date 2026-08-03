@@ -95,7 +95,7 @@ pub(crate) fn radio_group<T: Copy + PartialEq + 'static>(
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Builds a `<div class="demo-slider-container">` holding a visible label and a native
+/// Builds a `<label class="demo-slider-container">` holding a visible label and a native
 /// `<select class="demo-select">`, one `<option>` per entry in `options`.
 ///
 /// [`radio_group`] lays out one visible control per option and is suitable in cases where there are small number of
@@ -108,12 +108,19 @@ pub(crate) fn radio_group<T: Copy + PartialEq + 'static>(
 /// `visible` sits above the control as plain text.
 /// `accessible` becomes the `<select>`'s own `aria-label`.
 ///
+/// The outer element is a `<label>`, not a plain `<div>`: wrapping the `<select>` gives it an implicit native label
+/// association without the need to keep `for`/`id` pair in sync. So clicking `visible`'s own text focuses and opens the
+/// dropdown, the same way clicking a `<label for>` would. `aria-label` still wins for the accessible *name* (it takes
+/// precedence over a wrapping label's own text in accessible-name computation), so `accessible`'s more descriptive
+/// wording is what assistive technology actually announces; the `<label>` wrapper only adds the pointer/keyboard
+/// association `radio_group`'s own `<label class="demo-control-row">` rows already get for free.
+///
 /// Each `<option>`'s own `value` attribute is its index into `options`, not a caller-facing string.
 /// `on_select` hands back the option's own `T` directly.
 /// No caller needs to parse a string value back into its own `T`.
 ///
 /// The closure this function creates is parked via [`keep_demo_closure`].
-/// The returned `<div>` is not yet attached to the document.
+/// The returned `<label>` is not yet attached to the document.
 /// The caller decides where it goes, usually inside its own `<foreignObject>`.
 /// The caller must also call `keep_demo_node` on that `<foreignObject>`'s own `SvgNode`.
 pub(crate) fn select_dropdown<T: Copy + PartialEq + 'static>(
@@ -124,7 +131,7 @@ pub(crate) fn select_dropdown<T: Copy + PartialEq + 'static>(
     on_select: impl Fn(T) + 'static,
 ) -> Result<web_sys::Element, Error> {
     let (visible_label, accessible_label) = labels;
-    let container = xhtml(document, "div")?;
+    let container = xhtml(document, "label")?;
     container.set_attribute("class", "demo-slider-container").map_err(dom_err)?;
 
     let label_el = xhtml(document, "div")?;
