@@ -6,13 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Unreleased]
 
+# [Released]
+
 ## [0.2.3] - 2026-08-03
 
 ### Changed
 
-- Make as_str() public when implemented on filter effect enums (``)
-
-# [Released]
+- Make as_str() public when implemented on filter effect enums (`ccb964f`)
 
 ## [0.2.2] - 2026-07-28
 
