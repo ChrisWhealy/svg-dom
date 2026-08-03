@@ -74,6 +74,17 @@ const BLEND_MODE_OPTIONS: [(BlendMode, &str); 16] = [
 ];
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Looks up `mode`'s own display label in `BLEND_MODE_OPTIONS`.
+/// Every `BlendMode` this file selects from — the initial `DEFAULT_MODE` and every value the dropdown's own
+/// `on_select` callback receives — is one of `BLEND_MODE_OPTIONS`'s own entries, so the lookup always succeeds.
+fn blend_mode_label(mode: BlendMode) -> &'static str {
+    BLEND_MODE_OPTIONS
+        .iter()
+        .find_map(|&(candidate, label)| (candidate == mode).then_some(label))
+        .expect("every selectable blend mode has a label")
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Formats the blended circle's own live caption, shown below it.
 fn blend_caption_text(label: &str) -> String {
     format!("mode: {label}")
@@ -126,7 +137,7 @@ pub(crate) fn demo() -> Result<(), Error> {
 
     let blend_caption = svg.text(
         Point::new(BLENDED_CX, CAPTION_Y),
-        &blend_caption_text(BLEND_MODE_OPTIONS[1].1), // DEFAULT_MODE is Multiply, index 1 above
+        &blend_caption_text(blend_mode_label(DEFAULT_MODE)),
     )?;
     blend_caption.set_fill(CAPTION)?;
     blend_caption.set_attr("font-size", "11")?;
@@ -149,11 +160,7 @@ pub(crate) fn demo() -> Result<(), Error> {
         DEFAULT_MODE,
         move |mode: BlendMode| {
             let _ = on_select_blend.set_attr("mode", mode.as_str());
-            let label = BLEND_MODE_OPTIONS
-                .iter()
-                .find(|&&(m, _)| m == mode)
-                .map_or("", |&(_, label)| label);
-            on_select_caption.set_text(&blend_caption_text(label));
+            on_select_caption.set_text(&blend_caption_text(blend_mode_label(mode)));
         },
     )?;
     select_fo.as_element().append_child(&control).map_err(dom_err)?;

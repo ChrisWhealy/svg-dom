@@ -14,7 +14,11 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 ### Changed
 
-- Extend browser test to verify complete filter chain (``)
+- Extend browser test to verify complete filter chain (`1ceadc0`)
+
+### Fixed
+
+- Remove hard-coded default-option index (``)
 
 ## [0.1.9] - 2026-08-01
 
