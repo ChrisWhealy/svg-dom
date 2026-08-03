@@ -212,6 +212,10 @@ pub(crate) fn demo() -> Result<(), Error> {
     banner.set_font_size(42.0)?;
     banner.set_text_anchor(TextAnchor::Middle)?;
     banner.set_attr("font-weight", "bold")?;
+    // Set explicitly (matching demo/style.css's body font-family) rather than left to inherit: SHADOW_BOX_W/H
+    // below were measured against this exact stack, so pinning it here keeps that dependency local and visible
+    // instead of silently relying on the assumption that the gallery's own body-level CSS will not change.
+    banner.set_font_family(r#"ui-monospace, "Cascadia Code", "Fira Code", monospace"#)?;
     banner.set_filter("demo-filter-shadow")?;
 
     let shadow_caption = svg.text(
