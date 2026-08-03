@@ -17,7 +17,8 @@ pub enum FilterUnits {
 }
 
 impl FilterUnits {
-    pub(super) fn as_str(self) -> &'static str {
+    /// Returns the exact keyword this value's own `filterUnits`/`primitiveUnits` attribute needs.
+    pub fn as_str(self) -> &'static str {
         match self {
             Self::UserSpaceOnUse => "userSpaceOnUse",
             Self::ObjectBoundingBox => "objectBoundingBox",

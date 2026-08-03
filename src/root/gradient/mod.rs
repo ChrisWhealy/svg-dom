@@ -31,7 +31,8 @@ pub enum GradientUnits {
 }
 
 impl GradientUnits {
-    fn as_str(self) -> &'static str {
+    /// Returns the exact keyword this value's own `gradientUnits` attribute needs.
+    pub fn as_str(self) -> &'static str {
         match self {
             Self::ObjectBoundingBox => "objectBoundingBox",
             Self::UserSpaceOnUse => "userSpaceOnUse",
@@ -54,7 +55,8 @@ pub enum SpreadMethod {
 }
 
 impl SpreadMethod {
-    fn as_str(self) -> &'static str {
+    /// Returns the exact keyword this method's own `spreadMethod` attribute needs.
+    pub fn as_str(self) -> &'static str {
         match self {
             Self::Pad => "pad",
             Self::Reflect => "reflect",

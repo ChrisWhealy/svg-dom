@@ -55,7 +55,8 @@ pub enum BlendMode {
 }
 
 impl BlendMode {
-    pub(super) fn as_str(self) -> &'static str {
+    /// Returns the exact keyword this mode's own `mode` attribute on `<feBlend>` needs.
+    pub fn as_str(self) -> &'static str {
         match self {
             Self::Normal => "normal",
             Self::Multiply => "multiply",

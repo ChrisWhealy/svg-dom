@@ -20,7 +20,8 @@ pub enum MorphologyOperator {
 }
 
 impl MorphologyOperator {
-    pub(super) fn as_str(self) -> &'static str {
+    /// Returns the exact keyword this operator's own `operator` attribute on `<feMorphology>` needs.
+    pub fn as_str(self) -> &'static str {
         match self {
             Self::Erode => "erode",
             Self::Dilate => "dilate",

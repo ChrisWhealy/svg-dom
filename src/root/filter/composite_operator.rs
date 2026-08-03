@@ -46,7 +46,8 @@ pub enum CompositeOperator {
 }
 
 impl CompositeOperator {
-    pub(super) fn as_str(self) -> &'static str {
+    /// Returns the exact keyword this operator's own `operator` attribute on `<feComposite>` needs.
+    pub fn as_str(self) -> &'static str {
         match self {
             Self::Over => "over",
             Self::In => "in",

@@ -27,7 +27,8 @@ pub enum EdgeMode {
 }
 
 impl EdgeMode {
-    pub(super) fn as_str(self) -> &'static str {
+    /// Returns the exact keyword this mode's own `edgeMode` attribute needs.
+    pub fn as_str(self) -> &'static str {
         match self {
             Self::Duplicate => "duplicate",
             Self::Wrap => "wrap",

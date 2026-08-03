@@ -25,7 +25,9 @@ pub enum ColorMatrixType {
 }
 
 impl ColorMatrixType {
-    pub(super) fn as_str(&self) -> &'static str {
+    /// Returns the exact keyword this transform's own `type` attribute on `<feColorMatrix>` needs.
+    /// Excludes the accompanying `values` attribute; read that from `self` directly.
+    pub fn as_str(&self) -> &'static str {
         match self {
             Self::Matrix(_) => "matrix",
             Self::Saturate(_) => "saturate",

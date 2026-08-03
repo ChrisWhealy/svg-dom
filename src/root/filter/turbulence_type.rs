@@ -14,7 +14,8 @@ pub enum TurbulenceType {
 }
 
 impl TurbulenceType {
-    pub(super) fn as_str(self) -> &'static str {
+    /// Returns the exact keyword this type's own `type` attribute on `<feTurbulence>` needs.
+    pub fn as_str(self) -> &'static str {
         match self {
             Self::Turbulence => "turbulence",
             Self::FractalNoise => "fractalNoise",
