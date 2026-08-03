@@ -1365,7 +1365,8 @@ fn demo_blend_dropdown_updates_feblend_mode_and_caption() {
     );
 
     // All sixteen BlendMode options are present, in the library's own declaration order — not the subset of three
-    // this demo's earlier fixed-circle layout showed.
+    // this demo's earlier fixed-circle layout showed. Every entry is checked, not just a few spot checks: a
+    // regression that duplicated or swapped two unchecked intermediate entries would otherwise still pass.
     let options = select.query_selector_all("option").expect("query options");
     assert_eq!(options.length(), 16, "BlendMode has sixteen members");
     let option_text = |index: u32| -> String {
@@ -1377,9 +1378,17 @@ fn demo_blend_dropdown_updates_feblend_mode_and_caption() {
             .text_content()
             .expect("option text")
     };
-    assert_eq!(option_text(0), "Normal");
-    assert_eq!(option_text(6), "Color Dodge");
-    assert_eq!(option_text(15), "Luminosity");
+    let expected_labels = [
+        "Normal", "Multiply", "Screen", "Darken", "Lighten", "Overlay", "Color Dodge", "Color Burn", "Hard Light",
+        "Soft Light", "Difference", "Exclusion", "Hue", "Saturation", "Color", "Luminosity",
+    ];
+    for (index, &expected_label) in expected_labels.iter().enumerate() {
+        assert_eq!(
+            option_text(index as u32),
+            expected_label,
+            "option {index} should be {expected_label:?}"
+        );
+    }
 
     let caption = find_text("mode: Multiply");
 
