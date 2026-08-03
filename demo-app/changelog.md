@@ -10,7 +10,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 ### Added
 
-- Make feBlend demo interactive (``)
+- Make feBlend demo interactive (`3b6d30a`)
 
 ## [0.1.9] - 2026-08-01
 
