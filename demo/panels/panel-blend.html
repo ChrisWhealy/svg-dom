@@ -5,24 +5,17 @@
         <div class="canvas" id="demo-blend"></div>
         <figcaption>
             <p>
-                Four copies of the same multi-hue gradient <strong>circle</strong>. Each references a
-                separate <code>&lt;filter&gt;</code>. Each filter is built with <strong>flood</strong>
-                (the same orange tint every time), then <strong>blend</strong>, then a final
-                <strong>composite(In)</strong>.
+                Two copies of the same multi-hue gradient <strong>circle</strong>. The left one has no filter. The right
+                one references a <code>&lt;filter&gt;</code> built with <strong>flood</strong> (a fixed orange tint),
+                then <strong>blend</strong>, then a final <strong>composite(In)</strong>.
             </p>
-            <ul>
-                <li><strong>original</strong>: No filter</li>
-                <li><strong>Multiply</strong>: Always darkens, or leaves unchanged</li>
-                <li><strong>Screen</strong>: Always lightens, or leaves unchanged</li>
-                <li><strong>Difference</strong>: Inverts wherever the tint and the source differ</li>
-            </ul>
             <p>
-                <code>BlendMode</code> has twelve further keywords not shown here. These are the sixteen
-                standard <code>&lt;blend-mode&gt;</code> keywords shared with CSS compositing. This is
-                not the full CSS <code>mix-blend-mode</code> value set, which also has two CSS-only
-                modes this crate does not offer. SVG filters also blend in <code>linearRGB</code> by
-                default, not the <code>sRGB</code> space CSS uses. So the same mode can look different
-                here than in CSS. Set <code>color-interpolation-filters="sRGB"</code> to match CSS.
+                The dropdown above the right circle picks <code>blend</code>'s own <code>BlendMode</code> live.
+                It offers all sixteen standard <code>&lt;blend-mode&gt;</code> keywords, the same set CSS compositing
+                uses. CSS <code>mix-blend-mode</code> also defines two CSS-only modes. This crate does not offer those
+                two. SVG filters blend in <code>linearRGB</code> by default. CSS blends in <code>sRGB</code> by default
+                instead. The same mode can therefore look different here than in CSS. Set
+                <code>color-interpolation-filters="sRGB"</code> to match CSS.
             </p>
             <p>
                 <strong>Why a circle, not a rectangle?</strong><br>

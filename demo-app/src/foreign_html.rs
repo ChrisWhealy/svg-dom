@@ -7,7 +7,8 @@ use wasm_bindgen::{JsCast, prelude::*};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Shared plumbing for building plain HTML inside an SVG `<foreignObject>`.
 // Every demo module that builds a `<foreignObject>` control uses this file.
-// Examples include `texts::demo_text`'s radio groups and `structure::demo_marker_view_box`'s slider.
+// Examples include `texts::demo_text`'s radio groups, `structure::demo_marker_view_box`'s slider, and
+// `paint::demo_blend`'s BlendMode dropdown.
 // This module is crate-local (`pub(crate)`), not part of `demo-app`'s public surface.
 // No code outside this crate builds these controls.
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -91,4 +92,77 @@ pub(crate) fn radio_group<T: Copy + PartialEq + 'static>(
     }
 
     Ok(fieldset)
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// Builds a `<div class="demo-slider-container">` holding a visible label and a native
+/// `<select class="demo-select">`, one `<option>` per entry in `options`.
+///
+/// [`radio_group`] lays out one visible control per option and is suitable in cases where there are small number of
+/// choices.  However, for a long option list such as `BlendMode`'s sixteen keywords, that layout contributes to a poor
+/// user experience.  One `<select>` collapses every choice into a single control instead.
+///
+/// Selecting an option dispatches a real `change` event. `on_select` then receives the selected option's own value, the
+/// same shape [`radio_group`]'s own callback uses.
+/// `labels` is `(visible, accessible)` and matches `build_h_slider`'s own convention.
+/// `visible` sits above the control as plain text.
+/// `accessible` becomes the `<select>`'s own `aria-label`.
+///
+/// Each `<option>`'s own `value` attribute is its index into `options`, not a caller-facing string.
+/// `on_select` hands back the option's own `T` directly.
+/// No caller needs to parse a string value back into its own `T`.
+///
+/// The closure this function creates is parked via [`keep_demo_closure`].
+/// The returned `<div>` is not yet attached to the document.
+/// The caller decides where it goes, usually inside its own `<foreignObject>`.
+/// The caller must also call `keep_demo_node` on that `<foreignObject>`'s own `SvgNode`.
+pub(crate) fn select_dropdown<T: Copy + PartialEq + 'static>(
+    document: &web_sys::Document,
+    labels: (&str, &str),
+    options: &[(T, &str)],
+    default: T,
+    on_select: impl Fn(T) + 'static,
+) -> Result<web_sys::Element, Error> {
+    let (visible_label, accessible_label) = labels;
+    let container = xhtml(document, "div")?;
+    container.set_attribute("class", "demo-slider-container").map_err(dom_err)?;
+
+    let label_el = xhtml(document, "div")?;
+    label_el.set_attribute("class", "demo-slider-label").map_err(dom_err)?;
+    label_el.set_text_content(Some(visible_label));
+    container.append_child(&label_el).map_err(dom_err)?;
+
+    let select = xhtml(document, "select")?
+        .dyn_into::<web_sys::HtmlSelectElement>()
+        .map_err(|_| Error::Dom("createElement(\"select\") did not return an HtmlSelectElement".into()))?;
+    select.set_attribute("class", "demo-select").map_err(dom_err)?;
+    select.set_attribute("aria-label", accessible_label).map_err(dom_err)?;
+
+    let values: Vec<T> = options.iter().map(|&(value, _)| value).collect();
+
+    for (index, &(value, label)) in options.iter().enumerate() {
+        let option = xhtml(document, "option")?;
+        option.set_attribute("value", &index.to_string()).map_err(dom_err)?;
+        option.set_text_content(Some(label));
+        if value == default {
+            option.set_attribute("selected", "").map_err(dom_err)?;
+        }
+        select.append_child(&option).map_err(dom_err)?;
+    }
+
+    let change_select = select.clone();
+    let on_change: DemoClosure = Closure::new(move |_: web_sys::Event| {
+        if let Ok(index) = change_select.value().parse::<usize>() {
+            if let Some(&value) = values.get(index) {
+                on_select(value);
+            }
+        }
+    });
+    select
+        .add_event_listener_with_callback("change", on_change.as_ref().unchecked_ref())
+        .map_err(dom_err)?;
+    keep_demo_closure(on_change);
+
+    container.append_child(&select).map_err(dom_err)?;
+    Ok(container)
 }

@@ -393,6 +393,19 @@ figcaption ol {
     width: 100%;
 }
 
+/* A native <select>, built by `foreign_html::select_dropdown` for a control whose own option count (for example
+   `demo_blend`'s sixteen BlendMode keywords) would make a `.demo-control-group` radio list too tall. Matches
+   `.demo-slider`'s own width and this file's dark theme, rather than the browser's default light-chrome look. */
+.demo-select {
+    width: 100%;
+    font: 13px sans-serif;
+    color: #c9d1d9;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 4px;
+    padding: 3px 4px;
+}
+
 /* The visible caption above a .demo-slider, matching .demo-control-group>legend's own look so every labelled
    control in this file reads consistently. */
 .demo-slider-label {

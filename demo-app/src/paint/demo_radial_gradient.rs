@@ -185,13 +185,8 @@ pub(crate) fn demo() -> Result<(), Error> {
         "demo-rg-spread-method",
         &SPREAD_OPTIONS,
         SpreadMethod::Reflect,
-        move |value| {
-            let attr = match value {
-                SpreadMethod::Pad => "pad",
-                SpreadMethod::Reflect => "reflect",
-                SpreadMethod::Repeat => "repeat",
-            };
-            let _ = gradient.set_attribute("spreadMethod", attr);
+        move |value: SpreadMethod| {
+            let _ = gradient.set_attribute("spreadMethod", value.as_str());
         },
     )?;
     spread_fo.as_element().append_child(&group).map_err(dom_err)?;

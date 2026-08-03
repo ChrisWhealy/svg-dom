@@ -3,8 +3,9 @@
 //! (`demo_text_path`). `structure` contributes the marker viewBox zoom slider (`demo_marker_view_box`) and the
 //! preserveAspectRatio radio group (`demo_image`).
 //! `paint` contributes the linearGradient demo's five sliders (`demo_linear_gradient`), the radialGradient
-//! demo's slider, radio group, and slider pair (`demo_radial_gradient`), and the filter demo's four sliders —
-//! blur, dx, dy, and drop-shadow blur (`demo_filter`).
+//! demo's slider, radio group, and slider pair (`demo_radial_gradient`), the filter demo's four sliders —
+//! blur, dx, dy, and drop-shadow blur (`demo_filter`) — and the feBlend demo's BlendMode dropdown
+//! (`demo_blend`).
 //!
 //! One test below builds `foreign_html::radio_group` directly, not through a demo panel.
 //! Three demo panels now share this helper: `demo_text`'s two groups, `demo_image`'s preserveAspectRatio
@@ -1227,4 +1228,126 @@ fn demo_filter_sliders_update_blur_and_drop_shadow_independently() {
     let banner = find_el("text[font-weight='bold']");
     assert_eq!(banner.text_content().as_deref(), Some("DROP SHADOW"));
     assert_eq!(banner.get_attribute("filter").as_deref(), Some("url(#demo-filter-shadow)"));
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// `demo_blend` retains its own `feBlend` primitive's `SvgNode` the same way `demo_filter`'s blur/shadow do, and
+/// updates its `mode` attribute live from a `foreign_html::select_dropdown` rather than a radio group — this
+/// panel is that helper's first caller. Source extraction alone cannot prove the dropdown actually reaches
+/// `feBlend`'s own `mode` attribute, that its own sixteen options stay in `BlendMode`'s declared order, or that
+/// the live caption below the blended circle tracks the current selection rather than staying at its build-time
+/// default. Only a real browser, with a real `<select>` dispatching a real `change` event, can prove that.
+#[wasm_bindgen_test]
+fn demo_blend_dropdown_updates_feblend_mode_and_caption() {
+    container("demo-blend");
+    super::paint::demo_blend::demo().expect("demo_blend::demo should build without error");
+
+    let root = document().get_element_by_id("demo-blend").expect("container exists");
+
+    let find_el = |selector: &str| -> web_sys::Element {
+        root.query_selector(selector)
+            .unwrap_or_else(|_| panic!("invalid selector {selector:?}"))
+            .unwrap_or_else(|| panic!("no element matching {selector:?}"))
+    };
+
+    let find_text = |content: &str| -> web_sys::Element {
+        let texts = root.query_selector_all("text").expect("query text elements");
+        for i in 0..texts.length() {
+            let el = texts
+                .item(i)
+                .expect("text item")
+                .dyn_into::<web_sys::Element>()
+                .expect("Element");
+            if el.text_content().as_deref() == Some(content) {
+                return el;
+            }
+        }
+        panic!("no <text> element with content {content:?}");
+    };
+
+    // --- one filter drives the blended circle; its own feBlend mode starts at this demo's own default ---
+    let blend = find_el("#demo-blend-filter feBlend");
+    assert_eq!(
+        blend.get_attribute("mode").as_deref(),
+        Some("multiply"),
+        "Multiply is this demo's own initial default"
+    );
+    assert_eq!(blend.get_attribute("in").as_deref(), Some("SourceGraphic"));
+
+    let select = root
+        .query_selector("select[aria-label='feBlend blend mode']")
+        .expect("query select")
+        .expect("no select matching aria-label")
+        .dyn_into::<web_sys::HtmlSelectElement>()
+        .expect("select is an HtmlSelectElement");
+
+    // The dropdown's own initial selection already matches feBlend's own initial mode, both driven by the same
+    // DEFAULT_MODE constant, before any interaction happens.
+    assert_eq!(
+        select.value(),
+        "1",
+        "index 1 is Multiply in BLEND_MODE_OPTIONS's own declared order"
+    );
+
+    // All sixteen BlendMode options are present, in the library's own declaration order — not the subset of three
+    // this demo's earlier fixed-circle layout showed.
+    let options = select.query_selector_all("option").expect("query options");
+    assert_eq!(options.length(), 16, "BlendMode has sixteen members");
+    let option_text = |index: u32| -> String {
+        options
+            .item(index)
+            .expect("option item")
+            .dyn_into::<web_sys::Element>()
+            .expect("Element")
+            .text_content()
+            .expect("option text")
+    };
+    assert_eq!(option_text(0), "Normal");
+    assert_eq!(option_text(6), "Color Dodge");
+    assert_eq!(option_text(15), "Luminosity");
+
+    let caption = find_text("mode: Multiply");
+
+    let dispatch_change = |value: &str| {
+        select.set_value(value);
+        let event = web_sys::Event::new("change").expect("create change event");
+        select.dispatch_event(&event).expect("dispatch change");
+    };
+
+    // --- selecting "Color Dodge" (index 6) updates both feBlend's own mode and the live caption below it ---
+    dispatch_change("6");
+    assert_eq!(blend.get_attribute("mode").as_deref(), Some("color-dodge"));
+    assert_eq!(
+        caption.text_content().as_deref(),
+        Some("mode: Color Dodge"),
+        "the caption should track the dropdown's own current selection, not stay at its build-time default"
+    );
+
+    // --- selecting "Luminosity" (index 15, the last option) does the same ---
+    dispatch_change("15");
+    assert_eq!(blend.get_attribute("mode").as_deref(), Some("luminosity"));
+    assert_eq!(caption.text_content().as_deref(), Some("mode: Luminosity"));
+
+    // --- the original circle stays a plain, unfiltered comparison, untouched by every dropdown selection above ---
+    let circles = root.query_selector_all("circle").expect("query circles");
+    assert_eq!(circles.length(), 2, "one original circle and one blended circle");
+    let original = circles
+        .item(0)
+        .expect("first circle")
+        .dyn_into::<web_sys::Element>()
+        .expect("Element");
+    assert!(
+        original.get_attribute("filter").is_none(),
+        "the original circle carries no filter"
+    );
+
+    let blended_circle = circles
+        .item(1)
+        .expect("second circle")
+        .dyn_into::<web_sys::Element>()
+        .expect("Element");
+    assert_eq!(
+        blended_circle.get_attribute("filter").as_deref(),
+        Some("url(#demo-blend-filter)")
+    );
 }
