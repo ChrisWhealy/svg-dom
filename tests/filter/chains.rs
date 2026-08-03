@@ -11,8 +11,9 @@ use wasm_bindgen_test::*;
 /// `blend` composes with `flood` and a final `composite(In)` into a working, alpha-preserving tint filter: flood a
 /// colour, blend it over the source graphic, then clip the result back to the source's own alpha coverage — the
 /// example from `SvgFilter::blend`'s doc comment. The final `composite` step is not cosmetic: without it, `flood`'s
-/// opaque colour would leak through wherever the source graphic was itself transparent, since `blend` alone only
-/// changes colour, not alpha.
+/// opaque colour would leak through wherever the source graphic was itself transparent, since `blend`'s own result
+/// alpha is the union of its two inputs' alpha. With `flood`'s own alpha fully opaque, that union stays opaque
+/// everywhere, not just where the source graphic itself was.
 #[wasm_bindgen_test]
 fn should_build_tint_filter_chain() -> Result<(), String> {
     let svg = make_svg("filter-blend-tint-chain");

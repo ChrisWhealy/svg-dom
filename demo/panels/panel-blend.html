@@ -19,12 +19,11 @@
             </p>
             <p>
                 <strong>Why a circle, not a rectangle?</strong><br>
-                <code>flood</code> paints its colour opaquely across the entire filter region.
-                <code>blend</code> alone only changes colour, not alpha. Without a final
-                <code>composite(In)</code> step, the flood colour would leak through the fully
-                transparent corners of the circle's bounding box. <code>composite(In)</code> clips the
-                result back to the circle's own alpha coverage. A rectangle has no transparency there to
-                reveal the mistake.
+                <code>flood</code> paints its colour opaquely across the entire filter region. <code>blend</code>
+                applies the chosen blending function to colour, then alpha-composites its two inputs. The flood is fully
+                opaque, so the blended result is opaque everywhere in the filter region — including the circle's own
+                transparent corners. <code>composite(In)</code> clips that result back to the circle's own alpha
+                coverage. A rectangle has no transparency there to reveal the mistake.
             </p>
         </figcaption>
     </figure>

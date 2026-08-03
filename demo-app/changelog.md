@@ -20,6 +20,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 - Remove hard-coded default-option index (`6c3c0fb`)
 - Associate visible label programmatically (`ef4d586`)
+- Doc only: correct explanation of feBlend alpha-compositing behaviour (``)
 
 ## [0.1.9] - 2026-08-01
 
