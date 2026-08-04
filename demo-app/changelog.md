@@ -14,7 +14,8 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 ### Fixed
 
-- Fix saturate value by resolving to 2dp (``)
+- Fix saturate value by resolving to 2dp (`52ba939`)
+- Doc only: correct fourth feColorMatrix demo description (``)
 
 ## [0.1.11] - 2026-08-04
 

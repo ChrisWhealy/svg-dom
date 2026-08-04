@@ -5,25 +5,25 @@
         <div class="canvas" id="demo-color-matrix"></div>
         <figcaption>
             <p>
-                Four copies of the same multi-hue gradient rectangle, each referencing a separate
-                <code>&lt;filter&gt;</code> built with <strong>color_matrix</strong>. The left one has no filter. A flat
-                colour would not show saturation or hue changing anything. Each of the other three has its own live
-                control above it.
+                Four copies of the same multi-hue gradient rectangle are shown: one unfiltered original and three copies
+                using separate filters built with <strong>color_matrix</strong>. A flat colour would not show saturation
+                or hue changing anything. Each of the three filtered copies has its own live control above it.
             </p>
             <ul>
                 <li><strong>Saturate</strong>: a slider from 0.0 to 1.0. 0.0 is fully greyscale. 1.0 is the identity,
                     leaving colour unchanged.</li>
-                <li><strong>HueRotate</strong>: a slider from 0° to 360°, rotating hue around the
-                    colour circle by that many degrees.</li>
+                <li><strong>HueRotate</strong>: a slider from 0° to 360°, rotating hue around the colour circle by that
+                    many degrees.</li>
                 <li><strong>Matrix / LuminanceToAlpha</strong>: a radio group choosing between two
-                    <code>ColorMatrixType</code> variants that a slider cannot usefully drive.
-                    <code>Matrix</code> demonstrates the fully custom 4×5 transform, fixed here to the classic
-                    sepia-tone coefficients.<br>
+                    <code>ColorMatrixType</code> variants that a slider cannot usefully drive. <code>Matrix</code>
+                    demonstrates the fully custom 4×5 transform, fixed here to the classic sepia-tone coefficients.<br>
                     <code>LuminanceToAlpha</code> zeroes red, green, and blue. It sets alpha from each pixel's own
                     perceived brightness instead. Colour is gone, so alpha becomes the only visible signal. A plain
                     white rectangle sits behind this one rectangle only, revealing that signal as a visible greyscale
-                    gradient. Without it, near-transparent black would blend into this gallery's own dark canvas. The
-                    result would then look like a plain black block instead.
+                    gradient. The result is an inverted greyscale preview of the alpha mask. Brighter source pixels
+                    produce greater black opacity. They therefore appear darker over the white backing. Without that
+                    backing rectangle, near-transparent black would blend into this gallery's own dark canvas
+                    instead. The result would then look like a plain black block.
                 </li>
             </ul>
         </figcaption>

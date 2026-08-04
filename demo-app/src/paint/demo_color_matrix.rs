@@ -18,7 +18,8 @@ use wasm_bindgen::{JsCast, prelude::*};
 // feColorMatrix
 // One gradient source feeds three filters.
 // Saturate and HueRotate each have their own live slider.
-// The fourth filter switches between Matrix (a fixed sepia tone) and LuminanceToAlpha, via a radio group.
+// The fourth rectangle's own filter switches between Matrix (a fixed sepia tone) and LuminanceToAlpha, via a
+// radio group.
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // `color_matrix` returns the `<feColorMatrix>` primitive's own `SvgNode` directly, unlike `component_transfer`.
 // So each filter here retains its own node, the same retained-primitive pattern `demo_filter`'s sliders use.
