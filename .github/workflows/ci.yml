@@ -140,7 +140,7 @@ jobs:
       - name: Run the browser integration tests
         run: wasm-pack test --headless --${{ matrix.browser }}
 
-      # demo-app/src/browser_tests.rs — dispatches real change/input events at the demo gallery's interactive controls
+      # demo-app/src/browser_tests/* — dispatches real change/input events at the demo gallery's interactive controls
       # and asserts the resulting SVG attributes, rather than only proving (as demo-app's native unit_tests do) that the
       # Rust source compiles and is extractable.
       - name: Run the demo gallery's interactive-control browser tests
