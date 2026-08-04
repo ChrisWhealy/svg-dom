@@ -86,8 +86,19 @@ fn sepia_values_attr() -> String {
     SEPIA_MATRIX.iter().map(f64::to_string).collect::<Vec<_>>().join(" ")
 }
 
+/// Formats a Saturate value at the slider's own real precision.
+/// The slider moves in 1% steps, so its own real value moves in steps of 0.01, not 0.1.
+/// A fixed one-decimal format would collapse those 101 distinct positions down to just 11 displayed values.
+/// This formats to two decimal places instead, then strips a single trailing zero.
+/// That keeps the full precision an intermediate position like `0.25` needs, while still printing an endpoint
+/// like `0.0` or `1.0`, not `0.00`/`1.00`.
+fn saturate_value_text(value: f64) -> String {
+    let formatted = format!("{value:.2}");
+    formatted.strip_suffix('0').unwrap_or(&formatted).to_owned()
+}
+
 fn saturate_caption_text(value: f64) -> String {
-    format!("Saturate({value:.1})")
+    format!("Saturate({})", saturate_value_text(value))
 }
 
 fn hue_caption_text(degrees: f64) -> String {
@@ -165,7 +176,7 @@ pub(crate) fn demo() -> Result<(), Error> {
     )?
     .input;
     saturate_slider
-        .set_attribute("aria-valuetext", &format!("{DEFAULT_SATURATE:.1}"))
+        .set_attribute("aria-valuetext", &saturate_value_text(DEFAULT_SATURATE))
         .map_err(dom_err)?;
     {
         let slider = saturate_slider.clone();
@@ -174,7 +185,7 @@ pub(crate) fn demo() -> Result<(), Error> {
         let on_input: DemoClosure = Closure::new(move |_: web_sys::Event| {
             let value = slider.value_as_number() / 100.0;
             let _ = matrix.set_attr("values", &value.to_string());
-            let _ = slider.set_attribute("aria-valuetext", &format!("{value:.1}"));
+            let _ = slider.set_attribute("aria-valuetext", &saturate_value_text(value));
             caption.set_text(&saturate_caption_text(value));
         });
         saturate_slider

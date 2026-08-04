@@ -12,6 +12,10 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 - Make feColorMatrix demo interactive (`d6d3669`)
 
+### Fixed
+
+- Fix saturate value by resolving to 2dp (``)
+
 ## [0.1.11] - 2026-08-04
 
 ### Added

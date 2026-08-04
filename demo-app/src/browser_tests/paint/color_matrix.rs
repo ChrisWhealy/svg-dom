@@ -15,6 +15,9 @@ use wasm_bindgen_test::wasm_bindgen_test;
 /// It cannot prove the three controls, and the original rectangle, stay independent of one another.
 /// It also cannot prove the matrix rectangle's own white backing rectangle stays unfiltered and stays behind
 /// it, in document order, so SVG's own paint order keeps it underneath rather than on top.
+/// It also cannot prove the saturate slider's own caption and `aria-valuetext` keep their full two-decimal
+/// precision at an intermediate position, not just at the two endpoints, where a coarser format would still
+/// happen to look correct.
 /// Only a real browser can prove any of that.
 #[wasm_bindgen_test]
 fn demo_color_matrix_controls_update_saturate_hue_and_matrix_type_independently() {
@@ -107,6 +110,22 @@ fn demo_color_matrix_controls_update_saturate_hue_and_matrix_type_independently(
     let luminance = find_radio(&root, "matrix type", "luminance");
     assert!(sepia.checked(), "sepia is this demo's own initial default");
     assert!(!luminance.checked());
+
+    // --- an intermediate saturate position keeps its own full two-decimal precision, not just one decimal
+    // place. The slider moves in 1% steps, so 101 distinct positions exist between 0 and 100. A fixed
+    // one-decimal format would collapse those down to only 11 displayed values: 0.24 and 0.25 would both read
+    // as "0.2". This pins the caption and aria-valuetext against an exact two-decimal value (0.25) and against
+    // a value whose own trailing zero should be stripped (0.7, not 0.70), not just the two endpoints, where a
+    // one-decimal format happens to already look correct. ---
+    dispatch_input(&saturate_slider, "25");
+    assert_eq!(saturate.get_attribute("values").as_deref(), Some("0.25"));
+    assert_eq!(saturate_slider.get_attribute("aria-valuetext").as_deref(), Some("0.25"));
+    assert_eq!(saturate_caption.text_content().as_deref(), Some("Saturate(0.25)"));
+
+    dispatch_input(&saturate_slider, "70");
+    assert_eq!(saturate.get_attribute("values").as_deref(), Some("0.7"));
+    assert_eq!(saturate_slider.get_attribute("aria-valuetext").as_deref(), Some("0.7"));
+    assert_eq!(saturate_caption.text_content().as_deref(), Some("Saturate(0.7)"));
 
     // --- moving saturate to its documented maximum updates only the saturate channel and caption ---
     dispatch_input(&saturate_slider, "100");
