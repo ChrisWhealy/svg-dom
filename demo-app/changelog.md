@@ -17,6 +17,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 - Fix saturate value by resolving to 2dp (`52ba939`)
 - Doc only: correct fourth feColorMatrix demo description (`e2305aa`)
 - Allow slider range to extend beyond 1.0 to support oversaturation (`da64f7d`)
+- HueRotate slider updates `aria-valuetext` to show degrees unit (``)
 
 ## [0.1.11] - 2026-08-04
 

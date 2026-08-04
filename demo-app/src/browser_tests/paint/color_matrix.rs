@@ -20,6 +20,8 @@ use wasm_bindgen_test::wasm_bindgen_test;
 /// happen to look correct.
 /// It also cannot prove the saturate slider's own extended range actually reaches real oversaturation (2.0),
 /// not just the 1.0 identity point partway along it.
+/// It also cannot prove the hue rotate slider's own `aria-valuetext` carries its own unit, both at construction
+/// and after a later move, rather than exposing only the raw unitless number.
 /// Only a real browser can prove any of that.
 #[wasm_bindgen_test]
 fn demo_color_matrix_controls_update_saturate_hue_and_matrix_type_independently() {
@@ -99,6 +101,11 @@ fn demo_color_matrix_controls_update_saturate_hue_and_matrix_type_independently(
     assert_eq!(hue_slider.get_attribute("min").as_deref(), Some("0"));
     assert_eq!(hue_slider.get_attribute("max").as_deref(), Some("360"));
     assert_eq!(hue_slider.value(), "180");
+    assert_eq!(
+        hue_slider.get_attribute("aria-valuetext").as_deref(),
+        Some("180 degrees"),
+        "the raw slider value alone does not carry its own unit"
+    );
 
     let hue_caption = find_text("HueRotate(180)");
 
@@ -156,10 +163,11 @@ fn demo_color_matrix_controls_update_saturate_hue_and_matrix_type_independently(
         "moving the saturate slider should not touch the matrix type"
     );
 
-    // --- moving hue rotate updates only the hue channel and caption ---
+    // --- moving hue rotate updates only the hue channel, caption, and aria-valuetext ---
     dispatch_input(&hue_slider, "45");
     assert_eq!(hue.get_attribute("values").as_deref(), Some("45"));
     assert_eq!(hue_caption.text_content().as_deref(), Some("HueRotate(45)"));
+    assert_eq!(hue_slider.get_attribute("aria-valuetext").as_deref(), Some("45 degrees"));
     assert_eq!(
         saturate.get_attribute("values").as_deref(),
         Some("2"),

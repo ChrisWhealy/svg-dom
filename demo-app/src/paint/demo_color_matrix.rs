@@ -109,6 +109,14 @@ fn hue_caption_text(degrees: f64) -> String {
     format!("HueRotate({degrees:.0})")
 }
 
+/// Formats a HueRotate value with its own unit spelled out.
+/// The visible caption and the endpoint labels already show degrees, but the slider's own raw `value` does not
+/// carry that unit on its own.
+/// This supplies `aria-valuetext`, so a screen reader announces "45 degrees", not the bare number 45.
+fn hue_value_text(degrees: f64) -> String {
+    format!("{degrees:.0} degrees")
+}
+
 fn matrix_caption_text(variant: MatrixVariant) -> &'static str {
     match variant {
         MatrixVariant::Sepia => "Matrix (sepia)",
@@ -227,6 +235,9 @@ pub(crate) fn demo() -> Result<(), Error> {
         ("0°", "360°"),
     )?
     .input;
+    hue_slider
+        .set_attribute("aria-valuetext", &hue_value_text(f64::from(DEFAULT_HUE_DEGREES)))
+        .map_err(dom_err)?;
     {
         let slider = hue_slider.clone();
         let matrix = hue_matrix.clone();
@@ -234,6 +245,7 @@ pub(crate) fn demo() -> Result<(), Error> {
         let on_input: DemoClosure = Closure::new(move |_: web_sys::Event| {
             let degrees = slider.value_as_number();
             let _ = matrix.set_attr("values", &degrees.to_string());
+            let _ = slider.set_attribute("aria-valuetext", &hue_value_text(degrees));
             caption.set_text(&hue_caption_text(degrees));
         });
         hue_slider
