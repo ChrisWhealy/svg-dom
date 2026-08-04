@@ -10,8 +10,11 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 ### Added
 
-- Make feComponentTransfer demo interactive (``)
+- Make feComponentTransfer demo interactive (`27d7d16`)
 
+### Changed
+
+- Refactor browser tests (``)
 
 ## [0.1.10] - 2026-08-03
 

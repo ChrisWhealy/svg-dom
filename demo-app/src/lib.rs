@@ -571,8 +571,10 @@ fn caption(svg: &SvgRoot, cx: f64, text: &str) -> Result<(), Error> {
 mod unit_tests;
 
 /// A wasm-bindgen-test browser suite for the interactive demo controls implemented through `foreign_html.rs`
-/// (radio groups, sliders) — `unit_tests` above only proves every demo function's source is extractable, not that
-/// these controls actually dispatch to the right SVG attribute. See `browser_tests.rs`'s own doc comment for how it
-/// is run and why it is a separate module from `unit_tests`.
+/// (radio groups, sliders).
+/// `unit_tests` above only proves every demo function's source is extractable.
+/// It does not prove these controls actually dispatch to the right SVG attribute.
+/// See `browser_tests/mod.rs`'s own doc comment for how this suite is run.
+/// That same doc comment also explains why this is a separate module from `unit_tests`.
 #[cfg(test)]
 mod browser_tests;
