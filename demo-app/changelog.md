@@ -10,7 +10,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 ### Added
 
-- Make feColorMatrix demo interactive (`27d7d16`)
+- Make feColorMatrix demo interactive (`d6d3669`)
 
 ## [0.1.11] - 2026-08-04
 
