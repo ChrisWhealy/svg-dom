@@ -6,20 +6,23 @@
         <figcaption>
             <p>
                 Four copies of the same multi-hue gradient rectangle, each referencing a separate
-                <code>&lt;filter&gt;</code> built with <strong>color_matrix</strong>. A flat colour
-                would not show saturation or hue changing anything.
+                <code>&lt;filter&gt;</code> built with <strong>color_matrix</strong>. The left one has
+                no filter. A flat colour would not show saturation or hue changing anything. Each of
+                the other three has its own live control above it.
             </p>
             <ul>
-                <li><strong>original</strong>: No filter</li>
-                <li><strong>Saturate(0.0)</strong>: Greyscale</li>
-                <li><strong>HueRotate(180)</strong>: Hue shifted around the colour circle</li>
-                <li><strong>Matrix(sepia)</strong> A full custom 4×5 transform, using the classic
-                    sepia-tone coefficients</li>
+                <li><strong>Saturate</strong>: a slider from 0.0 to 1.0. 0.0 is fully greyscale. 1.0
+                    is the identity, leaving colour unchanged.</li>
+                <li><strong>HueRotate</strong>: a slider from 0° to 360°, rotating hue around the
+                    colour circle by that many degrees.</li>
+                <li><strong>Matrix / LuminanceToAlpha</strong>: a radio group choosing between two
+                    <code>ColorMatrixType</code> variants that a slider cannot usefully drive.
+                    <code>Matrix</code> demonstrates the fully custom 4×5 transform, fixed here to the
+                    classic sepia-tone coefficients. <code>LuminanceToAlpha</code> zeroes red, green,
+                    and blue. It sets alpha from each pixel's own perceived brightness instead. The
+                    result renders as a black silhouette that fades toward this gallery's own dark
+                    canvas background wherever the source colour was darkest.</li>
             </ul>
-            <p>
-                <code>LuminanceToAlpha</code> is the fourth <code>ColorMatrixType</code> variant. It
-                produces an alpha mask, not a directly visible result. It is not shown here.
-            </p>
         </figcaption>
     </figure>
 </section>

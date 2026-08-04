@@ -19,6 +19,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 ### Changed
 
 - Refactor browser tests (`7cbe902`)
+- Bump demo-app version (`2e7fdb9`)
 
 ## [0.1.10] - 2026-08-03
 
