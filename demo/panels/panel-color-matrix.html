@@ -10,8 +10,14 @@
                 or hue changing anything. Each of the three filtered copies has its own live control above it.
             </p>
             <ul>
-                <li><strong>Saturate</strong>: a slider from 0.0 to 1.0. 0.0 is fully greyscale. 1.0 is the identity,
-                    leaving colour unchanged.</li>
+                <li><strong>Saturate</strong>: a slider ranging from 0.0 to 2.0.
+                    <ul>
+                        <li>0.0 is fully greyscale</li>
+                        <li>1.0 is the identity, leaving colour unchanged</li>
+                        <li>Values above 1.0 oversaturate the image leaving colour unchanged.</li>
+                    </ul>
+                    Values above 1.0 oversaturate the image, which the SVG Filter Effects spec explicitly permits.
+                </li>
                 <li><strong>HueRotate</strong>: a slider from 0° to 360°, rotating hue around the colour circle by that
                     many degrees.</li>
                 <li><strong>Matrix / LuminanceToAlpha</strong>: a radio group choosing between two

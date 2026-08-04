@@ -60,7 +60,10 @@ const CAPTION_Y: f64 = RECT_Y + RECT_H + CAPTION_OFFSET;
 const COLOR_MATRIX_H: f64 = CAPTION_Y + 12.0;
 
 const MIN_SATURATE_PERCENT: i32 = 0;
-const MAX_SATURATE_PERCENT: i32 = 100;
+// The SVG Filter Effects spec permits Saturate values outside 0..1: values above 1.0 oversaturate, values below
+// 0.0 undersaturate further than greyscale. 200% (2.0) demonstrates real oversaturation, not just the identity
+// endpoint, while still keeping the slider's own range easy to read.
+const MAX_SATURATE_PERCENT: i32 = 200;
 const DEFAULT_SATURATE_PERCENT: i32 = 0; // fully desaturated (greyscale), this demo's own original default
 const DEFAULT_SATURATE: f64 = DEFAULT_SATURATE_PERCENT as f64 / 100.0;
 
@@ -172,8 +175,8 @@ pub(crate) fn demo() -> Result<(), Error> {
         Size::new(RECT_W, CONTROL_ROW_H),
         ("saturate", "colour matrix saturate"),
         (MIN_SATURATE_PERCENT, MAX_SATURATE_PERCENT, DEFAULT_SATURATE_PERCENT),
-        25,
-        ("0%", "100%"),
+        50, // a tick lands exactly on 100%, the identity point, alongside 0%/50%/150%/200%
+        ("0%", "200%"),
     )?
     .input;
     saturate_slider

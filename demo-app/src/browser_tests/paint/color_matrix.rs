@@ -18,6 +18,8 @@ use wasm_bindgen_test::wasm_bindgen_test;
 /// It also cannot prove the saturate slider's own caption and `aria-valuetext` keep their full two-decimal
 /// precision at an intermediate position, not just at the two endpoints, where a coarser format would still
 /// happen to look correct.
+/// It also cannot prove the saturate slider's own extended range actually reaches real oversaturation (2.0),
+/// not just the 1.0 identity point partway along it.
 /// Only a real browser can prove any of that.
 #[wasm_bindgen_test]
 fn demo_color_matrix_controls_update_saturate_hue_and_matrix_type_independently() {
@@ -74,7 +76,11 @@ fn demo_color_matrix_controls_update_saturate_hue_and_matrix_type_independently(
 
     let saturate_slider = find_slider("input[aria-label='colour matrix saturate']");
     assert_eq!(saturate_slider.get_attribute("min").as_deref(), Some("0"));
-    assert_eq!(saturate_slider.get_attribute("max").as_deref(), Some("100"));
+    assert_eq!(
+        saturate_slider.get_attribute("max").as_deref(),
+        Some("200"),
+        "200% (2.0) demonstrates real oversaturation, not just the 1.0 identity endpoint"
+    );
     assert_eq!(saturate_slider.value(), "0");
     assert_eq!(saturate_slider.get_attribute("aria-valuetext").as_deref(), Some("0.0"));
 
@@ -127,11 +133,18 @@ fn demo_color_matrix_controls_update_saturate_hue_and_matrix_type_independently(
     assert_eq!(saturate_slider.get_attribute("aria-valuetext").as_deref(), Some("0.7"));
     assert_eq!(saturate_caption.text_content().as_deref(), Some("Saturate(0.7)"));
 
-    // --- moving saturate to its documented maximum updates only the saturate channel and caption ---
+    // --- raw 100 is the identity point (1.0), not the slider's own maximum ---
     dispatch_input(&saturate_slider, "100");
     assert_eq!(saturate.get_attribute("values").as_deref(), Some("1"));
     assert_eq!(saturate_slider.get_attribute("aria-valuetext").as_deref(), Some("1.0"));
     assert_eq!(saturate_caption.text_content().as_deref(), Some("Saturate(1.0)"));
+
+    // --- moving saturate to its documented maximum demonstrates real oversaturation. The SVG default range
+    // would stop at the identity point above; this slider's own extended range goes further. ---
+    dispatch_input(&saturate_slider, "200");
+    assert_eq!(saturate.get_attribute("values").as_deref(), Some("2"));
+    assert_eq!(saturate_slider.get_attribute("aria-valuetext").as_deref(), Some("2.0"));
+    assert_eq!(saturate_caption.text_content().as_deref(), Some("Saturate(2.0)"));
     assert_eq!(
         hue.get_attribute("values").as_deref(),
         Some("180"),
@@ -149,7 +162,7 @@ fn demo_color_matrix_controls_update_saturate_hue_and_matrix_type_independently(
     assert_eq!(hue_caption.text_content().as_deref(), Some("HueRotate(45)"));
     assert_eq!(
         saturate.get_attribute("values").as_deref(),
-        Some("1"),
+        Some("2"),
         "moving the hue rotate slider should not touch saturate, which stays at its own last value"
     );
 
@@ -178,7 +191,7 @@ fn demo_color_matrix_controls_update_saturate_hue_and_matrix_type_independently(
 
     assert_eq!(
         saturate.get_attribute("values").as_deref(),
-        Some("1"),
+        Some("2"),
         "toggling the matrix radio group should not touch saturate"
     );
     assert_eq!(
