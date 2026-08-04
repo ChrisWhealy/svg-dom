@@ -26,9 +26,12 @@ use wasm_bindgen::{JsCast, prelude::*};
 // by the gradient demos (`demo_linear_gradient`, `demo_radial_gradient`) and by `demo_filter`'s blur circle and
 // drop-shadow sliders (the latter including its own vertical dy slider), which each lay their own controls out
 // in custom rows rather than following the shared W/H/PAD_Y/BAND/caption convention every other demo uses.
-// `demo_filter` does not need `select_el`, though: unlike the gradient setters it calls, `gaussian_blur` and
-// `drop_shadow` both return a live `SvgNode`, which it retains directly instead of reaching back into the DOM
-// through a CSS selector.
+// `demo_component_transfer`'s own gamma, discrete, and alpha sliders use these same helpers, for the same reason.
+// `demo_filter` does not need `select_el`.
+// `gaussian_blur` and `drop_shadow` both return a live `SvgNode` instead, unlike the gradient setters and
+// `component_transfer`.
+// `demo_filter` retains that node directly.
+// It never queries the live DOM through a CSS selector.
 // All of these live here rather than being duplicated per file. Plain private `fn`s, not `pub(crate)`: nothing
 // outside `paint` needs them, and a private item defined here is already visible to every descendant module
 // (i.e. every file below), so no `pub` qualifier is needed for `super::widen_filter_region(f)` (or
@@ -105,11 +108,17 @@ fn side_label(svg: &SvgRoot, x: f64, y: f64, text: &str) -> Result<(), Error> {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Selects one live element inside `svg`, by CSS selector.
-/// An escape hatch for a demo whose own setter writes an attribute once, at construction, and returns no handle
-/// a later interactive control could hold onto to change it again — currently only the gradient demos
-/// (`add_stop`/`set_gradient_transform`/`set_fx`/`set_fy` and friends). Selecting the live DOM element directly
-/// reaches it anyway. A demo whose own primitive constructor *does* return a retained handle (for example
-/// `demo_filter`'s `gaussian_blur`/`drop_shadow`) should hold onto that instead of calling this.
+///
+/// An escape hatch for a demo whose own setter writes an attribute only once at construction time. Since this is a
+/// one-time write, the setter has no need to return a handle that a later interactive control could use to change
+/// the attribute again. The gradient demos (`add_stop`/`set_gradient_transform`/`set_fx`/`set_fy` and friends) are
+/// other examples as are `demo_component_transfer`'s own `<feFuncX>` children: `component_transfer` builds them
+/// internally, without returning a handle to any of them.
+///
+/// To work around this, select the live DOM element directly, bypassing the `SvgRoot` wrapper.
+///
+/// A demo whose own primitive constructor *does* return a retained handle should keep that handle instead.
+/// `demo_filter`'s own `gaussian_blur`/`drop_shadow` are examples of such a constructor.
 fn select_el(svg: &SvgRoot, selector: &str) -> Result<web_sys::Element, Error> {
     svg.root
         .query_selector(selector)

@@ -7,22 +7,23 @@
         <figcaption>
             <p>
                 Four copies of the same multi-hue gradient rectangle, each referencing a separate
-                <code>&lt;filter&gt;</code> built with <strong>component_transfer</strong>:
+                <code>&lt;filter&gt;</code> built with <strong>component_transfer</strong>. The left
+                one has no filter. Each of the other three has its own slider above it, driving one
+                <code>TransferFunction</code> live.
             </p>
             <ul>
-                <li><strong>original</strong>: No filter</li>
-                <li><strong>Gamma(2.2)</strong>: Applied identically to red/green/blue, darkens
-                    midtones</li>
-                <li><strong>Discrete(4-step)</strong>: Applied identically to red/green/blue,
-                    posterises the smooth gradient into hard colour bands</li>
-                <li><strong>Alpha Linear(0.4)</strong>: Applied only to alpha, fading the rectangle
-                    toward the dark canvas background without touching its colour at all</li>
+                <li><strong>Gamma exponent</strong>: applied identically to red/green/blue. Above 1.0
+                    it darkens midtones. Below 1.0 it brightens them.</li>
+                <li><strong>Steps</strong>: applied identically to red/green/blue. Posterises the
+                    smooth gradient into that many hard colour bands.</li>
+                <li><strong>Alpha slope</strong>: applied only to alpha. Fades the rectangle toward
+                    the dark canvas background without touching its colour at all.</li>
             </ul>
             <p>
                 Each channel is independent. A <code>(Channel, TransferFunction)</code> pair not
                 mentioned gets no <code>&lt;feFuncX&gt;</code> child at all. This is the SVG default,
-                equivalent to <code>TransferFunction::Identity</code>. This is why the alpha-only
-                example above leaves colour completely untouched.
+                equivalent to <code>TransferFunction::Identity</code>. This is why the alpha slider
+                above leaves colour completely untouched, at every position.
             </p>
         </figcaption>
     </figure>
