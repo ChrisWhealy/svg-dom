@@ -135,10 +135,10 @@ pub(crate) fn demo() -> Result<(), Error> {
     r1.set_fill_gradient("cm-source")?;
     super::row_caption(&svg, LEFT_MARGIN + RECT_W / 2.0, CAPTION_Y, "original")?;
 
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // Saturate
     // A slider above the rectangle drives feColorMatrix's own single Saturate value live.
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     let r2 = svg.rect(Point::new(RECT2_X, RECT_Y), Size::new(RECT_W, RECT_H))?;
     r2.set_fill_gradient("cm-source")?;
     r2.set_filter("cm-filter-saturate")?;
@@ -183,10 +183,10 @@ pub(crate) fn demo() -> Result<(), Error> {
         keep_demo_closure(on_input);
     }
 
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // HueRotate
     // A slider above the rectangle drives feColorMatrix's own single HueRotate value live.
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     let r3 = svg.rect(Point::new(RECT3_X, RECT_Y), Size::new(RECT_W, RECT_H))?;
     r3.set_fill_gradient("cm-source")?;
     r3.set_filter("cm-filter-hue")?;
@@ -227,11 +227,21 @@ pub(crate) fn demo() -> Result<(), Error> {
         keep_demo_closure(on_input);
     }
 
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // Matrix / LuminanceToAlpha
-    // A radio group above the rectangle switches feColorMatrix's own type live, between a fixed sepia Matrix
-    // and LuminanceToAlpha.
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // A radio group above the rectangle switches feColorMatrix's own type live, between a fixed sepia Matrix and
+    // LuminanceToAlpha.
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // LuminanceToAlpha zeroes red, green, and blue. Alpha is the only signal left. `Matrix`'s own sepia result
+    // stays fully opaque, so it always hides this backing rectangle completely.
+    // LuminanceToAlpha's own result does not: without this backing rectangle, its near-transparent, near-black pixels
+    // would blend into this gallery's own near-black canvas background and the luminance signal this filter wants to
+    // demonstrate would be almost invisible.
+    // Therefore, a plain white backing rectangle, drawn once here and left untouched by the radio group, makes that
+    // signal read as a visible greyscale gradient instead.
+    let r4_backing = svg.rect(Point::new(RECT4_X, RECT_Y), Size::new(RECT_W, RECT_H))?;
+    r4_backing.set_fill(WHITE)?;
+
     let r4 = svg.rect(Point::new(RECT4_X, RECT_Y), Size::new(RECT_W, RECT_H))?;
     r4.set_fill_gradient("cm-source")?;
     r4.set_filter("cm-filter-matrix")?;

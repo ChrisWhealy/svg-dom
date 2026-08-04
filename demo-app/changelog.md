@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 The `svg-dom-demo` gallery is not published as part of the crate's release, so the changes listed here are not tied to any version number known to `crates.io`.
 
+## [0.1.12] - 2026-08-04
+
+### Added
+
+- Make feColorMatrix demo interactive (`27d7d16`)
+
 ## [0.1.11] - 2026-08-04
 
 ### Added
