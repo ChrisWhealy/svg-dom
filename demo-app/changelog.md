@@ -14,7 +14,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 ### Changed
 
-- Refactor browser tests (``)
+- Refactor browser tests (`7cbe902`)
 
 ## [0.1.10] - 2026-08-03
 
