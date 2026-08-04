@@ -14,7 +14,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 ### Fixed
 
-- Doc only: minor corrections (``)
+- Doc only: minor corrections (`41ad3b2`)
 
 ### Changed
 
