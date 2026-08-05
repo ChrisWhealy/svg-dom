@@ -13,8 +13,9 @@ impl SvgFilter {
     /// [`turbulence_xy`](Self::turbulence_xy), producing a hand-drawn/organic edge instead of a perfectly
     /// geometric one.
     ///
-    /// `scale` controls the maximum displacement, in the coordinate system established by
-    /// [`primitiveUnits`](Self::set_primitive_units). `0.0` (the SVG default if this is never called with a
+    /// `scale` sets the displacement range, in the coordinate system established by
+    /// [`primitiveUnits`](Self::set_primitive_units). Each pixel's own offset falls between `-scale/2` and
+    /// `scale/2`, matching the remapping described above. `0.0` (the SVG default if this is never called with a
     /// non-zero value) produces no displacement at all — `in` passes through unchanged.
     ///
     /// `x_channel_selector`/`y_channel_selector` choose which of `in2`'s four channels drives the horizontal/

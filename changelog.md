@@ -14,6 +14,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Change visibility of filter channel function (`a57bc76`)
 
+### Fixed
+
+- Doc only: correct description of `scale` (``)
+
 ## [0.2.3] - 2026-08-03
 
 ### Changed

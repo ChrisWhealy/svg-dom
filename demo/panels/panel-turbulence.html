@@ -13,8 +13,9 @@
                     <code>TurbulenceType</code>.
                 </li>
                 <li><strong>organic edge</strong>: three sliders drive <code>displacement_map</code> live. Its own
-                    <code>scale</code> slider sets the maximum displacement. At scale 0 the circle is a perfect
-                    geometric shape again. Higher values warp its edge into a more hand-drawn, non-geometric outline.
+                    <code>scale</code> slider sets the displacement range. The maximum movement in either direction is
+                    half the scale value. At scale 0 the circle is a perfect geometric shape again. Higher values warp
+                    its edge into a more hand-drawn, non-geometric outline.
                     Its own <strong>x channel</strong> and <strong>y channel</strong> sliders each pick one of
                     <code>turbulence</code>'s four independently generated channels. <code>turbulence</code> is named
                     via <code>result</code> so <code>displacement_map</code> can read it. Picking two different channels
