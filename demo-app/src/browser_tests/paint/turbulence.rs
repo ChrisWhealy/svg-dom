@@ -12,8 +12,10 @@ use wasm_bindgen_test::wasm_bindgen_test;
 /// 2) The frequency slider updates both noise filters together, not just one of them.
 /// 3) The displacement filter's own fixed region stays exactly as widened, unaffected by the scale slider's own live
 ///    value.
-/// 4) The x-channel and y-channel sliders actually reach `xChannelSelector`/`yChannelSelector`, each with the correct
-///    one-letter keyword for the selected `Channel`.
+/// 4) The x-channel and y-channel sliders actually reach `xChannelSelector`/`yChannelSelector`, with the correct
+///    one-letter keyword at every one of their own four positions, not just a sample of them — `CHANNELS[index]`
+///    and `Channel::selector_str` translate a numeric HTML value into a categorical SVG keyword, so a wrong
+///    mapping at just one position (Blue, say) would not show up from checking only the other three.
 /// 5) Two sliders can actually reach the single-diagonal state (`Alpha` for both) that `SvgFilter::displacement_map`'s
 ///    own doc comment warns about, not just some other, unconstrained combination.
 /// 6) All four controls, and the original circle, stay independent of one another.
@@ -239,44 +241,55 @@ fn demo_turbulence_sliders_update_frequency_and_displacement_scale_independently
     );
     assert_eq!(displace_map.get_attribute("yChannelSelector").as_deref(), Some("G"));
 
-    // --- moving the x-channel slider to its documented maximum (Alpha) updates only xChannelSelector,
-    // aria-valuetext, and the caption ---
-    dispatch_input(&x_slider, "3");
-    assert_eq!(displace_map.get_attribute("xChannelSelector").as_deref(), Some("A"));
-    assert_eq!(x_slider.get_attribute("aria-valuetext").as_deref(), Some("Alpha"));
-    assert_eq!(
-        distorted_caption.text_content().as_deref(),
-        Some("scale 60 · x Alpha · y Green")
-    );
+    // index, one-letter keyword, and full name for each of the four `Channel` variants, in `CHANNELS`'s own
+    // declared order — the complete `CHANNELS[index]`/`Channel::selector_str` mapping the x-channel and
+    // y-channel sliders both translate their own numeric value through.
+    const CHANNEL_STEPS: [(&str, &str, &str); 4] =
+        [("0", "R", "Red"), ("1", "G", "Green"), ("2", "B", "Blue"), ("3", "A", "Alpha")];
+
+    // --- driving the x-channel slider through all four of its own positions in order proves the complete
+    // mapping, not just the two points (its own default, Red, and Alpha) a single dispatch would touch. Blue in
+    // particular is otherwise never reached by either slider anywhere in this file. ---
+    for (index, keyword, name) in CHANNEL_STEPS {
+        dispatch_input(&x_slider, index);
+        assert_eq!(displace_map.get_attribute("xChannelSelector").as_deref(), Some(keyword));
+        assert_eq!(x_slider.get_attribute("aria-valuetext").as_deref(), Some(name));
+        let expected_caption = format!("scale 60 · x {name} · y Green");
+        assert_eq!(distorted_caption.text_content().as_deref(), Some(expected_caption.as_str()));
+    }
     assert_eq!(
         displace_map.get_attribute("yChannelSelector").as_deref(),
         Some("G"),
-        "moving the x-channel slider should not touch y"
+        "sweeping the x-channel slider through every position should not touch y"
     );
     assert_eq!(
         displace_map.get_attribute("scale").as_deref(),
         Some("60"),
-        "moving the x-channel slider should not touch scale"
+        "sweeping the x-channel slider through every position should not touch scale"
     );
 
-    // --- selecting Alpha for y too reproduces the single-diagonal constraint SvgFilter::displacement_map's own
-    // doc comment warns about: this demo's own sliders can reach that exact state, not just avoid it ---
-    dispatch_input(&y_slider, "3");
-    assert_eq!(displace_map.get_attribute("yChannelSelector").as_deref(), Some("A"));
-    assert_eq!(y_slider.get_attribute("aria-valuetext").as_deref(), Some("Alpha"));
-    assert_eq!(
-        distorted_caption.text_content().as_deref(),
-        Some("scale 60 · x Alpha · y Alpha")
-    );
+    // --- driving the y-channel slider through all four of its own positions the same way proves the same
+    // complete mapping for y. The x-channel slider's own loop above leaves it at Alpha, its own final position,
+    // so this loop's own last iteration (Alpha) reproduces the single-diagonal constraint
+    // SvgFilter::displacement_map's own doc comment warns about: this demo's own sliders can reach that exact
+    // state, not just avoid it. ---
+    for (index, keyword, name) in CHANNEL_STEPS {
+        dispatch_input(&y_slider, index);
+        assert_eq!(displace_map.get_attribute("yChannelSelector").as_deref(), Some(keyword));
+        assert_eq!(y_slider.get_attribute("aria-valuetext").as_deref(), Some(name));
+        let expected_caption = format!("scale 60 · x Alpha · y {name}");
+        assert_eq!(distorted_caption.text_content().as_deref(), Some(expected_caption.as_str()));
+    }
     assert_eq!(
         displace_map.get_attribute("xChannelSelector").as_deref(),
         Some("A"),
-        "moving the y-channel slider should not touch x, which stays at its own last value"
+        "sweeping the y-channel slider through every position should not touch x, which stays at its own last \
+         value"
     );
     assert_eq!(
         displace_map.get_attribute("scale").as_deref(),
         Some("60"),
-        "moving the y-channel slider should not touch scale"
+        "sweeping the y-channel slider through every position should not touch scale"
     );
 
     // --- the original circle stays a plain, unfiltered comparison, untouched by every control above ---
