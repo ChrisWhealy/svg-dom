@@ -28,7 +28,7 @@ pub fn run() -> Result<(), JsValue> {
 }
 
 fn build() -> Result<(), Error> {
-    let svg = SvgRoot::create_in("stage", svg_dom::root::utils::Size::new(420.0, 200.0))?;
+    let svg = SvgRoot::create_in("stage", svg_dom::root::utils::Size::new(540.0, 200.0))?;
 
     // 1. title-only naming: no ARIA attributes, so the <title> child supplies the accessible name.
     let s1 = svg.circle(Point::new(10.0, 10.0), 5.0)?;
@@ -158,6 +158,37 @@ fn build() -> Result<(), Error> {
     turbulence_scale_zero.as_element().set_id("turbulence-scale-zero");
     turbulence_scale_zero.set_fill("steelblue")?;
     turbulence_scale_zero.set_filter_ref(&turbulence_scale_zero_filter)?;
+
+    // turbulence-scale-sixty: the positive control for the comparison above. On its own, "scale zero rasterises
+    // like the unfiltered reference" is a one-sided claim — it is equally consistent with a correctly-working
+    // filter chain and with a browser that silently ignored the filter, or fell back to unfiltered SourceGraphic,
+    // since both would also rasterise like the reference. This third circle uses the same filter chain, but with
+    // `scale` fixed at `60.0` (`demo_turbulence.rs`'s own documented maximum) rather than `0.0`, so
+    // `tests/turbulence_scale_zero_render.rs` can also assert the opposite: that its own fixture and sampling
+    // method *do* detect a real, substantial displacement when one is actually present, not just that they fail
+    // to detect an absent one.
+    //
+    // Unlike `turbulence-scale-zero`'s own filter, this one keeps the wider region `demo_turbulence.rs`'s real,
+    // interactive circle uses (`widen_filter_region`: -50%/-50%/200%/200%), rather than the region pinned exactly
+    // to the bounding box. A genuine `scale / 2` = 30px displacement needs room to sample source pixels from
+    // outside the bare bounding box; the zero-displacement case never reads past its own edge, which is why that
+    // filter can stay pinned tight without clipping anything real.
+    let turbulence_scale_sixty_filter = defs.filter("turbulence-scale-sixty-filter")?;
+    turbulence_scale_sixty_filter.set_x(-0.5)?;
+    turbulence_scale_sixty_filter.set_y(-0.5)?;
+    turbulence_scale_sixty_filter.set_width(2.0)?;
+    turbulence_scale_sixty_filter.set_height(2.0)?;
+    turbulence_scale_sixty_filter
+        .turbulence(0.02, 3, 5.0, TurbulenceType::FractalNoise)?
+        .set_attr("result", "noise")?;
+    turbulence_scale_sixty_filter
+        .displacement_map("noise", 60.0, Channel::Red, Channel::Green)?
+        .set_attr("in", "SourceGraphic")?;
+
+    let turbulence_scale_sixty = svg.circle(Point::new(460.0, 120.0), 40.0)?;
+    turbulence_scale_sixty.as_element().set_id("turbulence-scale-sixty");
+    turbulence_scale_sixty.set_fill("steelblue")?;
+    turbulence_scale_sixty.set_filter_ref(&turbulence_scale_sixty_filter)?;
 
     // Signals to the driving test (polling via `wait_for_element`) that the fixture has finished building.
     let ready = svg.rect(Point::new(0.0, 0.0), svg_dom::root::utils::Size::new(1.0, 1.0))?;

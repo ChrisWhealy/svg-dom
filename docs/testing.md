@@ -160,17 +160,23 @@ The demo gallery's own turbulence panel (`demo/panels/panel-turbulence.html`) pr
 `demo-app/src/browser_tests/paint/turbulence.rs` proves the DOM half of that claim — the scale slider does reach `scale="0"` on the real `feDisplacementMap` element — but it cannot prove the circle actually *renders* as a perfect circle at that value, for the same reason `wasm-bindgen-test` cannot prove any rendering claim.
 A structural test is satisfied by a `scale="0"` attribute sitting on a filter chain that renders however it likes.
 
-This single `#[test]` renders two circles built by `a11y-fixture`: `#turbulence-reference` (a plain, unfiltered circle) and `#turbulence-scale-zero` (the same position, radius, and fill, but passed through `turbulence` → `displacement_map` with `scale` fixed at `0.0`).
-It samples eight points around each circle's own boundary, 3px inside and 3px outside the nominal radius, and asserts the two circles rasterise to the same pixel values there, within a small antialiasing tolerance.
-A real displacement would show up at these points first: even a small non-zero `scale` shifts the edge by up to `scale / 2` pixels, far past a 3px margin.
+This single `#[test]` renders three circles built by `a11y-fixture`: `#turbulence-reference` (a plain, unfiltered circle), `#turbulence-scale-zero` (the same position, radius, and fill, but passed through `turbulence` → `displacement_map` with `scale` fixed at `0.0`), and `#turbulence-scale-sixty` (the same chain again, with `scale` fixed at `60.0` — `demo_turbulence.rs`'s own documented maximum).
+It samples eight points around each circle's own boundary, 3px inside and 3px outside the nominal radius, and asserts two things: the reference and scale-zero circles rasterise to the same pixel values at every sample, within a small antialiasing tolerance (the negative control); and the reference and scale-sixty circles rasterise to a materially different value at, conservatively, at least one sample (the positive control).
+A real displacement would show up at these points first: even a small non-zero `scale` shifts the edge by up to `scale / 2` pixels, far past a 3px margin — 30px at scale 60.
 
-Getting a stable comparison here needed one more fix beyond the technique `filter_blend_render.rs` already established.
+The positive control exists because the negative control alone is a one-sided claim.
+"Scale zero rasterises like the reference" is equally consistent with a correctly working filter chain and with a browser that silently ignored the filter, or fell back to unfiltered `SourceGraphic`, since either would also rasterise like the reference.
+Asserting that scale sixty *does* rasterise differently proves this fixture and sampling method can actually detect a real displacement in the first place, so the negative control's own pass means what it claims to mean.
+The two thresholds involved sit far apart: measured against this sandbox's own headless Chrome, boundary samples between the reference and scale-zero circles differ by at most 1 per channel, while scale-sixty's own genuinely displaced samples differ by 75–255 — the antialiasing tolerance (4) and the displacement threshold (40) both sit in the wide, empty gap between those two, with no realistic risk of one control's own noise tripping the other's threshold.
+
+Getting a stable *negative* comparison here needed one more fix beyond the technique `filter_blend_render.rs` already established.
 `a11y-fixture` pins `#turbulence-scale-zero`'s own filter region to exactly the circle's bounding box (`set_x`/`set_y`/`set_width`/`set_height`, all `0`/`0`/`1`/`1` in `objectBoundingBox` units) rather than leaving it at SVG's own default 10%-margin region.
 Left at that default, this sandbox's headless, software-rendered Chrome (`--disable-gpu`) composited the filtered circle back onto the page with a real, several-pixel positional error — unrelated to `scale`, present even at `0.0`, and large enough on its own to fail the boundary samples unpredictably from one run to the next.
 Pinning the region to a plain 100% box removed that error outright.
+`#turbulence-scale-sixty`'s own filter keeps the wider, default-adjacent region `demo_turbulence.rs`'s real, interactive circle uses instead (`widen_filter_region`: -50%/-50%/200%/200%): a genuine 30px displacement needs room to sample source pixels from outside the bare bounding box, unlike the zero-displacement case, which never reads past its own edge.
 
 This intentionally does not attempt broad screenshot testing across every slider position.
-A single identity test at scale zero is enough to cover this specific, exact semantic claim without turning into a fragile visual regression suite.
+A single identity test at scale zero, backed by one positive control at scale sixty, is enough to cover this specific, exact semantic claim without turning into a fragile visual regression suite.
 
 ### Why this lives outside the main crate
 
@@ -182,7 +188,7 @@ Two supporting crates make this possible:
 
 | Crate | Role |
 |---|---|
-| `a11y-fixture` | A tiny `wasm-bindgen` cdylib that builds real `svg-dom` elements for all three test files: six accessibility scenarios (via `set_title`, `set_desc` and `set_attr`), one `#blend-circle` filter scenario (via `flood`/`blend`/`composite`), and one `#turbulence-reference`/`#turbulence-scale-zero` pair (via `turbulence`/`displacement_map`) — and signals readiness by adding a `#fixture-ready` element |
+| `a11y-fixture` | A tiny `wasm-bindgen` cdylib that builds real `svg-dom` elements for all three test files: six accessibility scenarios (via `set_title`, `set_desc` and `set_attr`), one `#blend-circle` filter scenario (via `flood`/`blend`/`composite`), and a `#turbulence-reference`/`#turbulence-scale-zero`/`#turbulence-scale-sixty` trio (via `turbulence`/`displacement_map`) — and signals readiness by adding a `#fixture-ready` element |
 | `accessibility-tree-test` | `src/lib.rs` holds the shared `fixture_dir`/`build_fixture`/`serve`/`launch_browser` setup helpers; `tests/accessibility_tree.rs`, `tests/filter_blend_render.rs`, and `tests/turbulence_scale_zero_render.rs` each use them to build their own fixture, serve it, launch their own Chrome instance, and run their own `#[test]`s |
 
 ### Prerequisites

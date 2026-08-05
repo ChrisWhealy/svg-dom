@@ -12,6 +12,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 - Make `feTurbulence`/`feDisplacementMap` demo interactive (`0088502`)
 - Add specific turbulence scale 0 render test (`17d0f1d`)
+- Add positive control to the raster test (``)
 
 ### Fixed
 

@@ -7,13 +7,24 @@
 //! tests have no access to rasterised output. A structural test is satisfied by a `scale="0"` attribute sitting on
 //! a filter chain that renders however it likes.
 //!
-//! This drives a real Chrome instance via CDP and renders two circles built by the sibling `a11y-fixture` wasm
-//! crate: `#turbulence-reference` (a plain, unfiltered circle) and `#turbulence-scale-zero` (the same position,
-//! radius, and fill, but passed through `turbulence` -> `displacement_map` with `scale` fixed at `0.0`). It samples
-//! eight points around each circle's own boundary, at matching angles, 3px inside and 3px outside the nominal
-//! radius, and asserts the two circles rasterise to the same pixel values there, within a small antialiasing
-//! tolerance. A real displacement would show up at these points first: even a small non-zero `scale` shifts the
-//! edge by up to `scale / 2` pixels, far past a 3px margin.
+//! This drives a real Chrome instance via CDP and renders three circles built by the sibling `a11y-fixture` wasm
+//! crate: `#turbulence-reference` (a plain, unfiltered circle), `#turbulence-scale-zero` (the same position,
+//! radius, and fill, but passed through `turbulence` -> `displacement_map` with `scale` fixed at `0.0`), and
+//! `#turbulence-scale-sixty` (the same chain again, with `scale` fixed at `60.0` instead — `demo_turbulence.rs`'s
+//! own documented maximum). It samples eight points around each circle's own boundary, at matching angles, 3px
+//! inside and 3px outside the nominal radius, and asserts:
+//!
+//! - the reference and scale-zero circles rasterise to the same pixel values at every sample, within a small
+//!   antialiasing tolerance — the negative control: zero displacement should look unchanged;
+//! - the reference and scale-sixty circles rasterise to a *materially different* pixel value at, conservatively,
+//!   at least one sample — the positive control: a real, substantial displacement should look visibly different.
+//!
+//! Both checks matter together. The first alone is a one-sided claim: it is equally consistent with a correctly
+//! working filter chain and with a browser that silently ignored the filter (or fell back to unfiltered
+//! `SourceGraphic`), since either would also rasterise like the reference. The second proves this fixture and
+//! sampling method can actually detect a real displacement in the first place, so a pass on the first check means
+//! what it claims to mean rather than reflecting an insensitive test. A real displacement shifts the edge by up
+//! to `scale / 2` pixels — 30px at scale 60, far past the 3px sample margin either check uses.
 //!
 //! Samples are not taken exactly on the mathematical radius. That knife-edge pixel is roughly half-covered by
 //! design, so its exact rasterised value is unusually sensitive to any small positional difference between the
@@ -53,15 +64,16 @@ use headless_chrome::protocol::cdp::Runtime;
 use serde_json::Value;
 
 /// The in-page async script: rasterises the fixture's `<svg>` and returns
-/// `{ referenceSamples: [[r,g,b,a], ...], scaleZeroSamples: [[r,g,b,a], ...] }`, sixteen samples each, for the
-/// `#turbulence-reference` and `#turbulence-scale-zero` circles respectively. Each sample sits 3px inside or 3px
-/// outside its own circle's own radius, at one of eight angles around it (inside samples first, then outside, in
-/// the same angle order), so index `i` in one array corresponds to the same offset and angle as index `i` in the
-/// other.
+/// `{ referenceSamples: [[r,g,b,a], ...], scaleZeroSamples: [[r,g,b,a], ...], scaleSixtySamples: [[r,g,b,a], ...] }`,
+/// sixteen samples each, for the `#turbulence-reference`, `#turbulence-scale-zero`, and `#turbulence-scale-sixty`
+/// circles respectively. Each sample sits 3px inside or 3px outside its own circle's own radius, at one of eight
+/// angles around it (inside samples first, then outside, in the same angle order), so index `i` in one array
+/// corresponds to the same offset and angle as index `i` in either other.
 const SAMPLE_SCRIPT: &str = r#"
 (async () => {
     const reference = document.querySelector('#turbulence-reference');
     const scaleZero = document.querySelector('#turbulence-scale-zero');
+    const scaleSixty = document.querySelector('#turbulence-scale-sixty');
     const svg = reference.closest('svg');
     const xml = new XMLSerializer().serializeToString(svg);
     const blob = new Blob([xml], { type: 'image/svg+xml' });
@@ -109,9 +121,10 @@ const SAMPLE_SCRIPT: &str = r#"
 
     const referenceSamples = insetSamples(circleGeometry(reference));
     const scaleZeroSamples = insetSamples(circleGeometry(scaleZero));
+    const scaleSixtySamples = insetSamples(circleGeometry(scaleSixty));
 
     URL.revokeObjectURL(url);
-    return { referenceSamples, scaleZeroSamples };
+    return { referenceSamples, scaleZeroSamples, scaleSixtySamples };
 })()
 "#;
 
@@ -141,7 +154,7 @@ fn rgba_list(value: &Value, context: &str) -> Vec<(u8, u8, u8, u8)> {
 }
 
 #[test]
-fn turbulence_scale_zero_matches_unfiltered_circle_at_every_boundary_sample() {
+fn turbulence_scale_zero_matches_reference_while_scale_sixty_visibly_differs() {
     let dir = fixture_dir();
     build_fixture(&dir);
     let port = serve(dir);
@@ -184,6 +197,7 @@ fn turbulence_scale_zero_matches_unfiltered_circle_at_every_boundary_sample() {
 
     let reference_samples = rgba_list(&value["referenceSamples"], "referenceSamples");
     let scale_zero_samples = rgba_list(&value["scaleZeroSamples"], "scaleZeroSamples");
+    let scale_sixty_samples = rgba_list(&value["scaleSixtySamples"], "scaleSixtySamples");
 
     assert_eq!(
         reference_samples.len(),
@@ -195,21 +209,61 @@ fn turbulence_scale_zero_matches_unfiltered_circle_at_every_boundary_sample() {
         16,
         "expected 8 inside + 8 outside samples for the scale-zero circle"
     );
+    assert_eq!(
+        scale_sixty_samples.len(),
+        16,
+        "expected 8 inside + 8 outside samples for the scale-sixty circle"
+    );
 
+    // The largest single-channel gap between two samples — the same metric both the negative and positive
+    // control below judge their own threshold against, just on opposite sides of it.
+    let max_component_diff = |a: (u8, u8, u8, u8), b: (u8, u8, u8, u8)| {
+        [a.0.abs_diff(b.0), a.1.abs_diff(b.1), a.2.abs_diff(b.2), a.3.abs_diff(b.3)]
+            .into_iter()
+            .max()
+            .expect("four elements")
+    };
+
+    // --- negative control: zero displacement should rasterise unchanged ---
+    //
     // +/-4 per channel for canvas rasterisation rounding — not for any real uncertainty about the claim. Every
     // sample point sits 3px clear of the nominal edge (see the module doc comment for why exactly-on-the-edge
     // samples are unusable here), so a genuinely displaced edge would flip a sample from solid fill to fully
     // transparent (or vice versa) rather than miss by single digits — categorically larger than rounding noise.
-    let close = |a: u8, b: u8| a.abs_diff(b) <= 4;
+    const ANTIALIASING_TOLERANCE: u8 = 4;
     for (i, (reference, scale_zero)) in reference_samples.iter().zip(scale_zero_samples.iter()).enumerate() {
+        let diff = max_component_diff(*reference, *scale_zero);
         assert!(
-            close(reference.0, scale_zero.0)
-                && close(reference.1, scale_zero.1)
-                && close(reference.2, scale_zero.2)
-                && close(reference.3, scale_zero.3),
-            "sample {i}: reference circle {reference:?} vs scale-zero circle {scale_zero:?} differ by more than \
-             the antialiasing tolerance — scale 0 should rasterise identically to an unfiltered circle, not \
-             produce a visibly different edge"
+            diff <= ANTIALIASING_TOLERANCE,
+            "sample {i}: reference circle {reference:?} vs scale-zero circle {scale_zero:?} differ by {diff}, \
+             more than the antialiasing tolerance — scale 0 should rasterise identically to an unfiltered \
+             circle, not produce a visibly different edge"
         );
     }
+
+    // --- positive control: a real, substantial displacement should rasterise visibly different ---
+    //
+    // Without this half, the negative control above is a one-sided claim: a browser that silently ignored the
+    // filter entirely, or fell back to unfiltered SourceGraphic, would pass it too, since an ignored filter also
+    // rasterises like the reference. This proves the fixture and sampling method above can actually detect a
+    // real displacement, so the negative control's own pass means what it claims to mean.
+    //
+    // A conservative threshold, well clear of both the antialiasing tolerance above and the small cross-pipeline
+    // noise `a11y-fixture`'s own comment on this scenario describes (a filtered element composites back onto the
+    // page slightly differently from an unfiltered one, even with no real displacement) — turbulence rendering
+    // can vary a little between runs, so this only requires at least one sample to clear a wide margin, not an
+    // exact or universal difference across all sixteen.
+    const DISPLACEMENT_THRESHOLD: u8 = 40;
+    let differing_samples = reference_samples
+        .iter()
+        .zip(scale_sixty_samples.iter())
+        .filter(|(reference, scale_sixty)| max_component_diff(**reference, **scale_sixty) > DISPLACEMENT_THRESHOLD)
+        .count();
+    assert!(
+        differing_samples >= 1,
+        "expected at least one of the 16 boundary samples to differ from the reference circle by more than {\
+         DISPLACEMENT_THRESHOLD} at scale 60, but none did — either a real displacement is not reaching the \
+         page, or this fixture/sampling method cannot detect one when it is there, which would silently \
+         undermine the negative control above"
+    );
 }
