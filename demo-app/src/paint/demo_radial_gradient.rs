@@ -137,7 +137,7 @@ pub(crate) fn demo() -> Result<(), Error> {
         ("shift stop 2", "centred gradient stop 2"),
         (1, 99, 50),
         25,
-        ("1%", "99%"),
+        &["1%", "99%"],
     )?
     .input;
     // Matches the slider's own default value (50) above, set once here so a screen reader announces the real
@@ -223,7 +223,7 @@ pub(crate) fn demo() -> Result<(), Error> {
         ("shift fx", "off-centre focal gradient fx"),
         (0, 100, 25),
         25,
-        ("0%", "100%"),
+        &["0%", "100%"],
     )?
     .input;
     fx_slider.set_attribute("aria-valuetext", "25%").map_err(dom_err)?;

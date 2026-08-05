@@ -178,9 +178,13 @@ pub(crate) struct HSlider {
 ///
 /// `range` is `(min, max, default)`.
 /// `tick_step` is passed straight through to [`fill_ticks`].
-/// `endpoints` is the `(min, max)` text shown on either side of the track, for example `"10%"`/`"100%"` or
-/// `"-90°"`/`"+90°"`.
-/// This text is free-form, since not every slider's endpoints share its raw `i32` value's unit.
+/// `endpoints` is the text shown under the track, evenly spaced via `justify-content: space-between`
+/// (`.demo-endpoint-labels`, demo/style.css) — the usual case is two elements, `[min, max]`, for example
+/// `["10%", "100%"]` or `["-90°", "+90°"]`, but a slider whose own positions are categorical rather than
+/// continuous (for example `demo_turbulence`'s own x-channel slider) can instead label every position, not just
+/// the two ends: `["R", "G", "B", "A"]`. This text is free-form, since not every slider's endpoints share its raw
+/// `i32` value's unit. Must hold at least two elements: [`HSlider::lo_label`](HSlider)/`hi_label` are the first
+/// and last of these, regardless of how many lie between them.
 /// `labels` is `(visible, accessible)`.
 /// `visible` is the short caption drawn above the track, read alongside the row's own caption below the shape.
 /// `accessible` is the control's `aria-label`, read alone by assistive technology, with no such visual context.
@@ -193,11 +197,10 @@ fn build_h_slider(
     labels: (&str, &str),
     range: (i32, i32, i32),
     tick_step: i32,
-    endpoints: (&str, &str),
+    endpoints: &[&str],
 ) -> Result<HSlider, Error> {
     let (visible_label, accessible_label) = labels;
     let (min, max, default) = range;
-    let (min_label, max_label) = endpoints;
 
     let fo = svg.foreign_object(pos, size)?;
     let document = foreign_object_document(&fo)?;
@@ -231,13 +234,16 @@ fn build_h_slider(
     endpoint_labels
         .set_attribute("class", "demo-endpoint-labels")
         .map_err(dom_err)?;
-    let lo_label = xhtml(&document, "span")?;
-    lo_label.set_text_content(Some(min_label));
-    let hi_label = xhtml(&document, "span")?;
-    hi_label.set_text_content(Some(max_label));
-    endpoint_labels.append_child(&lo_label).map_err(dom_err)?;
-    endpoint_labels.append_child(&hi_label).map_err(dom_err)?;
+    let mut labels = Vec::with_capacity(endpoints.len());
+    for text in endpoints {
+        let label = xhtml(&document, "span")?;
+        label.set_text_content(Some(text));
+        endpoint_labels.append_child(&label).map_err(dom_err)?;
+        labels.push(label);
+    }
     container.append_child(&endpoint_labels).map_err(dom_err)?;
+    let lo_label = labels.first().cloned().expect("endpoints holds at least two labels");
+    let hi_label = labels.last().cloned().expect("endpoints holds at least two labels");
 
     fo.as_element().append_child(&container).map_err(dom_err)?;
     keep_demo_node(fo);

@@ -152,7 +152,7 @@ pub(crate) fn demo() -> Result<(), Error> {
         ("shift stop 2", "horizontal gradient stop 2"),
         (10, 100, 100),
         30,
-        ("10%", "100%"),
+        &["10%", "100%"],
     )?
     .input;
     // Matches the slider's own default value (100) above, set once here so a screen reader announces the real
@@ -253,7 +253,7 @@ pub(crate) fn demo() -> Result<(), Error> {
         ("rotate", "diagonal gradient rotation"),
         (-45, 135, 45),
         45,
-        ("-45°", "135°"),
+        &["-45°", "135°"],
     )?
     .input;
     // Matches the slider's own default value (45) above, set once here so a screen reader announces the real
@@ -303,7 +303,7 @@ pub(crate) fn demo() -> Result<(), Error> {
         ("stop 2", "spectrum gradient stop 2"),
         (1, 98, 35),
         25,
-        ("1%", "98%"),
+        &["1%", "98%"],
     )?;
     // Matches this slider's own default value (35) above, set once here rather than only after the first input
     // event, the same reason every other slider in this file sets its own initial aria-valuetext.
@@ -315,7 +315,7 @@ pub(crate) fn demo() -> Result<(), Error> {
         ("stop 3", "spectrum gradient stop 3"),
         (2, 99, 65),
         25,
-        ("2%", "99%"),
+        &["2%", "99%"],
     )?;
     // Matches this slider's own default value (65) above, for the same reason.
     s3.input.set_attribute("aria-valuetext", "65%").map_err(dom_err)?;

@@ -100,6 +100,11 @@ const Y_TRACK_X: f64 = DISTORTED_CX + CIRCLE_R + Y_TRACK_GAP;
 const Y_LABEL_X: f64 = Y_TRACK_X + Y_TRACK_W + Y_LABEL_GAP;
 const Y_TRACK_Y: f64 = RECT_Y;
 const Y_TRACK_LENGTH: f64 = RECT_H;
+// The native thumb's own centre cannot reach the bare top/bottom edge of the track: at the minimum and maximum
+// values it sits inset by its own radius, half the track's own thickness (confirmed empirically against the
+// rendered thumb, which fills the track's own width). Without this, the Red/Alpha ticks below would sit above
+// and below the thumb's own centre at those two values, rather than through it.
+const Y_THUMB_RADIUS: f64 = Y_TRACK_W / 2.0;
 
 // Wider than the shared W (see lib.rs): the four shapes' own wider gaps, plus the RGBA channel labels to the
 // right of the y-channel track, need more room than the gallery's own default canvas width gives every other
@@ -250,7 +255,7 @@ pub(crate) fn demo() -> Result<(), Error> {
             DEFAULT_FREQUENCY_THOUSANDTHS,
         ),
         10,
-        ("0.000", "0.050"),
+        &["0.000", "0.050"],
     )?
     .input;
     frequency_slider
@@ -303,10 +308,15 @@ pub(crate) fn demo() -> Result<(), Error> {
         ("scale", "displacement map scale"),
         (MIN_SCALE, MAX_SCALE, DEFAULT_SCALE),
         20,
-        ("0", "60"),
+        &["0", "60"],
     )?
     .input;
 
+    // Unlike every other build_h_slider call in this file, all four positions get their own label here, not just the
+    // two ends: this slider's own four positions are categorical (one of four Channel variants), not a continuous
+    // range, so labelling only R and A would leave its own two middle positions anonymous — visible only as bare tick
+    // marks, unlike the y-channel slider beside it, which already names all four channels (Red/Green/Blue/Alpha) via
+    // its own per-tick side_label calls below.
     let x_slider = super::build_h_slider(
         &svg,
         Point::new(DISTORTED_CX - CHANNEL_SLIDER_W / 2.0, X_SLIDER_Y),
@@ -314,7 +324,7 @@ pub(crate) fn demo() -> Result<(), Error> {
         ("x channel", "displacement map x channel"),
         (0, 3, DEFAULT_X_INDEX),
         1,
-        ("R", "A"),
+        &["R", "G", "B", "A"],
     )?
     .input;
     x_slider
@@ -329,9 +339,19 @@ pub(crate) fn demo() -> Result<(), Error> {
     //
     // Red (index 0) sits at the top of the track, Alpha (index 3) at the bottom — matching demo_filter's own
     // dy convention of "up is smaller", applied here to the channel's own index rather than a signed offset.
+    //
+    // Red's own tick shifts down, and Alpha's own shifts up, each by Y_THUMB_RADIUS: those are the two values
+    // where the thumb's own inset away from the bare track edge is visible, so only those two ticks need the
+    // correction. Green and Blue sit close enough to the thumb's own true position at those values that the
+    // plain fractional placement below already passes through it.
     for (index, &channel) in CHANNELS.iter().enumerate() {
         let fraction = index as f64 / (CHANNELS.len() - 1) as f64;
-        let y = Y_TRACK_Y + fraction * Y_TRACK_LENGTH;
+        let mut y = Y_TRACK_Y + fraction * Y_TRACK_LENGTH;
+        if index == 0 {
+            y += Y_THUMB_RADIUS;
+        } else if index == CHANNELS.len() - 1 {
+            y -= Y_THUMB_RADIUS;
+        }
         let mark = svg.line(Point::new(Y_TRACK_X - 3.0, y), Point::new(Y_TRACK_X + Y_TRACK_W + 3.0, y))?;
         mark.set_stroke(GUIDE)?;
         mark.set_stroke_width(1.0)?;

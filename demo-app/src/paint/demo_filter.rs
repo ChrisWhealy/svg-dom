@@ -173,7 +173,7 @@ pub(crate) fn demo() -> Result<(), Error> {
         ("blur", "gaussian blur standard deviation"),
         (MIN_BLUR, MAX_BLUR, DEFAULT_BLUR),
         5,
-        ("0", "20"),
+        &["0", "20"],
     )?
     .input;
     // Matches the slider's own default value (DEFAULT_BLUR) above, set once here so a screen reader announces the
@@ -233,7 +233,7 @@ pub(crate) fn demo() -> Result<(), Error> {
         ("dx", "drop shadow dx offset"),
         (MIN_OFFSET, MAX_OFFSET, DEFAULT_DX),
         5,
-        ("-10", "10"),
+        &["-10", "10"],
     )?
     .input;
     dx_slider
@@ -247,7 +247,7 @@ pub(crate) fn demo() -> Result<(), Error> {
         ("blur", "drop shadow standard deviation"),
         (MIN_SHADOW_BLUR, MAX_SHADOW_BLUR, DEFAULT_SHADOW_BLUR),
         5,
-        ("0", "20"),
+        &["0", "20"],
     )?
     .input;
     stddev_slider

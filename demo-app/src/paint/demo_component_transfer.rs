@@ -227,7 +227,7 @@ pub(crate) fn demo() -> Result<(), Error> {
         ("gamma exponent", "component transfer gamma exponent"),
         (MIN_GAMMA_TENTHS, MAX_GAMMA_TENTHS, DEFAULT_GAMMA_TENTHS),
         8,
-        ("0.2", "5.0"),
+        &["0.2", "5.0"],
     )?
     .input;
     gamma_slider
@@ -280,7 +280,7 @@ pub(crate) fn demo() -> Result<(), Error> {
         ("steps", "component transfer discrete step count"),
         (MIN_STEPS, MAX_STEPS, DEFAULT_STEPS),
         1,
-        ("2", "8"),
+        &["2", "8"],
     )?
     .input;
     {
@@ -325,7 +325,7 @@ pub(crate) fn demo() -> Result<(), Error> {
         ("alpha slope", "component transfer alpha slope"),
         (MIN_SLOPE_PERCENT, MAX_SLOPE_PERCENT, DEFAULT_SLOPE_PERCENT),
         25,
-        ("0%", "100%"),
+        &["0%", "100%"],
     )?
     .input;
     alpha_slider

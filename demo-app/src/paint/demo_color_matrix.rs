@@ -184,7 +184,7 @@ pub(crate) fn demo() -> Result<(), Error> {
         ("saturate", "colour matrix saturate"),
         (MIN_SATURATE_PERCENT, MAX_SATURATE_PERCENT, DEFAULT_SATURATE_PERCENT),
         50, // a tick lands exactly on 100%, the identity point, alongside 0%/50%/150%/200%
-        ("0%", "200%"),
+        &["0%", "200%"],
     )?
     .input;
     saturate_slider
@@ -232,7 +232,7 @@ pub(crate) fn demo() -> Result<(), Error> {
         ("hue rotate", "colour matrix hue rotate"),
         (MIN_HUE_DEGREES, MAX_HUE_DEGREES, DEFAULT_HUE_DEGREES),
         90,
-        ("0°", "360°"),
+        &["0°", "360°"],
     )?
     .input;
     hue_slider

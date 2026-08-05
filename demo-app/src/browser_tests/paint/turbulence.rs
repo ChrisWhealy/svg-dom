@@ -132,6 +132,26 @@ fn demo_turbulence_sliders_update_frequency_and_displacement_scale_independently
     assert_eq!(x_slider.value(), "0");
     assert_eq!(x_slider.get_attribute("aria-valuetext").as_deref(), Some("Red"));
 
+    // Unlike every other build_h_slider call in this demo, the x-channel slider labels all four of its own
+    // positions, not just its two ends: R/G/B/A are categorical, so a bare tick mark at the two middle positions
+    // would leave them anonymous. Source extraction cannot prove those four labels actually reach the DOM in the
+    // right order.
+    let x_container = x_slider
+        .closest(".demo-slider-container")
+        .expect("query closest container")
+        .expect("x_slider has a .demo-slider-container ancestor");
+    let x_endpoint_labels = x_container
+        .query_selector(".demo-endpoint-labels")
+        .expect("query endpoint labels")
+        .expect("endpoint-labels row present");
+    let x_label_texts: Vec<String> = {
+        let spans = x_endpoint_labels.query_selector_all("span").expect("query endpoint spans");
+        (0..spans.length())
+            .map(|i| spans.item(i).expect("span item").text_content().unwrap_or_default())
+            .collect()
+    };
+    assert_eq!(x_label_texts, vec!["R", "G", "B", "A"]);
+
     let y_slider = find_slider("input[aria-label='displacement map y channel']");
     assert_eq!(y_slider.get_attribute("min").as_deref(), Some("0"));
     assert_eq!(y_slider.get_attribute("max").as_deref(), Some("3"));
@@ -142,6 +162,16 @@ fn demo_turbulence_sliders_update_frequency_and_displacement_scale_independently
         Some("vertical"),
         "a rotated <input type=range> stays a horizontal slider to assistive technology without this"
     );
+
+    // The native thumb's own centre is inset from the track's bare top/bottom edge by its own radius, so the
+    // Red/Alpha tick labels sit that same distance in from the track's own raw fractional position (156/240),
+    // not at the track's own bare top/bottom (144/244) a naive fractional placement would use. Source extraction
+    // cannot prove either of these labels' own `y` attribute actually reaches the DOM shifted, rather than at the
+    // unshifted position that would sit above/below the thumb's own centre instead of through it.
+    let red_label = find_text("Red");
+    assert_eq!(red_label.get_attribute("y").as_deref(), Some("156"));
+    let alpha_label = find_text("Alpha");
+    assert_eq!(alpha_label.get_attribute("y").as_deref(), Some("240"));
 
     let distorted_caption = find_text("scale 24 · x Red · y Green");
 
