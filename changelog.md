@@ -16,7 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 
-- Doc only: correct description of `scale` (``)
+- Doc only: correct description of `scale` (`6005461`)
 
 ## [0.2.3] - 2026-08-03
 
