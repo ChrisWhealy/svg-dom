@@ -7,3 +7,4 @@ mod component_transfer;
 mod filter;
 mod linear_gradient;
 mod radial_gradient;
+mod turbulence;

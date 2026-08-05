@@ -45,9 +45,10 @@ impl Channel {
     }
 
     /// The single-letter SVG keyword used by `<feDisplacementMap>`'s `xChannelSelector`/`yChannelSelector`
-    /// attributes (see [`SvgFilter::displacement_map`](super::SvgFilter::displacement_map)) — the same four
-    /// channels [`tag`](Self::tag) names, just written as a bare letter rather than an element tag.
-    pub(super) fn selector_str(self) -> &'static str {
+    /// attributes (see [`SvgFilter::displacement_map`](super::SvgFilter::displacement_map)).
+    /// This names the same four channels as this enum's own variants, just written as a bare letter rather
+    /// than an element tag.
+    pub fn selector_str(self) -> &'static str {
         match self {
             Self::Red => "R",
             Self::Green => "G",
