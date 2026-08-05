@@ -118,7 +118,7 @@ See each file's own module doc comment for the full detail.
 
 ### `accessibility_tree.rs` — accessible-name/description computation
 
-Queries `Accessibility.getPartialAXTree`, via six independently reported `#[test]` functions.
+Queries `Accessibility.getPartialAXTree`, via seven independently reported `#[test]` functions.
 These functions confirm:
 
 - A lone `<title>` supplies the accessible name (`title_only_supplies_accessible_name`);
@@ -126,13 +126,14 @@ These functions confirm:
 - A value in `aria-label` overrides a `<title>` in name computation (`aria_label_overrides_title`);
 - A value in `aria-describedby` overrides a `<desc>` in description computation (`aria_describedby_overrides_desc`);
 - A rejected blank `set_title` leaves the element with no accessible name at all (`blank_title_rejection_leaves_no_accessible_name`), thus proving that the rejection actually prevents the "apparently nameless object exposed to assistive technology" case SVG 2 warns about, not just the DOM mutation;
-- A value in `aria-labelledby` overrides *both* `aria-label` and a `<title>` (`aria_labelledby_overrides_title_and_aria_label`) — `aria-labelledby` has strictly higher precedence than `aria-label` in accessible-name computation, not just parity with it, so this scenario gives an element all three and confirms the referenced text wins over both.
+- A value in `aria-labelledby` overrides *both* `aria-label` and a `<title>` (`aria_labelledby_overrides_title_and_aria_label`) — `aria-labelledby` has strictly higher precedence than `aria-label` in accessible-name computation, not just parity with it, so this scenario gives an element all three and confirms the referenced text wins over both;
+- An `<a>` wrapping visible text is exposed as a named link (`anchor_with_visible_text_is_a_named_link`) — SVG maps `<a>` to the ARIA "link" role automatically, and the accessible name comes from the linked text content itself, the same way it would for an HTML `<a>`.
 
-### `accessibility_tree.rs`: one shared browser session, six independent results
+### `accessibility_tree.rs`: one shared browser session, seven independent results
 
-Building the test fixture and launching Chrome are both expensive actions, so all six tests share the same fixture build, static server, and Chrome tab via a lazily-initialised `OnceLock`, rather than each paying that startup cost independently.
+Building the test fixture and launching Chrome are both expensive actions, so all seven tests share the same fixture build, static server, and Chrome tab via a lazily-initialised `OnceLock`, rather than each paying that startup cost independently.
 
-`cargo test` still runs the six test functions in parallel, so actual CDP calls against the shared tab are serialised behind a `Mutex`.
+`cargo test` still runs the seven test functions in parallel, so actual CDP calls against the shared tab are serialised behind a `Mutex`.
 `find_element`'s underlying `DOM.getDocument`-then-`DOM.querySelector` sequence is not safe under concurrent access to the same session, even though `Browser` and `Tab` implement `Send + Sync` at the type level.
 See the module doc comment in `cdp-integration-test/tests/accessibility_tree.rs` for the full explanation.
 
@@ -215,7 +216,7 @@ If `cargo test -p cdp-integration-test` is aliased to `cargo nextest run` (nexte
 Runs as its own job (`cdp-integration-test`) in `.github/workflows/ci.yml`, on every push/PR, using the Chrome installation already present on GitHub's `ubuntu-latest` runner image — no extra install step, and no per-file CI wiring needed either, for the same reason noted above.
 
 It was initially added without any CI job at all, so it protected nothing: the workspace's `default-members` deliberately excludes it (see above), so plain `cargo test`/`cargo nextest run` never runs it, and none of the other CI jobs invoke it either.
-A regression here — either test file failing to compile, Chrome's actual accessible-name/description computation drifting away from what the crate assumes, or a filter chain silently starting to leak — could land on `main` without any CI job noticing.
+A regression here — any test file failing to compile, Chrome's actual accessible-name/description computation drifting away from what the crate assumes, a filter chain silently starting to leak, or a scale-zero displacement no longer rendering as a perfect circle — could land on `main` without any CI job noticing.
 Being a separate job (rather than an extra step tacked onto `browser-tests`) means its failure is reported independently and doesn't obscure or get obscured by the unrelated `wasm-bindgen-test` results, while still gating the merge like any other required check.
 
 The Chrome launch in `cdp-integration-test` explicitly passes `sandbox(false)` rather than using `Browser::default()`'s sandboxed default — recent Ubuntu (24.04+, which `ubuntu-latest` now resolves to) restricts unprivileged user namespaces via AppArmor, which breaks Chrome's own sandbox initialisation even for the runner's non-root user.
