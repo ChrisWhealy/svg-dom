@@ -17,7 +17,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 - Doc only: correct description of `scale` (`6005461`)
 - Label channel slider positions (`8986654`)
-- Prove all four channel mappings in browser test (``)
+- Prove all four channel mappings in browser test (`471e4bf`)
 
 ## [0.1.12] - 2026-08-04
 
