@@ -1,12 +1,14 @@
 //! Shared setup helpers for `accessibility-tree-test`'s Chrome-DevTools-Protocol integration tests.
 //!
-//! This crate hosts two integration test files under `tests/`, each verifying browser-computed behaviour that
+//! This crate hosts three integration test files under `tests/`, each verifying browser-computed behaviour that
 //! plain DOM inspection (and therefore `wasm-bindgen-test`) cannot see:
 //!
 //! - `accessibility_tree.rs` — accessible-name/description computation, via the Accessibility CDP domain.
 //! - `filter_blend_render.rs` — `SvgFilter::blend`'s alpha-preserving tint chain, via actual rendered pixels.
+//! - `turbulence_scale_zero_render.rs` — `SvgFilter::displacement_map`'s `scale` argument at `0.0`, via actual
+//!   rendered pixels.
 //!
-//! Both drive a real Chrome instance against the same sibling `a11y-fixture` wasm crate (built once, served
+//! All three drive a real Chrome instance against the same sibling `a11y-fixture` wasm crate (built once, served
 //! locally), so the functions below — building the fixture, serving it, and launching Chrome — are shared here
 //! rather than duplicated per test file. Each test file still builds and launches its own instance of the fixture
 //! and Chrome, since cargo compiles each file under `tests/` as a separate binary with its own process; there is no
@@ -14,7 +16,7 @@
 //!
 //! See `accessibility_tree.rs`'s module doc comment for why this crate lives in its own on-demand workspace member,
 //! how it runs in CI, and why the browser is launched with `sandbox(false)` — that reasoning applies equally to
-//! `filter_blend_render.rs` and is not repeated here.
+//! `filter_blend_render.rs`/`turbulence_scale_zero_render.rs` and is not repeated here.
 
 use std::{path::PathBuf, process::Command, thread};
 

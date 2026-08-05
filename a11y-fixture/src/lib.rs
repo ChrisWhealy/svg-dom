@@ -1,10 +1,11 @@
 //! WASM fixture for `accessibility-tree-test`'s Chrome-DevTools-Protocol integration tests
-//! (`tests/accessibility_tree.rs` and `tests/filter_blend_render.rs`).
+//! (`tests/accessibility_tree.rs`, `tests/filter_blend_render.rs`, and `tests/turbulence_scale_zero_render.rs`).
 //!
 //! Builds a handful of SVG elements exercising real `svg-dom` API calls whose correctness cannot be verified from
 //! the DOM alone: `set_title`/`set_desc` against real accessible-name/description computation rules (ARIA
-//! precedence, blank-value rejection), and `SvgFilter::blend`'s alpha-preserving tint chain against real rendered
-//! pixels. Both need a real Chrome instance to observe — one via the Accessibility CDP domain, the other via actual
+//! precedence, blank-value rejection), `SvgFilter::blend`'s alpha-preserving tint chain against real rendered
+//! pixels, and `SvgFilter::displacement_map`'s `scale` argument against real rendered pixels too. All three need a
+//! real Chrome instance to observe — the first via the Accessibility CDP domain, the other two via actual
 //! rasterised output — neither of which `wasm-bindgen-test`'s WebDriver-run browser tests have access to.
 //!
 //! Every shape-based accessibility scenario receives an explicit `role="img"` so Chrome always creates an
@@ -15,7 +16,7 @@
 use svg_dom::{
     Error, SvgRoot,
     root::{
-        filter::{BlendMode, CompositeOperator},
+        filter::{BlendMode, Channel, CompositeOperator, TurbulenceType},
         utils::Point,
     },
 };
@@ -27,7 +28,7 @@ pub fn run() -> Result<(), JsValue> {
 }
 
 fn build() -> Result<(), Error> {
-    let svg = SvgRoot::create_in("stage", svg_dom::root::utils::Size::new(300.0, 200.0))?;
+    let svg = SvgRoot::create_in("stage", svg_dom::root::utils::Size::new(420.0, 200.0))?;
 
     // 1. title-only naming: no ARIA attributes, so the <title> child supplies the accessible name.
     let s1 = svg.circle(Point::new(10.0, 10.0), 5.0)?;
@@ -119,6 +120,44 @@ fn build() -> Result<(), Error> {
     blend_circle.as_element().set_id("blend-circle");
     blend_circle.set_fill("white")?;
     blend_circle.set_filter_ref(&blend_filter)?;
+
+    // turbulence-reference / turbulence-scale-zero: for `tests/turbulence_scale_zero_render.rs`, which checks the
+    // demo gallery's own turbulence panel's prominent claim that scale 0 restores a perfect geometric circle
+    // (`demo/panels/panel-turbulence.html`, `demo-app/src/paint/demo_turbulence.rs`) against real rendered pixels,
+    // not just the `scale="0"` attribute a structural DOM test can already see. Both circles share the same
+    // position, radius, and fill; only the second one passes through `turbulence` -> `displacement_map`, with
+    // `scale` fixed at `0.0`. If scale 0 really does produce "no displacement at all"
+    // (`SvgFilter::displacement_map`'s own doc comment), the two circles' own edges should rasterise identically,
+    // within antialiasing rounding — a non-zero `scale`'s organic, hand-drawn edge would not.
+    //
+    // The filter's own region is pinned to exactly the circle's own bounding box (0%/0%/100%/100%, the same
+    // `exact_filter_region` pattern `demo-app`'s own `feImage` demo uses), rather than left at SVG's own default
+    // 10%-margin region. That default margin is what `tests/turbulence_scale_zero_render.rs`'s own module doc
+    // comment warns about: in this sandbox's headless, software-rendered Chrome, a filtered element's own
+    // fractional-margin region gets rasterised into an intermediate buffer whose own compositing back onto the
+    // page introduces a real, several-pixel positional error, even at `scale` `0.0` — unrelated to any real
+    // displacement, but large enough to make an unpinned region's own comparison against the unfiltered reference
+    // circle fail unpredictably. Pinning the region to a plain 100% box removed that error outright.
+    let turbulence_reference = svg.circle(Point::new(260.0, 120.0), 40.0)?;
+    turbulence_reference.as_element().set_id("turbulence-reference");
+    turbulence_reference.set_fill("steelblue")?;
+
+    let turbulence_scale_zero_filter = defs.filter("turbulence-scale-zero-filter")?;
+    turbulence_scale_zero_filter.set_x(0.0)?;
+    turbulence_scale_zero_filter.set_y(0.0)?;
+    turbulence_scale_zero_filter.set_width(1.0)?;
+    turbulence_scale_zero_filter.set_height(1.0)?;
+    turbulence_scale_zero_filter
+        .turbulence(0.02, 3, 5.0, TurbulenceType::FractalNoise)?
+        .set_attr("result", "noise")?;
+    turbulence_scale_zero_filter
+        .displacement_map("noise", 0.0, Channel::Red, Channel::Green)?
+        .set_attr("in", "SourceGraphic")?;
+
+    let turbulence_scale_zero = svg.circle(Point::new(360.0, 120.0), 40.0)?;
+    turbulence_scale_zero.as_element().set_id("turbulence-scale-zero");
+    turbulence_scale_zero.set_fill("steelblue")?;
+    turbulence_scale_zero.set_filter_ref(&turbulence_scale_zero_filter)?;
 
     // Signals to the driving test (polling via `wait_for_element`) that the fixture has finished building.
     let ready = svg.rect(Point::new(0.0, 0.0), svg_dom::root::utils::Size::new(1.0, 1.0))?;

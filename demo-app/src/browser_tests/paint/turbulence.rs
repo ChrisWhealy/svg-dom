@@ -17,8 +17,12 @@ use wasm_bindgen_test::wasm_bindgen_test;
 /// 5) Two sliders can actually reach the single-diagonal state (`Alpha` for both) that `SvgFilter::displacement_map`'s
 ///    own doc comment warns about, not just some other, unconstrained combination.
 /// 6) All four controls, and the original circle, stay independent of one another.
+/// 7) The scale slider actually reaches `scale="0"`, the value `demo/panels/panel-turbulence.html` prominently
+///    claims restores a perfect geometric circle.
 ///
-/// Only a real browser can prove any of that.
+/// Only a real browser can prove any of that. Even a real browser running this file cannot prove point 7's own
+/// rendered-pixel half of the claim, since `wasm-bindgen-test`'s WebDriver-run tests have no access to rasterised
+/// output — see `accessibility-tree-test/tests/turbulence_scale_zero_render.rs` for that half.
 #[wasm_bindgen_test]
 fn demo_turbulence_sliders_update_frequency_and_displacement_scale_independently() {
     container("demo-turbulence");
@@ -160,6 +164,26 @@ fn demo_turbulence_sliders_update_frequency_and_displacement_scale_independently
         displace_map.get_attribute("scale").as_deref(),
         Some("24"),
         "moving the frequency slider should not touch the displacement scale"
+    );
+
+    // Moving the scale slider to zero updates only the displacement map and caption. `demo/panels/panel- turbulence.html`
+    // prominently claims scale 0 restores a perfect geometric circle, so this state should be checked explicitly rather
+    // than skipping straight to the maximum below. This DOM-level assertion can only prove `scale="0"` reaches the
+    // attribute, not that the circle actually renders as a perfect circle at that value.  That test is performed by
+    // `accessibility-tree-test/tests/turbulence_scale_zero_render.rs`.
+    dispatch_input(&scale_slider, "0");
+    assert_eq!(displace_map.get_attribute("scale").as_deref(), Some("0"));
+    assert_eq!(distorted_caption.text_content().as_deref(), Some("scale 0 · x Red · y Green"));
+    assert_eq!(
+        displace_map.get_attribute("xChannelSelector").as_deref(),
+        Some("R"),
+        "moving the scale slider should not touch either channel selector"
+    );
+    assert_eq!(displace_map.get_attribute("yChannelSelector").as_deref(), Some("G"));
+    assert_eq!(
+        displace_noise.get_attribute("baseFrequency").as_deref(),
+        Some("0.02"),
+        "moving the scale slider should not touch the displacement noise's own fixed frequency"
     );
 
     // --- moving the scale slider to its documented maximum updates only the displacement map and caption ---

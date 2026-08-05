@@ -112,7 +112,9 @@ If a test fails, `wasm-bindgen-test` displays the `String` message directly with
 The above tests are designed to prove the DOM structure: the right element was created, updated, or removed in the right place, with the right attributes.
 Two things they cannot see, because both live behind interfaces `wasm-bindgen-test`'s WebDriver-run tests have no access to, are: (1) the actual, browser-*computed* accessibility tree — the accessible name and description a screen reader would receive after ARIA precedence, role computation, and pruning have been applied — which lives behind the browser's Accessibility CDP domain; and (2) actual rendered pixels, which require rasterising the SVG to a canvas and reading them back.
 
-The `accessibility-tree-test` crate hosts two integration test files, each driving a real Chrome instance directly over the Chrome DevTools Protocol (CDP) via the [`headless_chrome`](https://docs.rs/headless_chrome) crate, sharing common fixture-build/serve/Chrome-launch setup code (`src/lib.rs`) but each with its own fixture scenario, its own running Chrome instance, and its own `#[test]`s — see each file's own module doc comment for the full detail.
+The `accessibility-tree-test` crate hosts three integration test files, each driving a real Chrome instance directly over the Chrome DevTools Protocol (CDP) via the [`headless_chrome`](https://docs.rs/headless_chrome) crate.
+They share common fixture-build/serve/Chrome-launch setup code (`src/lib.rs`) but each with its own fixture scenario, its own running Chrome instance and its own `#[test]`s.
+See each file's own module doc comment for the full detail.
 
 ### `accessibility_tree.rs` — accessible-name/description computation
 
@@ -152,18 +154,36 @@ Because the pixel-sampling script is asynchronous (`Image` loading is not synchr
 
 This lives in its own file rather than as more `#[test]`s in `accessibility_tree.rs`, so each file's module doc comment stays honestly scoped to what it actually verifies — accessible-name computation in one, filter alpha compositing in the other — at the cost of each paying Chrome's startup cost independently, since `tests/*.rs` files are always separate binaries with no way to share a running `Browser`/`Tab` instance (only the setup code in `src/lib.rs` that creates one).
 
+### `turbulence_scale_zero_render.rs` — `SvgFilter::displacement_map`'s `scale` at `0.0`, against real rendered pixels
+
+The demo gallery's own turbulence panel (`demo/panels/panel-turbulence.html`) prominently states that scale 0 restores a perfect geometric circle.
+`demo-app/src/browser_tests/paint/turbulence.rs` proves the DOM half of that claim — the scale slider does reach `scale="0"` on the real `feDisplacementMap` element — but it cannot prove the circle actually *renders* as a perfect circle at that value, for the same reason `wasm-bindgen-test` cannot prove any rendering claim.
+A structural test is satisfied by a `scale="0"` attribute sitting on a filter chain that renders however it likes.
+
+This single `#[test]` renders two circles built by `a11y-fixture`: `#turbulence-reference` (a plain, unfiltered circle) and `#turbulence-scale-zero` (the same position, radius, and fill, but passed through `turbulence` → `displacement_map` with `scale` fixed at `0.0`).
+It samples eight points around each circle's own boundary, 3px inside and 3px outside the nominal radius, and asserts the two circles rasterise to the same pixel values there, within a small antialiasing tolerance.
+A real displacement would show up at these points first: even a small non-zero `scale` shifts the edge by up to `scale / 2` pixels, far past a 3px margin.
+
+Getting a stable comparison here needed one more fix beyond the technique `filter_blend_render.rs` already established.
+`a11y-fixture` pins `#turbulence-scale-zero`'s own filter region to exactly the circle's bounding box (`set_x`/`set_y`/`set_width`/`set_height`, all `0`/`0`/`1`/`1` in `objectBoundingBox` units) rather than leaving it at SVG's own default 10%-margin region.
+Left at that default, this sandbox's headless, software-rendered Chrome (`--disable-gpu`) composited the filtered circle back onto the page with a real, several-pixel positional error — unrelated to `scale`, present even at `0.0`, and large enough on its own to fail the boundary samples unpredictably from one run to the next.
+Pinning the region to a plain 100% box removed that error outright.
+
+This intentionally does not attempt broad screenshot testing across every slider position.
+A single identity test at scale zero is enough to cover this specific, exact semantic claim without turning into a fragile visual regression suite.
+
 ### Why this lives outside the main crate
 
 The library's own `cargo test`/`cargo nextest run` stays fast and dependency-light on purpose.
-Both test files above need a real, local Chrome/Chromium binary and pull in `headless_chrome` (and its own dependency tree), so — like `demo-server` — the crate hosting them lives in its own workspace member excluded from the root package's `default-members`.
+All three test files above need a real, local Chrome/Chromium binary and pull in `headless_chrome` (and its own dependency tree), so — like `demo-server` — the crate hosting them lives in its own workspace member excluded from the root package's `default-members`.
 Plain `cargo build`/`cargo test` at the project root never touch it.
 
 Two supporting crates make this possible:
 
 | Crate | Role |
 |---|---|
-| `a11y-fixture` | A tiny `wasm-bindgen` cdylib that builds real `svg-dom` elements for both test files: six accessibility scenarios (via `set_title`, `set_desc` and `set_attr`) and one `#blend-circle` filter scenario (via `flood`/`blend`/`composite`) — and signals readiness by adding a `#fixture-ready` element |
-| `accessibility-tree-test` | `src/lib.rs` holds the shared `fixture_dir`/`build_fixture`/`serve`/`launch_browser` setup helpers; `tests/accessibility_tree.rs` and `tests/filter_blend_render.rs` each use them to build their own fixture, serve it, launch their own Chrome instance, and run their own `#[test]`s |
+| `a11y-fixture` | A tiny `wasm-bindgen` cdylib that builds real `svg-dom` elements for all three test files: six accessibility scenarios (via `set_title`, `set_desc` and `set_attr`), one `#blend-circle` filter scenario (via `flood`/`blend`/`composite`), and one `#turbulence-reference`/`#turbulence-scale-zero` pair (via `turbulence`/`displacement_map`) — and signals readiness by adding a `#fixture-ready` element |
+| `accessibility-tree-test` | `src/lib.rs` holds the shared `fixture_dir`/`build_fixture`/`serve`/`launch_browser` setup helpers; `tests/accessibility_tree.rs`, `tests/filter_blend_render.rs`, and `tests/turbulence_scale_zero_render.rs` each use them to build their own fixture, serve it, launch their own Chrome instance, and run their own `#[test]`s |
 
 ### Prerequisites
 
@@ -175,7 +195,10 @@ Same `wasm-pack` install as the browser tests, plus a local Chrome or Chromium i
 cargo test -p accessibility-tree-test
 ```
 
-This runs both test files — no separate command needed, since `cargo test -p` runs every integration test binary under a crate's `tests/` directory. Each rebuilds the `a11y-fixture` wasm package, serves it on its own OS-assigned local port, and drives its own headless Chrome instance against it — no manual server or browser setup needed.
+This runs all three test files — no separate command needed, since `cargo test -p` runs every integration test binary under a crate's `tests/` directory. Each rebuilds the `a11y-fixture` wasm package, serves it on its own OS-assigned local port, and drives its own headless Chrome instance against it — no manual server or browser setup needed.
+
+Each test binary launches its own Chrome instance and does its own `wasm-pack build`, so running them concurrently (rather than letting `cargo test` run each binary to completion before starting the next) can starve a resource-constrained machine of CPU or memory, producing unrelated-looking CDP timeouts in every binary at once, not just the one actually short on resources.
+If `cargo test -p accessibility-tree-test` is aliased to `cargo nextest run` (nextest parallelises across test binaries by default), prefer running each file individually — `cargo test -p accessibility-tree-test --test <file>` — or constrain nextest's own concurrency, rather than treating a burst of simultaneous failures as several independent regressions.
 
 ### Running in CI
 
