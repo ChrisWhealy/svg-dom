@@ -25,7 +25,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 - Prove all four channel mappings in browser test (`471e4bf`)
 - Doc only: correct rester test docs (`7c49ecf`)
 - Reconcile the Chrome sandbox documentation with the launcher (`4655451`)
-- Doc only: correct stale testing documentation comments (``)
+- Doc only: correct stale testing documentation comments (`8926717`)
 
 ## [0.1.12] - 2026-08-04
 
