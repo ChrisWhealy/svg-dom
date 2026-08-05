@@ -16,7 +16,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 ### Changed
 
-- Rename the shared CDP test infrastructure (``)
+- Rename the shared CDP test infrastructure (`5df4eb9`)
 
 ### Fixed
 
@@ -24,6 +24,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 - Label channel slider positions (`8986654`)
 - Prove all four channel mappings in browser test (`471e4bf`)
 - Doc only: correct rester test docs (`7c49ecf`)
+- Reconcile the Chrome sandbox documentation with the launcher (``)
 
 ## [0.1.12] - 2026-08-04
 

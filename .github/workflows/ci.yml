@@ -155,10 +155,11 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
-      # Same Ubuntu 24.04 AppArmor/unprivileged-userns restriction worked around in `browser-tests` — this job also
-      # launches a real, sandboxed Chrome (via `headless_chrome`/CDP), so it needs the identical fix.
-      - name: Allow unprivileged user namespaces (Chrome sandbox needs this on Ubuntu 24.04 runners)
-        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      # Unlike `browser-tests`, this job does not need the AppArmor/unprivileged-userns workaround: the shared
+      # `launch_browser` helper (cdp-integration-test/src/lib.rs) launches Chrome with `.sandbox(false)`, precisely
+      # so it never attempts the AppArmor-dependent sandbox initialisation that workaround exists for — see
+      # `accessibility_tree.rs`'s own `# Why the browser is launched with sandbox(false)` doc section. The
+      # `sudo sysctl` step `browser-tests` needs has no effect here and is deliberately omitted.
       - name: Install wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
