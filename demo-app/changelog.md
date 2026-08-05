@@ -14,12 +14,16 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 - Add specific turbulence scale 0 render test (`17d0f1d`)
 - Add positive control to the raster test (`9415632`)
 
+### Changed
+
+- Rename the shared CDP test infrastructure (``)
+
 ### Fixed
 
 - Doc only: correct description of `scale` (`6005461`)
 - Label channel slider positions (`8986654`)
 - Prove all four channel mappings in browser test (`471e4bf`)
-- Doc only: correct rester test docs (``)
+- Doc only: correct rester test docs (`7c49ecf`)
 
 ## [0.1.12] - 2026-08-04
 

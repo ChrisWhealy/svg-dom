@@ -24,7 +24,7 @@ use wasm_bindgen_test::wasm_bindgen_test;
 ///
 /// Only a real browser can prove any of that. Even a real browser running this file cannot prove point 7's own
 /// rendered-pixel half of the claim, since `wasm-bindgen-test`'s WebDriver-run tests have no access to rasterised
-/// output — see `accessibility-tree-test/tests/turbulence_scale_zero_render.rs` for that half.
+/// output — see `cdp-integration-test/tests/turbulence_scale_zero_render.rs` for that half.
 #[wasm_bindgen_test]
 fn demo_turbulence_sliders_update_frequency_and_displacement_scale_independently() {
     container("demo-turbulence");
@@ -202,7 +202,7 @@ fn demo_turbulence_sliders_update_frequency_and_displacement_scale_independently
     // prominently claims scale 0 restores a perfect geometric circle, so this state should be checked explicitly rather
     // than skipping straight to the maximum below. This DOM-level assertion can only prove `scale="0"` reaches the
     // attribute, not that the circle actually renders as a perfect circle at that value.  That test is performed by
-    // `accessibility-tree-test/tests/turbulence_scale_zero_render.rs`.
+    // `cdp-integration-test/tests/turbulence_scale_zero_render.rs`.
     dispatch_input(&scale_slider, "0");
     assert_eq!(displace_map.get_attribute("scale").as_deref(), Some("0"));
     assert_eq!(distorted_caption.text_content().as_deref(), Some("scale 0 · x Red · y Green"));

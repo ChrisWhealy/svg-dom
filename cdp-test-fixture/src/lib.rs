@@ -1,4 +1,4 @@
-//! WASM fixture for `accessibility-tree-test`'s Chrome-DevTools-Protocol integration tests
+//! WASM fixture for `cdp-integration-test`'s Chrome-DevTools-Protocol integration tests
 //! (`tests/accessibility_tree.rs`, `tests/filter_blend_render.rs`, and `tests/turbulence_scale_zero_render.rs`).
 //!
 //! Builds a handful of SVG elements exercising real `svg-dom` API calls whose correctness cannot be verified from

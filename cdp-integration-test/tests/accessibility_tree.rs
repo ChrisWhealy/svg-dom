@@ -6,7 +6,7 @@
 //! Accessibility CDP domain, which `wasm-bindgen-test`'s WebDriver-run browser tests have no access to.
 //!
 //! This drives a real Chrome instance via CDP (through the `headless_chrome` crate) and queries
-//! `Accessibility.getPartialAXTree` for seven scenarios built by the sibling `a11y-fixture` wasm crate — one
+//! `Accessibility.getPartialAXTree` for seven scenarios built by the sibling `cdp-test-fixture` wasm crate — one
 //! independently reported `#[test]` per scenario, confirming:
 //!
 //! 1. A lone `<title>` supplies the accessible name;
@@ -46,12 +46,12 @@
 //! Lives in its own on-demand workspace member (excluded from the root package's `default-members`, same as
 //! `demo-server`) because it pulls in `headless_chrome` and requires a local Chrome/Chromium binary — neither of
 //! which the ordinary `cargo test`/`cargo nextest run` workflow should have to pay for. Run explicitly with:
-//! `cargo test -p accessibility-tree-test`. That command also runs the sibling `filter_blend_render.rs`, a second,
+//! `cargo test -p cdp-integration-test`. That command also runs the sibling `filter_blend_render.rs`, a second,
 //! unrelated CDP integration test for `SvgFilter::blend` sharing this crate's `fixture_dir`/`build_fixture`/`serve`/
 //! `launch_browser` setup helpers (in `src/lib.rs`) but not its running `Browser`/`Tab` instance or `#[test]`s —
 //! see that file's own module doc comment for what it verifies.
 //!
-//! Run in CI by its own job in `.github/workflows/ci.yml` (`accessibility-tree-test`), using the Chrome installation
+//! Run in CI by its own job in `.github/workflows/ci.yml` (`cdp-integration-test`), using the Chrome installation
 //! already present on GitHub's `ubuntu-latest` runner image — being a separate job, its failure does not block the
 //! other, unrelated CI jobs from reporting their own results, but it still gates the merge like any other required
 //! check.
@@ -70,7 +70,7 @@ use std::{
     time::Duration,
 };
 
-use accessibility_tree_test::{build_fixture, fixture_dir, launch_browser, serve};
+use cdp_integration_test::{build_fixture, fixture_dir, launch_browser, serve};
 use headless_chrome::{Browser, Tab, protocol::cdp::Accessibility};
 use serde_json::Value;
 

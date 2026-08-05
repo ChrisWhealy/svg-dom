@@ -107,12 +107,12 @@ They verify that those managed wrappers fire synchronously too, so demo or appli
 All test functions return `Result<(), String>`.
 If a test fails, `wasm-bindgen-test` displays the `String` message directly without a stack trace, making failures easier to read in the terminal.
 
-## CDP Rendering & Accessibility-Tree Integration Tests — `cargo test -p accessibility-tree-test`
+## CDP integration tests — `cargo test -p cdp-integration-test`
 
 The above tests are designed to prove the DOM structure: the right element was created, updated, or removed in the right place, with the right attributes.
 Two things they cannot see, because both live behind interfaces `wasm-bindgen-test`'s WebDriver-run tests have no access to, are: (1) the actual, browser-*computed* accessibility tree — the accessible name and description a screen reader would receive after ARIA precedence, role computation, and pruning have been applied — which lives behind the browser's Accessibility CDP domain; and (2) actual rendered pixels, which require rasterising the SVG to a canvas and reading them back.
 
-The `accessibility-tree-test` crate hosts three integration test files, each driving a real Chrome instance directly over the Chrome DevTools Protocol (CDP) via the [`headless_chrome`](https://docs.rs/headless_chrome) crate.
+The `cdp-integration-test` crate hosts three integration test files, each driving a real Chrome instance directly over the Chrome DevTools Protocol (CDP) via the [`headless_chrome`](https://docs.rs/headless_chrome) crate.
 They share common fixture-build/serve/Chrome-launch setup code (`src/lib.rs`) but each with its own fixture scenario, its own running Chrome instance and its own `#[test]`s.
 See each file's own module doc comment for the full detail.
 
@@ -134,7 +134,7 @@ Building the test fixture and launching Chrome are both expensive actions, so al
 
 `cargo test` still runs the six test functions in parallel, so actual CDP calls against the shared tab are serialised behind a `Mutex`.
 `find_element`'s underlying `DOM.getDocument`-then-`DOM.querySelector` sequence is not safe under concurrent access to the same session, even though `Browser` and `Tab` implement `Send + Sync` at the type level.
-See the module doc comment in `accessibility-tree-test/tests/accessibility_tree.rs` for the full explanation.
+See the module doc comment in `cdp-integration-test/tests/accessibility_tree.rs` for the full explanation.
 
 Splitting the original single test (with sequential `assert_eq!` calls in one function) into separate `#[test]` functions was a deliberate correction: if they were bundled into a single function, then only the first failing assertion was ever reported and `cargo test` counted the whole scenario suite as a monolithic pass/fail.
 
@@ -145,7 +145,7 @@ It cannot prove how those elements are actually *rendered* — and the documente
 
 A structural test that only counts child elements can be satisfied by a chain that gets this wrong — which is exactly what shipped briefly, before a bug report showed a flood-and-blend chain without the final `composite(In)` leaking an opaque flood colour into a circle's transparent bounding-box corners.
 
-This single `#[test]` renders the `#blend-circle` element built by `a11y-fixture` (a white circle, filtered with the corrected three-step chain) to an offscreen canvas — by serialising the fixture's `<svg>` to a `data:image/svg+xml` URL, loading it into an `Image` and then reading the pixels back via `getImageData` which is the standard technique for rasterising SVG content in a browser — and asserts on the real pixel values:
+This single `#[test]` renders the `#blend-circle` element built by `cdp-test-fixture` (a white circle, filtered with the corrected three-step chain) to an offscreen canvas — by serialising the fixture's `<svg>` to a `data:image/svg+xml` URL, loading it into an `Image` and then reading the pixels back via `getImageData` which is the standard technique for rasterising SVG content in a browser — and asserts on the real pixel values:
 
 - a pixel at the circle's centre is fully opaque and (approximately) the flood colour — white is `Multiply`'s identity element, so a correctly alpha-preserving chain paints the flood colour through completely unchanged, giving an *exact* expected result rather than an approximate one;
 - a pixel at a corner of the circle's bounding box (outside the circle, where `SourceGraphic` is fully transparent) is fully transparent (alpha `0`) — the exact pixel that leaked opaque flood colour before the `composite(In)` fix.
@@ -160,7 +160,7 @@ The demo gallery's own turbulence panel (`demo/panels/panel-turbulence.html`) pr
 `demo-app/src/browser_tests/paint/turbulence.rs` proves the DOM half of that claim — the scale slider does reach `scale="0"` on the real `feDisplacementMap` element — but it cannot prove the circle actually *renders* as a perfect circle at that value, for the same reason `wasm-bindgen-test` cannot prove any rendering claim.
 A structural test is satisfied by a `scale="0"` attribute sitting on a filter chain that renders however it likes.
 
-This single `#[test]` renders three circles built by `a11y-fixture`: `#turbulence-reference` (a plain, unfiltered circle), `#turbulence-scale-zero` (passed through `turbulence` → `displacement_map` with `scale` fixed at `0.0`), and `#turbulence-scale-sixty` (the same chain again, with `scale` fixed at `60.0` — `demo_turbulence.rs`'s own documented maximum).
+This single `#[test]` renders three circles built by `cdp-test-fixture`: `#turbulence-reference` (a plain, unfiltered circle), `#turbulence-scale-zero` (passed through `turbulence` → `displacement_map` with `scale` fixed at `0.0`), and `#turbulence-scale-sixty` (the same chain again, with `scale` fixed at `60.0` — `demo_turbulence.rs`'s own documented maximum).
 All three use the same radius and fill; their centres differ, so samples are always taken at corresponding offsets around each circle's own centre, not at shared absolute coordinates.
 It samples eight points around each circle's own boundary, 3px inside and 3px outside the nominal radius, and asserts two things: the reference and scale-zero circles rasterise to the same pixel values at every sample, within a small antialiasing tolerance (the negative control); and the reference and scale-sixty circles rasterise to a materially different value at, conservatively, at least one sample (the positive control).
 
@@ -174,7 +174,7 @@ Asserting that scale sixty *does* rasterise differently proves this fixture and 
 The two thresholds involved sit far apart: measured against this sandbox's own headless Chrome (this fixture's own fixed noise seed makes the render deterministic), boundary samples between the reference and scale-zero circles differ by at most 1 per channel, while scale-sixty's own genuinely displaced samples differ by 75–255 — the antialiasing tolerance (4) and the displacement threshold (40) both sit in the wide, empty gap between those two, with no realistic risk of one control's own noise tripping the other's threshold.
 
 Getting a stable *negative* comparison here needed one more fix beyond the technique `filter_blend_render.rs` already established.
-`a11y-fixture` pins `#turbulence-scale-zero`'s own filter region to exactly the circle's bounding box (`set_x`/`set_y`/`set_width`/`set_height`, all `0`/`0`/`1`/`1` in `objectBoundingBox` units) rather than leaving it at SVG's own default 10%-margin region.
+`cdp-test-fixture` pins `#turbulence-scale-zero`'s own filter region to exactly the circle's bounding box (`set_x`/`set_y`/`set_width`/`set_height`, all `0`/`0`/`1`/`1` in `objectBoundingBox` units) rather than leaving it at SVG's own default 10%-margin region.
 Left at that default, this sandbox's headless, software-rendered Chrome (`--disable-gpu`) composited the filtered circle back onto the page with a real, several-pixel positional error — unrelated to `scale`, present even at `0.0`, and large enough on its own to fail the boundary samples unpredictably from one run to the next.
 Pinning the region to a plain 100% box removed that error outright.
 `#turbulence-scale-sixty`'s own filter keeps the wider, default-adjacent region `demo_turbulence.rs`'s real, interactive circle uses instead (`widen_filter_region`: -50%/-50%/200%/200%): a genuine 30px displacement needs room to sample source pixels from outside the bare bounding box, unlike the zero-displacement case, which never reads past its own edge.
@@ -192,8 +192,8 @@ Two supporting crates make this possible:
 
 | Crate | Role |
 |---|---|
-| `a11y-fixture` | A tiny `wasm-bindgen` cdylib that builds real `svg-dom` elements for all three test files: six accessibility scenarios (via `set_title`, `set_desc` and `set_attr`), one `#blend-circle` filter scenario (via `flood`/`blend`/`composite`), and a `#turbulence-reference`/`#turbulence-scale-zero`/`#turbulence-scale-sixty` trio (via `turbulence`/`displacement_map`) — and signals readiness by adding a `#fixture-ready` element |
-| `accessibility-tree-test` | `src/lib.rs` holds the shared `fixture_dir`/`build_fixture`/`serve`/`launch_browser` setup helpers; `tests/accessibility_tree.rs`, `tests/filter_blend_render.rs`, and `tests/turbulence_scale_zero_render.rs` each use them to build their own fixture, serve it, launch their own Chrome instance, and run their own `#[test]`s |
+| `cdp-test-fixture` | A tiny `wasm-bindgen` cdylib that builds real `svg-dom` elements for all three test files: six accessibility scenarios (via `set_title`, `set_desc` and `set_attr`), one `#blend-circle` filter scenario (via `flood`/`blend`/`composite`), and a `#turbulence-reference`/`#turbulence-scale-zero`/`#turbulence-scale-sixty` trio (via `turbulence`/`displacement_map`) — and signals readiness by adding a `#fixture-ready` element |
+| `cdp-integration-test` | `src/lib.rs` holds the shared `fixture_dir`/`build_fixture`/`serve`/`launch_browser` setup helpers; `tests/accessibility_tree.rs`, `tests/filter_blend_render.rs`, and `tests/turbulence_scale_zero_render.rs` each use them to build their own fixture, serve it, launch their own Chrome instance, and run their own `#[test]`s |
 
 ### Prerequisites
 
@@ -202,22 +202,22 @@ Same `wasm-pack` install as the browser tests, plus a local Chrome or Chromium i
 ### Running
 
 ```sh
-cargo test -p accessibility-tree-test
+cargo test -p cdp-integration-test
 ```
 
-This runs all three test files — no separate command needed, since `cargo test -p` runs every integration test binary under a crate's `tests/` directory. Each rebuilds the `a11y-fixture` wasm package, serves it on its own OS-assigned local port, and drives its own headless Chrome instance against it — no manual server or browser setup needed.
+This runs all three test files — no separate command needed, since `cargo test -p` runs every integration test binary under a crate's `tests/` directory. Each rebuilds the `cdp-test-fixture` wasm package, serves it on its own OS-assigned local port, and drives its own headless Chrome instance against it — no manual server or browser setup needed.
 
 Each test binary launches its own Chrome instance and does its own `wasm-pack build`, so running them concurrently (rather than letting `cargo test` run each binary to completion before starting the next) can starve a resource-constrained machine of CPU or memory, producing unrelated-looking CDP timeouts in every binary at once, not just the one actually short on resources.
-If `cargo test -p accessibility-tree-test` is aliased to `cargo nextest run` (nextest parallelises across test binaries by default), prefer running each file individually — `cargo test -p accessibility-tree-test --test <file>` — or constrain nextest's own concurrency, rather than treating a burst of simultaneous failures as several independent regressions.
+If `cargo test -p cdp-integration-test` is aliased to `cargo nextest run` (nextest parallelises across test binaries by default), prefer running each file individually — `cargo test -p cdp-integration-test --test <file>` — or constrain nextest's own concurrency, rather than treating a burst of simultaneous failures as several independent regressions.
 
 ### Running in CI
 
-Runs as its own job (`accessibility-tree-test`) in `.github/workflows/ci.yml`, on every push/PR, using the Chrome installation already present on GitHub's `ubuntu-latest` runner image — no extra install step, and no per-file CI wiring needed either, for the same reason noted above.
+Runs as its own job (`cdp-integration-test`) in `.github/workflows/ci.yml`, on every push/PR, using the Chrome installation already present on GitHub's `ubuntu-latest` runner image — no extra install step, and no per-file CI wiring needed either, for the same reason noted above.
 
 It was initially added without any CI job at all, so it protected nothing: the workspace's `default-members` deliberately excludes it (see above), so plain `cargo test`/`cargo nextest run` never runs it, and none of the other CI jobs invoke it either.
 A regression here — either test file failing to compile, Chrome's actual accessible-name/description computation drifting away from what the crate assumes, or a filter chain silently starting to leak — could land on `main` without any CI job noticing.
 Being a separate job (rather than an extra step tacked onto `browser-tests`) means its failure is reported independently and doesn't obscure or get obscured by the unrelated `wasm-bindgen-test` results, while still gating the merge like any other required check.
 
-The Chrome launch in `accessibility-tree-test` explicitly passes `sandbox(false)` rather than using `Browser::default()`'s sandboxed default — recent Ubuntu (24.04+, which `ubuntu-latest` now resolves to) restricts unprivileged user namespaces via AppArmor, which breaks Chrome's own sandbox initialisation even for the runner's non-root user.
+The Chrome launch in `cdp-integration-test` explicitly passes `sandbox(false)` rather than using `Browser::default()`'s sandboxed default — recent Ubuntu (24.04+, which `ubuntu-latest` now resolves to) restricts unprivileged user namespaces via AppArmor, which breaks Chrome's own sandbox initialisation even for the runner's non-root user.
 Since this test only ever loads a local fixture page the crate builds itself, there is no untrusted content for the sandbox to matter for, so it is disabled unconditionally (not just in CI) to keep local and CI runs on the same code path.
 See the `# Why the browser is launched with sandbox(false)` section of the module doc comment for the full explanation.

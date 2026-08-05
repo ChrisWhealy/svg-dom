@@ -1,4 +1,4 @@
-//! Shared setup helpers for `accessibility-tree-test`'s Chrome-DevTools-Protocol integration tests.
+//! Shared setup helpers for `cdp-integration-test`'s Chrome-DevTools-Protocol integration tests.
 //!
 //! This crate hosts three integration test files under `tests/`, each verifying browser-computed behaviour that
 //! plain DOM inspection (and therefore `wasm-bindgen-test`) cannot see:
@@ -8,11 +8,12 @@
 //! - `turbulence_scale_zero_render.rs` — `SvgFilter::displacement_map`'s `scale` argument at `0.0`, via actual
 //!   rendered pixels.
 //!
-//! All three drive a real Chrome instance against the same sibling `a11y-fixture` wasm crate (built once, served
-//! locally), so the functions below — building the fixture, serving it, and launching Chrome — are shared here
-//! rather than duplicated per test file. Each test file still builds and launches its own instance of the fixture
-//! and Chrome, since cargo compiles each file under `tests/` as a separate binary with its own process; there is no
-//! way to share the running `Browser`/`Tab` *instance* across files, only the setup code that creates one.
+//! All three drive a real Chrome instance against the same sibling `cdp-test-fixture` wasm crate (built once,
+//! served locally), so the functions below — building the fixture, serving it, and launching Chrome — are shared
+//! here rather than duplicated per test file. Each test file still builds and launches its own instance of the
+//! fixture and Chrome, since cargo compiles each file under `tests/` as a separate binary with its own process;
+//! there is no way to share the running `Browser`/`Tab` *instance* across files, only the setup code that creates
+//! one.
 //!
 //! See `accessibility_tree.rs`'s module doc comment for why this crate lives in its own on-demand workspace member,
 //! how it runs in CI, and why the browser is launched with `sandbox(false)` — that reasoning applies equally to
@@ -22,22 +23,22 @@ use std::{path::PathBuf, process::Command, thread};
 
 use headless_chrome::{Browser, LaunchOptions, browser::default_executable};
 
-/// The path to the sibling `a11y-fixture` wasm crate, relative to this crate's own manifest directory.
+/// The path to the sibling `cdp-test-fixture` wasm crate, relative to this crate's own manifest directory.
 pub fn fixture_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
-        .expect("accessibility-tree-test must live inside the svg-dom workspace")
-        .join("a11y-fixture")
+        .expect("cdp-integration-test must live inside the svg-dom workspace")
+        .join("cdp-test-fixture")
 }
 
-/// Rebuilds the `a11y-fixture` wasm package so `serve`'s output is current.
+/// Rebuilds the `cdp-test-fixture` wasm package so `serve`'s output is current.
 pub fn build_fixture(dir: &PathBuf) {
     let status = Command::new("wasm-pack")
         .current_dir(dir)
         .args(["build", "--target", "web"])
         .status()
         .expect("could not run wasm-pack — is it installed and on PATH?");
-    assert!(status.success(), "wasm-pack build failed for a11y-fixture");
+    assert!(status.success(), "wasm-pack build failed for cdp-test-fixture");
 }
 
 /// Serves `dir` on an OS-assigned local port and returns that port. The server runs for the lifetime of the test

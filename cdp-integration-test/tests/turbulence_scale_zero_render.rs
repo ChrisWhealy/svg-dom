@@ -7,7 +7,7 @@
 //! tests have no access to rasterised output. A structural test is satisfied by a `scale="0"` attribute sitting on
 //! a filter chain that renders however it likes.
 //!
-//! This drives a real Chrome instance via CDP and renders three circles built by the sibling `a11y-fixture` wasm
+//! This drives a real Chrome instance via CDP and renders three circles built by the sibling `cdp-test-fixture` wasm
 //! crate: `#turbulence-reference` (a plain, unfiltered circle), `#turbulence-scale-zero` (passed through
 //! `turbulence` -> `displacement_map` with `scale` fixed at `0.0`), and `#turbulence-scale-sixty` (the same chain
 //! again, with `scale` fixed at `60.0` instead — `demo_turbulence.rs`'s own documented maximum). All three use the
@@ -38,13 +38,13 @@
 //! design, so its exact rasterised value is unusually sensitive to any small positional difference between the
 //! two circles — the same reason `filter_blend_render.rs` samples its own corner pixel 2px inset from the shape's
 //! edge rather than exactly on it. In this sandbox specifically, that turned out to matter for a second, more
-//! surprising reason too: `a11y-fixture` pins `#turbulence-scale-zero`'s own filter region to exactly the
+//! surprising reason too: `cdp-test-fixture` pins `#turbulence-scale-zero`'s own filter region to exactly the
 //! circle's bounding box (`set_x`/`set_y`/`set_width`/`set_height`, all in `objectBoundingBox` units) rather than
 //! leaving it at SVG's own default 10%-margin region. Left at that default, headless Chrome's software rasteriser
 //! (`--disable-gpu`, see `launch_browser`'s own `sandbox(false)` reasoning) composited the filtered circle back
 //! onto the page with a real, several-pixel positional error — unrelated to `scale`, present even at `0.0`, and
 //! large enough on its own to fail this test's boundary samples unpredictably from one run to the next. See
-//! `a11y-fixture/src/lib.rs`'s own comment on this scenario for the full account of tracking that down.
+//! `cdp-test-fixture/src/lib.rs`'s own comment on this scenario for the full account of tracking that down.
 //!
 //! This intentionally does not attempt broad screenshot testing across every slider position — a single identity
 //! test at scale zero is enough to cover this specific, exact semantic claim without turning into a fragile visual
@@ -67,7 +67,7 @@
 
 use std::time::Duration;
 
-use accessibility_tree_test::{build_fixture, fixture_dir, launch_browser, serve};
+use cdp_integration_test::{build_fixture, fixture_dir, launch_browser, serve};
 use headless_chrome::protocol::cdp::Runtime;
 use serde_json::Value;
 
@@ -257,7 +257,7 @@ fn turbulence_scale_zero_matches_reference_while_scale_sixty_visibly_differs() {
     // real displacement, so the negative control's own pass means what it claims to mean.
     //
     // A conservative threshold, well clear of both the antialiasing tolerance above and the small cross-pipeline
-    // noise `a11y-fixture`'s own comment on this scenario describes (a filtered element composites back onto the
+    // noise `cdp-test-fixture`'s own comment on this scenario describes (a filtered element composites back onto the
     // page slightly differently from an unfiltered one, even with no real displacement) — turbulence rendering
     // can vary a little between runs, so this only requires at least one sample to clear a wide margin, not an
     // exact or universal difference across all sixteen. Measured against this sandbox's own headless Chrome (this

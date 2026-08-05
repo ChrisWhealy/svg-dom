@@ -29,8 +29,8 @@ jobs:
         run: cargo test --all-features
 
       # The workspace's default-members is just the root package, so none of the above select the other workspace crates
-      # — demo-server and svg-dom-demo (demo-app) each need an explicit `-p` invocation, same as accessibility-tree-test
-      # already gets in the `accessibility-tree-test` job below. Both build and run natively (svg-dom-demo depends on
+      # — demo-server and svg-dom-demo (demo-app) each need an explicit `-p` invocation, same as cdp-integration-test
+      # already gets in the `cdp-integration-test` job below. Both build and run natively (svg-dom-demo depends on
       # web-sys/wasm-bindgen, but nothing in its host-runnable unit tests — see demo-app/src/highlight/unit_tests.rs —
       # touches an actual browser API), so they belong here rather than in the `wasm` job, which is about the wasm32
       # *target* build specifically.
@@ -146,8 +146,8 @@ jobs:
       - name: Run the demo gallery's interactive-control browser tests
         run: wasm-pack test --headless --${{ matrix.browser }} demo-app
 
-  accessibility-tree-test:
-    name: accessibility tree (CDP · Chrome)
+  cdp-integration-test:
+    name: CDP browser integration tests (Chrome)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -172,13 +172,15 @@ jobs:
       - name: Chrome version (diagnostic — the runner image ships one, nothing to install)
         run: google-chrome --version || google-chrome-stable --version || chromium-browser --version
 
-      # Builds the a11y-fixture wasm package, serves it locally, and drives the runner's own Chrome over
-      # the DevTools Protocol — see the module doc comment in accessibility-tree-test/tests/accessibility_tree.rs
+      # Builds the cdp-test-fixture wasm package, serves it locally, and drives the runner's own Chrome over
+      # the DevTools Protocol — see the module doc comment in cdp-integration-test/tests/accessibility_tree.rs
       # for what this verifies and why it is a separate job rather than folded into `browser-tests`: it needs
       # headless_chrome and a real local Chrome binary, neither of which the wasm-bindgen-test-based browser tests
-      # require, and keeping it isolated means a failure here doesn't obscure results from the other jobs.
-      - name: Run the accessibility-tree CDP integration test
-        run: cargo test -p accessibility-tree-test
+      # require, and keeping it isolated means a failure here doesn't obscure results from the other jobs. This
+      # single command runs all three CDP test binaries in the crate — accessibility tree, filter blend render,
+      # and turbulence scale-zero render — not just the accessibility-tree scenarios the step name once implied.
+      - name: Run the CDP integration tests (accessibility tree, filter blend, turbulence render)
+        run: cargo test -p cdp-integration-test
 
   coverage:
     name: coverage (host tests)

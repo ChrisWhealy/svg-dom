@@ -10,7 +10,7 @@
 //! `docs/svg_elements/filters.md`'s matching warning for the full explanation of the bug this test guards against.
 //!
 //! This drives a real Chrome instance via CDP and renders the `#blend-circle` element built by the sibling
-//! `a11y-fixture` wasm crate (a white circle, filtered with `flood("#f0883e", ...)` -> `blend(Multiply)` ->
+//! `cdp-test-fixture` wasm crate (a white circle, filtered with `flood("#f0883e", ...)` -> `blend(Multiply)` ->
 //! `composite(In)`) to an offscreen canvas, then reads back actual pixel values to confirm:
 //!
 //! - a pixel at the circle's centre is fully opaque and (approximately) the flood colour — white is `Multiply`'s
@@ -38,12 +38,12 @@
 //! non-obvious to find. The cost is that this file builds and launches its own fixture/Chrome instance independent
 //! of `accessibility_tree.rs`'s (`tests/*.rs` files are always separate binaries — there is no way to share a
 //! running `Browser`/`Tab` across them, only the setup code in `src/lib.rs` that creates one), so `cargo test -p
-//! accessibility-tree-test` pays Chrome's startup cost twice. That is judged worth it for keeping each file
-//! honestly scoped to what it actually tests.
+//! cdp-integration-test` pays Chrome's startup cost twice. That is judged worth it for keeping each file honestly
+//! scoped to what it actually tests.
 
 use std::time::Duration;
 
-use accessibility_tree_test::{build_fixture, fixture_dir, launch_browser, serve};
+use cdp_integration_test::{build_fixture, fixture_dir, launch_browser, serve};
 use headless_chrome::protocol::cdp::Runtime;
 use serde_json::Value;
 
