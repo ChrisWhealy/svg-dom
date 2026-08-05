@@ -124,9 +124,10 @@ fn build() -> Result<(), Error> {
     // turbulence-reference / turbulence-scale-zero: for `tests/turbulence_scale_zero_render.rs`, which checks the
     // demo gallery's own turbulence panel's prominent claim that scale 0 restores a perfect geometric circle
     // (`demo/panels/panel-turbulence.html`, `demo-app/src/paint/demo_turbulence.rs`) against real rendered pixels,
-    // not just the `scale="0"` attribute a structural DOM test can already see. Both circles share the same
-    // position, radius, and fill; only the second one passes through `turbulence` -> `displacement_map`, with
-    // `scale` fixed at `0.0`. If scale 0 really does produce "no displacement at all"
+    // not just the `scale="0"` attribute a structural DOM test can already see. The two circles use the same
+    // radius and fill and are sampled at corresponding offsets around their own respective centres; only the
+    // second one passes through `turbulence` -> `displacement_map`, with `scale` fixed at `0.0`. If scale 0
+    // really does produce "no displacement at all"
     // (`SvgFilter::displacement_map`'s own doc comment), the two circles' own edges should rasterise identically,
     // within antialiasing rounding — a non-zero `scale`'s organic, hand-drawn edge would not.
     //

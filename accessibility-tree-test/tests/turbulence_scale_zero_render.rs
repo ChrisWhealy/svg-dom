@@ -8,11 +8,12 @@
 //! a filter chain that renders however it likes.
 //!
 //! This drives a real Chrome instance via CDP and renders three circles built by the sibling `a11y-fixture` wasm
-//! crate: `#turbulence-reference` (a plain, unfiltered circle), `#turbulence-scale-zero` (the same position,
-//! radius, and fill, but passed through `turbulence` -> `displacement_map` with `scale` fixed at `0.0`), and
-//! `#turbulence-scale-sixty` (the same chain again, with `scale` fixed at `60.0` instead — `demo_turbulence.rs`'s
-//! own documented maximum). It samples eight points around each circle's own boundary, at matching angles, 3px
-//! inside and 3px outside the nominal radius, and asserts:
+//! crate: `#turbulence-reference` (a plain, unfiltered circle), `#turbulence-scale-zero` (passed through
+//! `turbulence` -> `displacement_map` with `scale` fixed at `0.0`), and `#turbulence-scale-sixty` (the same chain
+//! again, with `scale` fixed at `60.0` instead — `demo_turbulence.rs`'s own documented maximum). All three use the
+//! same radius and fill; their centres differ, so samples are always taken at corresponding offsets around each
+//! circle's own centre, not at shared absolute coordinates. It samples eight points around each circle's own
+//! boundary, at matching angles, 3px inside and 3px outside the nominal radius, and asserts:
 //!
 //! - the reference and scale-zero circles rasterise to the same pixel values at every sample, within a small
 //!   antialiasing tolerance — the negative control: zero displacement should look unchanged;
@@ -23,8 +24,15 @@
 //! working filter chain and with a browser that silently ignored the filter (or fell back to unfiltered
 //! `SourceGraphic`), since either would also rasterise like the reference. The second proves this fixture and
 //! sampling method can actually detect a real displacement in the first place, so a pass on the first check means
-//! what it claims to mean rather than reflecting an insensitive test. A real displacement shifts the edge by up
-//! to `scale / 2` pixels — 30px at scale 60, far past the 3px sample margin either check uses.
+//! what it claims to mean rather than reflecting an insensitive test.
+//!
+//! The maximum displacement along either axis is `scale / 2` — 30px at scale 60 — but that is a ceiling, not a
+//! guarantee: the actual displacement at any one sampled point depends on the local turbulence channel value
+//! there, not on `scale` alone. Below scale 6, `scale / 2` itself is under the 3px sample margin either check
+//! uses, and even a much larger scale need not reach its own maximum at any particular sample. Scale 60 was
+//! chosen, and the threshold below calibrated, against what this sandbox's own headless Chrome actually renders
+//! at that scale — an observed property of this fixture, not an assumed one — see the positive control's own
+//! comment further down for the measured numbers.
 //!
 //! Samples are not taken exactly on the mathematical radius. That knife-edge pixel is roughly half-covered by
 //! design, so its exact rasterised value is unusually sensitive to any small positional difference between the
@@ -252,7 +260,11 @@ fn turbulence_scale_zero_matches_reference_while_scale_sixty_visibly_differs() {
     // noise `a11y-fixture`'s own comment on this scenario describes (a filtered element composites back onto the
     // page slightly differently from an unfiltered one, even with no real displacement) — turbulence rendering
     // can vary a little between runs, so this only requires at least one sample to clear a wide margin, not an
-    // exact or universal difference across all sixteen.
+    // exact or universal difference across all sixteen. Measured against this sandbox's own headless Chrome (this
+    // fixture's own fixed noise seed makes it deterministic), the sixteen samples' own differences land at either
+    // ~1 or 75-255 with nothing in between, so 40 sits in the middle of a wide, empty gap rather than close to
+    // either side.
+
     const DISPLACEMENT_THRESHOLD: u8 = 40;
     let differing_samples = reference_samples
         .iter()
