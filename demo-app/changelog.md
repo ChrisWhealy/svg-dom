@@ -13,6 +13,10 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 - Make `feDiffuseLighting`/`feSpecularLighting` demo interactive (`6d12262`)
 - `<feDistantLight>` returns mutable specular/diffuse light sources (`1cd0c94`)
 
+### Changed
+
+- Use new specular/diffuse light methods instead of raw web_sys functions (`516a01e`)
+
 ### Fixed
 
 - Verify rendered output for azimuth and surface scale (`b0aa38f`)
