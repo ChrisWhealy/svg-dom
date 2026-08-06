@@ -31,7 +31,9 @@
                     falloff away from the aim axis. With <code>limiting_cone_angle:None</code>, no <em>additional</em>
                     hard-edged cutoff applies. Compare its softer edge against the next panel's. The specular hotspot's
                     own position follows the light's own position, not its aim point. The <strong>position (x)</strong>
-                    slider sweeps the light sideways, moving that hotspot with it. </li>
+                    slider translates the whole beam sideways, moving that hotspot with it. Its own aim point moves by
+                    the same amount as the light itself. So the beam keeps its own original orientation, rather than
+                    swinging round as the light passes its own fixed aim point. </li>
                 <li><strong>Spot (limitingConeAngle)</strong> The identical beam as the previous panel.
                     <code>limiting_cone_angle</code> additionally hard-clips it. The sharper circular edge here, versus
                     the previous panel's falloff-only edge, is exactly the distinction <code>LightSource::Spot</code>'s

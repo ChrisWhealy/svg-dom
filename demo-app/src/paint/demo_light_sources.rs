@@ -28,12 +28,13 @@ use wasm_bindgen::{JsCast, prelude::*};
 // - Point: `z`, its height above the surface. `LightSource::Point`'s own doc comment explains why: a larger `z`
 //   makes the incident direction more uniform across the surface, a smaller one fans it out sharply near the
 //   light, producing a tighter hotspot.
-// - Spot (no cone): the light's own `x` position, sweeping the whole beam sideways. The light's own
-//   `specular_exponent` was tried first, since it is the field `LightSource::Spot`'s own doc comment specifically
-//   contrasts against `specular_lighting`'s identically-named parameter, but it has no visible effect in this
-//   sandbox's own Chrome, checked across a wide range (0.01 through 10000, well past the 1.0-128.0 range the
-//   surface's own specular exponent is conventionally clamped to). The specular hotspot's own position is driven
-//   by the light's position, not by this exponent, so sweeping `x` instead reliably moves it.
+// - Spot (no cone): the light's own `x` position, translating the whole beam sideways. `points_at_x` moves by
+//   the same amount as `x`, so the beam's own orientation stays fixed while only its own position slides — see
+//   SPOT_OPEN_AIM_OFFSET's own comment for what moving `x` alone, with `points_at_x` left fixed, would have done
+//   instead. The light's own `specular_exponent` was tried first, since it is the field `LightSource::Spot`'s own
+//   doc comment specifically contrasts against `specular_lighting`'s identically-named parameter, but it has no
+//   visible effect in this sandbox's own Chrome, checked across a wide range (0.01 through 10000, well past the
+//   1.0-128.0 range the surface's own specular exponent is conventionally clamped to).
 // - Spot (with cone): `limiting_cone_angle`, the hard-edged cutoff this column adds on top of the same falloff
 //   the previous column already shows.
 //
@@ -79,6 +80,14 @@ const DEFAULT_HEIGHT: i32 = 60; // this demo's own original fixed z
 const MIN_SPOT_X: i32 = 400;
 const MAX_SPOT_X: i32 = 560;
 const DEFAULT_SPOT_X: i32 = 440; // this demo's own original fixed light x
+
+// The open Spot column's own points_at_x always trails its own light x by this much, this demo's own original
+// fixed offset (520.0 - 440.0). Moving x alone, with points_at_x left fixed, would rotate the beam's own aim
+// axis as x crossed points_at_x, not translate it — at the slider's own upper end the beam would even point
+// backwards, horizontally, from where it started. Keeping this offset constant as x moves instead translates the
+// whole beam sideways, preserving its own orientation, so this column isolates the light's own position the way
+// its own caption claims.
+const SPOT_OPEN_AIM_OFFSET: f64 = 80.0;
 
 const SPOT_SPECULAR_EXPONENT: f64 = 2.0; // fixed throughout, not one of these sliders: see the module doc comment
 
@@ -206,7 +215,9 @@ pub(crate) fn demo() -> Result<(), Error> {
 
     // Spot, no limiting_cone_angle: still directional (pow(-L.S, specular_exponent) falloff away from the aim
     // axis), but with no additional hard-edged cutoff — compare its softer edge against the next column's.
-    // Sweeping the light's own x moves the specular hotspot across the surface, from edge to edge.
+    // Sweeping the light's own x translates the whole beam sideways, moving the specular hotspot across the
+    // surface with it, from edge to edge — points_at_x moves by the same amount, preserving the beam's own
+    // orientation. See SPOT_OPEN_AIM_OFFSET's own comment for why points_at_x cannot simply stay fixed.
     let spot_open_filter = defs.filter("light-spot-open")?;
     super::exact_filter_region(&spot_open_filter)?;
     let spot_open = spot_open_filter.specular_lighting_with_light(
@@ -218,7 +229,7 @@ pub(crate) fn demo() -> Result<(), Error> {
             x: default_spot_x,
             y: RECT_Y + 20.0,
             z: 80.0,
-            points_at_x: COL3_X + 120.0,
+            points_at_x: default_spot_x + SPOT_OPEN_AIM_OFFSET,
             points_at_y: RECT_Y + RECT_H - 10.0,
             points_at_z: 0.0,
             specular_exponent: SPOT_SPECULAR_EXPONENT,
@@ -374,6 +385,7 @@ pub(crate) fn demo() -> Result<(), Error> {
             let x = slider.value_as_number();
             let text = spot_x_value_text(x);
             let _ = light.set_attr("x", &text);
+            let _ = light.set_attr("pointsAtX", &(x + SPOT_OPEN_AIM_OFFSET).to_string());
             let _ = slider.set_attribute("aria-valuetext", &text);
             caption.set_text(&spot_open_caption_text(x));
         });

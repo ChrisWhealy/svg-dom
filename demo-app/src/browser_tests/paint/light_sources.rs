@@ -12,8 +12,9 @@ use wasm_bindgen_test::wasm_bindgen_test;
 /// It cannot prove the Distant column's own `elevation` slider leaves `azimuth` untouched, at its own fixed
 /// value that has no rendered effect for this column's own flat surface.
 /// It cannot prove the Point column's own `z` slider leaves `x`/`y` untouched.
-/// It cannot prove the open Spot column's own `x` slider leaves `y`/`z`/its own aim point untouched, or that it
-/// writes the light's own `x`, not `feSpecularLighting`'s own unrelated attributes.
+/// It cannot prove the open Spot column's own `x` slider moves `pointsAtX` by the same delta, translating the
+/// beam rather than rotating it, while leaving `y`/`z` and `feSpecularLighting`'s own unrelated attributes
+/// untouched.
 /// It cannot prove the cone Spot column's own `limitingConeAngle` slider leaves that same light's own fixed
 /// `specularExponent` untouched.
 /// It cannot prove the four columns stay independent of one another.
@@ -196,8 +197,9 @@ fn demo_light_sources_sliders_update_their_own_light_independently() {
         "moving height should not touch the Distant column's own light, which stays at its own last value"
     );
 
-    // --- moving the Spot (no cone) column's own position (x) slider writes the light's own x, leaving its own
-    // y/z/aim point, and feSpecularLighting's own identically-scoped attributes, untouched ---
+    // --- moving the Spot (no cone) column's own position (x) slider writes the light's own x, and moves
+    // pointsAtX by the same delta, translating the beam without rotating it. y/z, and feSpecularLighting's own
+    // identically-scoped attributes, stay untouched ---
     dispatch_input(&spot_x_slider, "560");
     assert_eq!(spot_open_light.get_attribute("x").as_deref(), Some("560"));
     assert_eq!(
@@ -207,8 +209,10 @@ fn demo_light_sources_sliders_update_their_own_light_independently() {
     );
     assert_eq!(
         spot_open_light.get_attribute("pointsAtX").as_deref(),
-        Some("520"),
-        "x alone should change, not the aim point"
+        Some("640"),
+        "pointsAtX must move by the same 80-unit offset as x, translating the beam rather than rotating it -- \
+         leaving pointsAtX fixed at 520 while x passes it would swing the beam's own horizontal direction into \
+         reverse"
     );
     assert_eq!(
         spot_open_primitive.get_attribute("surfaceScale").as_deref(),

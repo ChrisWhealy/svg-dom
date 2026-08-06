@@ -12,6 +12,10 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 - Make `LightSource` comparison demo interactive (`ea98a30`)
 
+### Fixed
+
+- Correct effect of spot slider on beam (``)
+
 ## [0.1.15] - 2026-08-06
 
 ### Added
