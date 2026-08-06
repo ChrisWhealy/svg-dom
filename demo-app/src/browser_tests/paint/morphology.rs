@@ -22,6 +22,10 @@ use wasm_bindgen_test::wasm_bindgen_test;
 /// 4) The slider's own tick marks actually land under the native thumb's own centre at every position, not just at the
 ///    track's own raw fractional position.
 /// 5) The original column's own text stays untouched by the slider, unlike the other three columns.
+/// 6) The bold-outline column's own filter graph actually has the shape that produces an outline at all.
+///    `in="SourceAlpha"`, `result="thickened"`, and the merge's own two `feMergeNode`s reading `thickened` then
+///    `SourceGraphic`, in that order, are each load-bearing on their own. Changing any one of them would compile and
+///    run without error, but would silently stop producing a bold outline.
 #[wasm_bindgen_test]
 fn demo_morphology_radius_slider_updates_erode_dilate_and_outline_together() {
     container("demo-morphology");
@@ -139,6 +143,40 @@ fn demo_morphology_radius_slider_updates_erode_dilate_and_outline_together() {
     let outline = find_el("#morphology-outline feMorphology");
     assert_eq!(outline.get_attribute("operator").as_deref(), Some("dilate"));
     assert_eq!(outline.get_attribute("radius").as_deref(), Some("1.2"));
+    assert_eq!(
+        outline.get_attribute("in").as_deref(),
+        Some("SourceAlpha"),
+        "the bold outline dilates the source's own alpha silhouette, not its full graphic"
+    );
+    assert_eq!(
+        outline.get_attribute("result").as_deref(),
+        Some("thickened"),
+        "the merge below reads this primitive's own output by this name"
+    );
+
+    // The merge's own two feMergeNode children must read in this exact order: the dilated fringe first, then the
+    // original graphic on top of it. Reversed, the original graphic would sit underneath its own fringe instead of over
+    // it, hiding the fringe rather than surrounding the glyphs with it.
+    let merge_node_inputs: Vec<Option<String>> = {
+        let nodes = root
+            .query_selector_all("#morphology-outline feMerge feMergeNode")
+            .expect("query feMergeNode elements");
+        (0..nodes.length())
+            .map(|i| {
+                nodes
+                    .item(i)
+                    .expect("feMergeNode item")
+                    .dyn_into::<web_sys::Element>()
+                    .expect("Element")
+                    .get_attribute("in")
+            })
+            .collect()
+    };
+    assert_eq!(
+        merge_node_inputs,
+        vec![Some("thickened".to_owned()), Some("SourceGraphic".to_owned())]
+    );
+
     let outline_caption = find_text("bold outline (dilate 1.2 + merge)");
 
     // --- `SourceAlpha` has zero-valued colour channels, so the bold-outline column's own exposed fringe is

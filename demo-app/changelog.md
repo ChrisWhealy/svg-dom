@@ -15,7 +15,8 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 ### Fixed
 
 - Fix test assertion after colour change (`4b6027b`)
-- Doc only: correct description of outline at radius zero (``)
+- Doc only: correct description of outline at radius zero (`bde9121`)
+- Improve test coverage of outline filter graph (``)
 
 ## [0.1.13] - 2026-08-05
 
