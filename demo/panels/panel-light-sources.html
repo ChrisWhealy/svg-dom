@@ -6,29 +6,36 @@
         <div class="canvas" id="demo-light-sources"></div>
         <figcaption>
             <p>
-                Every panel here lights a plain, flat rect with <code>feSpecularLighting</code> alone.
-                A flat surface has one constant normal. So any position-dependence in the highlight
-                comes entirely from the light source itself, not from bump-map relief.
+                Every panel here lights a plain, flat rect with <code>feSpecularLighting</code> alone. A flat surface
+                has one constant normal. So any position-dependence in the highlight comes entirely from the light
+                source itself, not from bump-map relief.
+            </p>
+            <p>
+                Each panel has its own slider. Each one drives the single property that most distinguishes its own
+                <code>LightSource</code> variant from the other three.
             </p>
             <ul>
-                <li><strong>Distant (uniform)</strong> Direction is identical everywhere, per the SVG
-                    spec. So the highlight is a uniform sheen across the whole flat surface, with no
-                    hotspot.
-                </li>
-                <li><strong>Point (hotspot)</strong> Direction varies per surface sample. This produces
-                    a hotspot nearest the light's projected position. Per
-                    <code>LightSource::Point</code>'s own doc comment, there is no distance attenuation
-                    on the light's colour itself. Only its direction changes, across the surface.
-                </li>
-                <li><strong>Spot (no cone)</strong> Still directional: a
-                    <code>pow(-L&middot;S, specular_exponent)</code> falloff away from the aim axis.
-                    With <code>limiting_cone_angle: None</code>, no <em>additional</em> hard-edged
-                    cutoff applies. Compare its softer edge against the next panel's.
-                </li>
+                <li><strong>Distant (uniform)</strong> Direction is identical everywhere, per the SVG spec. So the
+                    highlight is a uniform sheen across the whole flat surface, with no hotspot. A flat surface's own
+                    normal is constant. So that sheen's own brightness depends only on <strong>elevation</strong>, never
+                    on azimuth. The <strong>elevation</strong> slider raises or lowers that brightness. A grazing angle
+                    dims the sheen. An overhead one brightens it. It still never localises into a hotspot. </li>
+                <li><strong>Point (hotspot)</strong> Direction varies per surface sample. This produces a hotspot
+                    nearest the light's projected position. Per <code>LightSource::Point</code>'s own doc comment, there
+                    is no distance attenuation on the light's colour itself. Only its direction changes, across the
+                    surface. The <strong>height (z)</strong> slider raises or lowers the light above that surface. A
+                    lowerlight sharpens the hotspot further. A higher one spreads it towards the Distant panel's own
+                    uniform sheen. </li>
+                <li><strong>Spot (no cone)</strong> Still directional: a <code>pow(-L&middot;S,
+                        specular_exponent)</code>
+                    falloff away from the aim axis. With <code>limiting_cone_angle:None</code>, no <em>additional</em>
+                    hard-edged cutoff applies. Compare its softer edge against the next panel's. The specular hotspot's
+                    own position follows the light's own position, not its aim point. The <strong>position (x)</strong>
+                    slider sweeps the light sideways, moving that hotspot with it. </li>
                 <li><strong>Spot (limitingConeAngle)</strong> The identical beam as the previous panel.
-                    Now <code>limiting_cone_angle: Some(20.0)</code> additionally hard-clips it. The
-                    sharper circular edge here, versus the previous panel's falloff-only edge, is
-                    exactly the distinction <code>LightSource::Spot</code>'s own doc comment describes.
+                    <code>limiting_cone_angle</code> additionally hard-clips it. The sharper circular edge here, versus
+                    the previous panel's falloff-only edge, is exactly the distinction <code>LightSource::Spot</code>'s
+                    own doc comment describes. The <strong>cone angle</strong> slider narrows or widens that hard clip.
                 </li>
             </ul>
         </figcaption>

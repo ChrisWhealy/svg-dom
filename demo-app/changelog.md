@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 The `svg-dom-demo` gallery is not published as part of the crate's release, so the changes listed here are not tied to any version number known to `crates.io`.
 
+## [0.1.16] - 2026-08-06
+
+### Added
+
+- Make `LightSource` Comparison demo interactive (``)
+
 ## [0.1.15] - 2026-08-06
 
 ### Added
