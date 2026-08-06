@@ -10,7 +10,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 ### Added
 
-- Make `LightSource` Comparison demo interactive (``)
+- Make `LightSource` comparison demo interactive (`ea98a30`)
 
 ## [0.1.15] - 2026-08-06
 
