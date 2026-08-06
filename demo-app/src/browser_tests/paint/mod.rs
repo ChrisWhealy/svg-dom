@@ -5,6 +5,7 @@ mod blend;
 mod color_matrix;
 mod component_transfer;
 mod filter;
+mod lighting;
 mod linear_gradient;
 mod morphology;
 mod radial_gradient;
