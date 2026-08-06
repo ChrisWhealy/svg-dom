@@ -150,7 +150,7 @@ fn demo_morphology_radius_slider_updates_erode_dilate_and_outline_together() {
         .expect("backing rect")
         .dyn_into::<web_sys::Element>()
         .expect("Element");
-    assert_eq!(backing.get_attribute("fill").as_deref(), Some("white"));
+    assert_eq!(backing.get_attribute("fill").as_deref(), Some("#ffffee"));
     assert!(
         backing.get_attribute("filter").is_none(),
         "the backing rectangle itself must stay unfiltered"

@@ -10,7 +10,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 ### Added
 
-- Make `feMorphology` demo interactive (``)
+- Make `feMorphology` demo interactive (`beb85aa`)
 
 ## [0.1.13] - 2026-08-05
 
