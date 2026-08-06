@@ -11,10 +11,12 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 ### Added
 
 - Make `LightSource` comparison demo interactive (`ea98a30`)
+- Improve light source test coverage (`2e994eb`)
 
 ### Fixed
 
 - Correct effect of spot slider on beam (`16b6bd4`)
+- Correct overstatement in LightSource documentation and adjust demo (``)
 
 ## [0.1.15] - 2026-08-06
 

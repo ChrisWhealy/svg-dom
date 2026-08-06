@@ -11,8 +11,8 @@
                 source itself, not from bump-map relief.
             </p>
             <p>
-                Each panel has its own slider. Each one drives the single property that most distinguishes its own
-                <code>LightSource</code> variant from the other three.
+                Each panel has its own slider, chosen to make one important aspect of that light source's own behaviour
+                easy to see.
             </p>
             <ul>
                 <li><strong>Distant (uniform)</strong> Direction is identical everywhere, per the SVG spec. So the
@@ -24,7 +24,7 @@
                     nearest the light's projected position. Per <code>LightSource::Point</code>'s own doc comment, there
                     is no distance attenuation on the light's colour itself. Only its direction changes, across the
                     surface. The <strong>height (z)</strong> slider raises or lowers the light above that surface. A
-                    lowerlight sharpens the hotspot further. A higher one spreads it towards the Distant panel's own
+                    lower light sharpens the hotspot further. A higher one spreads it towards the Distant panel's own
                     uniform sheen. </li>
                 <li><strong>Spot (no cone)</strong> Still directional: a <code>pow(-L&middot;S,
                         specular_exponent)</code>

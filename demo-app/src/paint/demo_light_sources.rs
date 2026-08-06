@@ -16,8 +16,10 @@ use wasm_bindgen::{JsCast, prelude::*};
 // from bump-map relief. This isolates exactly the LightSource-variant behaviour each column's own slider drives.
 //
 // Unlike `demo_lighting`'s own two sliders, which drive the same shared light across three columns, the four
-// columns here are four genuinely different `LightSource` variants. Each gets its own single slider, driving the
-// one parameter that most distinguishes its own column from the others:
+// columns here are four genuinely different `LightSource` variants. Each gets its own single slider, chosen to
+// make one important aspect of that column's own light easy to see. That field is not necessarily unique to its
+// own variant. Point and Spot both have position and height fields, and Spot's own `x` is not exclusive to Spot
+// either. Each choice below is its own case, not a systematic one-to-one mapping of variant-exclusive fields.
 //
 // - Distant: `elevation`. `azimuth` was tried first, since it is `demo_lighting`'s own interactive parameter for
 //   the same variant, but it has no visible effect here. A flat surface's own normal is constant, so a distant

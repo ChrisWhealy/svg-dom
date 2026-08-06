@@ -301,49 +301,79 @@ fn build() -> Result<(), Error> {
         filter.set_y(0.0)?;
         filter.set_width(1.0)?;
         filter.set_height(1.0)?;
-        filter.specular_lighting(2.0, 1.0, 8.0, "white", light)?.set_attr("in", "SourceAlpha")?;
+        filter
+            .specular_lighting(2.0, 1.0, 8.0, "white", light)?
+            .set_attr("in", "SourceAlpha")?;
         Ok(())
     };
 
     // Distant: elevation 15deg (grazing) vs 85deg (near-overhead). A flat surface's own diffuse/specular response
     // to a distant light depends only on elevation, never azimuth — panel-light-sources.html's own claim, checked
     // here as average luminance across several sample points, not just a single centre pixel.
-    ls_specular_lighting(&defs, "ls-distant-low-filter", LightSource::Distant {
-        azimuth: 235.0,
-        elevation: 15.0,
-    })?;
-    let ls_distant_low = svg.rect(Point::new(LS_DISTANT_LOW_X, LS_ROW_Y), svg_dom::root::utils::Size::new(LS_RECT_W, LS_RECT_H))?;
+    ls_specular_lighting(
+        &defs,
+        "ls-distant-low-filter",
+        LightSource::Distant {
+            azimuth: 235.0,
+            elevation: 15.0,
+        },
+    )?;
+    let ls_distant_low = svg.rect(
+        Point::new(LS_DISTANT_LOW_X, LS_ROW_Y),
+        svg_dom::root::utils::Size::new(LS_RECT_W, LS_RECT_H),
+    )?;
     ls_distant_low.as_element().set_id("ls-distant-low");
     ls_distant_low.set_fill("steelblue")?;
     ls_distant_low.set_filter("ls-distant-low-filter")?;
 
-    ls_specular_lighting(&defs, "ls-distant-high-filter", LightSource::Distant {
-        azimuth: 235.0,
-        elevation: 85.0,
-    })?;
-    let ls_distant_high = svg.rect(Point::new(LS_DISTANT_HIGH_X, LS_ROW_Y), svg_dom::root::utils::Size::new(LS_RECT_W, LS_RECT_H))?;
+    ls_specular_lighting(
+        &defs,
+        "ls-distant-high-filter",
+        LightSource::Distant {
+            azimuth: 235.0,
+            elevation: 85.0,
+        },
+    )?;
+    let ls_distant_high = svg.rect(
+        Point::new(LS_DISTANT_HIGH_X, LS_ROW_Y),
+        svg_dom::root::utils::Size::new(LS_RECT_W, LS_RECT_H),
+    )?;
     ls_distant_high.as_element().set_id("ls-distant-high");
     ls_distant_high.set_fill("steelblue")?;
     ls_distant_high.set_filter("ls-distant-high-filter")?;
 
     // Point: z 20 (low, sharp hotspot) vs 180 (high, spread towards a Distant-like uniform sheen) — the light's
     // own x/y sit at each rect's own centre, matching `demo_light_sources.rs`'s own construction.
-    ls_specular_lighting(&defs, "ls-point-low-z-filter", LightSource::Point {
-        x: LS_POINT_LOW_X + LS_RECT_W / 2.0,
-        y: LS_ROW_Y + LS_RECT_H / 2.0,
-        z: 20.0,
-    })?;
-    let ls_point_low_z = svg.rect(Point::new(LS_POINT_LOW_X, LS_ROW_Y), svg_dom::root::utils::Size::new(LS_RECT_W, LS_RECT_H))?;
+    ls_specular_lighting(
+        &defs,
+        "ls-point-low-z-filter",
+        LightSource::Point {
+            x: LS_POINT_LOW_X + LS_RECT_W / 2.0,
+            y: LS_ROW_Y + LS_RECT_H / 2.0,
+            z: 20.0,
+        },
+    )?;
+    let ls_point_low_z = svg.rect(
+        Point::new(LS_POINT_LOW_X, LS_ROW_Y),
+        svg_dom::root::utils::Size::new(LS_RECT_W, LS_RECT_H),
+    )?;
     ls_point_low_z.as_element().set_id("ls-point-low-z");
     ls_point_low_z.set_fill("steelblue")?;
     ls_point_low_z.set_filter("ls-point-low-z-filter")?;
 
-    ls_specular_lighting(&defs, "ls-point-high-z-filter", LightSource::Point {
-        x: LS_POINT_HIGH_X + LS_RECT_W / 2.0,
-        y: LS_ROW_Y + LS_RECT_H / 2.0,
-        z: 180.0,
-    })?;
-    let ls_point_high_z = svg.rect(Point::new(LS_POINT_HIGH_X, LS_ROW_Y), svg_dom::root::utils::Size::new(LS_RECT_W, LS_RECT_H))?;
+    ls_specular_lighting(
+        &defs,
+        "ls-point-high-z-filter",
+        LightSource::Point {
+            x: LS_POINT_HIGH_X + LS_RECT_W / 2.0,
+            y: LS_ROW_Y + LS_RECT_H / 2.0,
+            z: 180.0,
+        },
+    )?;
+    let ls_point_high_z = svg.rect(
+        Point::new(LS_POINT_HIGH_X, LS_ROW_Y),
+        svg_dom::root::utils::Size::new(LS_RECT_W, LS_RECT_H),
+    )?;
     ls_point_high_z.as_element().set_id("ls-point-high-z");
     ls_point_high_z.set_fill("steelblue")?;
     ls_point_high_z.set_filter("ls-point-high-z-filter")?;
@@ -353,32 +383,46 @@ fn build() -> Result<(), Error> {
     // SPOT_OPEN_AIM_OFFSET uses in that file — translating the whole beam sideways rather than rotating it, the
     // same fix that file's own module doc comment explains. The aim point sits outside the rect's own bounds in
     // both cases, the same way it does in the real demo at either slider extreme.
-    ls_specular_lighting(&defs, "ls-spot-left-filter", LightSource::Spot {
-        x: LS_SPOT_LEFT_X,
-        y: LS_ROW_Y + 20.0,
-        z: 80.0,
-        points_at_x: LS_SPOT_LEFT_X + 80.0,
-        points_at_y: LS_ROW_Y + LS_RECT_H - 10.0,
-        points_at_z: 0.0,
-        specular_exponent: 2.0,
-        limiting_cone_angle: None,
-    })?;
-    let ls_spot_left = svg.rect(Point::new(LS_SPOT_LEFT_X, LS_ROW_Y), svg_dom::root::utils::Size::new(LS_RECT_W, LS_RECT_H))?;
+    ls_specular_lighting(
+        &defs,
+        "ls-spot-left-filter",
+        LightSource::Spot {
+            x: LS_SPOT_LEFT_X,
+            y: LS_ROW_Y + 20.0,
+            z: 80.0,
+            points_at_x: LS_SPOT_LEFT_X + 80.0,
+            points_at_y: LS_ROW_Y + LS_RECT_H - 10.0,
+            points_at_z: 0.0,
+            specular_exponent: 2.0,
+            limiting_cone_angle: None,
+        },
+    )?;
+    let ls_spot_left = svg.rect(
+        Point::new(LS_SPOT_LEFT_X, LS_ROW_Y),
+        svg_dom::root::utils::Size::new(LS_RECT_W, LS_RECT_H),
+    )?;
     ls_spot_left.as_element().set_id("ls-spot-left");
     ls_spot_left.set_fill("steelblue")?;
     ls_spot_left.set_filter("ls-spot-left-filter")?;
 
-    ls_specular_lighting(&defs, "ls-spot-right-filter", LightSource::Spot {
-        x: LS_SPOT_RIGHT_X + LS_RECT_W,
-        y: LS_ROW_Y + 20.0,
-        z: 80.0,
-        points_at_x: LS_SPOT_RIGHT_X + LS_RECT_W + 80.0,
-        points_at_y: LS_ROW_Y + LS_RECT_H - 10.0,
-        points_at_z: 0.0,
-        specular_exponent: 2.0,
-        limiting_cone_angle: None,
-    })?;
-    let ls_spot_right = svg.rect(Point::new(LS_SPOT_RIGHT_X, LS_ROW_Y), svg_dom::root::utils::Size::new(LS_RECT_W, LS_RECT_H))?;
+    ls_specular_lighting(
+        &defs,
+        "ls-spot-right-filter",
+        LightSource::Spot {
+            x: LS_SPOT_RIGHT_X + LS_RECT_W,
+            y: LS_ROW_Y + 20.0,
+            z: 80.0,
+            points_at_x: LS_SPOT_RIGHT_X + LS_RECT_W + 80.0,
+            points_at_y: LS_ROW_Y + LS_RECT_H - 10.0,
+            points_at_z: 0.0,
+            specular_exponent: 2.0,
+            limiting_cone_angle: None,
+        },
+    )?;
+    let ls_spot_right = svg.rect(
+        Point::new(LS_SPOT_RIGHT_X, LS_ROW_Y),
+        svg_dom::root::utils::Size::new(LS_RECT_W, LS_RECT_H),
+    )?;
     ls_spot_right.as_element().set_id("ls-spot-right");
     ls_spot_right.set_fill("steelblue")?;
     ls_spot_right.set_filter("ls-spot-right-filter")?;
@@ -388,32 +432,46 @@ fn build() -> Result<(), Error> {
     // `panel-light-sources.html` both document that 0deg renders as a fully open beam in this sandbox's own
     // Chrome, not the near-invisible cutoff the spec describes, which is why the slider's own range starts at 5
     // instead — this is the specific claim this pair checks against real pixels.
-    ls_specular_lighting(&defs, "ls-cone-narrow-filter", LightSource::Spot {
-        x: LS_CONE_NARROW_X + 40.0,
-        y: LS_ROW_Y + 20.0,
-        z: 80.0,
-        points_at_x: LS_CONE_NARROW_X + 120.0,
-        points_at_y: LS_ROW_Y + LS_RECT_H - 10.0,
-        points_at_z: 0.0,
-        specular_exponent: 2.0,
-        limiting_cone_angle: Some(5.0),
-    })?;
-    let ls_cone_narrow = svg.rect(Point::new(LS_CONE_NARROW_X, LS_ROW_Y), svg_dom::root::utils::Size::new(LS_RECT_W, LS_RECT_H))?;
+    ls_specular_lighting(
+        &defs,
+        "ls-cone-narrow-filter",
+        LightSource::Spot {
+            x: LS_CONE_NARROW_X + 40.0,
+            y: LS_ROW_Y + 20.0,
+            z: 80.0,
+            points_at_x: LS_CONE_NARROW_X + 120.0,
+            points_at_y: LS_ROW_Y + LS_RECT_H - 10.0,
+            points_at_z: 0.0,
+            specular_exponent: 2.0,
+            limiting_cone_angle: Some(5.0),
+        },
+    )?;
+    let ls_cone_narrow = svg.rect(
+        Point::new(LS_CONE_NARROW_X, LS_ROW_Y),
+        svg_dom::root::utils::Size::new(LS_RECT_W, LS_RECT_H),
+    )?;
     ls_cone_narrow.as_element().set_id("ls-cone-narrow");
     ls_cone_narrow.set_fill("steelblue")?;
     ls_cone_narrow.set_filter("ls-cone-narrow-filter")?;
 
-    ls_specular_lighting(&defs, "ls-cone-wide-filter", LightSource::Spot {
-        x: LS_CONE_WIDE_X + 40.0,
-        y: LS_ROW_Y + 20.0,
-        z: 80.0,
-        points_at_x: LS_CONE_WIDE_X + 120.0,
-        points_at_y: LS_ROW_Y + LS_RECT_H - 10.0,
-        points_at_z: 0.0,
-        specular_exponent: 2.0,
-        limiting_cone_angle: Some(90.0),
-    })?;
-    let ls_cone_wide = svg.rect(Point::new(LS_CONE_WIDE_X, LS_ROW_Y), svg_dom::root::utils::Size::new(LS_RECT_W, LS_RECT_H))?;
+    ls_specular_lighting(
+        &defs,
+        "ls-cone-wide-filter",
+        LightSource::Spot {
+            x: LS_CONE_WIDE_X + 40.0,
+            y: LS_ROW_Y + 20.0,
+            z: 80.0,
+            points_at_x: LS_CONE_WIDE_X + 120.0,
+            points_at_y: LS_ROW_Y + LS_RECT_H - 10.0,
+            points_at_z: 0.0,
+            specular_exponent: 2.0,
+            limiting_cone_angle: Some(90.0),
+        },
+    )?;
+    let ls_cone_wide = svg.rect(
+        Point::new(LS_CONE_WIDE_X, LS_ROW_Y),
+        svg_dom::root::utils::Size::new(LS_RECT_W, LS_RECT_H),
+    )?;
     ls_cone_wide.as_element().set_id("ls-cone-wide");
     ls_cone_wide.set_fill("steelblue")?;
     ls_cone_wide.set_filter("ls-cone-wide-filter")?;
