@@ -1,6 +1,6 @@
 //! Shared setup helpers for `cdp-integration-test`'s Chrome-DevTools-Protocol integration tests.
 //!
-//! This crate hosts three integration test files under `tests/`, each verifying browser-computed behaviour that
+//! This crate hosts four integration test files under `tests/`, each verifying browser-computed behaviour that
 //! plain DOM inspection (and therefore `wasm-bindgen-test`) cannot see:
 //!
 //! - `accessibility_tree.rs` — accessible-name/description computation, via the Accessibility CDP domain.
@@ -8,8 +8,9 @@
 //! - `turbulence_scale_zero_render.rs` — `SvgFilter::displacement_map`'s `scale` argument at `0.0`, via actual
 //!   rendered pixels.
 //! - `lighting_render.rs` — `demo_lighting.rs`'s own surfaceScale and azimuth sliders, via actual rendered pixels.
+//! - `light_sources_render.rs` — `demo_light_sources.rs`'s own four sliders, via actual rendered pixels.
 //!
-//! All four drive a real Chrome instance against the same sibling `cdp-test-fixture` wasm crate (built once,
+//! All five drive a real Chrome instance against the same sibling `cdp-test-fixture` wasm crate (built once,
 //! served locally), so the functions below — building the fixture, serving it, and launching Chrome — are shared
 //! here rather than duplicated per test file. Each test file still builds and launches its own instance of the
 //! fixture and Chrome, since cargo compiles each file under `tests/` as a separate binary with its own process;
@@ -18,7 +19,8 @@
 //!
 //! See `accessibility_tree.rs`'s module doc comment for why this crate lives in its own on-demand workspace member,
 //! how it runs in CI, and why the browser is launched with `sandbox(false)` — that reasoning applies equally to
-//! `filter_blend_render.rs`/`turbulence_scale_zero_render.rs`/`lighting_render.rs` and is not repeated here.
+//! `filter_blend_render.rs`/`turbulence_scale_zero_render.rs`/`lighting_render.rs`/`light_sources_render.rs` and is
+//! not repeated here.
 
 use std::{path::PathBuf, process::Command, thread};
 

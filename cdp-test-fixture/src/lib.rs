@@ -1,15 +1,16 @@
 //! WASM fixture for `cdp-integration-test`'s Chrome-DevTools-Protocol integration tests
-//! (`tests/accessibility_tree.rs`, `tests/filter_blend_render.rs`, `tests/turbulence_scale_zero_render.rs`, and
-//! `tests/lighting_render.rs`).
+//! (`tests/accessibility_tree.rs`, `tests/filter_blend_render.rs`, `tests/turbulence_scale_zero_render.rs`,
+//! `tests/lighting_render.rs`, and `tests/light_sources_render.rs`).
 //!
 //! Builds a handful of SVG elements exercising real `svg-dom` API calls whose correctness cannot be verified from
 //! the DOM alone: `set_title`/`set_desc` against real accessible-name/description computation rules (ARIA
 //! precedence, blank-value rejection), `SvgFilter::blend`'s alpha-preserving tint chain against real rendered
-//! pixels, `SvgFilter::displacement_map`'s `scale` argument against real rendered pixels too, and
-//! `SvgFilter::diffuse_lighting`'s own `surfaceScale`/light source `azimuth` against real rendered pixels as well.
-//! All four need a real Chrome instance to observe — the first via the Accessibility CDP domain, the other three
-//! via actual rasterised output — neither of which `wasm-bindgen-test`'s WebDriver-run browser tests have access
-//! to.
+//! pixels, `SvgFilter::displacement_map`'s `scale` argument against real rendered pixels too,
+//! `SvgFilter::diffuse_lighting`'s own `surfaceScale`/light source `azimuth` against real rendered pixels as well,
+//! and `SvgFilter::specular_lighting`'s own response to each `LightSource` variant's own distinguishing parameter
+//! against real rendered pixels too. All five need a real Chrome instance to observe — the first via the
+//! Accessibility CDP domain, the other four via actual rasterised output — neither of which
+//! `wasm-bindgen-test`'s WebDriver-run browser tests have access to.
 //!
 //! Every shape-based accessibility scenario receives an explicit `role="img"` so Chrome always creates an
 //! accessibility-tree node for it, regardless of any SVG-specific pruning heuristics that might otherwise apply to
@@ -31,7 +32,7 @@ pub fn run() -> Result<(), JsValue> {
 }
 
 fn build() -> Result<(), Error> {
-    let svg = SvgRoot::create_in("stage", svg_dom::root::utils::Size::new(860.0, 200.0))?;
+    let svg = SvgRoot::create_in("stage", svg_dom::root::utils::Size::new(1560.0, 360.0))?;
 
     // 1. title-only naming: no ARIA attributes, so the <title> child supplies the accessible name.
     let s1 = svg.circle(Point::new(10.0, 10.0), 5.0)?;
@@ -271,6 +272,151 @@ fn build() -> Result<(), Error> {
     lighting_scale_zero.as_element().set_id("lighting-scale-zero");
     lighting_scale_zero.set_fill("steelblue")?;
     lighting_scale_zero.set_filter_ref(&lighting_scale_zero_filter)?;
+
+    // ls-distant-low / ls-distant-high / ls-point-low-z / ls-point-high-z / ls-spot-left / ls-spot-right /
+    // ls-cone-narrow / ls-cone-wide: for `tests/light_sources_render.rs`, which checks
+    // `demo_light_sources.rs`'s own four sliders (`demo-app/src/paint/demo_light_sources.rs`) against real
+    // rendered pixels, not just the attribute values a structural DOM test
+    // (`demo-app/src/browser_tests/paint/light_sources.rs`) can already see. Each pair runs that demo's own exact
+    // `feSpecularLighting` recipe on a plain, flat rect (surfaceScale 2, specularConstant 1, surface's own
+    // specularExponent 8, reading SourceAlpha), fixed at two different slider positions rather than one shared
+    // default, so the test can compare their own rendered pixels directly. Every filter's own region is pinned to
+    // exactly its rect's own bounding box, the same pattern `demo_light_sources.rs` itself uses to remove the
+    // default region's own dark rendering fringe past the rect's edge.
+    const LS_RECT_W: f64 = 160.0;
+    const LS_RECT_H: f64 = 100.0;
+    const LS_ROW_Y: f64 = 220.0;
+    const LS_DISTANT_LOW_X: f64 = 20.0;
+    const LS_DISTANT_HIGH_X: f64 = 210.0;
+    const LS_POINT_LOW_X: f64 = 400.0;
+    const LS_POINT_HIGH_X: f64 = 590.0;
+    const LS_SPOT_LEFT_X: f64 = 780.0;
+    const LS_SPOT_RIGHT_X: f64 = 970.0;
+    const LS_CONE_NARROW_X: f64 = 1160.0;
+    const LS_CONE_WIDE_X: f64 = 1350.0;
+
+    let ls_specular_lighting = |defs: &svg_dom::SvgDefs, id: &str, light: LightSource| -> Result<(), Error> {
+        let filter = defs.filter(id)?;
+        filter.set_x(0.0)?;
+        filter.set_y(0.0)?;
+        filter.set_width(1.0)?;
+        filter.set_height(1.0)?;
+        filter.specular_lighting(2.0, 1.0, 8.0, "white", light)?.set_attr("in", "SourceAlpha")?;
+        Ok(())
+    };
+
+    // Distant: elevation 15deg (grazing) vs 85deg (near-overhead). A flat surface's own diffuse/specular response
+    // to a distant light depends only on elevation, never azimuth — panel-light-sources.html's own claim, checked
+    // here as average luminance across several sample points, not just a single centre pixel.
+    ls_specular_lighting(&defs, "ls-distant-low-filter", LightSource::Distant {
+        azimuth: 235.0,
+        elevation: 15.0,
+    })?;
+    let ls_distant_low = svg.rect(Point::new(LS_DISTANT_LOW_X, LS_ROW_Y), svg_dom::root::utils::Size::new(LS_RECT_W, LS_RECT_H))?;
+    ls_distant_low.as_element().set_id("ls-distant-low");
+    ls_distant_low.set_fill("steelblue")?;
+    ls_distant_low.set_filter("ls-distant-low-filter")?;
+
+    ls_specular_lighting(&defs, "ls-distant-high-filter", LightSource::Distant {
+        azimuth: 235.0,
+        elevation: 85.0,
+    })?;
+    let ls_distant_high = svg.rect(Point::new(LS_DISTANT_HIGH_X, LS_ROW_Y), svg_dom::root::utils::Size::new(LS_RECT_W, LS_RECT_H))?;
+    ls_distant_high.as_element().set_id("ls-distant-high");
+    ls_distant_high.set_fill("steelblue")?;
+    ls_distant_high.set_filter("ls-distant-high-filter")?;
+
+    // Point: z 20 (low, sharp hotspot) vs 180 (high, spread towards a Distant-like uniform sheen) — the light's
+    // own x/y sit at each rect's own centre, matching `demo_light_sources.rs`'s own construction.
+    ls_specular_lighting(&defs, "ls-point-low-z-filter", LightSource::Point {
+        x: LS_POINT_LOW_X + LS_RECT_W / 2.0,
+        y: LS_ROW_Y + LS_RECT_H / 2.0,
+        z: 20.0,
+    })?;
+    let ls_point_low_z = svg.rect(Point::new(LS_POINT_LOW_X, LS_ROW_Y), svg_dom::root::utils::Size::new(LS_RECT_W, LS_RECT_H))?;
+    ls_point_low_z.as_element().set_id("ls-point-low-z");
+    ls_point_low_z.set_fill("steelblue")?;
+    ls_point_low_z.set_filter("ls-point-low-z-filter")?;
+
+    ls_specular_lighting(&defs, "ls-point-high-z-filter", LightSource::Point {
+        x: LS_POINT_HIGH_X + LS_RECT_W / 2.0,
+        y: LS_ROW_Y + LS_RECT_H / 2.0,
+        z: 180.0,
+    })?;
+    let ls_point_high_z = svg.rect(Point::new(LS_POINT_HIGH_X, LS_ROW_Y), svg_dom::root::utils::Size::new(LS_RECT_W, LS_RECT_H))?;
+    ls_point_high_z.as_element().set_id("ls-point-high-z");
+    ls_point_high_z.set_fill("steelblue")?;
+    ls_point_high_z.set_filter("ls-point-high-z-filter")?;
+
+    // Spot (no cone): light x at each rect's own left edge (matching demo_light_sources.rs's own slider minimum,
+    // 400) or right edge (matching its own maximum, 560), with pointsAtX trailing by the same 80-unit offset
+    // SPOT_OPEN_AIM_OFFSET uses in that file — translating the whole beam sideways rather than rotating it, the
+    // same fix that file's own module doc comment explains. The aim point sits outside the rect's own bounds in
+    // both cases, the same way it does in the real demo at either slider extreme.
+    ls_specular_lighting(&defs, "ls-spot-left-filter", LightSource::Spot {
+        x: LS_SPOT_LEFT_X,
+        y: LS_ROW_Y + 20.0,
+        z: 80.0,
+        points_at_x: LS_SPOT_LEFT_X + 80.0,
+        points_at_y: LS_ROW_Y + LS_RECT_H - 10.0,
+        points_at_z: 0.0,
+        specular_exponent: 2.0,
+        limiting_cone_angle: None,
+    })?;
+    let ls_spot_left = svg.rect(Point::new(LS_SPOT_LEFT_X, LS_ROW_Y), svg_dom::root::utils::Size::new(LS_RECT_W, LS_RECT_H))?;
+    ls_spot_left.as_element().set_id("ls-spot-left");
+    ls_spot_left.set_fill("steelblue")?;
+    ls_spot_left.set_filter("ls-spot-left-filter")?;
+
+    ls_specular_lighting(&defs, "ls-spot-right-filter", LightSource::Spot {
+        x: LS_SPOT_RIGHT_X + LS_RECT_W,
+        y: LS_ROW_Y + 20.0,
+        z: 80.0,
+        points_at_x: LS_SPOT_RIGHT_X + LS_RECT_W + 80.0,
+        points_at_y: LS_ROW_Y + LS_RECT_H - 10.0,
+        points_at_z: 0.0,
+        specular_exponent: 2.0,
+        limiting_cone_angle: None,
+    })?;
+    let ls_spot_right = svg.rect(Point::new(LS_SPOT_RIGHT_X, LS_ROW_Y), svg_dom::root::utils::Size::new(LS_RECT_W, LS_RECT_H))?;
+    ls_spot_right.as_element().set_id("ls-spot-right");
+    ls_spot_right.set_fill("steelblue")?;
+    ls_spot_right.set_filter("ls-spot-right-filter")?;
+
+    // Spot (with cone): limitingConeAngle 5deg (this demo's own slider minimum) vs 90deg (its own maximum), same
+    // light position/aim otherwise. `demo_light_sources.rs`'s own module doc comment and
+    // `panel-light-sources.html` both document that 0deg renders as a fully open beam in this sandbox's own
+    // Chrome, not the near-invisible cutoff the spec describes, which is why the slider's own range starts at 5
+    // instead — this is the specific claim this pair checks against real pixels.
+    ls_specular_lighting(&defs, "ls-cone-narrow-filter", LightSource::Spot {
+        x: LS_CONE_NARROW_X + 40.0,
+        y: LS_ROW_Y + 20.0,
+        z: 80.0,
+        points_at_x: LS_CONE_NARROW_X + 120.0,
+        points_at_y: LS_ROW_Y + LS_RECT_H - 10.0,
+        points_at_z: 0.0,
+        specular_exponent: 2.0,
+        limiting_cone_angle: Some(5.0),
+    })?;
+    let ls_cone_narrow = svg.rect(Point::new(LS_CONE_NARROW_X, LS_ROW_Y), svg_dom::root::utils::Size::new(LS_RECT_W, LS_RECT_H))?;
+    ls_cone_narrow.as_element().set_id("ls-cone-narrow");
+    ls_cone_narrow.set_fill("steelblue")?;
+    ls_cone_narrow.set_filter("ls-cone-narrow-filter")?;
+
+    ls_specular_lighting(&defs, "ls-cone-wide-filter", LightSource::Spot {
+        x: LS_CONE_WIDE_X + 40.0,
+        y: LS_ROW_Y + 20.0,
+        z: 80.0,
+        points_at_x: LS_CONE_WIDE_X + 120.0,
+        points_at_y: LS_ROW_Y + LS_RECT_H - 10.0,
+        points_at_z: 0.0,
+        specular_exponent: 2.0,
+        limiting_cone_angle: Some(90.0),
+    })?;
+    let ls_cone_wide = svg.rect(Point::new(LS_CONE_WIDE_X, LS_ROW_Y), svg_dom::root::utils::Size::new(LS_RECT_W, LS_RECT_H))?;
+    ls_cone_wide.as_element().set_id("ls-cone-wide");
+    ls_cone_wide.set_fill("steelblue")?;
+    ls_cone_wide.set_filter("ls-cone-wide-filter")?;
 
     // Signals to the driving test (polling via `wait_for_element`) that the fixture has finished building.
     let ready = svg.rect(Point::new(0.0, 0.0), svg_dom::root::utils::Size::new(1.0, 1.0))?;

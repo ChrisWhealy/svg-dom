@@ -14,7 +14,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 ### Fixed
 
-- Correct effect of spot slider on beam (``)
+- Correct effect of spot slider on beam (`16b6bd4`)
 
 ## [0.1.15] - 2026-08-06
 
