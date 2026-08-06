@@ -6,13 +6,22 @@
         <figcaption>
             <ul>
                 <li><strong>original</strong>: Bold text, no filter</li>
-                <li><strong>Erode(1.2)</strong>: Shrinks the glyphs' strokes inward, thinning them</li>
-                <li><strong>Dilate(1.2)</strong>: Grows the glyphs' strokes outward, thickening them
-                    (and fusing tightly-spaced letters slightly at this radius)</li>
-                <li><strong>bold outline</strong> <code>morphology</code> dilates
-                    <code>SourceAlpha</code>, named via <code>result</code>. <code>merge</code> then
-                    stacks it underneath the original text. Only the grown-outward fringe shows through.
-                    This gives a bolder outline, without changing the glyphs' own weight or colour.
+                <li>
+                    <p><strong>radius</strong> slider drives both <strong>Erode</strong> and <strong>Dilate</strong>.
+                        At radius 0, <code>morphology</code> disables itself and both columns then match the original
+                        exactly.</p>
+                    <p>Higher radii shrink <strong>Erode</strong>'s own strokes further. The real purpose of erosion is
+                        to show that past a certain radius, thin strokes vanish completely. This is not a rendering
+                        fault.</p>
+                    <p>Dilate works in the opposite way. As the slider value increases, tightly-spaced letters are fused
+                        into one solid shape.</p>
+                </li>
+                <li><strong>bold outline</strong> <code>morphology</code> dilates <code>SourceAlpha</code>, named via
+                    <code>result</code>. <code>merge</code> then stacks it underneath the original text with only the
+                    extended fringe showing through.<br>
+                    This gives a bolder outline, without changing the glyphs' own weight or colour. The same
+                    <strong>radius</strong> slider above also drives this column. A thicker outline at higher radii
+                    shows the same growing dilation, through this different compositing technique.
                 </li>
             </ul>
             <p>
@@ -36,6 +45,11 @@
                 construction. This choice is deliberate: an uncomposited <code>SourceAlpha</code> result
                 has zero-valued colour channels. Merging it back with <code>SourceGraphic</code> would
                 not otherwise preserve the text's own steel-blue fill.
+            </p>
+            <p>
+                Zero-valued colour channels also make the exposed fringe plain black. A white
+                rectangle sits behind this column only, so that fringe stays visible against this
+                gallery's own dark canvas.
             </p>
         </figcaption>
     </figure>

@@ -127,6 +127,34 @@ fn select_el(svg: &SvgRoot, selector: &str) -> Result<web_sys::Element, Error> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// The default, unstyled `<input type="range">` thumb's own radius, confirmed empirically against the rendered
+/// control: its own diameter fills `.demo-slider-vertical`'s own 16px track thickness, and `.demo-slider`'s own
+/// default (unset) height matches it too, for the same underlying browser default.
+///
+/// The thumb's own centre cannot reach either bare end of its track: at the minimum and maximum values it sits
+/// inset by this amount, not flush with the track's own edge. [`fill_ticks`] below corrects for this so each tick
+/// mark sits under the thumb's own actual centre at that value, not the track's own raw fractional position.
+const SLIDER_THUMB_RADIUS_PX: f64 = 8.0;
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// The CSS `left` declaration for a tick mark at `fraction` of a track's own length (`0.0` at `min`, `1.0` at
+/// `max`), corrected by [`SLIDER_THUMB_RADIUS_PX`] so the mark sits under the native thumb's own actual centre at
+/// that value rather than the track's own bare fractional position. The thumb's centre travels only from
+/// `SLIDER_THUMB_RADIUS_PX` to `100% - SLIDER_THUMB_RADIUS_PX`, not from `0%` to `100%`, so a mark positioned at
+/// a raw `fraction * 100%` would sit outside that travel range at either extreme — through the thumb's own edge,
+/// not its centre. `calc()` combines the track's own percentage width (resolved by the browser at layout time,
+/// so this needs no knowledge of the track's own actual pixel length) with this fixed pixel correction.
+fn tick_left_style(fraction: f64) -> String {
+    let percent = fraction * 100.0;
+    let offset = SLIDER_THUMB_RADIUS_PX * (1.0 - 2.0 * fraction);
+    if offset >= 0.0 {
+        format!("left:calc({percent:.2}% + {offset:.2}px);")
+    } else {
+        format!("left:calc({percent:.2}% - {:.2}px);", -offset)
+    }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Fills `ticks_row` with tick marks proportioned across `[min, max]`, every `tick_step` units from `min`, plus
 /// one final tick at `max`.
 /// That final tick may sit closer than `tick_step` to its neighbour.
@@ -144,16 +172,16 @@ fn fill_ticks(ticks_row: &web_sys::Element, min: i32, max: i32, tick_step: i32) 
     let span = f64::from(max - min);
     let mut tick = min;
     while tick < max {
-        let percent = f64::from(tick - min) / span * 100.0;
+        let fraction = f64::from(tick - min) / span;
         let mark = xhtml(&document, "span")?;
         mark.set_attribute("class", "demo-tick-mark").map_err(dom_err)?;
-        mark.set_attribute("style", &format!("left:{percent:.2}%;")).map_err(dom_err)?;
+        mark.set_attribute("style", &tick_left_style(fraction)).map_err(dom_err)?;
         ticks_row.append_child(&mark).map_err(dom_err)?;
         tick += tick_step;
     }
     let final_mark = xhtml(&document, "span")?;
     final_mark.set_attribute("class", "demo-tick-mark").map_err(dom_err)?;
-    final_mark.set_attribute("style", "left:100%;").map_err(dom_err)?;
+    final_mark.set_attribute("style", &tick_left_style(1.0)).map_err(dom_err)?;
     ticks_row.append_child(&final_mark).map_err(dom_err)?;
     Ok(())
 }

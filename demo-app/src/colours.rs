@@ -50,6 +50,8 @@ pub const SWATCH_EMPTY: &str = "#222";
 pub const RESET_IDLE: &str = "#555";
 /// The deep outer edge of the centred radial-gradient glow.
 pub const NIGHT_SKY_BLUE: &str = "#0d1b2a";
+/// Off white for almost white backgrounds.
+pub const PAPER_WHITE: &str = "#ffffee";
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Named CSS palette — the bright fills used across the shape demos

@@ -6,5 +6,6 @@ mod color_matrix;
 mod component_transfer;
 mod filter;
 mod linear_gradient;
+mod morphology;
 mod radial_gradient;
 mod turbulence;
