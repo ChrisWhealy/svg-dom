@@ -19,14 +19,16 @@ use wasm_bindgen::{JsCast, prelude::*};
 //
 // Unlike `structure`, this module does have shared helpers.
 // `widen_filter_region`/`exact_filter_region` below are used by more than one demo file (`demo_turbulence`,
-// `demo_morphology`, `demo_fe_image`, `demo_fe_tile`). `demo_filter` computes its own filter regions instead:
-// its own slider-driven MAX_ constants reach values `widen_filter_region`'s fixed -50%/-50%/200%/200% region is
-// too tight for (see its own doc comment for the margin it uses instead).
+// `demo_morphology`, `demo_fe_image`, `demo_fe_tile`, `demo_light_sources`). `demo_filter` computes its own filter
+// regions instead: its own slider-driven MAX_ constants reach values `widen_filter_region`'s fixed
+// -50%/-50%/200%/200% region is too tight for (see its own doc comment for the margin it uses instead).
 // `row_caption`/`side_label`/`select_el`/`fill_ticks`/`HSlider`/`build_h_slider`/`build_v_slider` below are used
 // by the gradient demos (`demo_linear_gradient`, `demo_radial_gradient`) and by `demo_filter`'s blur circle and
 // drop-shadow sliders (the latter including its own vertical dy slider), which each lay their own controls out
 // in custom rows rather than following the shared W/H/PAD_Y/BAND/caption convention every other demo uses.
 // `demo_component_transfer`'s own gamma, discrete, and alpha sliders use these same helpers, for the same reason.
+// `demo_light_sources`'s own four sliders use `build_h_slider` too, for the same reason, but need none of the
+// other helpers this paragraph covers.
 // `demo_filter` does not need `select_el`.
 // `gaussian_blur` and `drop_shadow` both return a live `SvgNode` instead, unlike the gradient setters and
 // `component_transfer`.
