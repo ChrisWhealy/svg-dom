@@ -32,7 +32,7 @@ pub fn run() -> Result<(), JsValue> {
 }
 
 fn build() -> Result<(), Error> {
-    let svg = SvgRoot::create_in("stage", svg_dom::root::utils::Size::new(1560.0, 360.0))?;
+    let svg = SvgRoot::create_in("stage", svg_dom::root::utils::Size::new(1750.0, 360.0))?;
 
     // 1. title-only naming: no ARIA attributes, so the <title> child supplies the accessible name.
     let s1 = svg.circle(Point::new(10.0, 10.0), 5.0)?;
@@ -274,7 +274,7 @@ fn build() -> Result<(), Error> {
     lighting_scale_zero.set_filter_ref(&lighting_scale_zero_filter)?;
 
     // ls-distant-low / ls-distant-high / ls-point-low-z / ls-point-high-z / ls-spot-left / ls-spot-right /
-    // ls-cone-narrow / ls-cone-wide: for `tests/light_sources_render.rs`, which checks
+    // ls-cone-zero / ls-cone-narrow / ls-cone-wide: for `tests/light_sources_render.rs`, which checks
     // `demo_light_sources.rs`'s own four sliders (`demo-app/src/paint/demo_light_sources.rs`) against real
     // rendered pixels, not just the attribute values a structural DOM test
     // (`demo-app/src/browser_tests/paint/light_sources.rs`) can already see. Each pair runs that demo's own exact
@@ -292,8 +292,9 @@ fn build() -> Result<(), Error> {
     const LS_POINT_HIGH_X: f64 = 590.0;
     const LS_SPOT_LEFT_X: f64 = 780.0;
     const LS_SPOT_RIGHT_X: f64 = 970.0;
-    const LS_CONE_NARROW_X: f64 = 1160.0;
-    const LS_CONE_WIDE_X: f64 = 1350.0;
+    const LS_CONE_ZERO_X: f64 = 1160.0;
+    const LS_CONE_NARROW_X: f64 = 1350.0;
+    const LS_CONE_WIDE_X: f64 = 1540.0;
 
     let ls_specular_lighting = |defs: &svg_dom::SvgDefs, id: &str, light: LightSource| -> Result<(), Error> {
         let filter = defs.filter(id)?;
@@ -427,11 +428,35 @@ fn build() -> Result<(), Error> {
     ls_spot_right.set_fill("steelblue")?;
     ls_spot_right.set_filter("ls-spot-right-filter")?;
 
-    // Spot (with cone): limitingConeAngle 5deg (this demo's own slider minimum) vs 90deg (its own maximum), same
-    // light position/aim otherwise. `demo_light_sources.rs`'s own module doc comment and
+    // Spot (with cone): limitingConeAngle 0deg vs 5deg (this demo's own slider minimum) vs 90deg (its own
+    // maximum), same light position/aim otherwise. `demo_light_sources.rs`'s own module doc comment and
     // `panel-light-sources.html` both document that 0deg renders as a fully open beam in this sandbox's own
     // Chrome, not the near-invisible cutoff the spec describes, which is why the slider's own range starts at 5
-    // instead — this is the specific claim this pair checks against real pixels.
+    // instead. The 0deg rect exists to check that specific claim directly, rather than trusting the slider's own
+    // chosen minimum on the strength of the 5deg-vs-90deg comparison alone — that pair proves 5deg is usefully
+    // narrow, not that 0deg is anomalous.
+    ls_specular_lighting(
+        &defs,
+        "ls-cone-zero-filter",
+        LightSource::Spot {
+            x: LS_CONE_ZERO_X + 40.0,
+            y: LS_ROW_Y + 20.0,
+            z: 80.0,
+            points_at_x: LS_CONE_ZERO_X + 120.0,
+            points_at_y: LS_ROW_Y + LS_RECT_H - 10.0,
+            points_at_z: 0.0,
+            specular_exponent: 2.0,
+            limiting_cone_angle: Some(0.0),
+        },
+    )?;
+    let ls_cone_zero = svg.rect(
+        Point::new(LS_CONE_ZERO_X, LS_ROW_Y),
+        svg_dom::root::utils::Size::new(LS_RECT_W, LS_RECT_H),
+    )?;
+    ls_cone_zero.as_element().set_id("ls-cone-zero");
+    ls_cone_zero.set_fill("steelblue")?;
+    ls_cone_zero.set_filter("ls-cone-zero-filter")?;
+
     ls_specular_lighting(
         &defs,
         "ls-cone-narrow-filter",

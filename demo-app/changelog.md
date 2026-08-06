@@ -18,6 +18,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 - Correct effect of spot slider on beam (`16b6bd4`)
 - Correct overstatement in LightSource documentation and adjust demo (`26c80d5`)
 - Doc only: update stale doc comment (`458982d`)
+- Cone test verifies 0º Chrome anomoly (``) 
 
 ## [0.1.15] - 2026-08-06
 

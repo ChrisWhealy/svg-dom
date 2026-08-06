@@ -10,9 +10,9 @@
 //! near-invisible cutoff the spec describes, which is why that slider's own range starts at `5` instead. A
 //! structural DOM test cannot check either claim; only real rendered pixels can.
 //!
-//! This drives a real Chrome instance via CDP and renders four pairs of rects built by the sibling
-//! `cdp-test-fixture` wasm crate, each pair running `demo_light_sources.rs`'s own exact `feSpecularLighting`
-//! recipe on a plain, flat rect, fixed at two different slider positions:
+//! This drives a real Chrome instance via CDP and renders rects built by the sibling `cdp-test-fixture` wasm
+//! crate, grouped into four checks, each running `demo_light_sources.rs`'s own exact `feSpecularLighting` recipe
+//! on a plain, flat rect, fixed at different slider positions:
 //!
 //! - `#ls-distant-low` (elevation 15deg) vs `#ls-distant-high` (elevation 85deg) — checks that a flat Distant
 //!   surface's own average brightness genuinely rises with elevation, panel-light-sources.html's own claim.
@@ -21,11 +21,13 @@
 //! - `#ls-spot-left` (light at its own rect's left edge) vs `#ls-spot-right` (right edge), both with `pointsAtX`
 //!   trailing by the same 80-unit offset `demo_light_sources.rs`'s own `SPOT_OPEN_AIM_OFFSET` uses — checks that
 //!   the bright region genuinely moves horizontally with the light, not just the DOM attribute.
-//! - `#ls-cone-narrow` (`limitingConeAngle` 5deg) vs `#ls-cone-wide` (90deg) — checks that a sample point well
-//!   off the beam's own aim axis stays dark under the narrow cone but lights up once the cone widens. This is
-//!   the highest-value check of the four: it directly backs the slider's own chosen minimum (5, not 0) and the
-//!   panel's own explanation of why, both of which depend on this sandbox's own observed Chrome behaviour rather
-//!   than a specification guarantee.
+//! - `#ls-cone-zero` (`limitingConeAngle` 0deg) vs `#ls-cone-narrow` (5deg) vs `#ls-cone-wide` (90deg) — three
+//!   rects, not two. `#ls-cone-narrow` vs `#ls-cone-wide` alone only proves 5deg is a usefully narrow lower
+//!   bound; it says nothing about 0deg being anomalous. `#ls-cone-zero` checks that specific claim directly: the
+//!   same off-axis sample stays dark at 5deg, but is materially brighter, and close to the wide reading, at
+//!   0deg — this is the highest-value check of the four, since the slider's own chosen minimum (5, not 0) and
+//!   panel-light-sources.html's own explanation of why both depend on this exact, sandbox-specific Chrome
+//!   behaviour rather than a specification guarantee.
 //!
 //! # How the pixels are read
 //!
@@ -52,14 +54,14 @@ use serde_json::Value;
 /// signal, since `feSpecularLighting`'s own alpha is the max of its own lit R/G/B — the red channel is not
 /// usable here, since a dim, mostly-transparent pixel composites against the canvas's own default white
 /// background and reads as bright regardless of its own true intensity) at a handful of named local offsets
-/// within each of the eight rects, keyed by rect id then offset name.
+/// within each of the nine rects, keyed by rect id then offset name.
 const SAMPLE_SCRIPT: &str = r#"
 (async () => {
     const ids = [
         'ls-distant-low', 'ls-distant-high',
         'ls-point-low-z', 'ls-point-high-z',
         'ls-spot-left', 'ls-spot-right',
-        'ls-cone-narrow', 'ls-cone-wide',
+        'ls-cone-zero', 'ls-cone-narrow', 'ls-cone-wide',
     ];
     const rects = Object.fromEntries(ids.map((id) => [id, document.querySelector('#' + id)]));
     const svg = rects['ls-distant-low'].closest('svg');
@@ -188,9 +190,8 @@ fn light_sources_sliders_change_rendered_pixels() {
     );
 
     // --- Point: centre-to-corner contrast should be bigger (a sharper hotspot) at low z than high z ---
-    let point_contrast = |id: &str| -> i32 {
-        i32::from(sample(&value, id, "centre")) - i32::from(sample(&value, id, "topLeft"))
-    };
+    let point_contrast =
+        |id: &str| -> i32 { i32::from(sample(&value, id, "centre")) - i32::from(sample(&value, id, "topLeft")) };
     let point_low_z_contrast = point_contrast("ls-point-low-z");
     let point_high_z_contrast = point_contrast("ls-point-high-z");
     const MIN_POINT_CONTRAST_GAP: i32 = 15;
@@ -201,13 +202,13 @@ fn light_sources_sliders_change_rendered_pixels() {
          a lower light should sharpen the hotspot, not spread it"
     );
 
-    // --- Spot (no cone): the bright region should move with the light, not stay fixed. Compared within each
+    // Spot (no cone): the bright region should move with the light, not stay fixed. Compared within each
     // rect (its own side nearest the light against its own side farthest from it), not across the two rects at
     // the same absolute point — the two lights' own reflection peaks are not equally strong at their own
     // opposite edges, an asymmetry of this particular geometry, not a sign either rect is failing to track its
-    // own light. The direction each rect's own bright region leans is the thing being checked here. ---
-    let spot_left_bias =
-        i32::from(sample(&value, "ls-spot-left", "leftAtLightHeight")) - i32::from(sample(&value, "ls-spot-left", "rightAtLightHeight"));
+    // own light. The direction each rect's own bright region leans is the thing being checked here.
+    let spot_left_bias = i32::from(sample(&value, "ls-spot-left", "leftAtLightHeight"))
+        - i32::from(sample(&value, "ls-spot-left", "rightAtLightHeight"));
     let spot_right_bias = i32::from(sample(&value, "ls-spot-right", "rightAtLightHeight"))
         - i32::from(sample(&value, "ls-spot-right", "leftAtLightHeight"));
     const MIN_SPOT_BIAS: i32 = 20;
@@ -222,9 +223,9 @@ fn light_sources_sliders_change_rendered_pixels() {
          {MIN_SPOT_BIAS}, but got a bias of only {spot_right_bias}"
     );
 
-    // --- Spot (with cone): a sample well off the beam's own aim axis should stay dark under the narrow cone,
+    // Spot (with cone): a sample well off the beam's own aim axis should stay dark under the narrow cone,
     // but light up once the cone widens. This is the check that backs the slider's own chosen minimum (5, not
-    // 0) and panel-light-sources.html's own explanation of why. ---
+    // 0) and panel-light-sources.html's own explanation of why.
     let cone_narrow_off_axis = sample(&value, "ls-cone-narrow", "topLeft");
     let cone_wide_off_axis = sample(&value, "ls-cone-wide", "topLeft");
     const MAX_NARROW_OFF_AXIS_BRIGHTNESS: u8 = 30;
@@ -242,7 +243,31 @@ fn light_sources_sliders_change_rendered_pixels() {
          widening the cone should illuminate a region the narrow cone left dark"
     );
 
-    // --- positive control: a sample exactly on the beam's own aim axis should stay lit even under the narrow
+    // The 0deg Chrome anomaly itself: demo_light_sources.rs's own module doc comment and
+    // panel-light-sources.html both state that limitingConeAngle 0 renders as a fully open beam in this
+    // sandbox's own Chrome, not the near-invisible cutoff a zero-width cone should be, which is why the
+    // slider's own range starts at 5 rather than 0. The 5deg-vs-90deg comparison above proves 5deg is a usefully
+    // narrow lower bound; it says nothing about 0deg, which this checks directly: the same off-axis sample
+    // should be materially brighter at 0deg than at 5deg, and close to the wide (90deg) reading, matching "fully
+    // open" rather than "even narrower than 5deg".
+    let cone_zero_off_axis = sample(&value, "ls-cone-zero", "topLeft");
+    const MIN_ZERO_VS_NARROW_GAP: i32 = 20;
+    const MAX_ZERO_VS_WIDE_DIFF: i32 = 10;
+    assert!(
+        i32::from(cone_zero_off_axis) - i32::from(cone_narrow_off_axis) >= MIN_ZERO_VS_NARROW_GAP,
+        "expected the 0deg cone to leave that same off-axis sample at least {MIN_ZERO_VS_NARROW_GAP} brighter \
+         than the 5deg cone does, but got {cone_zero_off_axis} (0deg) vs {cone_narrow_off_axis} (5deg) — this is \
+         the specific claim that the slider's own minimum (5, not 0) and panel-light-sources.html's own \
+         explanation both depend on"
+    );
+    assert!(
+        (i32::from(cone_zero_off_axis) - i32::from(cone_wide_off_axis)).abs() <= MAX_ZERO_VS_WIDE_DIFF,
+        "expected the 0deg cone's own off-axis sample to land within {MAX_ZERO_VS_WIDE_DIFF} of the wide \
+         (90deg) cone's own reading, matching a fully open beam rather than a partial cutoff, but got \
+         {cone_zero_off_axis} (0deg) vs {cone_wide_off_axis} (90deg)"
+    );
+
+    // Positive control: a sample exactly on the beam's own aim axis should stay lit even under the narrow
     // cone, proving the off-axis reading above reflects the hard-edged cutoff itself, not the whole beam going
     // dark for an unrelated reason. A 5deg cone is tight enough (cos(5deg) ~ 0.996) that even `nearAim`, 10
     // units off axis in each direction, is not a safe positive control for it — confirmed empirically, that
@@ -251,7 +276,7 @@ fn light_sources_sliders_change_rendered_pixels() {
     // brightness there (23) is well below this rect's own brightest points elsewhere (the surface's own normal
     // and the light's own halfway-vector geometry still shape the result away from a flat maximum), but it is
     // clearly non-zero, unlike the off-axis reading above — the threshold checks for exactly that contrast, not
-    // for a peak brightness. ---
+    // for a peak brightness.
     let cone_narrow_exact_aim = sample(&value, "ls-cone-narrow", "exactAim");
     let cone_wide_near_aim = sample(&value, "ls-cone-wide", "nearAim");
     const MIN_EXACT_AIM_BRIGHTNESS: u8 = 15;
