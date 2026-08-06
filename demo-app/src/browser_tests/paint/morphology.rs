@@ -68,7 +68,7 @@ fn demo_morphology_radius_slider_updates_erode_dilate_and_outline_together() {
         slider.dispatch_event(&event).expect("dispatch input");
     };
 
-    // --- the Erode and Dilate filters, at this demo's own default ---
+    // The Erode and Dilate filters, at this demo's own default
     let erode = find_el("#morphology-erode feMorphology");
     assert_eq!(erode.get_attribute("operator").as_deref(), Some("erode"));
     assert_eq!(
@@ -100,9 +100,9 @@ fn demo_morphology_radius_slider_updates_erode_dilate_and_outline_together() {
     let erode_caption = find_text("Erode(1.2)");
     let dilate_caption = find_text("Dilate(1.2)");
 
-    // --- the slider's own five tick marks sit under the native thumb's own actual centre at each position, not
-    // the track's own bare fractional position — see paint/mod.rs's own SLIDER_THUMB_RADIUS_PX doc comment for
-    // why a raw percentage would be wrong here. ---
+    // The slider's own five tick marks sit under the native thumb's own actual centre at each position, not the track's
+    // own bare fractional position — see paint/mod.rs's own SLIDER_THUMB_RADIUS_PX doc comment for why a raw percentage
+    // would be wrong here.
     let tick_container = radius_slider
         .closest(".demo-slider-container")
         .expect("query closest container")
@@ -132,8 +132,8 @@ fn demo_morphology_radius_slider_updates_erode_dilate_and_outline_together() {
         ]
     );
 
-    // --- the bold-outline column shares the same slider too: its own dilate radius moves together with the
-    // direct Erode/Dilate columns, not independently of them ---
+    // The bold-outline column shares the same slider too: its own dilate radius moves together with the direct
+    // Erode/Dilate columns, not independently of them
     let outline_filter = find_el("#morphology-outline");
     assert_eq!(
         outline_filter.get_attribute("x").as_deref(),
@@ -179,11 +179,10 @@ fn demo_morphology_radius_slider_updates_erode_dilate_and_outline_together() {
 
     let outline_caption = find_text("bold outline (dilate 1.2 + merge)");
 
-    // --- `SourceAlpha` has zero-valued colour channels, so the bold-outline column's own exposed fringe is
-    // plain black. A white backing rectangle keeps that fringe visible against this gallery's own dark canvas —
-    // the same reason `demo_color_matrix`'s own LuminanceToAlpha rectangle needs one. It must stay unfiltered
-    // and sit before the outlined text in document order, or SVG's own paint order would put it on top instead
-    // of underneath. ---
+    // `SourceAlpha` has zero-valued colour channels, so the bold-outline column's own exposed fringe is plain black.
+    // A white backing rectangle keeps that fringe visible against this gallery's own dark canvas — the same reason
+    // `demo_color_matrix`'s own LuminanceToAlpha rectangle needs one. It must stay unfiltered and sit before the
+    // outlined text in document order, or SVG's own paint order would put it on top instead of underneath.
     let rects = root.query_selector_all("rect").expect("query rect elements");
     assert_eq!(
         rects.length(),
@@ -231,7 +230,26 @@ fn demo_morphology_radius_slider_updates_erode_dilate_and_outline_together() {
         Some("bold outline (dilate 0 + merge)")
     );
 
-    // --- moving the slider to its documented maximum updates every filter and caption together ---
+    // An intermediate value exercises the `on_input` handler's own division, not just the two ends of the
+    // slider's own range.
+    //
+    // `0` (dispatched above) and `40` (dispatched below) are both exact multiples of `10`.
+    // Neither can tell a working division from one accidentally rounded, truncated, or removed.
+    // A broken integer division would still read `0` and `4` from those two values, the same as a correct one.
+    // `13` divides to `1.3` instead, a value no such mistake could produce by accident.
+    dispatch_input(&radius_slider, "13");
+    assert_eq!(erode.get_attribute("radius").as_deref(), Some("1.3"));
+    assert_eq!(dilate.get_attribute("radius").as_deref(), Some("1.3"));
+    assert_eq!(outline.get_attribute("radius").as_deref(), Some("1.3"));
+    assert_eq!(radius_slider.get_attribute("aria-valuetext").as_deref(), Some("1.3"));
+    assert_eq!(erode_caption.text_content().as_deref(), Some("Erode(1.3)"));
+    assert_eq!(dilate_caption.text_content().as_deref(), Some("Dilate(1.3)"));
+    assert_eq!(
+        outline_caption.text_content().as_deref(),
+        Some("bold outline (dilate 1.3 + merge)")
+    );
+
+    // Moving the slider to its documented maximum updates every filter and caption together
     dispatch_input(&radius_slider, "40");
     assert_eq!(erode.get_attribute("radius").as_deref(), Some("4"));
     assert_eq!(dilate.get_attribute("radius").as_deref(), Some("4"));
@@ -256,7 +274,7 @@ fn demo_morphology_radius_slider_updates_erode_dilate_and_outline_together() {
     );
     assert_eq!(outline_filter.get_attribute("height").as_deref(), Some("2"));
 
-    // --- the original column stays a plain, unfiltered comparison, untouched by every control above ---
+    // The original column stays a plain, unfiltered comparison, untouched by every control above
     //
     // All four columns share the literal text "MORPH", so this checks the absence of a `filter` attribute
     // directly, rather than assuming the original column is the first "MORPH" text in document order.
