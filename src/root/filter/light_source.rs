@@ -1,5 +1,5 @@
 use super::SvgFilter;
-use crate::{Error, dom_err, root::create_svg_element};
+use crate::{Error, SvgNode, dom_err, root::create_svg_element};
 use web_sys::SvgElement;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -100,12 +100,38 @@ impl LightSource {
     }
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// The pair of live nodes returned by [`diffuse_lighting_with_light`](SvgFilter::diffuse_lighting_with_light) and
+/// [`specular_lighting_with_light`](SvgFilter::specular_lighting_with_light): the lighting primitive itself, alongside
+/// its required light-source child.
+///
+/// [`diffuse_lighting`](SvgFilter::diffuse_lighting) and [`specular_lighting`](SvgFilter::specular_lighting) return
+/// only `primitive`, since a light source's own attributes are usually fixed at construction. An application that later
+/// wants to change the light itself (say sweeping a [`LightSource::Distant`]'s own `azimuth` from a slider) needs a
+/// retainable handle to that child element too. Nothing else in this crate exposes one: `append_light_source`, which
+/// creates it, is private to this crate, so without this struct the only way to reach that child again is a raw
+/// CSS-selector query outside `svg-dom`'s own typed API.
+#[derive(Clone)]
+pub struct LightingNodes {
+    /// The `<feDiffuseLighting>`/`<feSpecularLighting>` primitive itself — the same node
+    /// [`diffuse_lighting`](SvgFilter::diffuse_lighting)/[`specular_lighting`](SvgFilter::specular_lighting) alone
+    /// would have returned.
+    pub primitive: SvgNode,
+    /// The light-source child appended to `primitive`: a `<feDistantLight>`, `<fePointLight>`, or `<feSpotLight>`,
+    /// depending on which [`LightSource`] variant was passed in.
+    pub light: SvgNode,
+}
+
 impl SvgFilter {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates the one light-source child `light_source` describes, writes its attributes, and appends it to
     /// `parent` — shared by [`diffuse_lighting`](Self::diffuse_lighting) and
     /// [`specular_lighting`](Self::specular_lighting), the only two elements a light source can appear inside.
-    pub(super) fn append_light_source(&self, parent: &SvgElement, light_source: LightSource) -> Result<(), Error> {
+    ///
+    /// Returns the appended child as an [`SvgNode`], so [`diffuse_lighting_with_light`](Self::diffuse_lighting_with_light)/
+    /// [`specular_lighting_with_light`](Self::specular_lighting_with_light) can hand it back to the caller. The plain
+    /// [`diffuse_lighting`](Self::diffuse_lighting)/[`specular_lighting`](Self::specular_lighting) methods discard it.
+    pub(super) fn append_light_source(&self, parent: &SvgElement, light_source: LightSource) -> Result<SvgNode, Error> {
         let child = create_svg_element::<SvgElement>(&self.document, light_source.tag(), "SvgElement")?;
         {
             let mut attrs = self.attrs.borrow_mut();
@@ -143,6 +169,6 @@ impl SvgFilter {
             }
         }
         parent.append_child(&child).map_err(dom_err)?;
-        Ok(())
+        Ok(SvgNode::new(child))
     }
 }

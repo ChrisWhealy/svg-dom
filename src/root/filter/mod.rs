@@ -22,7 +22,7 @@ pub use color_matrix_type::ColorMatrixType;
 pub use composite_operator::CompositeOperator;
 pub use edge_mode::EdgeMode;
 pub use filter_units::FilterUnits;
-pub use light_source::LightSource;
+pub use light_source::{LightSource, LightingNodes};
 pub use morphology_operator::MorphologyOperator;
 pub use transfer_function::TransferFunction;
 pub use turbulence_type::TurbulenceType;

@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Released]
 
+## [0.2.5] - 2026-08-06
+
+### Added
+
+- New public methods for Specular/Diffuse light sources (``)
+
 ## [0.2.4] - 2026-08-05
 
 ### Changed

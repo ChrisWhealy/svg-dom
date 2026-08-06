@@ -1,4 +1,4 @@
-use super::super::{LightSource, SvgFilter};
+use super::super::{LightSource, LightingNodes, SvgFilter};
 use crate::{Error, SvgNode, dom_err, root::create_svg_element};
 use web_sys::SvgElement;
 
@@ -91,6 +91,81 @@ impl SvgFilter {
         lighting_color: &str,
         light_source: LightSource,
     ) -> Result<SvgNode, Error> {
+        Ok(self
+            .specular_lighting_impl(
+                surface_scale,
+                specular_constant,
+                specular_exponent,
+                lighting_color,
+                light_source,
+            )?
+            .primitive)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Identical to [`specular_lighting`](Self::specular_lighting), except it also returns a retainable handle to the
+    /// appended light-source child as a [`LightingNodes`], not just the `<feSpecularLighting>` primitive itself.
+    ///
+    /// Use this instead of [`specular_lighting`](Self::specular_lighting) when an interactive application needs to
+    /// change the light itself after construction, say sweeping a [`LightSource::Distant`]'s own `azimuth` from a
+    /// slider, for example. [`specular_lighting`](Self::specular_lighting) alone gives no way to reach that child
+    /// element again: the light source is appended internally, and nothing else in this crate returns a handle to it,
+    /// so without this method the only way to reach it is a raw CSS-selector query outside `svg-dom`'s own typed API.
+    ///
+    /// Every parameter is identical to [`specular_lighting`](Self::specular_lighting)'s own — see its doc comment
+    /// for what each one does. This differs only in its return type.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Dom`] under the same conditions as [`specular_lighting`](Self::specular_lighting).
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::filter::LightSource};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    /// let flt  = defs.filter("shiny-bevel")?;
+    /// let lit = flt.specular_lighting_with_light(
+    ///     6.0, 1.0, 20.0, "white",
+    ///     LightSource::Distant { azimuth: 235.0, elevation: 55.0 },
+    /// )?;
+    /// lit.primitive.set_attr("in", "SourceAlpha")?;
+    ///
+    /// // Later, e.g. from a slider's own input handler:
+    /// lit.light.set_attr("azimuth", "90")?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn specular_lighting_with_light(
+        &self,
+        surface_scale: f64,
+        specular_constant: f64,
+        specular_exponent: f64,
+        lighting_color: &str,
+        light_source: LightSource,
+    ) -> Result<LightingNodes, Error> {
+        self.specular_lighting_impl(
+            surface_scale,
+            specular_constant,
+            specular_exponent,
+            lighting_color,
+            light_source,
+        )
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Shared construction path for [`specular_lighting`](Self::specular_lighting)/
+    /// [`specular_lighting_with_light`](Self::specular_lighting_with_light), which differ only in whether the
+    /// light-source child's own node is discarded or returned alongside the primitive.
+    fn specular_lighting_impl(
+        &self,
+        surface_scale: f64,
+        specular_constant: f64,
+        specular_exponent: f64,
+        lighting_color: &str,
+        light_source: LightSource,
+    ) -> Result<LightingNodes, Error> {
         let el = create_svg_element::<SvgElement>(&self.document, "feSpecularLighting", "SvgElement")?;
         el.set_attribute("lighting-color", lighting_color).map_err(dom_err)?;
         {
@@ -99,8 +174,11 @@ impl SvgFilter {
             attrs.display_element(&el, "specularConstant", specular_constant)?;
             attrs.display_element(&el, "specularExponent", specular_exponent)?;
         }
-        self.append_light_source(&el, light_source)?;
+        let light = self.append_light_source(&el, light_source)?;
         self.element.append_child(&el).map_err(dom_err)?;
-        Ok(SvgNode::new(el))
+        Ok(LightingNodes {
+            primitive: SvgNode::new(el),
+            light,
+        })
     }
 }

@@ -1,4 +1,4 @@
-use super::super::{LightSource, SvgFilter};
+use super::super::{LightSource, LightingNodes, SvgFilter};
 use crate::{Error, SvgNode, dom_err, root::create_svg_element};
 use web_sys::SvgElement;
 
@@ -79,6 +79,67 @@ impl SvgFilter {
         lighting_color: &str,
         light_source: LightSource,
     ) -> Result<SvgNode, Error> {
+        Ok(self
+            .diffuse_lighting_impl(surface_scale, diffuse_constant, lighting_color, light_source)?
+            .primitive)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Identical to [`diffuse_lighting`](Self::diffuse_lighting), except it also returns a retainable handle to the
+    /// appended light-source child as a [`LightingNodes`], not just the `<feDiffuseLighting>` primitive itself.
+    ///
+    /// Use this instead of [`diffuse_lighting`](Self::diffuse_lighting) when an interactive application needs to change
+    /// the light itself after construction, say sweeping a [`LightSource::Distant`]'s own `azimuth` from a slider, for
+    /// example. [`diffuse_lighting`](Self::diffuse_lighting) alone gives no way to reach that child element again: the
+    /// light source is appended internally, and nothing else in this crate returns a handle to it, so without this
+    /// method the only way to reach it is a raw CSS-selector query outside `svg-dom`'s own typed API.
+    ///
+    /// Every parameter is identical to [`diffuse_lighting`](Self::diffuse_lighting)'s own — see its doc comment for
+    /// what each one does. This differs only in its return type.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Dom`] under the same conditions as [`diffuse_lighting`](Self::diffuse_lighting).
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::filter::LightSource};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    /// let flt  = defs.filter("bevel")?;
+    /// let lit = flt.diffuse_lighting_with_light(
+    ///     6.0, 1.0, "white",
+    ///     LightSource::Distant { azimuth: 235.0, elevation: 55.0 },
+    /// )?;
+    /// lit.primitive.set_attr("in", "SourceAlpha")?;
+    ///
+    /// // Later, e.g. from a slider's own input handler:
+    /// lit.light.set_attr("azimuth", "90")?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn diffuse_lighting_with_light(
+        &self,
+        surface_scale: f64,
+        diffuse_constant: f64,
+        lighting_color: &str,
+        light_source: LightSource,
+    ) -> Result<LightingNodes, Error> {
+        self.diffuse_lighting_impl(surface_scale, diffuse_constant, lighting_color, light_source)
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Shared construction path for [`diffuse_lighting`](Self::diffuse_lighting)/
+    /// [`diffuse_lighting_with_light`](Self::diffuse_lighting_with_light), which differ only in whether the
+    /// light-source child's own node is discarded or returned alongside the primitive.
+    fn diffuse_lighting_impl(
+        &self,
+        surface_scale: f64,
+        diffuse_constant: f64,
+        lighting_color: &str,
+        light_source: LightSource,
+    ) -> Result<LightingNodes, Error> {
         let el = create_svg_element::<SvgElement>(&self.document, "feDiffuseLighting", "SvgElement")?;
         el.set_attribute("lighting-color", lighting_color).map_err(dom_err)?;
         {
@@ -86,8 +147,11 @@ impl SvgFilter {
             attrs.display_element(&el, "surfaceScale", surface_scale)?;
             attrs.display_element(&el, "diffuseConstant", diffuse_constant)?;
         }
-        self.append_light_source(&el, light_source)?;
+        let light = self.append_light_source(&el, light_source)?;
         self.element.append_child(&el).map_err(dom_err)?;
-        Ok(SvgNode::new(el))
+        Ok(LightingNodes {
+            primitive: SvgNode::new(el),
+            light,
+        })
     }
 }
