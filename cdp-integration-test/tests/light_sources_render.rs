@@ -3,12 +3,19 @@
 //! `demo-app/src/browser_tests/paint/light_sources.rs` proves the DOM half of all four sliders' own claims —
 //! that moving each one reaches the right attribute on the right retained light-source node, and leaves the
 //! other three columns untouched. It cannot prove any of those mutations actually change the *rendered*
-//! lighting. This matters more here than for most demos: two of the four columns' own designs are themselves
-//! grounded in observed Chrome rendering rather than the SVG spec alone — `demo_light_sources.rs`'s own module
-//! doc comment records that the Spot light's own `specular_exponent` has no visible effect in this sandbox's own
-//! Chrome at any value, and that `limiting_cone_angle` `0.0` renders as a fully open beam rather than the
-//! near-invisible cutoff the spec describes, which is why that slider's own range starts at `5` instead. A
-//! structural DOM test cannot check either claim; only real rendered pixels can.
+//! lighting. This matters more here than for most demos: one of the four columns' own designs is itself grounded
+//! in observed Chrome rendering rather than the SVG spec alone — `demo_light_sources.rs`'s own module doc
+//! comment records that `limiting_cone_angle` `0.0` renders as a fully open beam rather than the near-invisible
+//! cutoff the spec describes, which is why that slider's own range starts at `5` instead. A structural DOM test
+//! cannot check that claim; only real rendered pixels can.
+//!
+//! That same module doc comment also records a second observation: the Spot light's own `specular_exponent` had
+//! no visible effect in this sandbox's own Chrome, at any value from `0.01` through `10000`, which is why that
+//! field was rejected as this demo's own interactive control for the open-Spot column in favour of `x`. This
+//! file does not regression-test that observation, deliberately: a fixture asserting that varying
+//! `specular_exponent` continues to produce *no* visible change would fail the day Chrome fixes whatever causes
+//! that, and that failure would represent an improvement, not a regression. It remains a manually recorded
+//! observation in `demo_light_sources.rs`'s own module doc comment, not a claim this file verifies.
 //!
 //! This drives a real Chrome instance via CDP and renders rects built by the sibling `cdp-test-fixture` wasm
 //! crate, grouped into four checks, each running `demo_light_sources.rs`'s own exact `feSpecularLighting` recipe
