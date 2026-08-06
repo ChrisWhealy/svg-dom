@@ -20,42 +20,35 @@
                     <code>composite(Arithmetic)</code> with <code>k2</code>/<code>k3: 1.0</code>.
                 </li>
             </ul>
-            <p>
-                Both primitives treat their input's alpha channel as a bump map. They light it with a
+            <p>Both primitives treat their input's alpha channel as a bump map. They light it with a
                 <code>LightSource</code>: <strong>Distant</strong> (parallel rays, like sunlight),
-                <strong>Point</strong> (radiating from a position, like a bare bulb), or
-                <strong>Spot</strong> (aimed at a target, optionally narrowed to a cone). Every panel
-                above uses the same <strong>Distant</strong> light.
+                <strong>Point</strong> (radiating from a position, like a bare bulb), or <strong>Spot</strong> (aimed at
+                a target, optionally narrowed to a cone). Every panel above uses the same <strong>Distant</strong>
+                light.
             </p>
-            <p>
-                Two sliders sit above the three lit columns:
+            <p>Two sliders sit above the three lit columns:</p>
             <ul>
                 <li><strong>surface scale</strong> sets how strongly the text's own alpha edges bump the lit surface.
                 </li>
                 <li><strong>azimuth</strong> turns the shared distant light around its own compass direction.</li>
             </ul>
-            <strong>elevation</strong> stays fixed throughout. It is the only light property here that is not
-            interactive. Both sliders drive every lit column at once, so the three techniques stay directly comparable
-            at any setting.</p>
-            <p>
-                <code>feDiffuseLighting</code>'s opacity and <code>feSpecularLighting</code>'s transparency are not
+            <p><strong>elevation</strong> stays fixed throughout. It is the only light property here that is not
+                interactive. Both sliders drive every lit column at once, so the three techniques stay directly
+                comparable at any setting.</p>
+            <p><code>feDiffuseLighting</code>'s opacity and <code>feSpecularLighting</code>'s transparency are not
                 interchangeable. Merging or blending the opaque diffuse result directly over <code>SourceGraphic</code>
                 would hide the original entirely. This is why the combined panel uses <code>composite(Arithmetic)</code>
                 with different coefficients for each: a multiply for the opaque diffuse layer, a plain sum for the
-                non-opaque specular highlight.
-            </p>
-            <p>
-                At its own minimum, <strong>surface scale</strong> flattens the bump map entirely.
+                non-opaque specular highlight.</p>
+            <p><strong>surface scale</strong> flattens the bump map entirely.
                 <code>feDiffuseLighting</code> and <code>feSpecularLighting</code> then each light a perfectly flat
                 surface, not the embossed text. Both render as a plain, uniform rectangle across the whole filter
                 region. The text itself is no longer visible.
             </p>
-            <p>
-                The combined bevel column stays legible even there. Its own first<code>composite(Arithmetic)</code> step
+            <p>The combined bevel column stays legible even there. Its own first<code>composite(Arithmetic)</code> step
                 multiplies the flat lit surface by <code>SourceGraphic</code>. <code>SourceGraphic</code> stays
                 transparent outside the text's own shape. So that multiply gives zero there too, regardless of the flat
-                lit surface's own value. The embossed detail is gone. The text's own shape remains.
-            </p>
+                lit surface's own value. The embossed detail is gone. The text's own shape remains.</p>
         </figcaption>
     </figure>
 </section>

@@ -7,8 +7,9 @@
 //! - `filter_blend_render.rs` — `SvgFilter::blend`'s alpha-preserving tint chain, via actual rendered pixels.
 //! - `turbulence_scale_zero_render.rs` — `SvgFilter::displacement_map`'s `scale` argument at `0.0`, via actual
 //!   rendered pixels.
+//! - `lighting_render.rs` — `demo_lighting.rs`'s own surfaceScale and azimuth sliders, via actual rendered pixels.
 //!
-//! All three drive a real Chrome instance against the same sibling `cdp-test-fixture` wasm crate (built once,
+//! All four drive a real Chrome instance against the same sibling `cdp-test-fixture` wasm crate (built once,
 //! served locally), so the functions below — building the fixture, serving it, and launching Chrome — are shared
 //! here rather than duplicated per test file. Each test file still builds and launches its own instance of the
 //! fixture and Chrome, since cargo compiles each file under `tests/` as a separate binary with its own process;
@@ -17,7 +18,7 @@
 //!
 //! See `accessibility_tree.rs`'s module doc comment for why this crate lives in its own on-demand workspace member,
 //! how it runs in CI, and why the browser is launched with `sandbox(false)` — that reasoning applies equally to
-//! `filter_blend_render.rs`/`turbulence_scale_zero_render.rs` and is not repeated here.
+//! `filter_blend_render.rs`/`turbulence_scale_zero_render.rs`/`lighting_render.rs` and is not repeated here.
 
 use std::{path::PathBuf, process::Command, thread};
 

@@ -1,12 +1,15 @@
 //! WASM fixture for `cdp-integration-test`'s Chrome-DevTools-Protocol integration tests
-//! (`tests/accessibility_tree.rs`, `tests/filter_blend_render.rs`, and `tests/turbulence_scale_zero_render.rs`).
+//! (`tests/accessibility_tree.rs`, `tests/filter_blend_render.rs`, `tests/turbulence_scale_zero_render.rs`, and
+//! `tests/lighting_render.rs`).
 //!
 //! Builds a handful of SVG elements exercising real `svg-dom` API calls whose correctness cannot be verified from
 //! the DOM alone: `set_title`/`set_desc` against real accessible-name/description computation rules (ARIA
 //! precedence, blank-value rejection), `SvgFilter::blend`'s alpha-preserving tint chain against real rendered
-//! pixels, and `SvgFilter::displacement_map`'s `scale` argument against real rendered pixels too. All three need a
-//! real Chrome instance to observe — the first via the Accessibility CDP domain, the other two via actual
-//! rasterised output — neither of which `wasm-bindgen-test`'s WebDriver-run browser tests have access to.
+//! pixels, `SvgFilter::displacement_map`'s `scale` argument against real rendered pixels too, and
+//! `SvgFilter::diffuse_lighting`'s own `surfaceScale`/light source `azimuth` against real rendered pixels as well.
+//! All four need a real Chrome instance to observe — the first via the Accessibility CDP domain, the other three
+//! via actual rasterised output — neither of which `wasm-bindgen-test`'s WebDriver-run browser tests have access
+//! to.
 //!
 //! Every shape-based accessibility scenario receives an explicit `role="img"` so Chrome always creates an
 //! accessibility-tree node for it, regardless of any SVG-specific pruning heuristics that might otherwise apply to
@@ -16,7 +19,7 @@
 use svg_dom::{
     Error, SvgRoot,
     root::{
-        filter::{BlendMode, Channel, CompositeOperator, TurbulenceType},
+        filter::{BlendMode, Channel, CompositeOperator, LightSource, TurbulenceType},
         utils::Point,
     },
 };
@@ -28,7 +31,7 @@ pub fn run() -> Result<(), JsValue> {
 }
 
 fn build() -> Result<(), Error> {
-    let svg = SvgRoot::create_in("stage", svg_dom::root::utils::Size::new(540.0, 200.0))?;
+    let svg = SvgRoot::create_in("stage", svg_dom::root::utils::Size::new(860.0, 200.0))?;
 
     // 1. title-only naming: no ARIA attributes, so the <title> child supplies the accessible name.
     let s1 = svg.circle(Point::new(10.0, 10.0), 5.0)?;
@@ -190,6 +193,84 @@ fn build() -> Result<(), Error> {
     turbulence_scale_sixty.as_element().set_id("turbulence-scale-sixty");
     turbulence_scale_sixty.set_fill("steelblue")?;
     turbulence_scale_sixty.set_filter_ref(&turbulence_scale_sixty_filter)?;
+
+    // lighting-reference / lighting-azimuth-90 / lighting-scale-zero: for `tests/lighting_render.rs`, which checks
+    // `demo_lighting.rs`'s own surfaceScale and azimuth sliders (`demo-app/src/paint/demo_lighting.rs`) against
+    // real rendered pixels, not just the attribute values a structural DOM test
+    // (`demo-app/src/browser_tests/paint/lighting.rs`) can already see. All three run the exact same
+    // feDiffuseLighting recipe that demo's own "diffuse-only" column uses, reading SourceAlpha, at that demo's
+    // own default surfaceScale (6) and azimuth (235deg) unless noted otherwise below.
+    //
+    // Each filter's own region is pinned to exactly its circle's own bounding box, the same
+    // turbulence-scale-zero pattern above, so every circle rasterises at an identical position — feDiffuseLighting
+    // never displaces content the way displacement_map does, but a consistent pinned region still keeps this
+    // fixture's own three circles free of the unpinned-region compositing drift that pattern's own comment
+    // describes.
+    let lighting_reference_filter = defs.filter("lighting-reference-filter")?;
+    lighting_reference_filter.set_x(0.0)?;
+    lighting_reference_filter.set_y(0.0)?;
+    lighting_reference_filter.set_width(1.0)?;
+    lighting_reference_filter.set_height(1.0)?;
+    lighting_reference_filter
+        .diffuse_lighting(
+            6.0,
+            1.0,
+            "white",
+            LightSource::Distant {
+                azimuth: 235.0,
+                elevation: 55.0,
+            },
+        )?
+        .set_attr("in", "SourceAlpha")?;
+
+    let lighting_reference = svg.circle(Point::new(580.0, 120.0), 40.0)?;
+    lighting_reference.as_element().set_id("lighting-reference");
+    lighting_reference.set_fill("steelblue")?;
+    lighting_reference.set_filter_ref(&lighting_reference_filter)?;
+
+    // The azimuth positive control: the same recipe as `lighting-reference`, with only `azimuth` changed (90deg
+    // instead of 235deg). If the demo's own azimuth slider really does turn the rendered light, not just the
+    // `<feDistantLight>` attribute a DOM test can already see, this circle's own rim should rasterise visibly
+    // differently from `lighting-reference` at matching angles.
+    let lighting_azimuth_90_filter = defs.filter("lighting-azimuth-90-filter")?;
+    lighting_azimuth_90_filter.set_x(0.0)?;
+    lighting_azimuth_90_filter.set_y(0.0)?;
+    lighting_azimuth_90_filter.set_width(1.0)?;
+    lighting_azimuth_90_filter.set_height(1.0)?;
+    lighting_azimuth_90_filter
+        .diffuse_lighting(6.0, 1.0, "white", LightSource::Distant { azimuth: 90.0, elevation: 55.0 })?
+        .set_attr("in", "SourceAlpha")?;
+
+    let lighting_azimuth_90 = svg.circle(Point::new(680.0, 120.0), 40.0)?;
+    lighting_azimuth_90.as_element().set_id("lighting-azimuth-90");
+    lighting_azimuth_90.set_fill("steelblue")?;
+    lighting_azimuth_90.set_filter_ref(&lighting_azimuth_90_filter)?;
+
+    // The surfaceScale negative control: the same recipe as `lighting-reference`, with only `surfaceScale`
+    // changed (0 instead of 6). `panel-lighting.html` claims that this flattens the bump map entirely, so the
+    // whole circle should light uniformly, with no rim-to-rim variation left for `lighting-reference`'s own
+    // non-zero surfaceScale to show.
+    let lighting_scale_zero_filter = defs.filter("lighting-scale-zero-filter")?;
+    lighting_scale_zero_filter.set_x(0.0)?;
+    lighting_scale_zero_filter.set_y(0.0)?;
+    lighting_scale_zero_filter.set_width(1.0)?;
+    lighting_scale_zero_filter.set_height(1.0)?;
+    lighting_scale_zero_filter
+        .diffuse_lighting(
+            0.0,
+            1.0,
+            "white",
+            LightSource::Distant {
+                azimuth: 235.0,
+                elevation: 55.0,
+            },
+        )?
+        .set_attr("in", "SourceAlpha")?;
+
+    let lighting_scale_zero = svg.circle(Point::new(780.0, 120.0), 40.0)?;
+    lighting_scale_zero.as_element().set_id("lighting-scale-zero");
+    lighting_scale_zero.set_fill("steelblue")?;
+    lighting_scale_zero.set_filter_ref(&lighting_scale_zero_filter)?;
 
     // Signals to the driving test (polling via `wait_for_element`) that the fixture has finished building.
     let ready = svg.rect(Point::new(0.0, 0.0), svg_dom::root::utils::Size::new(1.0, 1.0))?;
