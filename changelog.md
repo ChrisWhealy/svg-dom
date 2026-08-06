@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 
-- New public methods for Specular/Diffuse light sources (``)
+- New public methods for Specular/Diffuse light sources (`adc7f2a`)
 
 ## [0.2.4] - 2026-08-05
 
