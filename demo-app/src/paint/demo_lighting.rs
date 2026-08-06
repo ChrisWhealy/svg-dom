@@ -11,28 +11,30 @@ use wasm_bindgen::{JsCast, prelude::*};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // feDiffuseLighting / feSpecularLighting — matte + shiny bump-mapped lighting, and the combined bevel recipe
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// `diffuse_lighting`/`specular_lighting` each return their own primitive's `SvgNode` directly.
-// So every lit column here retains its own node, the same retained-primitive pattern `demo_morphology`'s own
-// Erode/Dilate sliders use.
-// This file used to build each filter through `build_defs`/`build_filter`'s own closures instead.
-// That closure form returns no handle to any primitive built inside it.
-// So it could not support a live slider, and this file now builds each filter directly through `defs.filter(id)`
-// instead, matching `demo_morphology`'s own construction style.
+// `diffuse_lighting_with_light`/`specular_lighting_with_light` each return a `LightingNodes`: the primitive's own
+// `SvgNode`, plus a second `SvgNode` for its required light-source child. So every lit column here retains both,
+// the same retained-primitive pattern `demo_morphology`'s own Erode/Dilate sliders use for their own single node.
+// This file used to build each filter through `build_defs`/`build_filter`'s own closures instead. That closure
+// form returns no handle to any primitive built inside it. So it could not support a live slider, and this file
+// now builds each filter directly through `defs.filter(id)` instead, matching `demo_morphology`'s own
+// construction style.
 //
 // Two shared sliders drive every lit column at once: `surfaceScale` and `azimuth`.
 // `demo_morphology`'s own radius slider drives its Erode, Dilate, and outline columns together the same way.
 //
 // `surfaceScale` is set directly on each primitive's own retained node.
-// `azimuth` is not: `diffuse_lighting`/`specular_lighting` each append their own `<feDistantLight>` child
-// internally, through `append_light_source`, which is private to the library crate and returns no handle at all.
-// So each light source is instead reached live by CSS selector, through `select_el`, the same escape hatch
-// `demo_component_transfer`'s own `<feFuncR>`/`<feFuncG>`/`<feFuncB>`/`<feFuncA>` children need.
+// `azimuth` is set on its own retained light-source node instead — the plain `diffuse_lighting`/`specular_lighting`
+// constructors append their own `<feDistantLight>` child internally, through `append_light_source`, and return no
+// handle to it at all. `diffuse_lighting_with_light`/`specular_lighting_with_light` exist for exactly this case:
+// an interactive application that needs to reach that child again, without falling back to a raw CSS-selector
+// query outside `svg-dom`'s own typed API — the same escape hatch `demo_component_transfer`'s own
+// `<feFuncR>`/`<feFuncG>`/`<feFuncB>`/`<feFuncA>` children still need, since `component_transfer` builds those
+// internally with no `_with_light`-style alternative of its own.
 //
 // The combined "bevel-highlight" filter holds two lighting primitives, one diffuse and one specular, each with
-// its own light source child.
-// A bare `feDistantLight` selector cannot tell those two apart.
-// So each is reached through its own parent primitive's tag name instead, for example
-// `#bevel-highlight feDiffuseLighting feDistantLight`.
+// its own light source child. Each `_with_light` call keeps its own light-source node paired with its own
+// primitive node directly, so the two never need disambiguating by tag name or selector the way a CSS query
+// would.
 //
 // `elevation` stays fixed at its own original value throughout.
 // Only `surfaceScale` and `azimuth` are interactive here.
@@ -127,8 +129,8 @@ pub(crate) fn demo() -> Result<(), Error> {
     // is fully opaque (A = 1.0 everywhere, per the SVG spec), so with no further compositing this renders as a
     // flat lit plate with the text embossed into it, not a transparent highlight over the canvas.
     let diffuse_filter = defs.filter("diffuse-only")?;
-    let diffuse_only_node = diffuse_filter.diffuse_lighting(default_scale, DIFFUSE_CONSTANT, "white", light)?;
-    diffuse_only_node.set_attr("in", "SourceAlpha")?;
+    let diffuse_only = diffuse_filter.diffuse_lighting_with_light(default_scale, DIFFUSE_CONSTANT, "white", light)?;
+    diffuse_only.primitive.set_attr("in", "SourceAlpha")?;
 
     let diffuse = svg.text(Point::new(COL2_X + RECT_W / 2.0, TEXT_BASELINE_Y), "LIGHT")?;
     diffuse.set_fill(STEELBLUE)?;
@@ -142,9 +144,14 @@ pub(crate) fn demo() -> Result<(), Error> {
     // maximum of its own lit R/G/B, so it renders as a highlight-only glint against the dark canvas
     // background, transparent everywhere the highlight itself is zero.
     let specular_filter = defs.filter("specular-only")?;
-    let specular_only_node =
-        specular_filter.specular_lighting(default_scale, SPECULAR_CONSTANT, SPECULAR_EXPONENT, "white", light)?;
-    specular_only_node.set_attr("in", "SourceAlpha")?;
+    let specular_only = specular_filter.specular_lighting_with_light(
+        default_scale,
+        SPECULAR_CONSTANT,
+        SPECULAR_EXPONENT,
+        "white",
+        light,
+    )?;
+    specular_only.primitive.set_attr("in", "SourceAlpha")?;
 
     let specular = svg.text(Point::new(COL3_X + RECT_W / 2.0, TEXT_BASELINE_Y), "LIGHT")?;
     specular.set_fill(STEELBLUE)?;
@@ -160,8 +167,8 @@ pub(crate) fn demo() -> Result<(), Error> {
     // of the first composite step would paint the opaque lit plate over everything, hiding the original
     // steelblue fill entirely.
     let bevel_filter = defs.filter("bevel-highlight")?;
-    let bevel_diffuse_node = bevel_filter.diffuse_lighting(default_scale, DIFFUSE_CONSTANT, "white", light)?;
-    bevel_diffuse_node.set_attrs([("in", "SourceAlpha"), ("result", "lit")])?;
+    let bevel_diffuse = bevel_filter.diffuse_lighting_with_light(default_scale, DIFFUSE_CONSTANT, "white", light)?;
+    bevel_diffuse.primitive.set_attrs([("in", "SourceAlpha"), ("result", "lit")])?;
     bevel_filter.composite("lit", CompositeOperator::Arithmetic)?.set_attrs([
         ("in", "SourceGraphic"),
         ("result", "beveled"),
@@ -170,9 +177,16 @@ pub(crate) fn demo() -> Result<(), Error> {
         ("k3", "0"),
         ("k4", "0"),
     ])?;
-    let bevel_specular_node =
-        bevel_filter.specular_lighting(default_scale, SPECULAR_CONSTANT, SPECULAR_EXPONENT, "white", light)?;
-    bevel_specular_node.set_attrs([("in", "SourceAlpha"), ("result", "highlight")])?;
+    let bevel_specular = bevel_filter.specular_lighting_with_light(
+        default_scale,
+        SPECULAR_CONSTANT,
+        SPECULAR_EXPONENT,
+        "white",
+        light,
+    )?;
+    bevel_specular
+        .primitive
+        .set_attrs([("in", "SourceAlpha"), ("result", "highlight")])?;
     bevel_filter.composite("highlight", CompositeOperator::Arithmetic)?.set_attrs([
         ("in", "beveled"),
         ("k1", "0"),
@@ -199,14 +213,6 @@ pub(crate) fn demo() -> Result<(), Error> {
     values_caption.set_fill(CAPTION)?;
     values_caption.set_attr("font-size", "11")?;
     values_caption.set_text_anchor(TextAnchor::Middle)?;
-
-    // Each light source is reached live by CSS selector, since `append_light_source` returns no handle.
-    // `bevel-highlight` holds two lighting primitives, so its own two light sources are disambiguated by their
-    // own parent primitive's tag name.
-    let diffuse_only_light = super::select_el(&svg, "#diffuse-only feDistantLight")?;
-    let specular_only_light = super::select_el(&svg, "#specular-only feDistantLight")?;
-    let bevel_diffuse_light = super::select_el(&svg, "#bevel-highlight feDiffuseLighting feDistantLight")?;
-    let bevel_specular_light = super::select_el(&svg, "#bevel-highlight feSpecularLighting feDistantLight")?;
 
     let slider_w = COL4_X + RECT_W - COL2_X;
 
@@ -241,10 +247,10 @@ pub(crate) fn demo() -> Result<(), Error> {
     {
         let scale_input = scale_slider.clone();
         let azimuth_input = azimuth_slider.clone();
-        let diffuse_only = diffuse_only_node.clone();
-        let specular_only = specular_only_node.clone();
-        let bevel_diffuse = bevel_diffuse_node.clone();
-        let bevel_specular = bevel_specular_node.clone();
+        let diffuse_only = diffuse_only.primitive.clone();
+        let specular_only = specular_only.primitive.clone();
+        let bevel_diffuse = bevel_diffuse.primitive.clone();
+        let bevel_specular = bevel_specular.primitive.clone();
         let values_caption = values_caption.clone();
         let on_scale_input: DemoClosure = Closure::new(move |_: web_sys::Event| {
             let scale = scale_input.value_as_number();
@@ -265,18 +271,18 @@ pub(crate) fn demo() -> Result<(), Error> {
     {
         let scale_input = scale_slider.clone();
         let azimuth_input = azimuth_slider.clone();
-        let diffuse_only = diffuse_only_light.clone();
-        let specular_only = specular_only_light.clone();
-        let bevel_diffuse = bevel_diffuse_light.clone();
-        let bevel_specular = bevel_specular_light.clone();
+        let diffuse_only = diffuse_only.light.clone();
+        let specular_only = specular_only.light.clone();
+        let bevel_diffuse = bevel_diffuse.light.clone();
+        let bevel_specular = bevel_specular.light.clone();
         let values_caption = values_caption.clone();
         let on_azimuth_input: DemoClosure = Closure::new(move |_: web_sys::Event| {
             let azimuth = azimuth_input.value_as_number();
             let text = azimuth.to_string();
-            let _ = diffuse_only.set_attribute("azimuth", &text);
-            let _ = specular_only.set_attribute("azimuth", &text);
-            let _ = bevel_diffuse.set_attribute("azimuth", &text);
-            let _ = bevel_specular.set_attribute("azimuth", &text);
+            let _ = diffuse_only.set_attr("azimuth", &text);
+            let _ = specular_only.set_attr("azimuth", &text);
+            let _ = bevel_diffuse.set_attr("azimuth", &text);
+            let _ = bevel_specular.set_attr("azimuth", &text);
             let _ = azimuth_input.set_attribute("aria-valuetext", &azimuth_value_text(azimuth));
             values_caption.set_text(&lighting_values_text(scale_input.value_as_number(), azimuth));
         });

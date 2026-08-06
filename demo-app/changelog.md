@@ -11,10 +11,11 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 ### Added
 
 - Make `feDiffuseLighting`/`feSpecularLighting` demo interactive (`6d12262`)
+- `<feDistantLight>` returns mutable specular/diffuse light sources (``)
 
 ### Fixed
 
-- Verify rendered output for azimuth and surface scale (``)
+- Verify rendered output for azimuth and surface scale (`b0aa38f`)
 
 ## [0.1.14] - 2026-08-06
 
