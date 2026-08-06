@@ -22,10 +22,13 @@ use wasm_bindgen_test::wasm_bindgen_test;
 /// 4) The slider's own tick marks actually land under the native thumb's own centre at every position, not just at the
 ///    track's own raw fractional position.
 /// 5) The original column's own text stays untouched by the slider, unlike the other three columns.
-/// 6) The bold-outline column's own filter graph actually has the shape that produces an outline at all.
+/// 6) The bold-outline column's own filter graph actually has the shape that produces this exact outline effect.
 ///    `in="SourceAlpha"`, `result="thickened"`, and the merge's own two `feMergeNode`s reading `thickened` then
-///    `SourceGraphic`, in that order, are each load-bearing on their own. Changing any one of them would compile and
-///    run without error, but would silently stop producing a bold outline.
+///    `SourceGraphic`, in that order, are each load-bearing on their own.
+///    Changing any one of them would compile and run without error.
+///    Swapping `in` to `SourceGraphic` would still dilate the silhouette, but in the glyphs' own steel-blue colour, not
+///    black. Reversing the merge order would place the black dilated layer on top, obscuring the glyphs instead of
+///    merely fringing them. Neither mistake looks like no outline as each produces a plausible, but wrong result.
 #[wasm_bindgen_test]
 fn demo_morphology_radius_slider_updates_erode_dilate_and_outline_together() {
     container("demo-morphology");
@@ -154,9 +157,12 @@ fn demo_morphology_radius_slider_updates_erode_dilate_and_outline_together() {
         "the merge below reads this primitive's own output by this name"
     );
 
-    // The merge's own two feMergeNode children must read in this exact order: the dilated fringe first, then the
-    // original graphic on top of it. Reversed, the original graphic would sit underneath its own fringe instead of over
-    // it, hiding the fringe rather than surrounding the glyphs with it.
+    // The merge's own two feMergeNode children must read in this exact order:
+    // 1) the dilated fringe, then
+    // 2) the original graphic on top of it.
+    //
+    // Reversing this order would place the black dilated silhouette over top of the original, obscuring or darkening
+    // the steel-blue glyphs instead of leaving them on top of the fringe.
     let merge_node_inputs: Vec<Option<String>> = {
         let nodes = root
             .query_selector_all("#morphology-outline feMerge feMergeNode")
