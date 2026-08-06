@@ -20,7 +20,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 - Doc only: update stale doc comment (`458982d`)
 - Cone test verifies 0º Chrome anomoly (`d43d3b8`)
 - Improve test coverage (`e1c3df4`)
-- Doc only: correct various inaccurate descriptions (``)
+- Doc only: correct various inaccurate descriptions (`e03b930`)
 
 ## [0.1.15] - 2026-08-06
 
