@@ -10,11 +10,18 @@ use wasm_bindgen_test::wasm_bindgen_test;
 ///
 /// A real browser test is needed to prove:
 /// 1) The slider actually reaches all three of its own retained nodes together, not just some of them.
-/// 2) Radius `0` actually reaches all three filters, reproducing the identity case `SvgFilter::morphology`'s own
-///    doc comment describes.
-/// 3) The slider's own tick marks actually land under the native thumb's own centre at every position, not just at
-///    the track's own raw fractional position.
-/// 4) The original column's own text stays untouched by the slider, unlike the other three columns.
+/// 2) Radius `0` actually reaches all three filters, so each primitive itself becomes a pass-through, the identity case
+///    `SvgFilter::morphology`'s own doc comment describes.
+/// 3) That pass-through makes the Erode and Dilate columns match the unfiltered original exactly.
+///    The bold-outline column does not match quite as exactly.
+///    Its own merge step places a black `SourceAlpha` layer underneath the original graphic.
+///    `feMerge`'s own source-over compositing darkens the antialiased edge pixels that layer sits under, even though
+///    morphology itself contributes nothing there.
+///    This test cannot see that difference. It only checks the `radius` attribute and the caption text, neither of
+///    which carries pixel-level information.
+/// 4) The slider's own tick marks actually land under the native thumb's own centre at every position, not just at the
+///    track's own raw fractional position.
+/// 5) The original column's own text stays untouched by the slider, unlike the other three columns.
 #[wasm_bindgen_test]
 fn demo_morphology_radius_slider_updates_erode_dilate_and_outline_together() {
     container("demo-morphology");
@@ -163,10 +170,17 @@ fn demo_morphology_radius_slider_updates_erode_dilate_and_outline_together() {
          underneath rather than on top"
     );
 
-    // --- moving the slider to zero reproduces the identity case SvgFilter::morphology's own doc comment
-    // describes: all three filters disable themselves, so the Erode, Dilate, and bold-outline columns should
-    // each read exactly like an unfiltered `SourceGraphic` pass-through, not a maximally-thinned, maximally-
-    // thickened, or maximally-fringed result ---
+    // Moving the slider to zero disables all three primitives, not a maximally-thinned, maximally-thickened, or
+    // maximally-fringed result.
+    //
+    // The Erode and Dilate columns then read exactly like an unfiltered `SourceGraphic` pass-through.
+    // The bold-outline column does not read quite as exactly. Its own merge still darkens antialiased edge pixels
+    // slightly, from the black `SourceAlpha` layer underneath, even with morphology itself inert.
+    //
+    // This only asserts the `radius` attribute and the caption text below, neither of which can see that
+    // pixel-level difference.
+    //
+    // See this file's own module doc comment, point 3, for the full explanation.
     dispatch_input(&radius_slider, "0");
     assert_eq!(erode.get_attribute("radius").as_deref(), Some("0"));
     assert_eq!(dilate.get_attribute("radius").as_deref(), Some("0"));

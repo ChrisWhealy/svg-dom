@@ -12,6 +12,11 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 - Make `feMorphology` demo interactive (`beb85aa`)
 
+### Fixed
+
+- Fix test assertion after colour change (`4b6027b`)
+- Doc only: correct description of outline at radius zero (``)
+
 ## [0.1.13] - 2026-08-05
 
 ### Added
