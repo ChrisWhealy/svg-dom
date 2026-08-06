@@ -11,7 +11,7 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 ### Added
 
 - Make `feDiffuseLighting`/`feSpecularLighting` demo interactive (`6d12262`)
-- `<feDistantLight>` returns mutable specular/diffuse light sources (``)
+- `<feDistantLight>` returns mutable specular/diffuse light sources (`1cd0c94`)
 
 ### Fixed
 
