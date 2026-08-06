@@ -57,11 +57,15 @@ use cdp_integration_test::{build_fixture, fixture_dir, launch_browser, serve};
 use headless_chrome::protocol::cdp::Runtime;
 use serde_json::Value;
 
-/// The in-page async script: rasterises the fixture's `<svg>` and returns the alpha channel (the intensity
-/// signal, since `feSpecularLighting`'s own alpha is the max of its own lit R/G/B — the red channel is not
-/// usable here, since a dim, mostly-transparent pixel composites against the canvas's own default white
-/// background and reads as bright regardless of its own true intensity) at a handful of named local offsets
-/// within each of the nine rects, keyed by rect id then offset name.
+/// The in-page async script: rasterises the fixture's `<svg>` and returns the alpha channel at a handful of
+/// named local offsets within each of the nine rects, keyed by rect id then offset name. Alpha, not red, is the
+/// intensity signal here. `feSpecularLighting`'s own alpha is the max of its own lit R/G/B, per the filter spec,
+/// so it tracks lit intensity directly. The red channel does not: confirmed empirically, `getImageData`'s own
+/// red value here stays a constant 255 at every sampled point, dim or bright alike. Canvas `ImageData` is always
+/// non-premultiplied, but this filter's own result is computed in premultiplied form internally, so converting
+/// back divides each colour channel by its own alpha — for `lighting-color: white`, that division exactly
+/// cancels the intensity scaling alpha itself carries, leaving red pegged at white regardless of how dim the
+/// pixel actually is.
 const SAMPLE_SCRIPT: &str = r#"
 (async () => {
     const ids = [
@@ -89,9 +93,11 @@ const SAMPLE_SCRIPT: &str = r#"
     const ctx = canvas.getContext('2d');
     ctx.drawImage(img, 0, 0);
 
-    // feSpecularLighting's own alpha is the max of its own lit R/G/B, so it scales with lit intensity directly.
-    // The red channel does not: transparent (dim) pixels composite against the canvas's own default white
-    // background, reading as bright regardless of how dim the underlying lit colour actually is.
+    // feSpecularLighting's own alpha is the max of its own lit R/G/B, so it tracks lit intensity directly. The
+    // red channel does not: un-premultiplying this filter's own premultiplied result divides red by its own
+    // alpha, which for a white lighting-color exactly cancels the intensity scaling alpha itself carries,
+    // leaving red pegged at 255 regardless of how dim the pixel actually is. See this file's own module doc
+    // comment for how that was confirmed.
     function alphaAt(x, y) {
         return ctx.getImageData(Math.round(x), Math.round(y), 1, 1).data[3];
     }

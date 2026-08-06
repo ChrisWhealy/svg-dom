@@ -178,9 +178,10 @@ jobs:
       # for what this verifies and why it is a separate job rather than folded into `browser-tests`: it needs
       # headless_chrome and a real local Chrome binary, neither of which the wasm-bindgen-test-based browser tests
       # require, and keeping it isolated means a failure here doesn't obscure results from the other jobs. This
-      # single command runs all three CDP test binaries in the crate — accessibility tree, filter blend render,
-      # and turbulence scale-zero render — not just the accessibility-tree scenarios the step name once implied.
-      - name: Run the CDP integration tests (accessibility tree, filter blend, turbulence render)
+      # single command runs every CDP test binary in the crate, not just the accessibility-tree scenarios the
+      # step name once implied — see cdp-integration-test/src/lib.rs's own module doc comment for the current
+      # list, rather than duplicating (and re-drifting) it here.
+      - name: Run the CDP integration tests (accessibility tree + render checks)
         run: cargo test -p cdp-integration-test
 
   coverage:

@@ -382,8 +382,9 @@ fn build() -> Result<(), Error> {
     // Spot (no cone): light x at each rect's own left edge (matching demo_light_sources.rs's own slider minimum,
     // 400) or right edge (matching its own maximum, 560), with pointsAtX trailing by the same 80-unit offset
     // SPOT_OPEN_AIM_OFFSET uses in that file — translating the whole beam sideways rather than rotating it, the
-    // same fix that file's own module doc comment explains. The aim point sits outside the rect's own bounds in
-    // both cases, the same way it does in the real demo at either slider extreme.
+    // same fix that file's own module doc comment explains. The left rect's own aim point still lands inside its
+    // own bounds (80 units in from a 160-unit-wide rect); only the right rect's own aim point falls outside them
+    // (240 units in), the same asymmetry the real demo has at its own two slider extremes.
     ls_specular_lighting(
         &defs,
         "ls-spot-left-filter",

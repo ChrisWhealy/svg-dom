@@ -19,7 +19,8 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 - Correct overstatement in LightSource documentation and adjust demo (`26c80d5`)
 - Doc only: update stale doc comment (`458982d`)
 - Cone test verifies 0º Chrome anomoly (`d43d3b8`)
-- Improve test coverage (``)
+- Improve test coverage (`e1c3df4`)
+- Doc only: correct various inaccurate descriptions (``)
 
 ## [0.1.15] - 2026-08-06
 
