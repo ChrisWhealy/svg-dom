@@ -27,21 +27,21 @@ pub(crate) fn demo() -> Result<(), Error> {
             STEELBLUE,
             "Save",
             "Save icon",
-            "Represents the save function: writes the current document to disk.",
+            "Writes the current document to disk.",
         ),
         (
             400.0,
             ACCENT_AMBER,
             "Share",
             "Share icon",
-            "Represents the share function: opens the share sheet for this item.",
+            "Opens the share sheet for this item.",
         ),
         (
             650.0,
             CRIMSON,
             "Delete",
             "Delete icon",
-            "Represents the delete function: permanently removes the selected item. This cannot be undone.",
+            "Permanently removes the selected item. This cannot be undone.",
         ),
     ];
 
