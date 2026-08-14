@@ -22,13 +22,7 @@ pub(crate) fn demo() -> Result<(), Error> {
     // <desc> becomes visible for the purposes of this demo — this hover-to-reveal is the same passive reveal a mouse
     // user gets from any native title tooltip, not a stand-in for clicking a control.
     let icons: [(f64, &str, &str, &str, &str); 3] = [
-        (
-            150.0,
-            STEELBLUE,
-            "Save",
-            "Save icon",
-            "Writes the current document to disk.",
-        ),
+        (150.0, STEELBLUE, "Save", "Save icon", "Writes the current document to disk."),
         (
             400.0,
             ACCENT_AMBER,

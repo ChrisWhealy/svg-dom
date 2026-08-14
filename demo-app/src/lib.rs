@@ -524,21 +524,20 @@ fn split_demo_path(demo_path: &str) -> (&str, &str) {
 /// Scanning for the first line that is exactly `}` after the signature therefore finds the function's end without
 /// having to parse any string literals or resort to any brace-balancing shenanigans.
 fn demo_fn_source(module_path: &str, name: &str) -> Option<&'static str> {
-    let source = DEMO_SOURCE_FILES.iter().find(|(path, _)| *path == module_path)?.1;
-
+    let haystack = DEMO_SOURCE_FILES.iter().find(|(path, _)| *path == module_path)?.1;
     let needle = format!("fn {name}(");
-    let hit = source.find(&needle)?;
-    let start = source[..hit].rfind('\n').map_or(0, |i| i + 1);
-
-    let tail = &source[hit..];
+    let hit = haystack.find(&needle)?;
+    let start = haystack[..hit].rfind('\n').map_or(0, |i| i + 1);
+    let tail = &haystack[hit..];
     let mut from = 0;
+
     loop {
         let rel = tail[from..].find("\n}")?;
         let close = from + rel + 1; // index of the '}' within `tail`
         let after = close + 1;
         // A genuine top-level close: the '}' stands alone on its line (next byte is a newline or end of file).
         if tail.as_bytes().get(after).is_none_or(|&b| b == b'\n') {
-            return Some(&source[start..hit + after]);
+            return Some(&haystack[start..hit + after]);
         }
         from = after;
     }
@@ -567,13 +566,15 @@ fn caption(svg: &SvgRoot, cx: f64, text: &str) -> Result<(), Error> {
     Ok(())
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #[cfg(test)]
+/// These test only prove every demo function's source is extractable.
 mod unit_tests;
 
-/// A wasm-bindgen-test browser suite for the interactive demo controls implemented through `foreign_html.rs`
-/// (radio groups, sliders).
-/// `unit_tests` above only proves every demo function's source is extractable.
-/// It does not prove these controls actually dispatch to the right SVG attribute.
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// A wasm-bindgen-test browser suite for the interactive demo controls implemented through `foreign_html.rs` (radio
+/// groups, sliders). It cannot prove these controls actually dispatch to the right SVG attribute.
+///
 /// See `browser_tests/mod.rs`'s own doc comment for how this suite is run.
 /// That same doc comment also explains why this is a separate module from `unit_tests`.
 #[cfg(test)]

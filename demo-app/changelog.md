@@ -10,7 +10,8 @@ The `svg-dom-demo` gallery is not published as part of the crate's release, so t
 
 ### Changed
 
-- Shorten demo icon descriptions (``)
+- Shorten demo icon descriptions (`d13bc15`)
+- Change Rust String highlight colour (``)
 
 ## [0.1.16] - 2026-08-06
 
