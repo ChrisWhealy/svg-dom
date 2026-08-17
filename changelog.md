@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 
-- Resolve #5: Update wasm-pack link (``)
+- Resolve #5: Update wasm-pack link (`c3e061c`)
 
 ## [0.2.5] - 2026-08-06
 
