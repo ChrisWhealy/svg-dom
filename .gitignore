@@ -1,5 +1,6 @@
 /target
 /lcov.info
+/cdp-test-fixture/.build_fixture.lock
 /.claude
 /.idea
 /.tools

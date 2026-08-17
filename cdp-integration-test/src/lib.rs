@@ -22,8 +22,9 @@
 //! `filter_blend_render.rs`/`turbulence_scale_zero_render.rs`/`lighting_render.rs`/`light_sources_render.rs` and is
 //! not repeated here.
 
-use std::{path::PathBuf, process::Command, thread};
+use std::{fs::OpenOptions, path::PathBuf, process::Command, thread};
 
+use fd_lock::RwLock;
 use headless_chrome::{Browser, LaunchOptions, browser::default_executable};
 
 /// The path to the sibling `cdp-test-fixture` wasm crate, relative to this crate's own manifest directory.
@@ -35,7 +36,22 @@ pub fn fixture_dir() -> PathBuf {
 }
 
 /// Rebuilds the `cdp-test-fixture` wasm package so `serve`'s output is current.
+///
+/// Each of this crate's `tests/*.rs` files is its own binary and calls this independently, and nextest runs those
+/// binaries concurrently. Two `wasm-pack build` invocations racing in the same `dir` corrupt each other's
+/// intermediate state (wasm-bindgen's generated files, wasm-opt's temp output), so this takes an exclusive
+/// cross-process file lock first to make the concurrent binaries queue up and build one at a time.
 pub fn build_fixture(dir: &PathBuf) {
+    let lock_path = dir.join(".build_fixture.lock");
+    let lock_file = OpenOptions::new()
+        .create(true)
+        .truncate(false)
+        .write(true)
+        .open(&lock_path)
+        .expect("could not open build_fixture lock file");
+    let mut lock = RwLock::new(lock_file);
+    let _guard = lock.write().expect("could not acquire build_fixture lock");
+
     let status = Command::new("wasm-pack")
         .current_dir(dir)
         .args(["build", "--target", "web"])
