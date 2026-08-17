@@ -5,12 +5,12 @@ Thank you for helping keep `svg-dom` and its users safe.
 ## Supported versions
 
 `svg-dom` is pre-1.0 and follows the Cargo convention that `0.y.z` releases may contain breaking changes between minor (`y`) versions.
-Security fixes are issued **only against the latest published `0.1.x` release** on [crates.io](https://crates.io/crates/svg-dom); there are no long-term support branches.
+Security fixes are issued **only against the latest published `0.2.x` release** on [crates.io](https://crates.io/crates/svg-dom); there are no long-term support branches.
 If you are pinned to an older version, the fix is to upgrade.
 
 | Version  | Supported
 |---|---|
-| latest `0.1.x` | :white_check_mark:
+| latest `0.2.x` | :white_check_mark:
 | anything older | :x:
 
 ## Reporting a vulnerability
