@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Released]
 
+## [0.2.6] - 2026-08-17
+
+### Fixed
+
+- Resolve #5: Update wasm-pack link (``)
+
 ## [0.2.5] - 2026-08-06
 
 ### Added

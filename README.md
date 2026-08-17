@@ -91,7 +91,7 @@ Consequently, this crate works exclusively with the SVG DOM.
 
 # Building
 
-Use [wasm-pack](https://rustwasm.github.io/wasm-pack/) to build:
+Use [wasm-pack](https://wasm-bindgen.github.io/wasm-pack/) to build:
 
 ```sh
 wasm-pack build --target web
