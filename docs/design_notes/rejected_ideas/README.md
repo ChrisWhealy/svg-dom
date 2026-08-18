@@ -3,13 +3,13 @@
 [← Back to design notes](../README.md)
 
 Design suggestions that were evaluated for `svg-dom` and deliberately not adopted.
-The reasoning is preserved here — grouped by topic and split across files, mirroring how the [design notes](../README.md) themselves are organised — so the same ideas are not repeatedly re-proposed.
+The reasoning is preserved here, grouped by topic and split across files that mirror how the [design notes](../README.md) themselves are organised.
+This way, the same ideas are not repeatedly re-proposed.
 
-Several entries share a recurring theme referred to as **the measurement gate**: this crate declines a speculative
-performance or binary-size change until a real measurement (a profile, a `wasm-opt`/MD5 comparison, a
-`twiggy`/`wasm-tools` size report) shows an actual benefit, rather than accepting a plausible-sounding argument on
-its own. See [Performance and binary-size proposals](performance.md) for the fullest articulation of this, with
-cross-links from the other categories it has also been applied to.
+Several entries share a recurring theme called **the measurement gate**.
+This crate declines a speculative performance or binary-size change until a real measurement shows an actual benefit.
+A real measurement means a profile, a `wasm-opt`/MD5 comparison, or a `twiggy`/`wasm-tools` size report — not a plausible-sounding argument on its own.
+See [Performance and binary-size proposals](performance.md) for the fullest articulation of this rule, with cross-links from the other categories it has also been applied to.
 
 ## Node identity, ownership, and tree navigation
 

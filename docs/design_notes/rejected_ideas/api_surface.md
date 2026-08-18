@@ -11,27 +11,39 @@
 
 ## Hiding `SvgRoot::root` behind an `as_element()` accessor
 
-`SvgRoot` exposes its `<svg>` as the public field `root`, which lets a caller write `width`/`height` directly and desynchronise the cached viewport that backs `width()`/`height()` and `set_viewport`'s write-elision.
+`SvgRoot` exposes its `<svg>` as the public field `root`.
+This lets a caller write `width`/`height` directly, desynchronising the cached viewport that backs `width()`/`height()` and `set_viewport`'s write-elision.
 
-It was suggested that, as a future breaking change, the field should be made private and a `pub fn as_element(&self) -> &SvgsvgElement` accessor be added instead.
-We documented the caveat on the field (direct mutation desyncs `width()`/`height()`; `set_viewport` is the cache-aware path) but did **not** make the field private.
+One suggestion, as a future breaking change: make the field private and add a `pub fn as_element(&self) -> &SvgsvgElement` accessor instead.
+We documented the caveat on the field: direct mutation desyncs `width()`/`height()`, and `set_viewport` is the cache-aware path.
+We did **not** make the field private.
 
 * **The accessor would not actually protect the invariant.**<br>
-  Every `web_sys` DOM mutator such as `set_attribute`, `set_attribute_ns`, and its typed property setters, take `&self`, not `&mut self` because DOM mutation goes through a shared JS handle.
+  Every `web_sys` DOM mutator, such as `set_attribute`, `set_attribute_ns`, and its typed property setters, takes `&self`, not `&mut self`.
+  That is because DOM mutation goes through a shared JS handle.
   So `svg.as_element().set_attribute("width", "500")` desyncs the cache *exactly* as `svg.root.set_attribute("width", "500")` does.
-  The change swaps a public field for a method of identical power over the invariant; it does not close the hole the recommendation set out to close.
+  The change swaps a public field for a method of identical power over the invariant.
+  It does not close the hole the recommendation set out to close.
 
 * **Exposing the element is a deliberate escape hatch.**<br>
   This crate is a thin, minimal wrapper and does not wrap every SVG attribute or property.
 
-  Geometry read-back (`getBBox`, `getCTM`, `getTotalLength`, ...) was in this category at the time of this rejection; however, it has since been wrapped as `SvgNode::bounding_box`/`ctm`/`total_length`/etc. (see [Geometry read-back](../geometry.md)) — which does not change the argument here: the crate still does not, and will not, wrap *every* SVG attribute or property, only the ones with a demonstrated need.
+  Geometry read-back (`getBBox`, `getCTM`, `getTotalLength`, ...) was in this category at the time of this rejection.
+  It has since been wrapped as `SvgNode::bounding_box`/`ctm`/`total_length`/etc. (see [Geometry read-back](../geometry.md)).
+  That does not change the argument here.
+  The crate still does not, and will not, wrap *every* SVG attribute or property — only the ones with a demonstrated need.
 
-  Direct access to the root `<svg>` is the supported way to reach those, so the leak is inherent to *exposing the element at all* (which we want to do) not to the field-versus-method spelling.
+  Direct access to the root `<svg>` is the supported way to reach those.
+  The leak is therefore inherent to *exposing the element at all*, which we want to do, not to the field-versus-method spelling.
 
-  The only extra power a public field grants is reassigning `root` wholesale, which needs `&mut SvgRoot` and would obviously corrupt the handle; that is a self-evident misuse, not a footgun worth a breaking API change to forbid.
+  The only extra power a public field grants is reassigning `root` wholesale.
+  That needs `&mut SvgRoot` and would obviously corrupt the handle.
+  It is a self-evident misuse, not a footgun worth a breaking API change to forbid.
 
 * **Documentation is therefore the correct and sufficient fix.**<br>
-  Since the element must remain reachable and any reference to it can mutate the DOM, the honest contract is a documented one: the field's doc now states that writing `width`/`height` directly desyncs `width()`/`height()` and that `set_viewport` is the cache-aware path.
+  The element must remain reachable, and any reference to it can mutate the DOM.
+  So the honest contract is a documented one.
+  The field's doc now states that writing `width`/`height` directly desyncs `width()`/`height()`, and that `set_viewport` is the cache-aware path.
 
   Renaming `svg.root` to `svg.as_element()` across every downstream user would churn the public API for no real gain in safety.
 
@@ -43,35 +55,49 @@ An external review flagged three sites where the crate exposes raw `web_sys` ele
 * `SvgNode::as_element()` — returns `&SvgElement`.
 * `SvgDefs::as_element()` and `SvgMarker::as_element()` — likewise.
 
-The argument was that callers can bypass cached state, marker-id validation, and listener ownership through these handles, and that raw DOM access should instead live behind an explicit escape API — `raw_element_unchecked()` — or a Cargo feature such as `features = ["raw-dom-access"]`.
+The argument: callers can bypass cached state, marker-id validation, and listener ownership through these handles.
+Raw DOM access should instead live behind an explicit escape API — `raw_element_unchecked()` — or a Cargo feature, such as `features = ["raw-dom-access"]`.
 
 The recommendation was evaluated against each site individually, because the facts differ.
 
 ### `SvgRoot::root`
 
 This was already analysed [above](#hiding-svgrootroot-behind-an-as_element-accessor), where it was also suggested that the public field be hidden behind an `as_element()` accessor.
-The conclusion there stands for any spelling of the accessor: every `web_sys` DOM-mutating method takes `&self`, not `&mut self`, so `svg.raw_element_unchecked().set_attribute("width", "500")` desyncs the cached viewport *exactly* as `svg.root.set_attribute("width", "500")` does.
-The accessor name changes the ergonomics but does not close the invariant hole, because the hole is inherent to exposing the element at all — which we want to do.
+The conclusion there stands for any spelling of the accessor.
+Every `web_sys` DOM-mutating method takes `&self`, not `&mut self`.
+So `svg.raw_element_unchecked().set_attribute("width", "500")` desyncs the cached viewport *exactly* as `svg.root.set_attribute("width", "500")` does.
+The accessor name changes the ergonomics.
+It does not close the invariant hole, because the hole is inherent to exposing the element at all — which we want to do.
 
 ### `SvgNode::as_element()`
 
 `SvgNode` has **no cached state** that direct DOM access can desync.
-Its managed state is the listener `Rc<SvgNodeInner>`, and a caller who adds a listener directly to the raw `SvgElement` does not corrupt that store — they merely bypass the crate's automatic listener cleanup for that one listener.
+Its managed state is the listener `Rc<SvgNodeInner>`.
+A caller who adds a listener directly to the raw `SvgElement` does not corrupt that store.
+They merely bypass the crate's automatic listener cleanup for that one listener.
 This is the unavoidable consequence of exposing any DOM handle, not a unique defect of `as_element()`.
 
 More importantly, `SvgNode::set_attr()` is already a full escape hatch: it accepts an arbitrary attribute name and value and writes it verbatim to the DOM.
 Any "bypassing" of attribute-writer consistency or text-safety helpers is equally possible through that route — the existing security note on `set_attr` already documents this.
-Removing `as_element()` would only deny access to non-attribute DOM methods (`tag_name`, `preserveAspectRatio` reads, typed property accessors that need a `dyn_ref` cast, and so on — `get_bounding_client_rect` was an example of this category at the time of this rejection, and has since been wrapped as [`SvgNode::bounding_client_rect`](../geometry.md)) — which are the *legitimate* reasons to reach the raw element.
+Removing `as_element()` would only deny access to non-attribute DOM methods.
+Examples: `tag_name`, `preserveAspectRatio` reads, and typed property accessors that need a `dyn_ref` cast.
+`get_bounding_client_rect` was an example of this category at the time of this rejection.
+It has since been wrapped as [`SvgNode::bounding_client_rect`](../geometry.md).
+These are the *legitimate* reasons to reach the raw element.
 
 ### `SvgDefs::as_element()`
 
 `SvgDefs` has **no cached state**.
-Its element is only ever used internally as an append target, and there is nothing for a caller to desync by writing attributes directly.
-The accessor is an unrestricted escape hatch; treating it as a backdoor would make it indistinguishable from a justified feature.
+Its element is only ever used internally as an append target.
+There is nothing for a caller to desync by writing attributes directly.
+The accessor is an unrestricted escape hatch.
+Treating it as a backdoor would make it indistinguishable from a justified feature.
 
 ### `SvgMarker::as_element()`
 
-This is the one site where the concern has real substance: `SvgMarker` caches the `id` in a Rust `String`, and writing `id` through the raw element bypasses both the cache update and the `validate_marker_id` check.
+This is the one site where the concern has real substance.
+`SvgMarker` caches the `id` in a Rust `String`.
+Writing `id` through the raw element bypasses both the cache update and the `validate_marker_id` check.
 
 Two layers already guard against the most common path:
 
@@ -79,12 +105,15 @@ Two layers already guard against the most common path:
 * The doc comment on `as_element()` explicitly warns that the `id` attribute must not be written through this handle, and points to `set_id`.
 
 The only unsuppressed path is `marker.as_element().set_attribute("id", ...)`, which is a deliberate choice by a caller who has read the docs.
-A rename to `as_element_unchecked()` would be marginally more self-documenting, but it would be a breaking API change to all existing callers in exchange for a signal the existing doc comment already delivers.
+A rename to `as_element_unchecked()` would be marginally more self-documenting.
+But it would be a breaking API change to all existing callers, in exchange for a signal the existing doc comment already delivers.
 It would also create a naming inconsistency between `SvgMarker` and the other types, which expose `as_element()` with no cached state to protect.
 
 ### The Cargo feature approach
 
-Gating `as_element()` behind `features = ["raw-dom-access"]` would impose a feature dependency on every caller who needs to use `computed_text_length`-style `dyn_ref` casts or any other non-attribute DOM method that the crate does not wrap — exactly the legitimate use cases the method exists for.
+Gating `as_element()` behind `features = ["raw-dom-access"]` would impose a feature dependency on every caller who needs it.
+That includes anyone using `computed_text_length`-style `dyn_ref` casts, or any other non-attribute DOM method the crate does not wrap.
+Those are exactly the legitimate use cases the method exists for.
 
 This crate deliberately does not wrap large swaths of SVG DOM, and has never claimed to.
 A feature gate would make the parts it does not cover less accessible, not more documented.
@@ -92,7 +121,8 @@ A feature gate would make the parts it does not cover less accessible, not more 
 ### Conclusion
 
 The naming concern is legitimate: `as_element()` does not signal that it bypasses crate invariants.
-But renaming alone does not protect invariants, and the invariants that actually exist are either already documented (`SvgRoot` viewport, `SvgMarker` id) or do not exist at all (`SvgNode`, `SvgDefs`).
+But renaming alone does not protect invariants.
+The invariants that actually exist are either already documented (`SvgRoot` viewport, `SvgMarker` id), or do not exist at all (`SvgNode`, `SvgDefs`).
 
 The correct and sufficient response is precise documentation at each escape hatch, which is already in place.
 A breaking rename or a Cargo feature would impose a real cost on legitimate callers in exchange for a naming signal that cannot substitute for reading the docs.
@@ -113,7 +143,9 @@ let defs = svg.build_defs(|defs| {
 })?;
 ```
 
-The claim was that these have different failure semantics — direct appends happen before all child content is set, so a mid-build error can leave partial DOM behind — and that having two public models for the same operation is a consistency problem.
+The claim was that these have different failure semantics.
+Direct appends happen before all child content is set, so a mid-build error can leave partial DOM behind.
+Having two public models for the same operation was also called a consistency problem.
 The recommendation was to pick the closure builders as canonical and rename or remove the direct APIs.
 
 This is not adopted.
@@ -122,16 +154,18 @@ This is not adopted.
 
 `batch()` and `build_batch()` are both fully transactional: both create a detached `DocumentFragment` and commit it to the live DOM only when `commit()` is called.
 `build_batch()` is a thin convenience wrapper that calls `batch()` then `commit()`.
-There is no atomicity difference between them; the reviewer incorrectly included the batch API in the diagnosis.
+There is no atomicity difference between them.
+The reviewer incorrectly included the batch API in the diagnosis.
 
 ### The `defs`/`marker` pairs serve genuinely different use cases
 
-`defs()` and `marker()` exist specifically for cases where `<defs>` content cannot be known upfront:
-for example, adding markers dynamically in response to user actions, or building a marker incrementally across several calls.
+`defs()` and `marker()` exist specifically for cases where `<defs>` content cannot be known upfront.
+For example: adding markers dynamically in response to user actions, or building a marker incrementally across several calls.
 `build_defs()` and `build_marker()` exist for one-shot construction where all children are known before any DOM mutation.
 
 These are complementary, not competing.
-Removing the direct APIs would leave no public way to extend a `<defs>` section after initial construction, which is a legitimate use case the docs already describe ("For dynamically extending `<defs>` after initial construction, use `defs` instead").
+Removing the direct APIs would leave no public way to extend a `<defs>` section after initial construction.
+That is a legitimate use case the docs already describe ("For dynamically extending `<defs>` after initial construction, use `defs` instead").
 
 ### The atomicity difference is real but the practical risk is near-zero
 
@@ -142,7 +176,7 @@ For `marker()`: if a shape or attribute setter fails after `marker()` returns, a
 However, the realistic failure points are:
 
 - `validate_marker_id` — fires before any DOM mutation, so an invalid id leaves nothing in the DOM.
-- `create_svg_element` — creates a detached element; failure leaves nothing attached.
+- `create_svg_element` — creates a detached element. Failure leaves nothing attached.
 - Attribute setters (`set_ref_x`, `set_marker_width`, ...) — call `set_attribute` on standard SVG
   attribute names, which browsers essentially never reject.
 
@@ -166,12 +200,12 @@ Together these give callers a clear picture of the trade-off without changing an
 
 ## Reducing attribute-mutation surface area to one canonical path
 
-An external review observed that the crate exposes many ways to set the same attribute — using
-`set_fill`, `set_attr`, `SvgAttrs::set`, `AttrWriter::set`, `AnimationFrame::set_attr`, or
-raw `as_element().set_attribute` — and that some internal implementations were inconsistent:
-`SvgMarker::set_orient` and `set_units` call `element.set_attribute` directly; marker-reference
-setters use `format!("url(#{id})")` to build the URL; `SvgNode::set_stroke_width` creates a
-`SvgAttrs::new()` locally rather than using a shared buffer.
+An external review observed that the crate exposes many ways to set the same attribute.
+These include `set_fill`, `set_attr`, `SvgAttrs::set`, `AttrWriter::set`, `AnimationFrame::set_attr`, and raw `as_element().set_attribute`.
+The review also flagged some internal implementations as inconsistent.
+`SvgMarker::set_orient` and `set_units` call `element.set_attribute` directly.
+Marker-reference setters use `format!("url(#{id})")` to build the URL.
+`SvgNode::set_stroke_width` creates a `SvgAttrs::new()` locally, rather than using a shared buffer.
 
 The recommendation was to collapse these into four strict layers: one internal primitive, one
 ordinary public mutation path, explicitly named performance helpers, and no raw DOM in the normal API.
@@ -180,7 +214,8 @@ This will not be adopted for the following reasons.
 
 ### The "many paths" observation conflates composition with competition
 
-For *string-valued* attributes, the paths are not alternatives; they are layered compositions:
+For *string-valued* attributes, the paths are not alternatives.
+They are layered compositions:
 
 ```rust
 node.set_fill("red")                         // typed helper → calls set_attr
@@ -190,21 +225,28 @@ node.attrs(&mut a).set("fill","red").apply() // AttrWriter → calls SvgAttrs::s
 ```
 
 Each level wraps the one below.
-`SvgAttrs::set` is a one-line pass-through to `node.set_attr`; using it for a string attribute adds no behaviour: it exists so the `AttrWriter` chain can mix string and numeric attributes uniformly.
+`SvgAttrs::set` is a one-line pass-through to `node.set_attr`.
+Using it for a string attribute adds no behaviour.
+It exists so the `AttrWriter` chain can mix string and numeric attributes uniformly.
 
-For *numeric* attributes, `SvgAttrs::display` / `AttrWriter::display` / `AnimationFrame::set_attr_fmt` genuinely add a distinct behaviour: they format the value into a reusable scratch `String` and avoid the per-call allocation that a naïve `value.to_string()` would make.
-These are not competing paths; they are a deliberate performance tier.
+For *numeric* attributes, `SvgAttrs::display`/`AttrWriter::display`/`AnimationFrame::set_attr_fmt` genuinely add a distinct behaviour.
+They format the value into a reusable scratch `String` and avoid the per-call allocation that a naïve `value.to_string()` would make.
+These are not competing paths. They are a deliberate performance tier.
 
-Raw `as_element()` access is already documented as an escape hatch (see [Hiding raw `web_sys` access behind `raw_element_unchecked()` or a Cargo feature](#hiding-raw-web_sys-access-behind-raw_element_unchecked-or-a-cargo-feature) above) and is excluded from the "normal" operating model.
+Raw `as_element()` access is already documented as an escape hatch.
+See [Hiding raw `web_sys` access behind `raw_element_unchecked()` or a Cargo feature](#hiding-raw-web_sys-access-behind-raw_element_unchecked-or-a-cargo-feature) above.
+It is excluded from the "normal" operating model.
 
 ### The internal inconsistencies have explanations
 
 **`SvgMarker::set_orient` and `set_units` call `element.set_attribute` directly.**
 
-`SvgAttrs` (and the `display_element` / `display` methods on it) exists for *numeric formatting*: it reuses a scratch `String` to convert `f64`/`Display` values without per-call allocation.
-`set_orient` accepts a `&str`; `set_units` accepts a `MarkerUnits` enum that produces a `&'static str`.
+`SvgAttrs` (and the `display_element`/`display` methods on it) exists for *numeric formatting*: it reuses a scratch `String` to convert `f64`/`Display` values without per-call allocation.
+`set_orient` accepts a `&str`.
+`set_units` accepts a `MarkerUnits` enum that produces a `&'static str`.
 Neither needs scratch-buffer formatting.
-Routing them through `self.attrs.borrow_mut()` would add a `RefCell` borrow and an indirection for no benefit; calling `element.set_attribute` directly is the correct primitive for string-valued writes.
+Routing them through `self.attrs.borrow_mut()` would add a `RefCell` borrow and an indirection, for no benefit.
+Calling `element.set_attribute` directly is the correct primitive for string-valued writes.
 
 **Marker-reference setters use `format!("url(#{marker_id})")`.**
 
@@ -214,8 +256,10 @@ A single `format!` at marker-reference setup time is the right tradeoff since `s
 
 **`SvgNode::set_stroke_width` creates `SvgAttrs::new()` locally.**
 
-`SvgMarker` and `SvgDefs` hold a shared `RefCell<SvgAttrs>` because they are factory types that may need to format many numeric attributes; `SvgNode` does not.
-The local `SvgAttrs::new()` in `set_stroke_width` is the convenience path; the doc comment already directs hot-path callers to `set_attr_display` with a caller-supplied buffer.
+`SvgMarker` and `SvgDefs` hold a shared `RefCell<SvgAttrs>` because they are factory types that may need to format many numeric attributes.
+`SvgNode` does not.
+The local `SvgAttrs::new()` in `set_stroke_width` is the convenience path.
+The doc comment already directs hot-path callers to `set_attr_display` with a caller-supplied buffer.
 The inconsistency is deliberate and documented.
 
 ### The "four layers" recommendation already describes the crate's design
@@ -227,4 +271,5 @@ The inconsistency is deliberate and documented.
 | Layer 3 | Performance helpers | `SvgAttrs`, `CachedAttr`, `AnimationFrame` |
 | Layer 4 | Remove raw DOM from normal API | See [Hiding raw `web_sys` access behind `raw_element_unchecked()` or a Cargo feature](#hiding-raw-web_sys-access-behind-raw_element_unchecked-or-a-cargo-feature) above |
 
-The recommendation names an architecture that already exists; it does not propose a change.
+The recommendation names an architecture that already exists.
+It does not propose a change.

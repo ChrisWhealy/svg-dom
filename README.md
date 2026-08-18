@@ -9,6 +9,7 @@ A lightweight Rust/WebAssembly library for creating and mutating live SVG conten
 
 The crate's planned feature set is implemented.
 Deliberate exclusions are documented under [Implementation Non-goals](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/non-goals.md).
+
 All reasonable, conventional steps have been taken to provide a secure, stable and robust foundation upon which to develop future functionality.
 
 ***IMPORTANT***<br>This crate targets WebAssembly only.
@@ -85,7 +86,7 @@ This crate makes no use of the HTML `<canvas>` element!
 
 Whilst the `<canvas>` element offers a pixel-based, bitmap drawing API that gives you the highest performance ceiling, it also requires you to take ownership of the entire layout, the render loop and hit-testing.
 
-Not only is the implementation cost of such functionality high, it becomes somewhat redundant in light of the fact that the SVG DOM is already a persistent tree of DOM elements that can be individually updated and with which JavaScript (via `web-sys`) can already interact.
+Not only is the implementation cost of such functionality high, it becomes somewhat redundant in light of the fact that SVG elements are already a persistent DOM tree that can be individually updated and with which JavaScript (via `web-sys`) can already interact.
 
 Consequently, this crate works exclusively with the SVG DOM.
 
