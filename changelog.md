@@ -6,7 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Unreleased]
 
-## [0.2.8] - 2026-08-18
+# [Released]
+
+## [0.2.8] - 2026-08-19
 
 ## Changed
 
@@ -19,9 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Apply a simplified form of ASD-STE100 to the doc comments in `src/animate` (`9de4b40`)
 - Apply a simplified form of ASD-STE100 to the doc comments in `src/error` (`4e79b6a`)
 - Apply a simplified form of ASD-STE100 to the doc comments in `src/node` (`80ee4c6`)
-- Apply a simplified form of ASD-STE100 to the doc comments in `src/root` (``)
-
-# [Released]
+- Apply a simplified form of ASD-STE100 to the doc comments in `src/root` (`ea7574a`)
 
 ## [0.2.7] - 2026-08-18
 
