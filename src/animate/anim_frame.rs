@@ -35,7 +35,7 @@ use std::fmt::{self, Write};
 ///     let _ = frame.set_attr_fmt(&rect, "opacity", format_args!("{alpha:.3}"));
 /// }).unwrap();
 ///
-/// // Keep the loop alive for the page's lifetime; dropping it would stop it via `Drop`.
+/// // Keep the loop alive for the page's lifetime. Dropping it would stop it via `Drop`.
 /// ANIM.with(|slot| *slot.borrow_mut() = Some(anim));
 /// ```
 #[derive(Default)]
@@ -116,9 +116,9 @@ impl AnimationFrame {
     /// Like [`set_d_from_defs`](Self::set_d_from_defs), but writes each coordinate, length, and rotation angle with
     /// `dps` fixed decimal places (clamped to 20).
     ///
-    /// The per-frame counterpart to [`SvgAttrs::d_from_defs_fixed`](crate::SvgAttrs::d_from_defs_fixed) — shorter
-    /// per-frame output for a path whose coordinates come from a calculation, where the full-precision string would
-    /// otherwise dominate the data crossing the WASM/JS boundary each frame.
+    /// The per-frame counterpart to [`SvgAttrs::d_from_defs_fixed`](crate::SvgAttrs::d_from_defs_fixed).
+    /// It produces shorter per-frame output for a path whose coordinates come from a calculation, where the
+    /// full-precision string would otherwise dominate the data crossing the WASM/JS boundary each frame.
     ///
     /// # Errors
     ///
@@ -153,8 +153,8 @@ impl AnimationFrame {
     /// Like [`set_points`](Self::set_points), but writes each coordinate with `decimals` fixed decimal places
     /// (clamped to 20).
     ///
-    /// Shorter per-frame output for large animated `<polyline>`/`<polygon>` geometry, where the full-precision string
-    /// would otherwise dominate the data crossing the WASM/JS boundary each frame. See
+    /// This gives shorter per-frame output for large animated `<polyline>`/`<polygon>` geometry, where the
+    /// full-precision string would otherwise dominate the data crossing the WASM/JS boundary each frame. See
     /// [`SvgAttrs::points_fixed`](crate::SvgAttrs::points_fixed).
     pub fn set_points_fixed(&mut self, node: &SvgNode, points: &[Point], decimals: usize) -> Result<(), Error> {
         write_points(&mut self.scratch, points, Some(decimals));

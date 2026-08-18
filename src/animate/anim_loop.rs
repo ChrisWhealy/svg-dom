@@ -7,7 +7,7 @@ use wasm_bindgen::{JsCast, prelude::*};
 
 /// The per-frame closure registered with `requestAnimationFrame`.
 type FrameClosure = Closure<dyn FnMut(f64)>;
-/// Shared, self-referencing slot used by the closure to re-register itself each frame; cleared on `stop`.
+/// Shared, self-referencing slot used by the closure to re-register itself each frame. Cleared on `stop`.
 type SharedClosure = Rc<RefCell<Option<FrameClosure>>>;
 /// Shared cell holding the pending `requestAnimationFrame` handle so it can be cancelled.
 type RafHandle = Rc<Cell<i32>>;
@@ -20,10 +20,10 @@ type RafHandle = Rc<Cell<i32>>;
 ///
 /// | State | Description |
 /// | ----- | ----------- |
-/// | `Idle` | The loop is running; no callback is currently executing. |
+/// | `Idle` | The loop is running. No callback is currently executing. |
 /// | `Dispatching` | The RAF wrapper is currently inside `callback(ts)`. |
-/// | `StopPending` | `stop()` was called during dispatch; deferred closure cleanup is scheduled. Subsequent calls to `stop()` are no-ops, as is firing the `Drop` impl because the handle was dropped inside the callback.  This prevents a use-after-free of the still-running closure body. |
-/// | `Stopped` | The loop has fully stopped; the closure slot has been (or will be) cleared.
+/// | `StopPending` | `stop()` was called during dispatch. Deferred closure cleanup is scheduled. Subsequent calls to `stop()` are no-ops, as is firing the `Drop` impl because the handle was dropped inside the callback.  This prevents a use-after-free of the still-running closure body. |
+/// | `Stopped` | The loop has fully stopped. The closure slot has been (or will be) cleared.
 #[derive(Clone, Copy, PartialEq)]
 enum AnimLoopState {
     Idle,
@@ -65,9 +65,9 @@ pub struct AnimationLoop {
 impl AnimationLoop {
     /// Starts a `requestAnimationFrame` loop, calling `callback(timestamp_ms)` each frame.
     ///
-    /// The first frame is scheduled immediately.  Subsequent frames are re-scheduled from inside the closure using the
-    /// self-referencing `Rc<RefCell<Option<Closure>>>` pattern — the closure captures a reference counted clone of its
-    /// own slot and re-fills it each time it runs.
+    /// The first frame is scheduled immediately.  Subsequent frames are re-scheduled from inside the closure, using
+    /// the self-referencing `Rc<RefCell<Option<Closure>>>` pattern.
+    /// The closure captures a reference-counted clone of its own slot, and re-fills it each time it runs.
     ///
     /// # Arguments
     ///
@@ -105,7 +105,7 @@ impl AnimationLoop {
     ///     let _ = path.set_d(&d);
     /// }).unwrap();
     ///
-    /// // Keep the loop alive for the page's lifetime; dropping it would stop it via `Drop`.
+    /// // Keep the loop alive for the page's lifetime. Dropping it would stop it via `Drop`.
     /// ANIM.with(|slot| *slot.borrow_mut() = Some(anim));
     /// ```
     pub fn start<F: FnMut(f64) + 'static>(callback: F) -> Result<Self, Error> {
@@ -145,15 +145,16 @@ impl AnimationLoop {
             // If `stop()` was called from inside the callback, the state is set to `StopPending` and a setTimeout(0) is
             // scheduled to free the closure slot after this body returns.
             // Transition to `Stopped` and skip re-scheduling.
-            // Any subsequent `stop()` calls during the same dispatch (a second explicit call, or Drop firing because
-            // the handle was dropped inside the callback) will see `StopPending` and collapse into a no-op, so the
-            // deferred timer fires exactly once and the closure is never freed while its body is still executing.
+            // Any subsequent `stop()` calls during the same dispatch — a second explicit call, or `Drop` firing because
+            // the handle was dropped inside the callback — see `StopPending` and collapse into a no-op.
+            // So the deferred timer fires exactly once, and the closure is never freed while its body is still
+            // executing.
             match state_inner.get() {
                 AnimLoopState::StopPending => {
                     state_inner.set(AnimLoopState::Stopped);
                     return;
                 },
-                AnimLoopState::Stopped => return, // should not occur; guard defensively
+                AnimLoopState::Stopped => return, // should not occur — guard defensively
                 AnimLoopState::Dispatching => state_inner.set(AnimLoopState::Idle),
                 AnimLoopState::Idle => return, // unexpected
             }
@@ -169,19 +170,18 @@ impl AnimationLoop {
             match raf_result {
                 Some(Ok(h)) => handle_inner.set(h),
                 Some(Err(_)) => {
-                    // requestAnimationFrame failed; the loop cannot continue.
+                    // requestAnimationFrame failed. The loop cannot continue.
                     // Release captures immediately rather than holding them until the AnimationLoop is dropped.
                     state_inner.set(AnimLoopState::Stopped);
                     *closure_inner.borrow_mut() = None;
                 },
-                None => {}, // stop() already cleared the slot; nothing to do
+                None => {}, // stop() already cleared the slot — nothing to do
             }
         });
 
-        // Schedule the first frame from the local binding, then hand the closure to the shared
-        // slot. Driving the initial call this way avoids re-borrowing the slot we just filled and
-        // the `unwrap` that would have required; on failure `?` drops the closure before anything
-        // was scheduled.
+        // Schedule the first frame from the local binding, then hand the closure to the shared slot. This avoids
+        // re-borrowing the slot we just filled, and the `unwrap` that would have required. On failure, `?` drops the
+        // closure before anything was scheduled.
         let h = window
             .request_animation_frame(raf_closure.as_ref().unchecked_ref())
             .map_err(dom_err)?;
@@ -206,12 +206,14 @@ impl AnimationLoop {
     /// If that `setTimeout` registration itself fails, a later `stop()` or `Drop` still clears the slot — but only if
     /// another `AnimationLoop` handle survives to make that later call.
     /// If the handle dropped inside the callback was the last one, no such later call exists, and the closure and its
-    /// captures leak; see the "Two rare failure paths" section in `docs/design_notes/animation.md`.
+    /// captures leak.
+    /// See the "Two rare failure paths" section in `docs/design_notes/animation.md`.
     ///
     /// Calling `stop()` is idempotent.
     ///
-    /// Repeated calls to `stop()` (either explicitly or via `Drop` when the handle is dropped inside the callback) are
-    /// all safe and have no effect after the first call during a given dispatch.
+    /// Repeated calls to `stop()` — either explicitly, or via `Drop` when the handle is dropped inside the callback —
+    /// are all safe.
+    /// They have no effect after the first call during a given dispatch.
     ///
     /// Normally, there is no need for you to call `stop()` explicitly since dropping the `AnimationLoop` calls it
     /// automatically via the `impl Drop for AnimationLoop` below.
@@ -253,13 +255,15 @@ impl AnimationLoop {
                 let cb = Closure::once_into_js(move || {
                     *slot.borrow_mut() = None;
                 });
-                // If scheduling fails, the returned `JsValue` `cb` is dropped, but that does not deallocate the Rust
-                // `FnOnce` that `once_into_js` produced: wasm-bindgen only frees a once_into_js closure when it is
-                // invoked, so an unscheduled callback leaks permanently, along with its cloned `Rc` to `slot`.
-                // The post-callback code still transitions state to `Stopped`, so a later `stop()`/`Drop` call — if
-                // another `AnimationLoop` handle survives — will still clear the slot and release the RAF closure and
-                // its captures. If this was the last handle (dropped from inside the callback), no later caller
-                // exists, so the RAF closure and its captures also remain leaked.
+                // If scheduling fails, the returned `JsValue` `cb` is dropped.
+                // But that does not deallocate the Rust `FnOnce` that `once_into_js` produced.
+                // wasm-bindgen only frees a `once_into_js` closure when it is invoked.
+                // So an unscheduled callback leaks permanently, along with its cloned `Rc` to `slot`.
+                // The post-callback code still transitions state to `Stopped`.
+                // So a later `stop()`/`Drop` call — if another `AnimationLoop` handle survives — will still clear
+                // the slot, and release the RAF closure and its captures.
+                // If this was the last handle (dropped from inside the callback), no later caller exists, so the
+                // RAF closure and its captures also remain leaked.
                 let _ = self
                     .window
                     .set_timeout_with_callback_and_timeout_and_arguments_0(cb.unchecked_ref(), 0);
@@ -269,9 +273,10 @@ impl AnimationLoop {
                 // becomes a no-op.
             },
             AnimLoopState::Stopped => {
-                // Already stopped.  Also used as a recovery path: if the deferred timer never ran (e.g. setTimeout
-                // scheduling failed), the closure slot may still be filled; clear it now since we are guaranteed to be
-                // outside callback dispatch when the state is `Stopped`.
+                // Already stopped.  This is also used as a recovery path.
+                // If the deferred timer never ran — e.g. `setTimeout` scheduling failed — the closure slot may
+                // still be filled.  Clear it now, since we are guaranteed to be outside callback dispatch when the
+                // state is `Stopped`.
                 *self.closure.borrow_mut() = None;
             },
             AnimLoopState::Idle => {
