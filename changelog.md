@@ -14,7 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Refactor `src/root/defs.rs` distributing code across respective modules (`b0c5042`)
 - Apply a simplified form of ASD-STE100 to the rejected_ideas documentation (`de443c3`)
 - Apply a simplified form of ASD-STE100 to the design_notes documentation (`ae57e1e`)
-- Apply a simplified form of ASD-STE100 to the svg_elements documentation (``)
+- Apply a simplified form of ASD-STE100 to the svg_elements documentation (`c6f20c5`)
+- Apply a simplified form of ASD-STE100 to the testing documentation (``)
 
 # [Released]
 
