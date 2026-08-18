@@ -9,6 +9,7 @@ use crate::{
 };
 
 impl SvgRoot {
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates an `<ellipse>` element, appends it to the root, and returns its [`SvgNode`] handle.
     ///
     /// Unlike [`circle`](Self::circle), an ellipse has independent horizontal and vertical radii.

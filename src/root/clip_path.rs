@@ -19,8 +19,8 @@ use web_sys::{Document, SvgElement};
 pub enum ClipPathUnits {
     /// Clip shapes use the same user-coordinate space as the element that references the `<clipPath>` (SVG default).
     UserSpaceOnUse,
-    /// Clip shapes use a normalised coordinate space tied to the referencing element's bounding box:
-    /// `(0, 0)` maps to the element's top-left corner and `(1, 1)` maps to its bottom-right corner.
+    /// Clip shapes use a normalised coordinate space tied to the referencing element's bounding box: `(0, 0)` maps to
+    /// the element's top-left corner and `(1, 1)` maps to its bottom-right corner.
     ObjectBoundingBox,
 }
 
@@ -37,8 +37,8 @@ impl ClipPathUnits {
 /// A `<clipPath>` element that restricts the rendered region of any element that references it.
 ///
 /// `<clipPath>` defines a clipping region by combining the shapes placed inside it.
-/// The browser paints only the parts of the referencing element that fall inside the union of those shapes;
-/// everything outside is invisible.
+/// The browser paints only the parts of the referencing element that fall inside the union of those shapes.
+/// Everything outside is invisible.
 ///
 /// # `group()` is deliberately absent as `<g>` is not a conforming `<clipPath>` child
 ///
@@ -49,20 +49,20 @@ impl ClipPathUnits {
 /// as children. `<g>` is not permitted, so wrapping several clip shapes in a group would produce a non-conforming SVG
 /// with undefined cross-browser behaviour.
 ///
-/// There is no need for one anyway: every shape added directly to a `<clipPath>` already contributes to the same
-/// unioned clip region, so add multiple shapes as direct siblings instead of attempting to group them.
+/// There is no need for such a construction anyway: every shape added directly to a `<clipPath>` already contributes to
+/// the same unioned clip region, so multiple shapes can be added as direct siblings instead of needing to group them.
 ///
 /// Obtain one from [`SvgDefs::clip_path`](crate::SvgDefs::clip_path) or
 /// [`SvgDefs::build_clip_path`](crate::SvgDefs::build_clip_path), and apply it to any element with
 /// [`SvgNode::set_clip_path_ref`](crate::SvgNode::set_clip_path_ref) or
 /// [`SvgNode::set_clip_path`](crate::SvgNode::set_clip_path).
 ///
-/// # Coordinate spaces
+/// # Coordinate Spaces
 ///
 /// By default (`clipPathUnits="userSpaceOnUse"`) the shapes inside the `<clipPath>` are interpreted in the *current*
 /// *user coordinate system* of the element the clip path is applied to, and not unconditionally the outer SVG root's
 /// coordinate system. Those coincide only when nothing between the referencing element and the root applies a transform
-/// or establishes a new viewport; a referencing element nested inside a transformed `<g>` or a nested `<svg>` clips in
+/// or establishes a new viewport. A referencing element nested inside a transformed `<g>` or a nested `<svg>` clips in
 /// that ancestor's local coordinates instead.
 ///
 /// Switch to [`ClipPathUnits::ObjectBoundingBox`] (via [`set_units`](Self::set_units)) when you want the clip shape to
@@ -93,7 +93,8 @@ pub struct SvgClipPath {
     /// The complete `url(#id)` reference, built once at construction and kept in sync by [`set_id`](Self::set_id).
     /// Caching the full reference (rather than the bare id) means
     /// [`SvgNode::set_clip_path_ref`](crate::SvgNode::set_clip_path_ref) can write it straight to the `clip-path`
-    /// attribute with no per-call formatting allocation, however many elements the same clip path is applied to.
+    /// attribute with no per-call formatting allocation, irrespective of the number of elements the clip path is
+    /// applied to.
     ///
     /// [`id`](Self::id) slices the bare id back out of this string rather than storing it separately.
     url_ref: String,
@@ -109,6 +110,7 @@ impl SvgClipPath {
         url_ref.push_str(URL_PREFIX);
         url_ref.push_str(id);
         url_ref.push(')');
+
         Self {
             url_ref,
             element,
@@ -195,8 +197,9 @@ impl SvgClipPath {
     ///
     /// The default is [`ClipPathUnits::UserSpaceOnUse`], meaning clip shapes are positioned in the same coordinate
     /// system as the element being clipped.
-    /// Use [`ClipPathUnits::ObjectBoundingBox`] to express clip coordinates as fractions (0.0–1.0) of the referencing
-    /// element's bounding box, so the clip scales automatically with the element.
+    ///
+    /// Use [`ClipPathUnits::ObjectBoundingBox`] to express clip coordinates as fractions in the range `0.0` to `1.0` of
+    /// the referencing element's bounding box. This ensures the clip scales automatically with the element.
     pub fn set_units(&self, units: ClipPathUnits) -> Result<(), Error> {
         self.element.set_attribute("clipPathUnits", units.as_str()).map_err(dom_err)
     }
@@ -206,6 +209,9 @@ impl SvgClipPath {
     ///
     /// This is the generic escape hatch for attributes not covered by the named setters above (e.g. `class`, `style`,
     /// `transform`).
+    ///
+    /// ⚠️ Caveat ⚠️
+    ///
     /// Name and value are written verbatim; do not pass untrusted input.
     ///
     /// # Reserved attributes
@@ -240,6 +246,7 @@ impl SvgClipPath {
     /// Formats `value` through the element's internal scratch buffer and writes it as `name`.
     ///
     /// Uses the same `SvgAttrs` scratch buffer that the shape factories use internally, so no extra allocation is made.
+    ///
     /// Passing `"id"` (matched case-insensitively) returns [`Error::ReservedAttribute`];
     /// use [`set_id`](Self::set_id) instead.
     pub fn set_attr_display<T: std::fmt::Display>(&self, name: &str, value: T) -> Result<(), Error> {
@@ -299,12 +306,14 @@ impl SvgClipPath {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates a `<polyline>` clip shape inside this `<clipPath>`.
     ///
-    /// A polyline remains open for stroking, but SVG implicitly closes it for filling — a straight edge is treated
-    /// as though it ran from the last point back to the first, purely for the purpose of computing the filled
-    /// region. Consequently, a non-degenerate (three-or-more-point) polyline already contributes a filled clip
-    /// region without needing to be turned into a polygon; `fill-rule` only selects how that implicitly closed area
-    /// is classified (nonzero vs even-odd), not whether it exists. Use [`polygon`](Self::polygon) when an explicitly
-    /// closed shape better expresses the intent.
+    /// A polyline remains open for stroking, but SVG implicitly closes it for filling.
+    ///
+    /// A straight edge is treated as though it ran from the last point back to the first, purely for the purpose of
+    /// computing the filled region. Consequently, a non-degenerate (_three-points-or-more_) polyline already
+    /// contributes a filled clip region without needing to be turned into a polygon.
+    ///
+    /// `fill-rule` only selects how that implicitly closed area is classified (nonzero vs even-odd), not whether it
+    /// exists. Use [`polygon`](Self::polygon) when an explicitly closed shape better expresses the intent.
     pub fn polyline(&self, points: &[Point]) -> Result<SvgNode, Error> {
         self.create_polyline(points)
     }
@@ -337,5 +346,106 @@ impl SvgFactory for SvgClipPath {
 
     fn append_node(&self, node: &SvgNode) -> Result<(), Error> {
         self.element.append_child(node.as_element()).map(|_| ()).map_err(dom_err)
+    }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+impl super::defs::SvgDefs {
+    /// Creates a `<clipPath>` child element with the given `id`, appends it to `<defs>` immediately and returns its
+    /// handle.
+    ///
+    /// The `id` is used to reference the clip path from any element via
+    /// [`set_clip_path_ref`](crate::SvgNode::set_clip_path_ref) or
+    /// [`set_clip_path`](crate::SvgNode::set_clip_path).
+    ///
+    /// Each shape added to the returned [`SvgClipPath`] is appended to the live element one at a time.
+    /// Use this when you need to add clip shapes dynamically after initial construction.
+    ///
+    /// Prefer [`build_clip_path`](Self::build_clip_path) when all clip shapes are known upfront: that variant holds the
+    /// `<clipPath>` element detached until the closure succeeds, so a mid-build error leaves no partial element in
+    /// `<defs>`.
+    /// With this method, if a shape or attribute setter fails after `clip_path()` returns, the partial `<clipPath>`
+    /// remains in `<defs>` (though an incomplete clip path is harmless — it clips nothing unless referenced).
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::InvalidClipPathId`] — `id` failed validation.
+    /// - [`Error::Dom`] — the browser refused to create or append the element.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::{Point, Size}};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    /// let clip = defs.clip_path("round-viewport")?;
+    /// clip.circle(Point::new(60.0, 60.0), 55.0)?;
+    ///
+    /// let bg = svg.rect(Point::origin(), Size::new(120.0, 120.0))?;
+    /// bg.set_fill("steelblue")?;
+    /// bg.set_clip_path_ref(&clip)?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn clip_path(&self, id: &str) -> Result<SvgClipPath, Error> {
+        super::defs::validate_clip_path_id(id)?;
+        let el = super::create_svg_element::<SvgElement>(self.document(), "clipPath", "SvgElement")?;
+        el.set_attribute("id", id).map_err(dom_err)?;
+        self.as_element().append_child(&el).map_err(dom_err)?;
+        Ok(SvgClipPath::new(id, el, self.document().clone()))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Builds a `<clipPath>` and all its clip shapes in one shot, appending to `<defs>` only after the closure
+    /// succeeds.
+    ///
+    /// The closure receives a reference to the new [`SvgClipPath`].
+    /// All shapes added inside the closure are appended to a detached element.
+    ///
+    /// If the closure returns `Ok(())`, the clip path is appended to `<defs>` and the handle is returned.
+    /// If the closure returns `Err`, the element is dropped without being attached to `<defs>`.
+    ///
+    /// This is the preferred way to build a clip path when all its shapes are known upfront.
+    /// For dynamically adding shapes over time, use [`clip_path`](Self::clip_path) instead.
+    ///
+    /// # Errors
+    ///
+    /// - Any error returned by `build`.
+    /// - [`Error::InvalidClipPathId`] — `id` failed validation.
+    /// - [`Error::Dom`] — the browser refused to create or append the element.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::{Point, Size}};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    ///
+    /// // Clip a gradient rectangle to a hexagon.
+    /// let clip = defs.build_clip_path("hex-frame", |c| {
+    ///     c.polygon(&[
+    ///         Point::new(60.0,  5.0), Point::new(115.0, 35.0), Point::new(115.0, 85.0),
+    ///         Point::new(60.0, 115.0), Point::new( 5.0, 85.0), Point::new(  5.0, 35.0),
+    ///     ])?;
+    ///     Ok(())
+    /// })?;
+    ///
+    /// let rect = svg.rect(Point::origin(), Size::new(120.0, 120.0))?;
+    /// rect.set_fill("steelblue")?;
+    /// rect.set_clip_path_ref(&clip)?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn build_clip_path<F>(&self, id: &str, build: F) -> Result<SvgClipPath, Error>
+    where
+        F: FnOnce(&SvgClipPath) -> Result<(), Error>,
+    {
+        super::defs::validate_clip_path_id(id)?;
+        let el = super::create_svg_element::<SvgElement>(self.document(), "clipPath", "SvgElement")?;
+        el.set_attribute("id", id).map_err(dom_err)?;
+        let clip = SvgClipPath::new(id, el, self.document().clone());
+        build(&clip)?;
+        self.as_element().append_child(clip.as_element()).map_err(dom_err)?;
+        Ok(clip)
     }
 }

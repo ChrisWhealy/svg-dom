@@ -10,7 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Changed
 
-- Improved CDP integration test documentation (``)
+- Improved CDP integration test documentation (`b7d4fef`)
+- Refactor `src/root/defs.rs` distributing code across respective modules (``)
 
 # [Released]
 

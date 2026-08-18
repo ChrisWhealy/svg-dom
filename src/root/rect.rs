@@ -9,6 +9,7 @@ use crate::{
 };
 
 impl SvgRoot {
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates a `<rect>` element, appends it to the root, and returns its [`SvgNode`] handle.
     ///
     /// # Arguments

@@ -13,15 +13,24 @@ use web_sys::{Document, DocumentFragment, Node};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Builds several SVG elements in a [`DocumentFragment`] and appends them to a single parent in one DOM operation.
 ///
-/// Create a batch with [`SvgRoot::batch`] (to build into the `<svg>` root) or [`SvgRoot::batch_into`] (to build into
-/// any existing element, such as a `<g>`), call the same element factory methods you would normally call on
-/// [`SvgRoot`], then call [`commit`](Self::commit).  Each factory returns a live [`SvgNode`] handle immediately, but
-/// the element is not attached to the rendered SVG tree until the batch is committed.
+/// # Usage
 ///
-/// This is useful when constructing many elements at once: attributes and text content are set while each element is
-/// detached, and the whole fragment is appended to the target once. Building straight into a `<g>` this way also
-/// avoids the append-to-root-then-move round-trip you would otherwise incur by creating elements on the root and
-/// re-parenting them into the group with [`SvgNode::append`](crate::SvgNode::append).
+/// If you wish to write multiple child elements directly into the `<svg>` root, then batch these child elements
+/// together using [`SvgRoot::batch`].
+///
+/// If however, you wish to build into some other existing element (such as a `<g>`), then batch the child elements
+/// together use [`SvgRoot::batch_into`].
+///
+/// Irrespective of how the batch is created, you then call the same element factory methods as would normally be called
+/// on [`SvgRoot`], then call [`commit`](Self::commit).
+///
+/// Each factory method returns a live [`SvgNode`] handle immediately, but that new element is not attached to the
+/// rendered SVG tree until the entire batch is committed.
+///
+/// This is useful when constructing multiple elements at once. Attributes and text content are set while each element
+/// is detached, and the whole fragment is appended to the target once.
+/// Building straight into a `<g>` this way also avoids the _append-to-root-then-move_ round-trip you would otherwise
+/// incur by creating elements on the root and re-parenting them into the group with [`SvgNode::append`](crate::SvgNode::append).
 #[must_use = "an SvgBatch builds elements in a detached fragment; call commit() to add them to the document"]
 pub struct SvgBatch {
     target: Node,

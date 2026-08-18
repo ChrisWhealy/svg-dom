@@ -6,7 +6,8 @@ use crate::{
 };
 
 impl SvgRoot {
-    /// Creates a `<use>` element, appends it to the root, and returns its [`SvgNode`] handle.
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Creates a `<use>` element, appends it to the root and returns its [`SvgNode`] handle.
     ///
     /// `<use>` stamps a copy of an existing element (typically one defined in a [`SvgDefs`](crate::SvgDefs) container),
     /// into the rendered SVG tree without duplicating the underlying DOM node.

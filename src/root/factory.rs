@@ -1,20 +1,18 @@
-use std::cell::RefCell;
-
-use web_sys::{Document, SvgElement};
-
-use crate::{Error, SvgNode};
-
 use super::{
     attrs::SvgAttrs,
     path::path_def::{PathDef, validate_starts_with_moveto},
     utils::{Point, Size},
 };
+use crate::{Error, SvgNode};
+use std::cell::RefCell;
+use web_sys::{Document, SvgElement};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Shared implementation used by both [`SvgRoot`](crate::SvgRoot) and [`SvgBatch`](crate::SvgBatch).
+/// This trait is shared by both [`SvgRoot`](crate::SvgRoot) and [`SvgBatch`](crate::SvgBatch).
 ///
-/// The destination differs — `SvgRoot` appends directly to the live `<svg>`, whereas `SvgBatch` appends to a
-/// `DocumentFragment` — but the element creation and initial attribute writing are identical.
+/// Although `SvgRoot` appends directly to a live `<svg>` node and `SvgBatch` appends to a `DocumentFragment` (that is
+/// only added to the DOM only after it has been successfully created), the element creation and initial attribute
+/// writing are identical.
 pub(crate) trait SvgFactory {
     fn document(&self) -> &Document;
     fn attrs(&self) -> &RefCell<SvgAttrs>;
@@ -97,8 +95,8 @@ pub(crate) trait SvgFactory {
     // Writes `d` through the factory's own retained scratch buffer (see `create_rect` etc. above) instead of `build_d`,
     // which allocates a fresh `String` on every call.
     fn create_path_from_defs(&self, defs: &[PathDef]) -> Result<SvgNode, Error> {
-        // Validated once, here, before any DOM node exists — d_from_validated_defs (rather than d_from_defs) skips
-        // the redundant second check that would otherwise re-inspect the same already-validated slice.
+        // Validated once, here, before any DOM node exists. Calling `d_from_validated_defs` rather than `d_from_defs`
+        // avoids re-inspecting an already-validated slice.
         validate_starts_with_moveto(defs)?;
         let node = self.make_node("path")?;
         self.attrs().borrow_mut().d_from_validated_defs(&node, defs)?;

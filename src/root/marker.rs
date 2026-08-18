@@ -373,3 +373,81 @@ impl SvgFactory for SvgMarker {
         self.element.append_child(node.as_element()).map(|_| ()).map_err(dom_err)
     }
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+impl super::defs::SvgDefs {
+    /// Creates a `<marker>` child element with the given `id`, appends it to `<defs>` immediately and returns its
+    /// handle.
+    ///
+    /// The `id` is used to reference the marker from a line or path via
+    /// [`set_marker_end`](crate::SvgNode::set_marker_end) and its `_start` / `_mid` siblings.
+    ///
+    /// Each shape added to the returned [`SvgMarker`] is appended to the live marker element one at a time.
+    /// Use this when you need to add shapes to a marker dynamically after initial construction.
+    ///
+    /// Prefer [`build_marker`](Self::build_marker) when all marker contents are known upfront: that variant holds the
+    /// `<marker>` element detached until the closure succeeds, so a mid-build error leaves no partial marker in
+    /// `<defs>`.
+    /// With this method, if a shape or attribute setter fails after `marker()` returns, the partial `<marker>` element
+    /// remains in `<defs>` (though an incomplete marker is harmless — it renders nothing unless referenced).
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::Dom`] — the browser refused to create or append the element.
+    pub fn marker(&self, id: &str) -> Result<SvgMarker, Error> {
+        super::defs::validate_marker_id(id)?;
+        let el = super::create_svg_element::<SvgElement>(self.document(), "marker", "SvgElement")?;
+        el.set_attribute("id", id).map_err(dom_err)?;
+        self.as_element().append_child(&el).map_err(dom_err)?;
+        Ok(SvgMarker::new(id, el, self.document().clone()))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Builds a `<marker>` and all its child shapes in one shot, appending to `<defs>` only after the closure succeeds.
+    ///
+    /// The closure receives a reference to the new [`SvgMarker`].
+    /// All shapes added inside the closure are appended to a detached marker element.
+    ///
+    /// If the closure returns `Ok(())`, the marker is appended to `<defs>` and the handle is returned.
+    /// If the closure returns `Err`, the marker element is dropped without being attached to `<defs>`.
+    ///
+    /// This is the preferred way to populate a marker when you know all its children up-front.
+    /// For dynamically adding shapes to a marker over time, use [`marker`](Self::marker) instead.
+    ///
+    /// # Errors
+    ///
+    /// - Any error returned by `build`.
+    /// - [`Error::Dom`] — the browser refused to create or append the element.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::{Point, Size}};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    ///
+    /// let marker = defs.build_marker("arrow", |m| {
+    ///     m.set_ref_x(10.0)?;
+    ///     m.set_ref_y(3.5)?;
+    ///     m.set_marker_width(10.0)?;
+    ///     m.set_marker_height(7.0)?;
+    ///     m.set_orient("auto")?;
+    ///     m.polygon(&[Point::new(0.0, 0.0), Point::new(10.0, 3.5), Point::new(0.0, 7.0)])?;
+    ///     Ok(())
+    /// })?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn build_marker<F>(&self, id: &str, build: F) -> Result<SvgMarker, Error>
+    where
+        F: FnOnce(&SvgMarker) -> Result<(), Error>,
+    {
+        super::defs::validate_marker_id(id)?;
+        let el = super::create_svg_element::<SvgElement>(self.document(), "marker", "SvgElement")?;
+        el.set_attribute("id", id).map_err(dom_err)?;
+        let marker = SvgMarker::new(id, el, self.document().clone());
+        build(&marker)?;
+        self.as_element().append_child(marker.as_element()).map_err(dom_err)?;
+        Ok(marker)
+    }
+}

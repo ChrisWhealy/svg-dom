@@ -9,6 +9,7 @@ use crate::{
 };
 
 impl SvgRoot {
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates an `<image>` element, appends it to the root, and returns its [`SvgNode`] handle.
     ///
     /// `<image>` embeds a raster image (PNG, JPEG, WebP, etc...) or another SVG into the current SVG document.

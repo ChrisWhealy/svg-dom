@@ -224,3 +224,72 @@ impl SvgRadialGradient {
         self.0.set_attr_display(name, value)
     }
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+impl SvgDefs {
+    /// Creates a `<radialGradient>` child element with the given `id`, appends it to `<defs>` immediately and returns
+    /// its handle.
+    ///
+    /// The `id` is used to reference the gradient from shapes via
+    /// [`set_fill_radial_gradient`](crate::SvgNode::set_fill_radial_gradient) and its stroke sibling.
+    ///
+    /// Prefer [`build_radial_gradient`](Self::build_radial_gradient) when all stops are known upfront.
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::InvalidGradientId`] — `id` failed validation.
+    /// - [`Error::Dom`] — the browser refused to create or append the element.
+    pub fn radial_gradient(&self, id: &str) -> Result<SvgRadialGradient, Error> {
+        validate_gradient_id(id)?;
+        let el = crate::root::create_svg_element::<SvgElement>(self.document(), "radialGradient", "SvgElement")?;
+        el.set_attribute("id", id).map_err(dom_err)?;
+        self.as_element().append_child(&el).map_err(dom_err)?;
+        Ok(SvgRadialGradient::new(id, el, self.document().clone()))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Builds a `<radialGradient>` and all its stops in one go, appending it to `<defs>` only after the closure
+    /// succeeds.
+    ///
+    /// The closure receives a reference to the new [`SvgRadialGradient`].
+    ///
+    /// If the closure returns `Ok(())`, the gradient is appended to `<defs>` and the handle is returned.
+    /// If the closure returns `Err`, the gradient element is dropped without being attached to `<defs>`.
+    ///
+    /// # Errors
+    ///
+    /// - Any error returned by `build`.
+    /// - [`Error::InvalidGradientId`] — `id` failed validation.
+    /// - [`Error::Dom`] — the browser refused to create or append the element.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::{Point, Size}};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    ///
+    /// let grad = defs.build_radial_gradient("glow", |g| {
+    ///     g.add_stop_opacity(0.0, "white", 1.0)?;
+    ///     g.add_stop_opacity(1.0, "midnightblue", 0.0)?;
+    ///     Ok(())
+    /// })?;
+    ///
+    /// let circle = svg.circle(Point::new(100.0, 100.0), 80.0)?;
+    /// circle.set_fill_radial_gradient(&grad)?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn build_radial_gradient<F>(&self, id: &str, build: F) -> Result<SvgRadialGradient, Error>
+    where
+        F: FnOnce(&SvgRadialGradient) -> Result<(), Error>,
+    {
+        validate_gradient_id(id)?;
+        let el = crate::root::create_svg_element::<SvgElement>(self.document(), "radialGradient", "SvgElement")?;
+        el.set_attribute("id", id).map_err(dom_err)?;
+        let grad = SvgRadialGradient::new(id, el, self.document().clone());
+        build(&grad)?;
+        self.as_element().append_child(grad.as_element()).map_err(dom_err)?;
+        Ok(grad)
+    }
+}

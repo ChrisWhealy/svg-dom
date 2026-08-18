@@ -85,10 +85,11 @@ impl MaskType {
 ///
 /// Unlike [`SvgClipPath`](crate::SvgClipPath), which is a hard, binary (in/out) boundary defined purely by shape
 /// geometry, `<mask>` supports gradual transparency: each pixel of the referencing element is scaled by a value
-/// derived from the corresponding pixel of the mask's rendered content — luminance and alpha combined under the
-/// default [`MaskType::Luminance`], or alpha alone under [`MaskType::Alpha`] (see [`MaskType`] for the difference).
-/// Under the default, opaque white reveals fully, opaque black hides fully, and anything in between — including
-/// gradients, and including partial *opacity* on an otherwise-bright shape — reveals partially.
+/// derived from the corresponding pixel of the mask's rendered content.  This is either the combined luminance and
+/// alpha values (the default [`MaskType::Luminance`]), or just the alpha alone ([`MaskType::Alpha`]).
+///
+/// Under the default, opaque white reveals fully, opaque black hides fully, and anything in between reveals partially,
+/// including gradients and partial *opacity* on an otherwise-bright shape.
 ///
 /// Obtain one from [`SvgDefs::mask`](crate::SvgDefs::mask) or [`SvgDefs::build_mask`](crate::SvgDefs::build_mask),
 /// and apply it to any element with [`SvgNode::set_mask_ref`](crate::SvgNode::set_mask_ref) or
@@ -96,18 +97,22 @@ impl MaskType {
 ///
 /// # The mask region defaults to `-10% -10% 120% 120%`
 ///
-/// Unlike `<clipPath>`, `<mask>` has its own bounding region (`x`, `y`, `width`, `height`), and content painted
-/// outside that region is clipped away before luminance/alpha is even evaluated.
-/// The SVG default region — `-10%, -10%, 120%, 120%` of the referencing element's bounding box under the default
-/// [`MaskUnits::ObjectBoundingBox`] — comfortably covers content that stays close to the referencing element's own
-/// bounds, but a mask shape that extends further (a wide gradient sweep, a large soft-edged reveal) can be silently
-/// clipped by this region.
-/// Widen it explicitly with [`set_x`](Self::set_x)/[`set_y`](Self::set_y)/[`set_width`](Self::set_width)/
-/// [`set_height`](Self::set_height) if the mask content is unexpectedly being cut off.
+/// Unlike `<clipPath>`, `<mask>` has its own bounding region (`x`, `y`, `width`, `height`). Any content painted outside
+/// that region is clipped away before luminance/alpha is even evaluated.
 ///
-/// Keep the region only as large as required, though: as with a `<filter>` region, this is the maximum size of the
-/// offscreen buffer the browser rasterises while evaluating the mask, so an unnecessarily large region may increase
-/// rendering and memory cost, not just the risk of over-widening.
+/// The SVG default region (defined as `-10%, -10%, 120%, 120%` of the referencing element's bounding box under the
+/// default [`MaskUnits::ObjectBoundingBox`]) comfortably covers content that stays close to the referencing element's
+/// own bounds, but a mask shape that extends further such as a wide gradient sweep or a large soft-edged reveal, can be
+/// silently clipped by this region.
+///
+/// Widen it explicitly with [`set_x`](Self::set_x), [`set_y`](Self::set_y), [`set_width`](Self::set_width) and
+/// [`set_height`](Self::set_height) if the mask content is unexpectedly cut off.
+///
+/// ⚠️ Caveat ⚠️
+///
+/// Keep the region only as large as required. As with a `<filter>` region, this defines the maximum size of the
+/// offscreen buffer the browser rasterises while evaluating the mask.  Consequently, an unnecessarily large region may
+/// increase the browser's rendering and memory cost, not just the risk of over-widening.
 ///
 /// # Example
 ///
@@ -134,7 +139,7 @@ impl MaskType {
 /// Ok::<(), svg_dom::Error>(())
 /// ```
 pub struct SvgMask {
-    /// The complete `url(#id)` reference, built once at construction and kept in sync by [`set_id`](Self::set_id).
+    /// The complete `url(#id)` reference, built once at construction then kept in sync by [`set_id`](Self::set_id).
     /// Caching the full reference (rather than the bare id) means [`SvgNode::set_mask_ref`](crate::SvgNode::set_mask_ref)
     /// can write it straight to the `mask` attribute with no per-call formatting allocation, however many elements the
     /// same mask is applied to.
@@ -454,5 +459,111 @@ impl SvgFactory for SvgMask {
 
     fn append_node(&self, node: &SvgNode) -> Result<(), Error> {
         self.element.append_child(node.as_element()).map(|_| ()).map_err(dom_err)
+    }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+impl super::defs::SvgDefs {
+    /// Creates a `<mask>` child element with the given `id`, appends it to `<defs>` immediately and returns its
+    /// handle.
+    ///
+    /// The `id` is used to reference the mask from any element via [`set_mask_ref`](crate::SvgNode::set_mask_ref) or
+    /// [`set_mask`](crate::SvgNode::set_mask).
+    ///
+    /// Each shape added to the returned [`SvgMask`] is appended to the live element one at a time.
+    /// Use this when you need to add mask shapes dynamically after initial construction.
+    ///
+    /// Prefer [`build_mask`](Self::build_mask) when all mask shapes are known upfront: that variant holds the
+    /// `<mask>` element detached until the closure succeeds, so a mid-build error leaves no partial element in
+    /// `<defs>`.
+    /// With this method, if a shape or attribute setter fails after `mask()` returns, the partial `<mask>`
+    /// remains in `<defs>` (though an incomplete mask is harmless — it reveals nothing unless referenced).
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::InvalidMaskId`] — `id` failed validation.
+    /// - [`Error::Dom`] — the browser refused to create or append the element.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::{Point, Size}};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    /// defs.build_linear_gradient("fade-gradient", |g| {
+    ///     g.add_stop(0.0, "white")?;
+    ///     g.add_stop(1.0, "black")?;
+    ///     Ok(())
+    /// })?;
+    /// let fade = defs.mask("fade")?;
+    /// fade.rect(Point::origin(), Size::new(120.0, 120.0))?.set_fill_gradient("fade-gradient")?;
+    ///
+    /// let bg = svg.rect(Point::origin(), Size::new(120.0, 120.0))?;
+    /// bg.set_fill("steelblue")?;
+    /// bg.set_mask_ref(&fade)?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn mask(&self, id: &str) -> Result<SvgMask, Error> {
+        super::defs::validate_mask_id(id)?;
+        let el = super::create_svg_element::<SvgElement>(self.document(), "mask", "SvgElement")?;
+        el.set_attribute("id", id).map_err(dom_err)?;
+        self.as_element().append_child(&el).map_err(dom_err)?;
+        Ok(SvgMask::new(id, el, self.document().clone()))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Builds a `<mask>` and all its mask shapes in one shot, appending to `<defs>` only after the closure
+    /// succeeds.
+    ///
+    /// The closure receives a reference to the new [`SvgMask`].
+    /// All shapes added inside the closure are appended to a detached element.
+    ///
+    /// If the closure returns `Ok(())`, the mask is appended to `<defs>` and the handle is returned.
+    /// If the closure returns `Err`, the element is dropped without being attached to `<defs>`.
+    ///
+    /// This is the preferred way to build a mask when all its shapes are known upfront.
+    /// For dynamically adding shapes over time, use [`mask`](Self::mask) instead.
+    ///
+    /// # Errors
+    ///
+    /// - Any error returned by `build`.
+    /// - [`Error::InvalidMaskId`] — `id` failed validation.
+    /// - [`Error::Dom`] — the browser refused to create or append the element.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::{Point, Size}};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    ///
+    /// defs.build_linear_gradient("fade-gradient", |g| {
+    ///     g.add_stop(0.0, "white")?;
+    ///     g.add_stop(1.0, "black")?;
+    ///     Ok(())
+    /// })?;
+    /// let fade = defs.build_mask("fade", |m| {
+    ///     m.rect(Point::origin(), Size::new(120.0, 120.0))?.set_fill_gradient("fade-gradient")?;
+    ///     Ok(())
+    /// })?;
+    ///
+    /// let bg = svg.rect(Point::origin(), Size::new(120.0, 120.0))?;
+    /// bg.set_fill("steelblue")?;
+    /// bg.set_mask_ref(&fade)?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn build_mask<F>(&self, id: &str, build: F) -> Result<SvgMask, Error>
+    where
+        F: FnOnce(&SvgMask) -> Result<(), Error>,
+    {
+        super::defs::validate_mask_id(id)?;
+        let el = super::create_svg_element::<SvgElement>(self.document(), "mask", "SvgElement")?;
+        el.set_attribute("id", id).map_err(dom_err)?;
+        let mask = SvgMask::new(id, el, self.document().clone());
+        build(&mask)?;
+        self.as_element().append_child(mask.as_element()).map_err(dom_err)?;
+        Ok(mask)
     }
 }

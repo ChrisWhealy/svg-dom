@@ -1,19 +1,26 @@
 use crate::{SvgRoot, error::Error, node::SvgNode, root::factory::SvgFactory};
 
 impl SvgRoot {
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates a `<style>` element containing `css`, appends it to the root, and returns its [`SvgNode`] handle.
     ///
-    /// `<style>` embeds a CSS stylesheet directly in the SVG document — the SVG equivalent of an HTML `<style>` block.
-    /// It applies document-wide regardless of where in the tree it is placed (SVG's CSS cascade is not scoped by DOM
-    /// position the way, say, `<defs>` content is only reachable by reference), so callers can select elements by
-    /// `class`, `id`, or any other CSS selector, the same way they would style an HTML page.
+    /// `<style>` embeds a CSS stylesheet directly in the SVG document (the equivalent of an HTML `<style>` block).
+    ///
+    /// # Scope
+    ///
+    /// The style rules used here apply document-wide - regardless of where in the DOM tree these rules occur (SVG's CSS
+    /// cascade is not scoped by DOM position the way, say, `<defs>` content is only reachable by reference), so callers
+    /// can select elements by `class`, `id`, or any other CSS selector, in exactly the same way they would style an
+    /// HTML page.
     ///
     /// `css` is written as the element's text content via [`SvgNode::set_text`](crate::SvgNode::set_text) — plain text,
     /// not markup, so no HTML entity-escaping is needed for `<`/`>`/`&` inside the stylesheet.
     ///
     /// # Security
     ///
-    /// ⚠️ `css` is written verbatim, with no validation or sanitisation!
+    /// ⚠️ Caveat ⚠️
+    ///
+    /// `css` content is written verbatim, with no validation or sanitisation!
     ///
     /// Do not pass attacker-controlled CSS without validating it first. A `url(...)` value can still fetch an arbitrary
     /// attacker-chosen resource, which is enough for tracking or, depending on what else is reachable from that fetch,

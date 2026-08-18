@@ -1,4 +1,4 @@
-use crate::{Error, dom_err, root::attrs::SvgAttrs};
+use crate::{Error, dom_err, root::attrs::SvgAttrs, root::factory::SvgFactory};
 use std::cell::RefCell;
 use web_sys::SvgElement;
 
@@ -198,5 +198,88 @@ impl SvgView {
             return Err(Error::ReservedAttribute("id"));
         }
         self.attrs.borrow_mut().display_element(&self.element, name, value)
+    }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+impl super::defs::SvgDefs {
+    /// Creates a `<view>` child element with the given `id`, immediately appends it to `<defs>` then returns its
+    /// handle.
+    ///
+    /// Unlike most elements built by `SvgDefs`, `<view>` has no rendered graphical content of its own. Instead, you call
+    /// [`SvgView::set_view_box`](crate::SvgView::set_view_box) on the returned handle, then reference it (prefixed
+    /// with `#`) from an external or standalone-document URL fragment — see [`SvgView`]'s type-level docs for exactly
+    /// which cases that fragment navigation activates for.
+    ///
+    /// Prefer [`build_view`](Self::build_view) when the `viewBox` is known upfront: that variant keeps the element
+    /// detached from the DOM until the closure succeeds, so a rejected `viewBox` does not leave a partial `<view>`
+    /// left lying around in `<defs>`.
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::InvalidViewId`] — `id` failed validation.
+    /// - [`Error::Dom`] — the browser refused to create or append the element.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::{Point, Size}};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    /// let view = defs.view("detail")?;
+    /// view.set_view_box(0.0, 0.0, 50.0, 50.0)?;
+    ///
+    /// // Fragment navigation only activates for an externally referenced (or standalone) copy of this document.
+    /// let preview = svg.image("diagram.svg", Point::origin(), Size::new(50.0, 50.0))?;
+    /// preview.set_href("diagram.svg#detail")?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn view(&self, id: &str) -> Result<SvgView, Error> {
+        super::defs::validate_view_id(id)?;
+        let el = super::create_svg_element::<SvgElement>(self.document(), "view", "SvgElement")?;
+        el.set_attribute("id", id).map_err(dom_err)?;
+        self.as_element().append_child(&el).map_err(dom_err)?;
+        Ok(SvgView::new(id.to_owned(), el))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Builds a `<view>` in one shot, appending to `<defs>` only after the closure succeeds.
+    ///
+    /// The closure receives a reference to the new [`SvgView`].
+    /// If the closure returns `Ok(())`, the view is appended to `<defs>` and the handle is returned.
+    /// If the closure returns `Err`, the element is dropped without being attached to `<defs>`.
+    ///
+    /// # Errors
+    ///
+    /// - Any error returned by `build`.
+    /// - [`Error::InvalidViewId`] — `id` failed validation.
+    /// - [`Error::Dom`] — the browser refused to create or append the element.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::utils::{Point, Size}};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    /// defs.build_view("detail", |v| v.set_view_box(0.0, 0.0, 50.0, 50.0))?;
+    ///
+    /// // Fragment navigation only activates for an externally referenced (or standalone) copy of this document.
+    /// let preview = svg.image("diagram.svg", Point::origin(), Size::new(50.0, 50.0))?;
+    /// preview.set_href("diagram.svg#detail")?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn build_view<F>(&self, id: &str, build: F) -> Result<SvgView, Error>
+    where
+        F: FnOnce(&SvgView) -> Result<(), Error>,
+    {
+        super::defs::validate_view_id(id)?;
+        let el = super::create_svg_element::<SvgElement>(self.document(), "view", "SvgElement")?;
+        el.set_attribute("id", id).map_err(dom_err)?;
+        let view = SvgView::new(id.to_owned(), el);
+        build(&view)?;
+        self.as_element().append_child(view.as_element()).map_err(dom_err)?;
+        Ok(view)
     }
 }

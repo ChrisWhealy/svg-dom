@@ -401,3 +401,103 @@ impl SvgFactory for SvgPattern {
         self.element.append_child(node.as_element()).map(|_| ()).map_err(dom_err)
     }
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+impl super::defs::SvgDefs {
+    /// Creates a `<pattern>` child element with the given `id`, immediately appends it to `<defs>` then returns its
+    /// handle.
+    ///
+    /// The `id` is used to reference the pattern from shapes via
+    /// [`set_fill_pattern`](crate::SvgNode::set_fill_pattern) and its stroke sibling.
+    ///
+    /// Each shape added to the returned [`SvgPattern`] is appended to the live element one at a time. Use this when you
+    /// need to add tile shapes dynamically after initial construction.
+    ///
+    /// Prefer [`build_pattern`](Self::build_pattern) when all tile contents are known upfront: that variant holds the
+    /// `<pattern>` element detached until the closure succeeds, so a mid-build error leaves no partial element in
+    /// `<defs>`.
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::InvalidPatternId`] — `id` failed validation.
+    /// - [`Error::Dom`] — the browser refused to create or append the element.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::{pattern::PatternUnits, utils::{Point, Size}}};
+    ///
+    /// let svg  = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    /// let pat  = defs.pattern("dots")?;
+    /// pat.set_pattern_units(PatternUnits::UserSpaceOnUse)?;
+    /// pat.set_width(20.0)?;
+    /// pat.set_height(20.0)?;
+    /// pat.circle(Point::new(10.0, 10.0), 6.0)?.set_fill("white")?;
+    ///
+    /// let rect = svg.rect(Point::origin(), Size::new(300.0, 200.0))?;
+    /// rect.set_fill_pattern("dots")?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn pattern(&self, id: &str) -> Result<SvgPattern, Error> {
+        super::defs::validate_pattern_id(id)?;
+        let el = super::create_svg_element::<SvgElement>(self.document(), "pattern", "SvgElement")?;
+        el.set_attribute("id", id).map_err(dom_err)?;
+        self.as_element().append_child(&el).map_err(dom_err)?;
+        Ok(SvgPattern::new(id, el, self.document().clone()))
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    /// Builds a `<pattern>` and all its tile shapes in one shot, appending to `<defs>` only after the closure
+    /// succeeds.
+    ///
+    /// The closure receives a reference to the new [`SvgPattern`]. All shapes added inside the closure are appended to
+    /// a detached element.
+    ///
+    /// If the closure returns `Ok(())`, the pattern is appended to `<defs>` and the handle is returned.
+    /// If the closure returns `Err`, the element is dropped without being attached to `<defs>`.
+    ///
+    /// This is the preferred way to build a pattern when all its tile content is known upfront.
+    /// For dynamically adding shapes over time, use [`pattern`](Self::pattern) instead.
+    ///
+    /// # Errors
+    ///
+    /// - Any error returned by `build`.
+    /// - [`Error::InvalidPatternId`] — `id` failed validation.
+    /// - [`Error::Dom`] — the browser refused to create or append the element.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use svg_dom::{SvgRoot, root::{pattern::PatternUnits, utils::{Point, Size}}};
+    ///
+    /// let svg = SvgRoot::attach("diagram")?;
+    /// let defs = svg.defs()?;
+    ///
+    /// defs.build_pattern("checker", |p| {
+    ///     p.set_pattern_units(PatternUnits::UserSpaceOnUse)?;
+    ///     p.set_width(20.0)?;
+    ///     p.set_height(20.0)?;
+    ///     p.rect(Point::new(0.0, 0.0), Size::new(20.0, 20.0))?.set_fill("teal")?;
+    ///     p.rect(Point::new(0.0, 0.0), Size::new(10.0, 10.0))?.set_fill("white")?;
+    ///     p.rect(Point::new(10.0, 10.0), Size::new(10.0, 10.0))?.set_fill("white")?;
+    ///     Ok(())
+    /// })?;
+    ///
+    /// let rect = svg.rect(Point::origin(), Size::new(300.0, 200.0))?;
+    /// rect.set_fill_pattern("checker")?;
+    /// Ok::<(), svg_dom::Error>(())
+    /// ```
+    pub fn build_pattern<F>(&self, id: &str, build: F) -> Result<SvgPattern, Error>
+    where
+        F: FnOnce(&SvgPattern) -> Result<(), Error>,
+    {
+        super::defs::validate_pattern_id(id)?;
+        let el = super::create_svg_element::<SvgElement>(self.document(), "pattern", "SvgElement")?;
+        el.set_attribute("id", id).map_err(dom_err)?;
+        let pat = SvgPattern::new(id, el, self.document().clone());
+        build(&pat)?;
+        self.as_element().append_child(pat.as_element()).map_err(dom_err)?;
+        Ok(pat)
+    }
+}

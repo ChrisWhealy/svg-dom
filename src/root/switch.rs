@@ -1,9 +1,10 @@
 use crate::{SvgRoot, error::Error, node::SvgNode, root::factory::SvgFactory};
 
 impl SvgRoot {
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates a `<switch>` element, appends it to the root, and returns its [`SvgNode`] handle.
     ///
-    /// `<switch>` renders at most one of its direct children: the first one, in document order, whose conditional
+    /// `<switch>` renders at most, one of its direct children: the first one, in document order, whose conditional
     /// processing attributes all evaluate to true, rather than rendering every child as `<g>` would.
     ///
     /// As per the SVG 2 specification, if none match, it renders **nothing**. A child with none of those attributes set

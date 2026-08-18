@@ -1,28 +1,30 @@
 use super::{attrs::SvgAttrs, document, factory::SvgFactory, utils::Size};
 use crate::{SvgNode, dom_err, error::Error};
-
 use std::cell::{Cell, RefCell};
 use wasm_bindgen::JsCast;
 use web_sys::{Document, SvgsvgElement};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Wraps the root `<svg>` element and acts as the factory for all child SVG elements.
+/// Wraps the root `<svg>` element and acts as the factory from which all child SVG elements can be generated.
 ///
-/// If the `<svg>` element already exists in the DOM, then you can [`attach`](Self::attach) to it.  Otherwise,
-/// call [`create_in`](Self::create_in) to create a new DOM element and append it to the specified parent.
+/// If the `<svg>` element already exists in the DOM, then you can [`attach`](Self::attach) to it.  Otherwise, just call
+/// [`create_in`](Self::create_in) to create a new DOM element which can then be appended to a specified parent.
 ///
 /// Every element-creation function appends a new element to the `<svg>` and returns an [`SvgNode`] handle that can be
-/// used to style it, move it, or attach event listeners.
+/// used to style or move it, or attach event listeners.
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 pub struct SvgRoot {
     /// The underlying `<svg>` element wrapped by this root.
     ///
-    /// This is exposed as an escape hatch for the occasional attribute or property this crate does not wrap directly —
-    /// `preserveAspectRatio`, focus management, and so on.
+    /// This is exposed as an escape hatch for the occasional attribute or property this crate does not wrap directly.
+    /// For example, `preserveAspectRatio` or focus management, etc.
     ///
-    /// Note, however, that `width` and `height` are tracked by a cached viewport.
+    /// ***IMPORTANT***
+    ///
+    /// `width` and `height` are tracked by a cached viewport.
     /// Writing them directly on this element (for example `root.set_attribute("width", ...)`) desynchronises
     /// [`width`](Self::width) and [`height`](Self::height) from what the DOM actually shows.
+    ///
     /// To resize the root, use [`set_viewport`](Self::set_viewport), which is the cache-aware path.
     pub root: SvgsvgElement,
     pub(crate) document: Document,
@@ -32,11 +34,10 @@ pub struct SvgRoot {
 
 impl SvgRoot {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Use this constructor when the `<svg>` placeholder already exists in the HTML and its size has been set with the
+    /// Use this constructor when the `<svg>` placeholder already exists in the HTML and its size has been set using the
     /// `width` and `height` attributes.
     ///
-    /// The element is first looked up by `id`.  If found, it is verified that the `id` really belongs to an `<svg>`
-    /// element.
+    /// The element is first looked up by `id`.  If found, this `id` must really belong to an `<svg>` element!
     ///
     /// Only the `width` and `height` attributes are read to seed the cached viewport (see [`width`](Self::width) and
     /// [`height`](Self::height)); the rendered size is **not** measured.
@@ -49,8 +50,8 @@ impl SvgRoot {
     ///
     /// # Errors
     ///
-    /// - [`Error::ElementNotFound`] — no element with that `id` exists.
-    /// - [`Error::CastFailed`] — an element with the specified `id` exists, but it is not an `<svg>`.
+    /// - [`Error::ElementNotFound`] — no element called `id` can be found.
+    /// - [`Error::CastFailed`] — an element called `id` exists, but it is not an `<svg>`.
     ///
     /// # Example
     ///
@@ -83,8 +84,8 @@ impl SvgRoot {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates a new `<svg>` element, sizes it, and appends it to an existing HTML element.
     ///
-    /// Use this constructor when the the element needs to be created programmatically, or the SVG dimensions can only
-    /// be known at runtime (e.g. derived from data).
+    /// Use this constructor when the the element needs to be created programmatically, or when the SVG dimensions can
+    /// only be known at runtime (e.g. derived from data).
     ///
     /// # Arguments
     ///
@@ -93,7 +94,7 @@ impl SvgRoot {
     ///
     /// # Errors
     ///
-    /// - [`Error::ElementNotFound`] — cannot find the element called `parent_id`.
+    /// - [`Error::ElementNotFound`] — no element called `parent_id` can be found.
     /// - [`Error::Dom`] — the browser refused to create or append the element.
     ///
     /// # Example
@@ -124,8 +125,8 @@ impl SvgRoot {
             root: svg,
             document,
             viewport: Cell::new(size),
-            // Reuse the buffer just used for width/height rather than discarding it for a fresh empty one; each
-            // write clears the scratch first, so its leftover contents do not matter.
+            // Reuse the buffer just used for width/height rather than replacing it with a fresh empty one. This works
+            // because each write clears the scratch buffer first, so whatever is leftover inside it no longer matters.
             attrs: RefCell::new(attrs),
         })
     }
@@ -137,7 +138,8 @@ impl SvgRoot {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Returns the cached `width` of the `<svg>` in pixels.
     ///
-    /// The value is read from the DOM once when attaching to an existing element, then kept in memory.
+    /// The value is read from the DOM once when attaching to an existing element, then cached.
+    ///
     /// Returns `0.0` if the initial attribute is absent or cannot be parsed as a number.
     ///
     /// # Example
@@ -156,7 +158,8 @@ impl SvgRoot {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Returns the cached `height` of the `<svg>` in pixels.
     ///
-    /// The value is read from the DOM once when attaching to an existing element, then kept in memory.
+    /// The value is read from the DOM once when attaching to an existing element, then cached.
+    ///
     /// Returns `0.0` if the initial attribute is absent or cannot be parsed as a number.
     ///
     /// # Example
@@ -188,10 +191,12 @@ impl SvgRoot {
     /// ```
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     pub fn set_viewport(&self, size: Size) -> Result<(), Error> {
-        // The cached viewport is authoritative (so are `width()`/`height()`), so use it to skip redundant DOM writes:
-        // a duplicate resize notification with the same size writes nothing, and a one-axis change writes only the axis
-        // that moved.
+        // Since the cached viewport is authoritative (as are `width()`/`height()`), it can be used to skip redundant
+        // DOM writes. A duplicate resize with the same size writes nothing, and a one-axis change writes only the axis
+        // that has been altered.
         let old = self.viewport.get();
+
+        // Bail out early?
         if old == size {
             return Ok(());
         }
@@ -201,13 +206,13 @@ impl SvgRoot {
         if current.width != size.width {
             attrs.display_element(&self.root, "width", size.width)?;
             current.width = size.width;
-            self.viewport.set(current);
         }
         if current.height != size.height {
             attrs.display_element(&self.root, "height", size.height)?;
             current.height = size.height;
-            self.viewport.set(current);
         }
+
+        self.viewport.set(current);
         Ok(())
     }
 
@@ -215,15 +220,17 @@ impl SvgRoot {
     /// Sets the `viewBox` attribute, establishing the root's internal coordinate system.
     ///
     /// `width`/`height` ([`set_viewport`](Self::set_viewport), or the `size` passed to [`create_in`](Self::create_in))
-    /// size the `<svg>` element itself within the surrounding page. `viewBox` is independent of that: it maps the
-    /// rendered area onto an internal `(x, y, width, height)` coordinate region, so everything drawn inside the `<svg>`
-    /// is scaled (and, via `x`/`y`, offset) to fit — the standard way to give a diagram a fixed, resolution-independent
-    /// drawing surface that still renders at whatever pixel size is used in the viewport.
+    /// defines the `<svg>` element's size within the surrounding page.
+    ///
+    /// `viewBox` however is independent of that: it maps the rendered area onto an internal `(x, y, width, height)`
+    /// coordinate region, so everything drawn inside the `<svg>` is scaled (via `x`/`y` and offset) to fit. This is the
+    /// standard way to give a diagram a fixed, resolution-independent drawing surface that still renders at whatever
+    /// pixel size is used in the viewport.
     ///
     /// Unlike `width`/`height`, `viewBox` is not cached by this crate; there is no `view_box()` getter to pair with it.
-    /// The child factory methods on `SvgRoot` (`rect`, `circle`, ...) place elements using the coordinates you pass them
-    /// directly, so nothing here needs to read `viewBox` back to stay consistent — it only affects how the browser maps
-    /// those coordinates onto the page, not what value to pass them in the first place.
+    /// The factory methods on `SvgRoot` (such as `rect`, `circle`, etc.) place elements using the coordinates you pass
+    /// them directly, so nothing here needs to read `viewBox` back in order to stay consistent: it only affects how the
+    /// browser maps those coordinates onto the page, not what value to pass them in the first place.
     ///
     /// # Errors
     ///

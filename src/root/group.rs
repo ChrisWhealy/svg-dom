@@ -2,7 +2,7 @@ use crate::{SvgRoot, error::Error, node::SvgNode, root::factory::SvgFactory};
 
 impl SvgRoot {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Creates a `<g>` group element, appends it to the root, and returns its [`SvgNode`] handle.
+    /// Creates a `<g>` group element, appends it to the root and returns its [`SvgNode`] handle.
     ///
     /// A `<g>` element has no visual appearance of its own; it is a container used to transform, clip, or style a set
     /// of child elements together.  Add children using [`SvgNode::append`].

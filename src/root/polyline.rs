@@ -6,6 +6,7 @@ use crate::{
 };
 
 impl SvgRoot {
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates a `<polyline>` element through the given points, appends it to the root, and returns its [`SvgNode`]
     /// handle.
     ///

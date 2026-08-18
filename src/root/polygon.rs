@@ -6,6 +6,7 @@ use crate::{
 };
 
 impl SvgRoot {
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates a `<polygon>` element with the given vertices, appends it to the root, and returns its [`SvgNode`]
     /// handle.
     ///

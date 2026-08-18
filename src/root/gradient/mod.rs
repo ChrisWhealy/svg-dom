@@ -5,7 +5,8 @@ use crate::{
     Error, dom_err,
     root::{
         attrs::SvgAttrs,
-        defs::{URL_PREFIX, validate_gradient_id},
+        defs::{SvgDefs, URL_PREFIX, validate_gradient_id},
+        factory::SvgFactory,
     },
 };
 use std::cell::RefCell;

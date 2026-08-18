@@ -9,6 +9,7 @@ use crate::{
 };
 
 impl SvgRoot {
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates an empty `<foreignObject>` element, appends it to the root, and returns its [`SvgNode`] handle.
     ///
     /// `<foreignObject>` defines a rectangular containing block in SVG user space within which foreign (typically

@@ -7,7 +7,7 @@ use crate::{
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 impl SvgRoot {
-    /// Creates a `<circle>` element, appends it to the root, and returns its [`SvgNode`] handle.
+    /// Creates a `<circle>` element, appends it to the root and returns its [`SvgNode`] handle.
     ///
     /// # Arguments
     ///
