@@ -1,71 +1,78 @@
 //! Chrome-DevTools-Protocol (CDP) integration test for `demo_light_sources.rs`'s own four sliders.
 //!
-//! `demo-app/src/browser_tests/paint/light_sources.rs` proves the DOM half of all four sliders' own claims —
-//! that moving each one reaches the right attribute on the right retained light-source node, and leaves the
-//! other three columns untouched. It cannot prove any of those mutations actually change the *rendered*
-//! lighting. This matters more here than for most demos: one of the four columns' own designs is itself grounded
-//! in observed Chrome rendering rather than the SVG spec alone — `demo_light_sources.rs`'s own module doc
-//! comment records that `limiting_cone_angle` `0.0` renders as a fully open beam rather than the near-invisible
-//! cutoff the spec describes, which is why that slider's own range starts at `5` instead. A structural DOM test
-//! cannot check that claim; only real rendered pixels can.
+//! `demo-app/src/browser_tests/paint/light_sources.rs` can only prove the DOM part of the claims made by the four
+//! sliders. That is, that moving each one mutates the correct attribute on the correct retained light-source node, and
+//! leaves the other three columns untouched. However, these tests cannot prove that any of those mutations actually
+//! change the *rendered* lighting.
 //!
-//! That same module doc comment also records a second observation: the Spot light's own `specular_exponent` had
-//! no visible effect in this sandbox's own Chrome, at any value from `0.01` through `10000`, which is why that
-//! field was rejected as this demo's own interactive control for the open-Spot column in favour of `x`. This
-//! file does not regression-test that observation, deliberately: a fixture asserting that varying
-//! `specular_exponent` continues to produce *no* visible change would fail the day Chrome fixes whatever causes
-//! that, and that failure would represent an improvement, not a regression. It remains a manually recorded
-//! observation in `demo_light_sources.rs`'s own module doc comment, not a claim this file verifies.
+//! This matters more here than for most demos: one of the four demos' own designs is itself grounded in observed Chrome
+//! rendering behaviour rather than the SVG spec alone. `demo_light_sources.rs`'s own module doc comment states that a
+//! `limiting_cone_angle` of `0.0` renders as a fully open beam rather than the near-invisible cutoff the spec
+//! describes, which is why that slider's own range starts at `5` instead. Only a test of the renedred pixels can
+//! validate that claim.
 //!
-//! This drives a real Chrome instance via CDP and renders rects built by the sibling `cdp-test-fixture` wasm
-//! crate, grouped into four checks, each running `demo_light_sources.rs`'s own exact `feSpecularLighting` recipe
-//! on a plain, flat rect, fixed at different slider positions:
+//! That same module doc comment also records a second observation: that in this sandbox's own Chrome, the spotlight's
+//! own `specular_exponent` had no visible effect at any value from `0.01` through `10000`. This is tghe reason why that
+//! field was rejected as this demo's own interactive control for the open-Spot column in favour of `x`.
 //!
-//! - `#ls-distant-low` (elevation 15deg) vs `#ls-distant-high` (elevation 85deg) — checks that a flat Distant
+//! This file deliberately does not regression-test that observation: a fixture asserting that varying
+//! `specular_exponent` continues to produce *no* visible change would fail the day Chrome fixes whatever causes that,
+//! and that failure would represent an improvement, not a regression. This remains a manually recorded observation in
+//! `demo_light_sources.rs`'s own module doc comment, not a claim this file verifies.
+//!
+//! This drives a real Chrome instance via CDP and renders rects built by the sibling `cdp-test-fixture` wasm crate,
+//! grouped into four checks, each running `demo_light_sources.rs`'s own exact `feSpecularLighting` recipe on a plain,
+//! flat rect, fixed at different slider positions:
+//!
+//! 1. `#ls-distant-low` (elevation 15deg) vs `#ls-distant-high` (elevation 85deg) — checks that a flat Distant
 //!   surface's own average brightness genuinely rises with elevation, panel-light-sources.html's own claim.
-//! - `#ls-point-low-z` (z 20) vs `#ls-point-high-z` (z 180) — checks that a lower light genuinely sharpens the
-//!   hotspot (a bigger centre-to-corner contrast) rather than spreading it.
-//! - `#ls-spot-left` (light at its own rect's left edge) vs `#ls-spot-right` (right edge), both with `pointsAtX`
+//! 2. `#ls-point-low-z` (z 20) vs `#ls-point-high-z` (z 180) — checks that a lower light genuinely sharpens the hotspot
+//!   (a bigger centre-to-corner contrast) rather than spreading it.
+//! 3. `#ls-spot-left` (light at its own rect's left edge) vs `#ls-spot-right` (right edge), both with `pointsAtX`
 //!   trailing by the same 80-unit offset `demo_light_sources.rs`'s own `SPOT_OPEN_AIM_OFFSET` uses — checks that
 //!   the bright region genuinely moves horizontally with the light, not just the DOM attribute.
-//! - `#ls-cone-zero` (`limitingConeAngle` 0deg) vs `#ls-cone-narrow` (5deg) vs `#ls-cone-wide` (90deg) — three
-//!   rects, not two. `#ls-cone-narrow` vs `#ls-cone-wide` alone only proves 5deg is a usefully narrow lower
-//!   bound; it says nothing about 0deg being anomalous. `#ls-cone-zero` checks that specific claim directly: the
-//!   same off-axis sample stays dark at 5deg, but is materially brighter, and close to the wide reading, at
-//!   0deg — this is the highest-value check of the four, since the slider's own chosen minimum (5, not 0) and
-//!   panel-light-sources.html's own explanation of why both depend on this exact, sandbox-specific Chrome
-//!   behaviour rather than a specification guarantee.
+//! 4. `#ls-cone-zero` (`limitingConeAngle` 0deg) vs `#ls-cone-narrow` (5deg) vs `#ls-cone-wide` (90deg) — three rects,
+//!   not two. `#ls-cone-narrow` vs `#ls-cone-wide` alone only proves 5deg is a usefully narrow lower bound; it says
+//!   nothing about 0deg being anomalous. `#ls-cone-zero` checks that specific claim directly: the same off-axis sample
+//!   stays dark at 5deg, but is materially brighter and close to the wide reading, at 0deg — this is the highest-value
+//!   check of the four, since the slider's own chosen minimum (5, not 0) and panel-light-sources.html's own explanation
+//!   of why both depend on this exact, sandbox-specific Chrome behaviour rather than a specification guarantee.
 //!
 //! # How the pixels are read
 //!
 //! Same technique as `lighting_render.rs`: serialise the fixture's `<svg>` to a `data:image/svg+xml` URL, load
-//! it into an `Image`, draw it to an offscreen `<canvas>`, and read pixels back via `getImageData`. That script
-//! is asynchronous (`Image` loading is not synchronous), so it runs via `Runtime.evaluate` with
-//! `awaitPromise: true` and `returnByValue: true`, called directly rather than through `headless_chrome::Tab`'s
-//! own `evaluate()` wrapper — that wrapper hardcodes `returnByValue: false`, which only inlines primitive
-//! results, not the object this script resolves with.
+//! it into an `Image`, draw it to an offscreen `<canvas>`, then read the pixels back via `getImageData`.
+//!
+//! Due to `Image` loading being asynchronous, this script must also be asynchronous, so it runs via `Runtime.evaluate`
+//! with `awaitPromise: true` and `returnByValue: true`. This is called directly rather than through
+//! `headless_chrome::Tab`'s own `evaluate()` wrapper. That wrapper hardcodes `returnByValue: false`, which only inlines
+//! primitive results, not the object with which this script resolves.
 //!
 //! # Why this is a separate test file
 //!
-//! See `filter_blend_render.rs`'s own module doc comment for the general reasoning: keeping each file honestly
-//! scoped to what it actually tests, at the cost of each paying Chrome's startup cost independently, since
-//! `tests/*.rs` files are always separate binaries with no way to share a running `Browser`/`Tab` instance.
-
-use std::time::Duration;
+//! See `filter_blend_render.rs`'s own module doc comment for the general reasoning: keeping the tests in each file
+//! scoped in a "common sense" way.  However, this comes at the cost of having to pay Chrome's startup cost for each
+//! test run, since all `tests/*.rs` files are built as separate binaries and therefore have no means to share a running
+//! `Browser`/`Tab` instance.
 
 use cdp_integration_test::{build_fixture, fixture_dir, launch_browser, serve};
 use headless_chrome::protocol::cdp::Runtime;
 use serde_json::Value;
+use std::time::Duration;
 
-/// The in-page async script: rasterises the fixture's `<svg>` and returns the alpha channel at a handful of
-/// named local offsets within each of the nine rects, keyed by rect id then offset name. Alpha, not red, is the
-/// intensity signal here. `feSpecularLighting`'s own alpha is the max of its own lit R/G/B, per the filter spec,
-/// so it tracks lit intensity directly. The red channel does not: confirmed empirically, `getImageData`'s own
-/// red value here stays a constant 255 at every sampled point, dim or bright alike. Canvas `ImageData` is always
-/// non-premultiplied, but this filter's own result is computed in premultiplied form internally, so converting
-/// back divides each colour channel by its own alpha — for `lighting-color: white`, that division exactly
-/// cancels the intensity scaling alpha itself carries, leaving red pegged at white regardless of how dim the
-/// pixel actually is.
+/// The in-page async script: rasterises the fixture's `<svg>` and returns the alpha channel at a handful of named local
+/// offsets within each of the nine rects, keyed by rect id then offset name.
+///
+/// Alpha, not red, is the intensity signal here.
+///
+/// `feSpecularLighting`'s own alpha is the max of its own lit R/G/B, per the filter spec, so it tracks lit intensity
+/// directly. It has been empirically confirmed that the red channel does not. `getImageData`'s own red value here stays
+/// at a constant 255 for every sampled point, dim or bright alike.
+///
+/// Canvas `ImageData` is always non-premultiplied, but this filter's own result is computed in premultiplied form
+/// internally, so converting back divides each colour channel by its own alpha — for `lighting-color: white`, that
+/// division exactly cancels the intensity scaling carried by the alpha itself, leaving the red value pegged at 255
+/// regardless of how dim the pixel actually is.
 const SAMPLE_SCRIPT: &str = r#"
 (async () => {
     const ids = [
@@ -73,25 +80,25 @@ const SAMPLE_SCRIPT: &str = r#"
         'ls-point-low-z', 'ls-point-high-z',
         'ls-spot-left', 'ls-spot-right',
         'ls-cone-zero', 'ls-cone-narrow', 'ls-cone-wide',
-    ];
-    const rects = Object.fromEntries(ids.map((id) => [id, document.querySelector('#' + id)]));
-    const svg = rects['ls-distant-low'].closest('svg');
-    const xml = new XMLSerializer().serializeToString(svg);
-    const blob = new Blob([xml], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    const img = new Image();
+    ]
+    const rects = Object.fromEntries(ids.map((id) => [id, document.querySelector('#' + id)]))
+    const svg = rects['ls-distant-low'].closest('svg')
+    const xml = new XMLSerializer().serializeToString(svg)
+    const blob = new Blob([xml], { type: 'image/svg+xml' })
+    const url = URL.createObjectURL(blob)
+    const img = new Image()
     const loaded = new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-    });
-    img.src = url;
-    await loaded;
+        img.onload = resolve
+        img.onerror = reject
+    })
+    img.src = url
+    await loaded
 
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0);
+    const canvas = document.createElement('canvas')
+    canvas.width = img.width
+    canvas.height = img.height
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(img, 0, 0)
 
     // feSpecularLighting's own alpha is the max of its own lit R/G/B, so it tracks lit intensity directly. The
     // red channel does not: un-premultiplying this filter's own premultiplied result divides red by its own
@@ -122,22 +129,23 @@ const SAMPLE_SCRIPT: &str = r#"
         // level with it instead, close to each side's own edge.
         leftAtLightHeight: [20, 20],
         rightAtLightHeight: [140, 20],
-    };
+    }
 
-    const samples = {};
+    const samples = {}
     for (const id of ids) {
-        const origin = rectOrigin(rects[id]);
-        samples[id] = {};
+        const origin = rectOrigin(rects[id])
+        samples[id] = {}
         for (const [name, [dx, dy]] of Object.entries(offsets)) {
-            samples[id][name] = alphaAt(origin.x + dx, origin.y + dy);
+            samples[id][name] = alphaAt(origin.x + dx, origin.y + dy)
         }
     }
 
-    URL.revokeObjectURL(url);
-    return samples;
+    URL.revokeObjectURL(url)
+    return samples
 })()
 "#;
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// `samples[id][offset_name]` as a plain `u8`, panicking with context on any malformed value.
 fn sample(value: &Value, id: &str, offset_name: &str) -> u8 {
     value[id][offset_name]
@@ -145,6 +153,7 @@ fn sample(value: &Value, id: &str, offset_name: &str) -> u8 {
         .unwrap_or_else(|| panic!("samples[{id:?}][{offset_name:?}] missing or not a number: {value}")) as u8
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #[test]
 fn light_sources_sliders_change_rendered_pixels() {
     let dir = fixture_dir();

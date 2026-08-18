@@ -1,93 +1,100 @@
 //! Chrome-DevTools-Protocol (CDP) integration test for `SvgFilter::blend`'s alpha-preserving tint chain.
 //!
-//! `tests/filter/blend.rs` and `chains.rs` (in the main `svg-dom` crate) prove DOM structure for `SvgFilter::blend`
-//! and `composite`: the right elements, with the right attributes, in the right order. It cannot prove what those
-//! elements actually *render* — and the whole point of the `flood` -> `blend` -> `composite(In)` tint chain documented on
-//! `SvgFilter::blend` is a rendering claim: that the chain preserves the source graphic's own transparency instead
-//! of leaking the flood colour into it. A structural test that only counts child elements is satisfied by a chain
-//! that gets this wrong, which is exactly what happened before that final `composite(In)` step was added — see the
-//! `SvgFilter::blend` doc comment's `# ⚠️ Tinting with a flood colour needs a final composite(In)` section and
-//! `docs/svg_elements/filters.md`'s matching warning for the full explanation of the bug this test guards against.
+//! `tests/filter/blend.rs` and `chains.rs` (in the main `svg-dom` crate) can only prove the DOM structure for
+//! `SvgFilter::blend` and `composite`: I.E. that the right elements, with the right attributes exist in the right
+//! order. It cannot prove what those elements actually *render* in the expected way. The whole point of the `flood` ->
+//! `blend` -> `composite(In)` tint chain documented by `SvgFilter::blend` is a rendering claim: that the chain
+//! preserves the source graphic's own transparency instead of leaking the flood colour into it.
 //!
-//! This drives a real Chrome instance via CDP and renders the `#blend-circle` element built by the sibling
+//! A structural test that only counts child elements is satisfied by a chain that can still get the rendering wrong,
+//! which is exactly what happened before that final `composite(In)` step was added. For the full explanation of the bug
+//! this test guards against, see the doc comment sections `# ⚠️ Tinting with a flood colour needs a final
+//! composite(In)` and `docs/svg_elements/filters.md`'s matching warning in `SvgFilter::blend`.
+//!
+//! This test drives a real Chrome instance via CDP and renders the `#blend-circle` element built by the sibling
 //! `cdp-test-fixture` wasm crate (a white circle, filtered with `flood("#f0883e", ...)` -> `blend(Multiply)` ->
-//! `composite(In)`) to an offscreen canvas, then reads back actual pixel values to confirm:
+//! `composite(In)`) to an offscreen canvas, then reads back actual pixel values to confirm that:
 //!
-//! - a pixel at the circle's centre is fully opaque and (approximately) the flood colour — white is `Multiply`'s
+//! 1. A pixel at the circle's centre is fully opaque and (approximately) the flood colour.  White is `Multiply`'s
 //!   identity element, so a correctly alpha-preserving chain paints the flood colour through unchanged, giving an
-//!   *exact* expected result rather than an approximate one;
-//! - a pixel at a corner of the circle's bounding box — outside the circle, where `SourceGraphic` is fully
-//!   transparent — is fully transparent (alpha `0`). Before the `composite(In)` fix, this pixel was opaque and
-//!   flood-coloured instead, because `flood` paints across the *entire* filter region regardless of the source
+//!   *exact* expected result rather than an approximate one.
+//! 2. A pixel at a corner of the circle's bounding box lying outside the circle, where `SourceGraphic` is fully
+//!   transparent, is also fully transparent (alpha `0`). Before the `composite(In)` fix, this pixel was opaque and
+//!   flood-coloured instead because `flood` paints across the *entire* filter region regardless of the source
 //!   graphic's shape, and `feBlend`'s result alpha is the union of its two inputs' alpha.
 //!
 //! # How the pixels are read
 //!
-//! There is no direct "read this SVG's rendered pixels" CDP call, so the in-page JavaScript below serialises the
-//! fixture's `<svg>` to a `data:image/svg+xml` URL, loads it into an `Image`, draws it to an offscreen `<canvas>`,
-//! and reads two pixels back via `getImageData` — the standard technique for rasterising SVG content in a browser.
-//! That script is itself asynchronous (`Image` loading is not synchronous), so it runs via `Runtime.evaluate` with
-//! `awaitPromise: true` and `returnByValue: true`, called directly rather than through `headless_chrome::Tab`'s own
-//! `evaluate()` wrapper — that wrapper hardcodes `returnByValue: false`, which only inlines primitive results, not
-//! the object this script resolves with.
+//! CDP does not offer any call that can read an SVG's rendered pixels, so we have to go through a more elaborate
+//! process to rasterise the SVG content in order to prove that the rendering actually worked:
+//! 1. in-page JavaScript serialises the fixture's `<svg>` to a `data:image/svg+xml` URL
+//! 2. this is loaded into an `Image`
+//! 3. drawn it to an offscreen `<canvas>`
+//! 4. now, the two pixels can be read back via `getImageData`
+//!
+//! That script must itself by asynchronous (due to asynchronous `Image` loading), so it runs via `Runtime.evaluate`
+//! with `awaitPromise: true` and `returnByValue: true`. This is called directly rather than through
+//! `headless_chrome::Tab`'s own `evaluate()` wrapper which hardcodes `returnByValue: false` andonly inlines primitive
+//! results, not the object this script resolves with.
 //!
 //! # Why this is a separate test file, not more `#[test]`s in `accessibility_tree.rs`
 //!
-//! Bolting these tests onto the accessibility-tree file would let one file's module doc comment describe two
-//! unrelated concerns (accessible-name computation and filter alpha compositing), and would make this test
-//! non-obvious to find. The cost is that this file builds and launches its own fixture/Chrome instance independent
-//! of `accessibility_tree.rs`'s (`tests/*.rs` files are always separate binaries — there is no way to share a
-//! running `Browser`/`Tab` across them, only the setup code in `src/lib.rs` that creates one), so `cargo test -p
-//! cdp-integration-test` pays Chrome's startup cost twice. That is judged worth it for keeping each file honestly
-//! scoped to what it actually tests.
-
-use std::time::Duration;
+//! Bolting these tests onto the accessibility-tree file would require that one file's module doc comment describe two
+//! unrelated concerns; namely, accessible-name computation and filter alpha compositing. That would then obscure the
+//! "common sense" location of the filter test. The cost however is that each file must build and launch its own
+//! independent fixture/Chrome instance, so running the command `cargo test -p cdp-integration-test` has to pay Chrome's
+//! startup cost twice.
+//!
+//! This cost has been evaluated and judged to be acceptable in order to keep each file scoped to what is actually
+//! being tested.
 
 use cdp_integration_test::{build_fixture, fixture_dir, launch_browser, serve};
 use headless_chrome::protocol::cdp::Runtime;
 use serde_json::Value;
+use std::time::Duration;
 
 /// The in-page async script: rasterises the fixture's `<svg>` and returns `{ center: [r,g,b,a], corner: [r,g,b,a] }`
-/// for the `#blend-circle` element, sampling its centre and a corner of its bounding box (inset by 2px so the
-/// sample point is never itself antialiased edge pixel).
+/// for the `#blend-circle` element, sampling its centre and a corner of its bounding box (inset by 2px so the sample
+/// point is never itself antialiased edge pixel).
 const SAMPLE_SCRIPT: &str = r#"
 (async () => {
-    const circle = document.querySelector('#blend-circle');
-    const svg = circle.closest('svg');
-    const xml = new XMLSerializer().serializeToString(svg);
-    const blob = new Blob([xml], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    const img = new Image();
+    const circle = document.querySelector('#blend-circle')
+    const svg = circle.closest('svg')
+    const xml = new XMLSerializer().serializeToString(svg)
+    const blob = new Blob([xml], { type: 'image/svg+xml' })
+    const url = URL.createObjectURL(blob)
+    const img = new Image()
     const loaded = new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-    });
-    img.src = url;
-    await loaded;
+        img.onload = resolve
+        img.onerror = reject
+    })
+    img.src = url
+    await loaded
 
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0);
+    const canvas = document.createElement('canvas')
+    canvas.width = img.width
+    canvas.height = img.height
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(img, 0, 0)
 
-    const cx = parseFloat(circle.getAttribute('cx'));
-    const cy = parseFloat(circle.getAttribute('cy'));
-    const r = parseFloat(circle.getAttribute('r'));
+    const cx = parseFloat(circle.getAttribute('cx'))
+    const cy = parseFloat(circle.getAttribute('cy'))
+    const r = parseFloat(circle.getAttribute('r'))
 
     function pixelAt(x, y) {
-        const d = ctx.getImageData(Math.round(x), Math.round(y), 1, 1).data;
-        return [d[0], d[1], d[2], d[3]];
+        const d = ctx.getImageData(Math.round(x), Math.round(y), 1, 1).data
+        return [d[0], d[1], d[2], d[3]]
     }
 
-    const center = pixelAt(cx, cy);
-    const corner = pixelAt(cx - r + 2, cy - r + 2);
+    const center = pixelAt(cx, cy)
+    const corner = pixelAt(cx - r + 2, cy - r + 2)
 
-    URL.revokeObjectURL(url);
-    return { center, corner };
+    URL.revokeObjectURL(url)
+    return { center, corner }
 })()
 "#;
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Component-wise `(r, g, b, a)` from a JSON `[r, g, b, a]` array, panicking with `context` on any malformed value.
 fn rgba(value: &Value, context: &str) -> (u8, u8, u8, u8) {
     let arr = value
@@ -102,6 +109,7 @@ fn rgba(value: &Value, context: &str) -> (u8, u8, u8, u8) {
     (component(0), component(1), component(2), component(3))
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #[test]
 fn blend_tint_chain_preserves_source_alpha() {
     let dir = fixture_dir();

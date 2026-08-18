@@ -1,84 +1,83 @@
-//! Chrome-DevTools-Protocol (CDP) integration test for `<title>`/`<desc>` accessible-name/description computation.
+//! Chrome-DevTools-Protocol (CDP) integration test for `<title>` and `<desc>` accessible-name/description computation.
 //!
-//! Every other test covering `set_title`/`set_desc` (`svg-dom`'s `tests/accessibility.rs`) proves DOM structure —
-//! the right element got created/updated/removed in the right place. None of them can see the actual, browser-
-//! computed accessibility tree, since that is not exposed through the DOM at all: it lives behind Chrome's
-//! Accessibility CDP domain, which `wasm-bindgen-test`'s WebDriver-run browser tests have no access to.
+//! Every other test covering `set_title` or `set_desc` (`svg-dom`'s `tests/accessibility.rs`) proves the DOM structure:
+//! that is, the correct element was created/updated/removed in the correct place. However, none of these tests can see
+//! the actual, browser-computed accessibility tree, since that is not exposed through the DOM.  Instead, it lives
+//! behind Chrome's Accessibility CDP domain, to which `wasm-bindgen-test`'s WebDriver-run browser tests have no access.
 //!
 //! This drives a real Chrome instance via CDP (through the `headless_chrome` crate) and queries
-//! `Accessibility.getPartialAXTree` for seven scenarios built by the sibling `cdp-test-fixture` wasm crate — one
-//! independently reported `#[test]` per scenario, confirming:
+//! `Accessibility.getPartialAXTree` for seven scenarios built by the sibling `cdp-test-fixture` wasm crate, each one
+//! independently reported `#[test]` by scenario, confirming:
 //!
-//! 1. A lone `<title>` supplies the accessible name;
-//! 2. A `<desc>` alongside it supplies the accessible description;
-//! 3. A value in `aria-label` overrides a `<title>` in name computation;
-//! 4. A value in `aria-describedby` overrides a `<desc>` in description computation;
-//! 5. A rejected blank `set_title` leaves the element with no accessible name at all — i.e. the rejection actually
-//!    prevents the "apparently nameless object exposed to assistive technology" case SVG 2 warns about, not just
-//!    the DOM mutation;
-//! 6. A value in `aria-labelledby` overrides *both* `aria-label` and `<title>` — it has higher precedence than
-//!    `aria-label` in accessible-name computation, not just parity with it, and the API documentation calls this out
-//!    explicitly, so it earns its own scenario rather than being folded into scenario 3.
-//! 7. An `<a>` wrapping visible text is exposed as a named link — `SvgRoot::anchor`'s rendered-region and
-//!    nested-link caveats describe the DOM/paint side of `<a>`, but neither `svg-dom`'s own DOM-structure tests nor
-//!    the WebDriver-run browser tests can see whether a real browser actually assigns it the accessible "link" role
-//!    and computes its name from the linked text content, the same way it would for an HTML `<a>` — only the
-//!    Accessibility CDP domain this file already drives can.
+//! 1. A lone `<title>` supplies the accessible name.
+//! 2. A `<desc>` alongside it supplies the accessible description.
+//! 3. A value in `aria-label` overrides a `<title>` in the accessible name computation.
+//! 4. A value in `aria-describedby` overrides a `<desc>` in the description computation.
+//! 5. A rejected blank `set_title` leaves the element with no accessible name at all.  I.E. this rejection is designed
+//!    to prevent an "apparently nameless object being exposed to assistive technology"; a case that SVG 2 warns about.
+//! 6. A value in `aria-labelledby` overrides *both* `aria-label` and `<title>` as it has higher precedence (not just
+//!    parity) than `aria-label` during accessible-name computation.  Since the API documentation calls this out
+//!    explicitly, it requires its own test scenario rather than being folded into scenario 3.
+//! 7. Visible text wrapped by nn `<a>` is exposed as a named link. `SvgRoot::anchor`'s rendered-region and nested-link
+//!    caveats describe the DOM/paint side of `<a>`, but neither `svg-dom`'s own DOM-structure tests nor the browser
+//!    tests run by WebDriver can see whether a real browser actually assigns it both the accessible "link" role and
+//!    computes its name from the linked text content, the same way it would for an HTML `<a>`.  Only the Accessibility
+//!    CDP domain this file already drives can do that.
 //!
 //! # Why seven `#[test]` functions share one browser session
 //!
-//! Building the fixture and launching Chrome are expensive actions requiring wasm-pack compile and browser startup, so
-//! all seven scenarios share a single fixture build, static server, and Chrome tab via a lazily-initialised `OnceLock`
-//! rather than each test repeating this cost individually.
+//! Building the fixture and launching Chrome are expensive actions requiring first a wasm-pack compile followed by a
+//! browser startup.  As a result, all seven scenarios share a single fixture build, static server, and Chrome tab via a
+//! lazily-initialised `OnceLock` rather than each test repeating this costly step.
 //!
-//! Splitting into seven functions (rather than one function with seven sequential `assert_eq!` calls) matters for two
-//! reasons: `cargo test` reports each scenario's pass/fail independently instead of collapsing them into a single
-//! result, and an `assert_eq!` failure in one scenario no longer aborts the others before they get a chance to run.
+//! The tests have been split into seven functions for two reasons:
+//! 1. `cargo test` reports each scenario's pass/fail independently instead of collapsing them into a single result
+//! 2. `assert_eq!` failure in one scenario aborts all subsequent tests before they get a chance to run.
 //!
-//! `cargo test` runs test functions in parallel by default, though, and CDP tab access is not safe under that kind
-//! of concurrency: `Browser`/`Tab` are `Send + Sync` at the type level (built entirely from `Arc`/`Mutex`/`RwLock`
-//! internally), which makes them shareable, but `Tab::find_element`'s `DOM.getDocument`-then-`DOM.querySelector`
-//! sequence is not atomic — two threads racing it against the same tab can interleave and hand one of them a
-//! `nodeId` from the other's `getDocument` call, which then fails to resolve. A `QUERY_LOCK` mutex below serialises
-//! every CDP round trip so the seven tests still run concurrently as far as the test harness is concerned, but their
-//! actual browser interactions never overlap.
+//! By default, all `cargo test` runs test functions run in parallel; however, CDP tab access is not safe under that
+//! kind of concurrency. Although `Browser` and `Tab` are `Send + Sync` at the type level (which makes them shareable),
+//! `Tab::find_element`'s `DOM.getDocument` followed by `DOM.querySelector` is not atomic: it could result in two
+//! threads racing against the same tab which may then interleave and hand one of them a `nodeId` from the other's
+//! `getDocument` call, which then fails to resolve. A `QUERY_LOCK` mutex below serialises every CDP round trip so the
+//! seven tests still run concurrently as far as the test harness is concerned, but their actual browser interactions
+//! never overlap.
 //!
-//! Lives in its own on-demand workspace member (excluded from the root package's `default-members`, same as
+//! Lives in its own on-demand workspace member (excluded from the root package's `default-members`, the same as
 //! `demo-server`) because it pulls in `headless_chrome` and requires a local Chrome/Chromium binary — neither of
-//! which the ordinary `cargo test`/`cargo nextest run` workflow should have to pay for. Run explicitly with:
-//! `cargo test -p cdp-integration-test`. That command also runs the sibling `filter_blend_render.rs` and
-//! `turbulence_scale_zero_render.rs`, two further, unrelated CDP integration tests (for `SvgFilter::blend` and
-//! `SvgFilter::displacement_map`'s `scale` argument respectively) sharing this crate's own
-//! `fixture_dir`/`build_fixture`/`serve`/`launch_browser` setup helpers (in `src/lib.rs`) but not its running
+//! which the ordinary `cargo test` or `cargo nextest run` workflow should have to pay for.
+//!
+//! Run explicitly with: `cargo test -p cdp-integration-test`.
+//!
+//! That command also runs the sibling `filter_blend_render.rs` and `turbulence_scale_zero_render.rs`. Two further,
+//! unrelated CDP integration tests (for `SvgFilter::blend` and `SvgFilter::displacement_map`'s `scale` argument) share
+//! this crate's own setup helpers (`fixture_dir`, `build_fixture`, `serve`, `launch_browser`) but not its running
 //! `Browser`/`Tab` instance or `#[test]`s — see each file's own module doc comment for what it verifies.
 //!
 //! Run in CI by its own job in `.github/workflows/ci.yml` (`cdp-integration-test`), using the Chrome installation
-//! already present on GitHub's `ubuntu-latest` runner image — being a separate job, its failure does not block the
-//! other, unrelated CI jobs from reporting their own results, but it still gates the merge like any other required
-//! check.
+//! already present on GitHub's `ubuntu-latest` runner image. Being a separate job, its failure does not block the other,
+//! unrelated CI jobs from reporting their own results, but it still gates the merge like any other required check.
 //!
 //! # Why the browser is launched with `sandbox(false)`
 //!
 //! `Browser::default()` launches with Chrome's own sandbox enabled, which is the right default for browsing untrusted
-//! content — but `ubuntu-latest` now resolves to Ubuntu 24.04+, which restricts unprivileged user namespaces via
-//! AppArmor, which is what Chrome's sandbox relies on. That makes Chrome's sandbox initialisation fail even for a
-//! non-root CI user, unless `--no-sandbox` is passed. Since this test only ever loads a local fixture page this crate
-//! builds itself, there is no untrusted content for the sandbox to matter for, so it is disabled unconditionally rather
-//! than only in CI — keeping local and CI runs on the same code path.
+//! content. However, `ubuntu-latest` now resolves to Ubuntu 24.04+, which restricts unprivileged user namespaces via
+//! `AppArmor`, which is what Chrome's sandbox relies on. That makes Chrome's sandbox initialisation fail even for a
+//! non-root CI user, unless `--no-sandbox` is passed. Since this test only ever loads a local fixture page built by this
+//! crate, there is no untrusted content that would need to be sandboxed, so it is disabled unconditionally rather than
+//! only in CI.  This ensures that the local and CI runs use the same code path.
 
+use cdp_integration_test::{build_fixture, fixture_dir, launch_browser, serve};
+use headless_chrome::{Browser, Tab, protocol::cdp::Accessibility};
+use serde_json::Value;
 use std::{
     sync::{Arc, Mutex, OnceLock},
     time::Duration,
 };
 
-use cdp_integration_test::{build_fixture, fixture_dir, launch_browser, serve};
-use headless_chrome::{Browser, Tab, protocol::cdp::Accessibility};
-use serde_json::Value;
-
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 struct Fixture {
-    // Never read after construction, but must outlive every test: dropping the `Browser` closes the Chrome process
-    // (and with it every `Tab`, including the one below).
+    // Never read after construction, but must outlive every test: dropping the `Browser` closes the Chrome process and
+    // with it every `Tab`, including the one below.
     _browser: Browser,
     tab: Arc<Tab>,
 }
@@ -94,9 +93,9 @@ fn fixture() -> &'static Fixture {
         let dir = fixture_dir();
         build_fixture(&dir);
         let port = serve(dir);
-
         let browser = launch_browser().expect("failed to launch Chrome — is it installed locally?");
         let tab = browser.new_tab().expect("failed to open a new tab");
+
         tab.navigate_to(&format!("http://127.0.0.1:{port}/index.html"))
             .expect("failed to navigate to fixture page");
         tab.wait_for_element_with_custom_timeout("#fixture-ready", Duration::from_secs(10))
@@ -144,9 +143,9 @@ fn ax_value_str(ax_value: &Option<Accessibility::AXValue>) -> Option<String> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Fetches the computed accessible name/description for the element matching `selector`. Returns `(name,
-/// description)`, either of which is `None` when that property is absent from the accessibility tree (e.g. an
-/// element with no accessible name at all).
+/// Fetches the computed accessible name/description for the element matching `selector`. Returns `(name, description)`,
+/// either of which could be `None` when that property is absent from the accessibility tree (e.g. an element with no
+/// accessible name at all).
 fn computed_name_and_description(tab: &Tab, selector: &str) -> (Option<String>, Option<String>) {
     let node = ax_node(tab, selector);
     (ax_value_str(&node.name), ax_value_str(&node.description))
@@ -229,10 +228,10 @@ fn aria_labelledby_overrides_title_and_aria_label() {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Proves `SvgRoot::anchor` produces something a real browser actually treats as a link, not just an `<a>` tag in
-/// the DOM: `svg-dom`'s own tests can see the tag name and the `href` attribute, but only the Accessibility CDP
-/// domain can see whether Chrome assigns it the "link" role and computes an accessible name from its linked text
-/// content — the two properties exposed to assistive technology. This does not exercise keyboard focus or
-/// activation (SVG 2 separately defines valid SVG links as focusable); it only proves the accessibility-tree side.
+/// the DOM: `svg-dom`'s own tests can see the tag name and the `href` attribute, but only the Accessibility CDP domain
+/// can see whether Chrome assigns it the "link" role and computes an accessible name from its linked text content — the
+/// two properties exposed to assistive technology. This does not exercise keyboard focus or activation (SVG 2
+/// separately defines valid SVG links as focusable); it only proves the accessibility-tree side.
 #[test]
 fn anchor_with_visible_text_is_a_named_link() {
     let (name, role) = computed_name_and_role(&fixture().tab, "#s7");

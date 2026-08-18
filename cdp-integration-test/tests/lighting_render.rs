@@ -1,89 +1,93 @@
 //! Chrome-DevTools-Protocol (CDP) integration test for `demo_lighting.rs`'s own surfaceScale and azimuth sliders.
 //!
-//! `demo-app/src/browser_tests/paint/lighting.rs` proves the DOM half of both sliders' own claims — that moving
-//! either one reaches `surfaceScale` on all four retained lighting primitives, or `azimuth` on all four
-//! `<feDistantLight>` children. It cannot prove either mutation actually changes the *rendered* lighting. A
-//! structural test is satisfied by a `<feDiffuseLighting surfaceScale="0">` sitting in a filter chain that
-//! rasterises however it likes.
+//! `demo-app/src/browser_tests/paint/lighting.rs` proves the claims made for the DOM part of both sliders; namely that
+//! moving either one mutates `surfaceScale` on all four retained lighting primitives, or `azimuth` on all four
+//! `<feDistantLight>` children. However, it cannot prove either mutation actually changes the *rendered* lighting.
 //!
-//! This drives a real Chrome instance via CDP and renders three circles built by the sibling `cdp-test-fixture`
-//! wasm crate, all filtered through the exact same `feDiffuseLighting` recipe `demo_lighting.rs`'s own
-//! "diffuse-only" column uses: `#lighting-reference` (surfaceScale 6, azimuth 235deg, this demo's own defaults),
-//! `#lighting-azimuth-90` (surfaceScale 6, azimuth 90deg instead), and `#lighting-scale-zero` (surfaceScale 0,
-//! azimuth 235deg). It samples eight points around each circle's own rim, 2px inside its nominal radius — where
-//! `feDiffuseLighting`'s own alpha-gradient bump map is non-flat, since a plain circle's own interior alpha never
-//! varies — and asserts:
+//! This test drives a real Chrome instance via CDP and renders three circles built by the sibling `cdp-test-fixture`
+//! wasm crate. These are all filtered through the exact same `feDiffuseLighting` recipe used by `demo_lighting.rs`'s
+//!  own "diffuse-only" column: `#lighting-reference` (surfaceScale 6, azimuth 235deg), `#lighting-azimuth-90`
+//! (surfaceScale 6, azimuth 90deg), and `#lighting-scale-zero` (surfaceScale 0, azimuth 235deg).
 //!
-//! - `#lighting-reference`'s own eight rim samples vary meaningfully from one another — the positive control that
-//!   this fixture and sampling method actually detect real directional lighting when it is there;
-//! - `#lighting-scale-zero`'s own eight rim samples stay close to one another, well inside the variation
-//!   `#lighting-reference` shows — `panel-lighting.html`'s own claim that surfaceScale 0 flattens the bump map
-//!   into a uniform lit surface, checked against real pixels rather than only the `surfaceScale="0"` attribute;
-//! - at least one of the eight matching-angle samples differs materially between `#lighting-reference` and
-//!   `#lighting-azimuth-90` — azimuth actually turns the rendered light, not just the `<feDistantLight>`
-//!   attribute a DOM test can already see.
+//! It samples eight points around each circle's own rim, 2px inside its nominal radius, where `feDiffuseLighting`'s own
+//! alpha-gradient bump map is non-flat, since a plain circle's own interior alpha never varies.  It then asserts:
+//!
+//! 1. `#lighting-reference`'s own eight rim samples vary meaningfully from one another — the positive control that
+//!   this fixture and sampling method actually detect real directional lighting when it is there.
+//! 2. `#lighting-scale-zero`'s own eight rim samples stay close to one another, well inside the variation shown by
+//!   `#lighting-reference` — `panel-lighting.html`'s own claim that surfaceScale 0 flattens the bump map into a uniform
+//!   lit surface, checked against real pixels rather than only the `surfaceScale="0"` attribute.
+//! 3. there is a material difference between at least one of the eight matching-angle samples `#lighting-reference` and
+//!   `#lighting-azimuth-90` — azimuth actually turns the rendered light, not just the `<feDistantLight>` attribute
+//!   detectable by a DOM test.
 //!
 //! The first check alone would be a one-sided claim about the sampling method's own sensitivity: it says nothing
-//! about whether a *flattened* bump map also rasterises correctly, which is exactly what the second check closes.
-//! Together they mean a pass on the second check reflects the fixture genuinely losing directional variation, not
-//! an insensitive sampling method that would have missed variation either way.
+//! about whether a *flattened* bump map also rasterises correctly, which is exactly what the second check proves.
+//! Together they mean a pass on the second check reflects the fixture genuinely losing directional variation, not an
+//! insensitive sampling method that would have missed variation either way.
 //!
-//! This intentionally does not attempt broader screenshot testing across every slider position — these three
-//! fixed points are enough to cover both sliders' own specific rendering claims without turning into a fragile
-//! visual regression suite.
+//! This intentionally does not attempt any broader screenshot testing across every slider position — these three fixed
+//! points are enough to cover both sliders' own specific rendering claims without turning into a fragile visual
+//! regression suite.
 //!
 //! # How the pixels are read
 //!
-//! Same technique as `filter_blend_render.rs`/`turbulence_scale_zero_render.rs`: serialise the fixture's `<svg>`
-//! to a `data:image/svg+xml` URL, load it into an `Image`, draw it to an offscreen `<canvas>`, and read pixels
-//! back via `getImageData`. That script is asynchronous (`Image` loading is not synchronous), so it runs via
-//! `Runtime.evaluate` with `awaitPromise: true` and `returnByValue: true`, called directly rather than through
-//! `headless_chrome::Tab`'s own `evaluate()` wrapper — that wrapper hardcodes `returnByValue: false`, which only
-//! inlines primitive results, not the object this script resolves with.
+//! Same technique as `filter_blend_render.rs` and `turbulence_scale_zero_render.rs`: serialise the fixture's `<svg>`
+//! to a `data:image/svg+xml` URL, load it into an `Image`, draw it to an offscreen `<canvas>`, then read the pixels
+//! back via `getImageData`.
+//!
+//! Since `Image` loading is asynchronous, the script must also be asynchronous, so it runs via `Runtime.evaluate` with
+//! `awaitPromise: true` and `returnByValue: true`, called directly rather than through `headless_chrome::Tab`'s own
+//! `evaluate()` wrapper. That wrapper hardcodes `returnByValue: false`, which only inlines primitive results, not the
+//! object with which this script resolves.
 //!
 //! # Why this is a separate test file
 //!
-//! See `filter_blend_render.rs`'s own module doc comment for the general reasoning: keeping each file honestly
-//! scoped to what it actually tests, at the cost of each paying Chrome's startup cost independently, since
-//! `tests/*.rs` files are always separate binaries with no way to share a running `Browser`/`Tab` instance.
-
-use std::time::Duration;
+//! See `filter_blend_render.rs`'s own module doc comment for the general reasoning: keeping the scope of test file in
+//! its "common sense" location.  This does however come at the cost that each test needs to pay Chrome's startup cost,
+//! since `tests/*.rs` files are always separate binaries with no way to share a running `Browser`/`Tab` instance.
 
 use cdp_integration_test::{build_fixture, fixture_dir, launch_browser, serve};
 use headless_chrome::protocol::cdp::Runtime;
 use serde_json::Value;
+use std::time::Duration;
 
-/// The in-page async script: rasterises the fixture's `<svg>` and returns
-/// `{ referenceSamples: [[r,g,b,a], ...], azimuth90Samples: [[r,g,b,a], ...], scaleZeroSamples: [[r,g,b,a], ...] }`,
-/// eight samples each, for the `#lighting-reference`, `#lighting-azimuth-90`, and `#lighting-scale-zero` circles
-/// respectively. Each sample sits 2px inside its own circle's own radius, at one of eight angles around it, so
-/// index `i` in one array corresponds to the same angle as index `i` in either other.
+/// The in-page async script: rasterises the fixture's `<svg>` and returns eight samples for each of the
+/// `#lighting-reference`, `#lighting-azimuth-90`, and `#lighting-scale-zero` circles respectively.
+/// ```
+/// { referenceSamples: [[r,g,b,a], ...],
+///   azimuth90Samples: [[r,g,b,a], ...],
+///   scaleZeroSamples: [[r,g,b,a], ...]
+/// }
+/// ```
+/// Each sample sits 2px inside its own circle's own radius, at one of eight angles around it, so index `i` in one array
+/// corresponds to the same angle as index `i` in either other.
 const SAMPLE_SCRIPT: &str = r#"
 (async () => {
-    const reference = document.querySelector('#lighting-reference');
-    const azimuth90 = document.querySelector('#lighting-azimuth-90');
-    const scaleZero = document.querySelector('#lighting-scale-zero');
-    const svg = reference.closest('svg');
-    const xml = new XMLSerializer().serializeToString(svg);
-    const blob = new Blob([xml], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    const img = new Image();
+    const reference = document.querySelector('#lighting-reference')
+    const azimuth90 = document.querySelector('#lighting-azimuth-90')
+    const scaleZero = document.querySelector('#lighting-scale-zero')
+    const svg = reference.closest('svg')
+    const xml = new XMLSerializer().serializeToString(svg)
+    const blob = new Blob([xml], { type: 'image/svg+xml' })
+    const url = URL.createObjectURL(blob)
+    const img = new Image()
     const loaded = new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-    });
-    img.src = url;
-    await loaded;
+        img.onload = resolve
+        img.onerror = reject
+    })
+    img.src = url
+    await loaded
 
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0);
+    const canvas = document.createElement('canvas')
+    canvas.width = img.width
+    canvas.height = img.height
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(img, 0, 0)
 
     function pixelAt(x, y) {
-        const d = ctx.getImageData(Math.round(x), Math.round(y), 1, 1).data;
-        return [d[0], d[1], d[2], d[3]];
+        const d = ctx.getImageData(Math.round(x), Math.round(y), 1, 1).data
+        return [d[0], d[1], d[2], d[3]]
     }
 
     function circleGeometry(el) {
@@ -91,27 +95,28 @@ const SAMPLE_SCRIPT: &str = r#"
             cx: parseFloat(el.getAttribute('cx')),
             cy: parseFloat(el.getAttribute('cy')),
             r: parseFloat(el.getAttribute('r')),
-        };
+        }
     }
 
-    const angles = [0, 45, 90, 135, 180, 225, 270, 315];
-    const inset = 2;
+    const angles = [0, 45, 90, 135, 180, 225, 270, 315]
+    const inset = 2
     function rimSamples(geo) {
-        return angles.map((deg) => {
-            const rad = (deg * Math.PI) / 180;
-            return pixelAt(geo.cx + (geo.r - inset) * Math.cos(rad), geo.cy + (geo.r - inset) * Math.sin(rad));
-        });
+        return angles.map(deg => {
+            const rad = (deg * Math.PI) / 180
+            return pixelAt(geo.cx + (geo.r - inset) * Math.cos(rad), geo.cy + (geo.r - inset) * Math.sin(rad))
+        })
     }
 
-    const referenceSamples = rimSamples(circleGeometry(reference));
-    const azimuth90Samples = rimSamples(circleGeometry(azimuth90));
-    const scaleZeroSamples = rimSamples(circleGeometry(scaleZero));
+    const referenceSamples = rimSamples(circleGeometry(reference))
+    const azimuth90Samples = rimSamples(circleGeometry(azimuth90))
+    const scaleZeroSamples = rimSamples(circleGeometry(scaleZero))
 
-    URL.revokeObjectURL(url);
-    return { referenceSamples, azimuth90Samples, scaleZeroSamples };
+    URL.revokeObjectURL(url)
+    return { referenceSamples, azimuth90Samples, scaleZeroSamples }
 })()
 "#;
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Component-wise `(r, g, b, a)` from a JSON `[r, g, b, a]` array, panicking with `context` on any malformed value.
 fn rgba(value: &Value, context: &str) -> (u8, u8, u8, u8) {
     let arr = value
@@ -126,6 +131,7 @@ fn rgba(value: &Value, context: &str) -> (u8, u8, u8, u8) {
     (component(0), component(1), component(2), component(3))
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// A JSON array of `[r, g, b, a]` arrays, decoded via [`rgba`].
 fn rgba_list(value: &Value, context: &str) -> Vec<(u8, u8, u8, u8)> {
     value
@@ -137,6 +143,7 @@ fn rgba_list(value: &Value, context: &str) -> Vec<(u8, u8, u8, u8)> {
         .collect()
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// The largest single-channel gap between two samples.
 fn max_component_diff(a: (u8, u8, u8, u8), b: (u8, u8, u8, u8)) -> u8 {
     [a.0.abs_diff(b.0), a.1.abs_diff(b.1), a.2.abs_diff(b.2), a.3.abs_diff(b.3)]
@@ -145,6 +152,7 @@ fn max_component_diff(a: (u8, u8, u8, u8), b: (u8, u8, u8, u8)) -> u8 {
         .expect("four elements")
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// The largest single-channel gap between any two samples in `samples`, checked against every other sample once.
 fn max_spread(samples: &[(u8, u8, u8, u8)]) -> u8 {
     let mut spread = 0;
@@ -156,6 +164,7 @@ fn max_spread(samples: &[(u8, u8, u8, u8)]) -> u8 {
     spread
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #[test]
 fn lighting_sliders_change_rendered_pixels() {
     let dir = fixture_dir();

@@ -1,108 +1,123 @@
 //! Chrome-DevTools-Protocol (CDP) integration test for `SvgFilter::displacement_map`'s `scale` argument at `0.0`.
 //!
 //! The demo gallery's own turbulence panel (`demo/panels/panel-turbulence.html`) prominently states that scale 0
-//! restores a perfect geometric circle. `demo-app/src/browser_tests/paint/turbulence.rs` proves the DOM half of
-//! that claim — the scale slider does reach `scale="0"` on the real `feDisplacementMap` element — but it cannot
+//! restores a perfect geometric circle. `demo-app/src/browser_tests/paint/turbulence.rs` proves the DOM half of that
+//! claim: that is, the scale slider does reach `scale="0"` on the real `feDisplacementMap` element. However, it cannot
 //! prove the circle actually *renders* as a perfect circle at that value, since `wasm-bindgen-test`'s WebDriver-run
-//! tests have no access to rasterised output. A structural test is satisfied by a `scale="0"` attribute sitting on
-//! a filter chain that renders however it likes.
+//! tests have no access to rasterised output.
 //!
-//! This drives a real Chrome instance via CDP and renders three circles built by the sibling `cdp-test-fixture` wasm
-//! crate: `#turbulence-reference` (a plain, unfiltered circle), `#turbulence-scale-zero` (passed through
-//! `turbulence` -> `displacement_map` with `scale` fixed at `0.0`), and `#turbulence-scale-sixty` (the same chain
-//! again, with `scale` fixed at `60.0` instead — `demo_turbulence.rs`'s own documented maximum). All three use the
-//! same radius and fill; their centres differ, so samples are always taken at corresponding offsets around each
-//! circle's own centre, not at shared absolute coordinates. It samples eight points around each circle's own
-//! boundary, at matching angles, 3px inside and 3px outside the nominal radius, and asserts:
+//! A structural test is satisfied by a `scale="0"` attribute sitting on a filter chain that could end up being renders
+//! quite incorrectly.
 //!
-//! - the reference and scale-zero circles rasterise to the same pixel values at every sample, within a small
-//!   antialiasing tolerance — the negative control: zero displacement should look unchanged;
-//! - the reference and scale-sixty circles rasterise to a *materially different* pixel value at, conservatively,
-//!   at least one sample — the positive control: a real, substantial displacement should look visibly different.
+//! This test drives a real Chrome instance via CDP and renders three circles built by the sibling `cdp-test-fixture`
+//! wasm crate:
+//! * `#turbulence-reference` (a plain, unfiltered circle),
+//! * `#turbulence-scale-zero` (passed through `turbulence` -> `displacement_map` with `scale` fixed at `0.0`), and
+//! * `#turbulence-scale-sixty` (the same chain again, with `scale` fixed at `60.0` - the documented maximum).
 //!
-//! Both checks matter together. The first alone is a one-sided claim: it is equally consistent with a correctly
-//! working filter chain and with a browser that silently ignored the filter (or fell back to unfiltered
-//! `SourceGraphic`), since either would also rasterise like the reference. The second proves this fixture and
-//! sampling method can actually detect a real displacement in the first place, so a pass on the first check means
-//! what it claims to mean rather than reflecting an insensitive test.
+//! All three use the same radius and fill, but their centres differ, so samples are always taken at corresponding
+//! offsets around each circle's own centre, not at shared absolute coordinates. It samples eight points around each
+//! circle's own boundary, at matching angles, 3px inside and 3px outside the nominal radius and then asserts:
 //!
-//! The maximum displacement along either axis is `scale / 2` — 30px at scale 60 — but that is a ceiling, not a
-//! guarantee: the actual displacement at any one sampled point depends on the local turbulence channel value
-//! there, not on `scale` alone. Below scale 6, `scale / 2` itself is under the 3px sample margin either check
-//! uses, and even a much larger scale need not reach its own maximum at any particular sample. Scale 60 was
-//! chosen, and the threshold below calibrated, against what this sandbox's own headless Chrome actually renders
-//! at that scale — an observed property of this fixture, not an assumed one — see the positive control's own
-//! comment further down for the measured numbers.
+//! 1. the reference and scale-zero circles rasterise to the same pixel values at every sample, within a small
+//!   antialiasing tolerance.  The negative control is that zero displacement should look unchanged;
+//! 2. the reference and scale-sixty circles rasterise to a *materially different* pixel value at, conservatively,
+//!   at least one sample.  The positive control is that a real, substantial displacement should look visibly different.
 //!
-//! Samples are not taken exactly on the mathematical radius. That knife-edge pixel is roughly half-covered by
-//! design, so its exact rasterised value is unusually sensitive to any small positional difference between the
-//! two circles — the same reason `filter_blend_render.rs` samples its own corner pixel 2px inset from the shape's
-//! edge rather than exactly on it. In this sandbox specifically, that turned out to matter for a second, more
-//! surprising reason too: `cdp-test-fixture` pins `#turbulence-scale-zero`'s own filter region to exactly the
-//! circle's bounding box (`set_x`/`set_y`/`set_width`/`set_height`, all in `objectBoundingBox` units) rather than
-//! leaving it at SVG's own default 10%-margin region. Left at that default, headless Chrome's software rasteriser
-//! (`--disable-gpu`, see `launch_browser`'s own `sandbox(false)` reasoning) composited the filtered circle back
-//! onto the page with a real, several-pixel positional error — unrelated to `scale`, present even at `0.0`, and
-//! large enough on its own to fail this test's boundary samples unpredictably from one run to the next. See
-//! `cdp-test-fixture/src/lib.rs`'s own comment on this scenario for the full account of tracking that down.
+//! Both checks matter together. The first alone is a one-sided claim: it is equally consistent with a correctly working
+//! filter chain and with a browser that silently ignores the filter (or fell back to unfiltered `SourceGraphic`), since
+//! either would also rasterise like the reference.
 //!
-//! This intentionally does not attempt broad screenshot testing across every slider position — a single identity
-//! test at scale zero is enough to cover this specific, exact semantic claim without turning into a fragile visual
-//! regression suite.
+//! The second proves this fixture and sampling method can actually detect a real displacement in the first place, so a
+//! pass on the first check means what it claims rather than reflecting an insensitive test.
+//!
+//! The maximum displacement along either axis is `scale / 2` (30px at scale 60) but that is a ceiling, not a guarantee:
+//! the actual displacement at any one sampled point depends on the local turbulence channel value there, not on `scale`
+//! alone. Below scale 6, `scale / 2` itself is under the 3px sample margin either check uses, and even a much larger
+//! scale need not reach its own maximum at any particular sample.
+//!
+//! Scale 60 was chosen and the threshold below calibrated against what this sandbox's own headless Chrome actually
+//! renders at that scale.  This is an observed property of this fixture, not an assumed one.  See the positive
+//! control's own comment further down for the measured numbers.
+//!
+//! Samples are not taken exactly on the mathematical radius. That knife-edge pixel is roughly half-covered by design,
+//! so its exact rasterised value is unusually sensitive to any small positional difference between the two circles.
+//! This is the same reason `filter_blend_render.rs` samples its own corner pixel 2px inset from the shape's edge rather
+//! than exactly on it. In this sandbox specifically, that turned out to matter for a second, more surprising reason
+//! too: `cdp-test-fixture` pins `#turbulence-scale-zero`'s own filter region to exactly the circle's bounding box
+//! (`set_x`, `set_y`, `set_width` and `set_height` all in `objectBoundingBox` units) rather than leaving it at SVG's
+//! own default 10%-margin region.
+//!
+//! If left at that default, headless Chrome's software rasteriser (run using `--disable-gpu`, see `launch_browser`'s
+//! own `sandbox(false)` reasoning) composited the filtered circle back onto the page with a real, several-pixel
+//! positional error which was unrelated to `scale`.  This error was present even at `0.0`, and large enough on its own
+//! to fail this test's boundary samples unpredictably from one run to the next.
+//!
+//! See `cdp-test-fixture/src/lib.rs`'s own comment on this scenario for the full account of tracking down that little
+//! gremlin.
+//!
+//! No attempt is made for broad screenshot testing across every slider position — a single identity test at scale zero
+//! is enough to cover this specific, exact semantic claim without turning into a fragile visual regression suite.
 //!
 //! # How the pixels are read
 //!
 //! Same technique as `filter_blend_render.rs`: serialise the fixture's `<svg>` to a `data:image/svg+xml` URL, load
-//! it into an `Image`, draw it to an offscreen `<canvas>`, and read pixels back via `getImageData`. That script is
-//! asynchronous (`Image` loading is not synchronous), so it runs via `Runtime.evaluate` with `awaitPromise: true`
-//! and `returnByValue: true`, called directly rather than through `headless_chrome::Tab`'s own `evaluate()`
-//! wrapper — that wrapper hardcodes `returnByValue: false`, which only inlines primitive results, not the object
-//! this script resolves with.
+//! it into an `Image`, draw it to an offscreen `<canvas>` then read pixels back via `getImageData`.
+//!
+//! Since `Image` loading asynchronous, this script must also be asynchronous, so it runs via `Runtime.evaluate` with
+//! `awaitPromise: true` and `returnByValue: true`, called directly, rather than through `headless_chrome::Tab`'s own
+//! `evaluate()` wrapper.  That wrapper hardcodes `returnByValue: false`, which only inlines primitive results, not the
+//! object by which this script resolves.
 //!
 //! # Why this is a separate test file
 //!
-//! See `filter_blend_render.rs`'s own module doc comment for the general reasoning: keeping each file honestly
-//! scoped to what it actually tests, at the cost of each paying Chrome's startup cost independently, since
-//! `tests/*.rs` files are always separate binaries with no way to share a running `Browser`/`Tab` instance.
-
-use std::time::Duration;
+//! See `filter_blend_render.rs`'s own module doc comment for the general reasoning: keeping the scope of test file in
+//! its "common sense" location.  This does however come at the cost that each test needs to pay Chrome's startup cost,
+//! since `tests/*.rs` files are always separate binaries with no way to share a running `Browser`/`Tab` instance.
 
 use cdp_integration_test::{build_fixture, fixture_dir, launch_browser, serve};
 use headless_chrome::protocol::cdp::Runtime;
 use serde_json::Value;
+use std::time::Duration;
 
-/// The in-page async script: rasterises the fixture's `<svg>` and returns
-/// `{ referenceSamples: [[r,g,b,a], ...], scaleZeroSamples: [[r,g,b,a], ...], scaleSixtySamples: [[r,g,b,a], ...] }`,
-/// sixteen samples each, for the `#turbulence-reference`, `#turbulence-scale-zero`, and `#turbulence-scale-sixty`
-/// circles respectively. Each sample sits 3px inside or 3px outside its own circle's own radius, at one of eight
-/// angles around it (inside samples first, then outside, in the same angle order), so index `i` in one array
-/// corresponds to the same offset and angle as index `i` in either other.
+/// The in-page async script: rasterises the fixture's `<svg>` and returns sixteen samples each for the
+/// `#turbulence-reference`, `#turbulence-scale-zero`, and `#turbulence-scale-sixty` circles respectively.
+/// ```
+/// { referenceSamples: [[r,g,b,a], ...],
+///   scaleZeroSamples: [[r,g,b,a], ...],
+///   scaleSixtySamples: [[r,g,b,a], ...]
+/// }
+/// ```
+/// 
+/// Each sample sits 3px inside or 3px outside its own circle's own radius, at one of eight angles around it (inside
+/// samples first, then outside, in the same angle order), so index `i` in one array corresponds to the same offset and
+/// angle as index `i` in either other.
 const SAMPLE_SCRIPT: &str = r#"
 (async () => {
-    const reference = document.querySelector('#turbulence-reference');
-    const scaleZero = document.querySelector('#turbulence-scale-zero');
-    const scaleSixty = document.querySelector('#turbulence-scale-sixty');
-    const svg = reference.closest('svg');
-    const xml = new XMLSerializer().serializeToString(svg);
-    const blob = new Blob([xml], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    const img = new Image();
+    const reference = document.querySelector('#turbulence-reference')
+    const scaleZero = document.querySelector('#turbulence-scale-zero')
+    const scaleSixty = document.querySelector('#turbulence-scale-sixty')
+    const svg = reference.closest('svg')
+    const xml = new XMLSerializer().serializeToString(svg)
+    const blob = new Blob([xml], { type: 'image/svg+xml' })
+    const url = URL.createObjectURL(blob)
+    const img = new Image()
     const loaded = new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-    });
-    img.src = url;
-    await loaded;
+        img.onload = resolve
+        img.onerror = reject
+    })
+    img.src = url
+    await loaded
 
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0);
+    const canvas = document.createElement('canvas')
+    canvas.width = img.width
+    canvas.height = img.height
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(img, 0, 0)
 
     function pixelAt(x, y) {
-        const d = ctx.getImageData(Math.round(x), Math.round(y), 1, 1).data;
-        return [d[0], d[1], d[2], d[3]];
+        const d = ctx.getImageData(Math.round(x), Math.round(y), 1, 1).data
+        return [d[0], d[1], d[2], d[3]]
     }
 
     function circleGeometry(el) {
@@ -113,29 +128,30 @@ const SAMPLE_SCRIPT: &str = r#"
         };
     }
 
-    const angles = [0, 45, 90, 135, 180, 225, 270, 315];
-    const inset = 3;
+    const angles = [0, 45, 90, 135, 180, 225, 270, 315]
+    const inset = 3
     function insetSamples(geo) {
-        const inside = angles.map((deg) => {
-            const rad = (deg * Math.PI) / 180;
-            return pixelAt(geo.cx + (geo.r - inset) * Math.cos(rad), geo.cy + (geo.r - inset) * Math.sin(rad));
-        });
+        const inside = angles.map(deg => {
+            const rad = (deg * Math.PI) / 180
+            return pixelAt(geo.cx + (geo.r - inset) * Math.cos(rad), geo.cy + (geo.r - inset) * Math.sin(rad))
+        })
         const outside = angles.map((deg) => {
-            const rad = (deg * Math.PI) / 180;
-            return pixelAt(geo.cx + (geo.r + inset) * Math.cos(rad), geo.cy + (geo.r + inset) * Math.sin(rad));
-        });
-        return inside.concat(outside);
+            const rad = (deg * Math.PI) / 180
+            return pixelAt(geo.cx + (geo.r + inset) * Math.cos(rad), geo.cy + (geo.r + inset) * Math.sin(rad))
+        })
+        return inside.concat(outside)
     }
 
-    const referenceSamples = insetSamples(circleGeometry(reference));
-    const scaleZeroSamples = insetSamples(circleGeometry(scaleZero));
-    const scaleSixtySamples = insetSamples(circleGeometry(scaleSixty));
+    const referenceSamples = insetSamples(circleGeometry(reference))
+    const scaleZeroSamples = insetSamples(circleGeometry(scaleZero))
+    const scaleSixtySamples = insetSamples(circleGeometry(scaleSixty))
 
-    URL.revokeObjectURL(url);
-    return { referenceSamples, scaleZeroSamples, scaleSixtySamples };
+    URL.revokeObjectURL(url)
+    return { referenceSamples, scaleZeroSamples, scaleSixtySamples }
 })()
 "#;
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Component-wise `(r, g, b, a)` from a JSON `[r, g, b, a]` array, panicking with `context` on any malformed value.
 fn rgba(value: &Value, context: &str) -> (u8, u8, u8, u8) {
     let arr = value
@@ -150,6 +166,7 @@ fn rgba(value: &Value, context: &str) -> (u8, u8, u8, u8) {
     (component(0), component(1), component(2), component(3))
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// A JSON array of `[r, g, b, a]` arrays, decoded via [`rgba`].
 fn rgba_list(value: &Value, context: &str) -> Vec<(u8, u8, u8, u8)> {
     value
@@ -161,6 +178,7 @@ fn rgba_list(value: &Value, context: &str) -> Vec<(u8, u8, u8, u8)> {
         .collect()
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #[test]
 fn turbulence_scale_zero_matches_reference_while_scale_sixty_visibly_differs() {
     let dir = fixture_dir();
