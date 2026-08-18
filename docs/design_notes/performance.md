@@ -21,7 +21,8 @@ buffer-reuse pattern described here.
 ## Per-frame formatting uses a reusable scratch buffer
 
 `AnimationLoop::start_with_frame` supplies an `AnimationFrame` value to each RAF callback.
-`AnimationFrame` owns one reusable `String` scratch buffer and exposes helpers such as `set_attr_fmt`, `set_fill_fmt`, `set_d_fmt`, `set_text_fmt`, and `set_points` / `set_points_fixed` (for animating `<polyline>`/`<polygon>` vertices, the latter at a fixed decimal precision to keep the per-frame string short).
+`AnimationFrame` owns one reusable `String` scratch buffer.
+It exposes helpers such as `set_attr_fmt`, `set_fill_fmt`, `set_d_fmt`, `set_text_fmt`, and `set_points`/`set_points_fixed`, for animating `<polyline>`/`<polygon>` vertices — the latter at a fixed decimal precision, to keep the per-frame string short.
 
 Use these helpers for values that change every frame instead of writing `set_attr(..., &format!(...))` or `set_attr(..., &value.to_string())` inside the RAF callback.
 
@@ -31,7 +32,8 @@ The DOM still receives a normal `&str`, but on the Rust/WASM side, the same allo
 
 `AnimationFrame`'s reusable buffer only helps callbacks that run *through* `AnimationLoop`.
 Event-driven handlers such as drag, pan/zoom, sliders, knobs, follow-the-pointer cursors, resize/selection handles etc. do not, yet they update `transform` just as often.
-Writing `set_attr("transform", &format!("translate({x:.1}, {y:.1})"))` inside a `pointermove` handler allocates and then drops a new `String` on every event - which adds up to unnecessary churn.
+Writing `set_attr("transform", &format!("translate({x:.1}, {y:.1})"))` inside a `pointermove` handler allocates and then drops a new `String` on every event.
+That churn adds up.
 
 `src/node/transform.rs` adds a set of helpers that take a caller-owned `&mut String` scratch buffer, clear it, format the new transform into it, and hand it to `set_attr`.
 These are
@@ -46,17 +48,20 @@ These are
 * `set_transform_fmt`
 
 Reusing one buffer across calls means no new allocation happens unless the formatted text outgrows the buffer's capacity.
-For shapes that the typed helpers do not cover, your escape hatch is `set_transform_fmt`: it accepts `std::fmt::Arguments` so `format_args!(...)` can build any transform string without the heap allocation that `format!` would otherwise incur.
+For shapes that the typed helpers do not cover, your escape hatch is `set_transform_fmt`.
+It accepts `std::fmt::Arguments`, so `format_args!(...)` can build any transform string without the heap allocation that `format!` would otherwise incur.
 
 See [Transforms](transforms.md) for why `set_matrix` takes a `Matrix2D` struct rather than positional arguments, and why `set_matrix_precise` exists alongside it.
 
 The scratch buffer is deliberately **not** stored inside `SvgNode`.
-Most nodes are passive geometry that never animate, do folding formatting state into every node would cause them all to grow while benefiting only a few.
+Most nodes are passive geometry that never animate.
+Folding formatting state into every node would cause them all to grow, while benefiting only a few.
 Passive nodes can remain small by keeping the buffer external whilst hot paths can opt in explicitly.
-Because managed handlers are `FnMut`, a handler that is the sole user of a buffer can simply own it (`let mut buf = String::new()` captured by the closure), as the colour-wheel demo does.
+Because managed handlers are `FnMut`, a handler that is the sole user of a buffer can simply own it — `let mut buf = String::new()` captured by the closure.
+The colour-wheel demo does exactly this.
 An `Rc<RefCell<String>>` is needed only when one buffer is *shared across several* closures, as the drag/touch demo does for its coordinate readout.
 
-In spite of the fact that writing into a `String` is infallible, `write!` is typed to return `std::fmt::Error`.
+Writing into a `String` is infallible, but `write!` is still typed to return `std::fmt::Error`.
 `Error` implements `From<std::fmt::Error>`, mapping to the existing `Error::Dom` variant so the helpers can use `?` without a dedicated error variant.
 
 ## Redundant attribute writes are skipped on hot paths
@@ -64,14 +69,17 @@ In spite of the fact that writing into a `String` is infallible, `write!` is typ
 `set_attr_if_changed` reads the current value with `get_attribute` and writes only when it differs.
 This avoids a redundant DOM write in high-frequency handlers where the same value repeats between frames such as cursor style, `opacity` flags or selected state.
 
-It is not a universal win and the cost can be bigger than it first appears: `get_attribute` **allocates a fresh `String` for the current value and crosses the wasm/JS boundary on every call**, even when it then writes nothing.
-So for values that change on every call (such as a drag `transform`) calling `set_attr` remains the cheaper option, keeping `set_attr_if_changed` as best kept for *occasional* de-duplication rather than a per-event hot path.
+It is not a universal win, and the cost can be bigger than it first appears.
+`get_attribute` **allocates a fresh `String` for the current value and crosses the wasm/JS boundary on every call**, even when it then writes nothing.
+So for values that change on every call, such as a drag `transform`, calling `set_attr` remains the cheaper option.
+`set_attr_if_changed` is best kept for *occasional* de-duplication, rather than a per-event hot path.
 
 ## Caller-owned attribute cache for genuinely hot paths
 
-For a high-frequency path where an element's attribute value usually repeats (E.G. a cursor style or `opacity` flag touched on every `pointermove`), using `CachedAttr` (in `src/node/cached.rs`) is preferable to calling `set_attr_if_changed`.
+For a high-frequency path where an element's attribute value usually repeats (e.g. a cursor style or `opacity` flag touched on every `pointermove`), using `CachedAttr` (in `src/node/cached.rs`) is preferable to calling `set_attr_if_changed`.
 
-`CachedAttr` remembers the last value it wrote on the **Rust** side, so the unchanged case is a plain `&str` comparison against an owned `String`: I.E. no allocation takes place and no call into JS.
+`CachedAttr` remembers the last value it wrote on the **Rust** side.
+So the unchanged case is a plain `&str` comparison against an owned `String` — no allocation, no call into JS.
 
 The DOM is touched only on a genuine change and even then, the `String` backing buffer is reused (`clear` + `push_str`) rather than reallocated.
 
@@ -83,7 +91,8 @@ If that attribute is changed by some other path, call `invalidate()` so the cach
 The same cache also covers text content via `CachedAttr::set_text`, for the equivalent case of a status readout rewritten with the same string on every `pointermove`.
 Dedicate a given `CachedAttr` to *either* an attribute or text content, not both, since they share the single remembered value.
 
-For a *formatted* cached value, `CachedAttr::set_fmt` / `set_text_fmt` format into a caller-owned `&mut String` scratch and then cache, so a frequently-touched but rarely-changing formatted readout (a grid-snapped coordinate, a zoom percentage) avoids both the per-call `format!` allocation and the redundant DOM write.
+For a *formatted* cached value, `CachedAttr::set_fmt`/`set_text_fmt` format into a caller-owned `&mut String` scratch, then cache.
+So a frequently-touched but rarely-changing formatted readout — a grid-snapped coordinate, a zoom percentage — avoids both the per-call `format!` allocation and the redundant DOM write.
 The scratch is a *separate* buffer from the cache, because the cache's own buffer holds the last-written value the new one is compared against.
 
 ## Multi-attribute updates
@@ -96,30 +105,41 @@ Use `set_attrs` when all values are already strings and you want a compact metho
 ## Reusable attribute formatting
 
 `SvgAttrs` owns a reusable `String` scratch buffer, then `AttrWriter` binds that buffer to a single `SvgNode` for chainable writes.
-Use this in order to avoid the need to call `to_string()` or `format!` for numeric or formatted attribute values.
+Use this to avoid calling `to_string()` or `format!` for numeric or formatted attribute values.
 
 The browser still receives one normal SVG `setAttribute` operation per attribute, but the Rust/WASM side reuses the formatting allocation.
 The built-in root and batch element factories use the same mechanism for initial numeric geometry attributes, so repeated element creation does not allocate a fresh formatting `String` per element.
 
-For a single numeric attribute updated on a hot path, `SvgNode::set_attr_display` is the lightweight counterpart taking a caller-owned `&mut String` directly (the same shape as the transform setters), without the ceremony of binding an `AttrWriter`.
-The convenience numeric setters such as `set_stroke_width` instead allocate a short-lived `String` per call; that is fine for one-off styling but should be swapped for `set_attr_display` (or an `AttrWriter`) when the value is animated.
-The same caveat applies to the `Point`/`Size` `get_*_str` helpers, which each allocate; they are documented as one-off conveniences, not for per-event or per-frame use.
+For a single numeric attribute updated on a hot path, `SvgNode::set_attr_display` is the lightweight counterpart, taking a caller-owned `&mut String` directly — the same shape as the transform setters.
+It skips the ceremony of binding an `AttrWriter`.
+The convenience numeric setters, such as `set_stroke_width`, instead allocate a short-lived `String` per call.
+That is fine for one-off styling, but should be swapped for `set_attr_display` (or an `AttrWriter`) when the value is animated.
+The same caveat applies to the `Point`/`Size` `get_*_str` helpers, which each allocate.
+They are documented as one-off conveniences, not for per-event or per-frame use.
 
 `SvgNode::set_text_fmt` and the `set_text_display` convenience for a single value both format into a caller-owned `&mut String` and set the result as text content.
-For a label whose value changes on every event (e.g. a coordinate or status readout updated each time `pointermove` is handled), use `set_text_fmt` or `set_text_display` rather than `set_text(&format!(...))` or `set_text(&value.to_string())`, which allocate and discard a fresh `String` on every call.
+For a label whose value changes on every event — e.g. a coordinate or status readout updated each time `pointermove` is handled — use `set_text_fmt` or `set_text_display`.
+Avoid `set_text(&format!(...))` or `set_text(&value.to_string())`, which allocate and discard a fresh `String` on every call.
 
 When the text instead *repeats* between events, `CachedAttr::set_text` is the better fit since the DOM write only takes place when the value actually changes.
-Both the pointer-lifecycle and drag/touch demos route *every* `last: ...` readout writer such as the hot `pointermove`/`touchmove`/`dragover` streams and the discrete transitions alike, through one shared `CachedAttr`, so a burst of identical label updates only touches the DOM on the first write.
-The essential rule is that *all* writers should share one cache: partial caching, where some writers bypass it, is what would let the cache skip a genuinely needed write (which is why the cache is fed even from handlers, such as the native `drag` wrappers, that fire between `pointermove`s).
+Both the pointer-lifecycle and drag/touch demos route *every* `last: ...` readout writer through one shared `CachedAttr`.
+This includes the hot `pointermove`/`touchmove`/`dragover` streams and the discrete transitions alike.
+So a burst of identical label updates only touches the DOM on the first write.
+The essential rule is that *all* writers should share one cache.
+Partial caching, where some writers bypass it, is what would let the cache skip a genuinely needed write.
+That is why the cache is fed even from handlers, such as the native `drag` wrappers, that fire between `pointermove`s.
 
 The drag/touch demo's live *coordinate* readout is a separate node that changes on every move, so it keeps using `set_text_fmt` with a scratch buffer shared with the card's transform rather than the cache.
 
 ## High-frequency event coalescing
 
-On some modern devices, the events generated by `pointermove`, `touchmove`, and `wheel` can arrive at the hardware polling rate, which could be as high as 1000 Hz (i.e. one event per millisecond); while the various browser events arrive at a rate between 60 and 120 Hz.
+On some modern devices, the events generated by `pointermove`, `touchmove`, and `wheel` can arrive at the hardware polling rate.
+That rate could be as high as 1000 Hz — one event per millisecond.
+The browser's own paint/animation-frame rate, by contrast, is typically between 60 and 120 Hz.
 
-A handler that is called at the hardware polling rate could potentially call `set_translate` or `set_attr` on every delivered event, even though all but the last position before the next paint is immediately discarded.
-This might involve performing a Rust → JavaScript crossing, then a possible `setAttribute` DOM call, and a potential SVG layout invalidation for each event.
+A handler that is called at the hardware polling rate could potentially call `set_translate` or `set_attr` on every delivered event.
+But all but the last position before the next paint is immediately discarded.
+This might involve a Rust → JavaScript crossing, a possible `setAttribute` DOM call, and a potential SVG layout invalidation, for every single event.
 Such an architecture is highly wasteful of computing resources and can result in jerky or laggy scrolling.
 
 The `AnimationFrame` scratch buffer (see `AnimationLoop::start_with_frame`) removes per-event *allocation*, but it does not reduce the *count* of those crossings.
@@ -149,8 +169,8 @@ let scheduled: Rc<Cell<bool>>          = Rc::new(Cell::new(false));
 let pending_raf   = pending.clone();
 let scheduled_raf = scheduled.clone();
 
-// Use a weak handle so the RAF closure does not keep `node` alive, avoiding a
-// reference cycle (listener store → closure → Rc<node> → listener store).
+// Use a weak handle so the RAF closure does not keep `node` alive.
+// This avoids a reference cycle: listener store → closure → Rc<node> → listener store.
 // See `WeakSvgNode` for the full explanation.
 let node_weak = node.downgrade();
 
@@ -184,12 +204,13 @@ Ok::<(), svg_dom::Error>(())
 
 Key points:
 
-- `pending.set(...)` replaces whatever intermediate position was stored; only the last one matters.
+- `pending.set(...)` replaces whatever intermediate position was stored. Only the last one matters.
 - The `scheduled` flag ensures at most one `requestAnimationFrame` is queued at a time.
   When the RAF fires it clears the flag, so the next event will queue a fresh one.
 - The RAF closure uses a `WeakSvgNode` to avoid a reference cycle.
   A strong `SvgNode` clone inside both the event handler and the RAF closure would keep the node (and its listeners) alive indefinitely.
-- If you also need the `AnimationFrame` scratch buffer for formatted attribute writes, allocate one `AnimationFrame` outside both closures and put it behind an `Rc<RefCell<AnimationFrame>>`, then borrow it inside the RAF closure.
+- If you also need the `AnimationFrame` scratch buffer for formatted attribute writes, allocate one `AnimationFrame` outside both closures.
+  Put it behind an `Rc<RefCell<AnimationFrame>>`, then borrow it inside the RAF closure.
 
 ## `children`/`query_selector_all` pre-reserve `Vec` capacity, rather than collecting through `filter_map`
 
@@ -204,9 +225,14 @@ Both methods (`src/node/tree.rs`) know the DOM collection's length before iterat
 ```
 
 It does not.
-`Iterator::size_hint` for `FilterMap` reports a **lower** bound of `0`, because it cannot know in advance how many elements its predicate will discard — confirmed directly (`(0..10).filter_map(...).size_hint()` prints `(0, Some(10))`, and the bound is unchanged after chaining `.map(SvgNode::new)`, since `Map` just forwards its inner iterator's hint).
+`Iterator::size_hint` for `FilterMap` reports a **lower** bound of `0`, because it cannot know in advance how many elements its predicate will discard.
+This was confirmed directly: `(0..10).filter_map(...).size_hint()` prints `(0, Some(10))`.
+The bound is unchanged after chaining `.map(SvgNode::new)`, since `Map` just forwards its inner iterator's hint.
 
-`Vec`'s `Extend`/`FromIterator` implementation reserves against that lower bound, not the upper one, so a lower bound of `0` means `collect()` cannot make a single exact allocation here — it falls back to the same amortised doubling every `Vec::push` loop uses, reallocating and moving already-collected `SvgNode`s (each an `Rc` pointer, so the copy itself is cheap, but the repeated reallocation is not) as the vector grows past each capacity step.
+`Vec`'s `Extend`/`FromIterator` implementation reserves against that lower bound, not the upper one.
+So a lower bound of `0` means `collect()` cannot make a single exact allocation here.
+It falls back to the same amortised doubling every `Vec::push` loop uses, reallocating and moving already-collected `SvgNode`s as the vector grows past each capacity step.
+Each `SvgNode` is an `Rc` pointer, so the copy itself is cheap, but the repeated reallocation is not.
 
 The fix replaces the iterator chain with `Vec::with_capacity(len)` followed by a manual `for` loop that pushes into it, using the DOM count as an **upper bound**, since filtering can only ever shrink the result, never grow it:
 
@@ -223,10 +249,19 @@ for i in 0..len {
 nodes
 ```
 
-For the ordinary case (an SVG subtree with no `<foreignObject>` content), every DOM entry survives both casts, so this is now exactly one allocation with zero wasted growth-copies — deterministically, not just usually, since the improvement follows directly from `Vec::with_capacity`'s documented behaviour rather than from anything an optimiser might or might not do.
-This is a different kind of change from the `write_default`/`write_fixed` experiment described in [path data](path_data.md) ("`dps` is clamped once per `write_d_fixed` call..."): that needed an empirical `wasm-opt`/MD5 comparison because the question was whether LLVM had already erased a source-level difference; this one needs no such benchmark, because `Vec`'s allocation strategy is a documented, guaranteed contract, not an optimisation the compiler is free to skip.
+For the ordinary case — an SVG subtree with no `<foreignObject>` content — every DOM entry survives both casts.
+So this is now exactly one allocation with zero wasted growth-copies.
+That is deterministic, not just usual, since the improvement follows directly from `Vec::with_capacity`'s documented behaviour, rather than from anything an optimiser might or might not do.
+This is a different kind of change from the `write_default`/`write_fixed` experiment described in [path data](path_data.md) ("`dps` is clamped once per `write_d_fixed` call...").
+That experiment needed an empirical `wasm-opt`/MD5 comparison, because the question was whether LLVM had already erased a source-level difference.
+This one needs no such benchmark, because `Vec`'s allocation strategy is a documented, guaranteed contract, not an optimisation the compiler is free to skip.
 
-The trade-off is bounded, not open-ended: a selector matching mostly non-SVG elements (the flagged case being a `<foreignObject>` full of HTML) leaves the `Vec` holding unused capacity — at most `(dom_count - svg_count) * size_of::<SvgNode>()` bytes, i.e. one pointer per discarded element, which is freed as soon as the caller drops the `Vec`.
-This is a transient memory cost, not a correctness issue or an unbounded one, and for `query_selector_all` in particular it is dwarfed by the browser's own `querySelectorAll` DOM walk that produces the `NodeList` in the first place.
+The trade-off is bounded, not open-ended.
+A selector matching mostly non-SVG elements — the flagged case being a `<foreignObject>` full of HTML — leaves the `Vec` holding unused capacity.
+At most, that is `(dom_count - svg_count) * size_of::<SvgNode>()` bytes — one pointer per discarded element — which is freed as soon as the caller drops the `Vec`.
+This is a transient memory cost, not a correctness issue or an unbounded one.
+For `query_selector_all` in particular, it is dwarfed by the browser's own `querySelectorAll` DOM walk that produces the `NodeList` in the first place.
 
-`shrink_to_fit()` was deliberately not added after the loop: trimming the reserved-but-unused capacity would itself cost a second allocation and copy, which would negate the improvement on the common, all-SVG path in exchange for shaving a transient memory cost that already frees itself when the `Vec` is dropped.
+`shrink_to_fit()` was deliberately not added after the loop.
+Trimming the reserved-but-unused capacity would itself cost a second allocation and copy.
+That would negate the improvement on the common, all-SVG path, in exchange for reducing a transient memory cost that already frees itself when the `Vec` is dropped.

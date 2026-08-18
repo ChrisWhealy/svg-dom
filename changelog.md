@@ -12,7 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Improved CDP integration test documentation (`b7d4fef`)
 - Refactor `src/root/defs.rs` distributing code across respective modules (`b0c5042`)
-- Apply a simplified form of ASD-STE100 to the rejected_ideas documentation (``)
+- Apply a simplified form of ASD-STE100 to the rejected_ideas documentation (`de443c3`)
+- Apply a simplified form of ASD-STE100 to the design_notes documentation (``)
 
 # [Released]
 
