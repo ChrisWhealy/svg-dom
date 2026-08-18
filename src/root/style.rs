@@ -8,10 +8,10 @@ impl SvgRoot {
     ///
     /// # Scope
     ///
-    /// The style rules used here apply document-wide - regardless of where in the DOM tree these rules occur (SVG's CSS
-    /// cascade is not scoped by DOM position the way, say, `<defs>` content is only reachable by reference), so callers
-    /// can select elements by `class`, `id`, or any other CSS selector, in exactly the same way they would style an
-    /// HTML page.
+    /// The style rules used here apply document-wide, regardless of where in the DOM tree they occur. Unlike
+    /// `<defs>` content, which is only reachable by reference, SVG's CSS cascade is not scoped by DOM position. As a
+    /// result, callers can select elements by `class`, `id`, or any other CSS selector, the same way they would
+    /// style an HTML page.
     ///
     /// `css` is written as the element's text content via [`SvgNode::set_text`](crate::SvgNode::set_text) — plain text,
     /// not markup, so no HTML entity-escaping is needed for `<`/`>`/`&` inside the stylesheet.

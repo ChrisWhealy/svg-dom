@@ -8,18 +8,19 @@ impl SvgFilter {
     /// given [`BlendMode`].
     ///
     /// Unlike [`composite`](Self::composite), which combines two inputs geometrically (Porter-Duff, based on where each
-    /// input is opaque), `blend` combines them photometrically — how their *colours* mix where both are visible, using
-    /// the standard blend-mode maths CSS `mix-blend-mode` also uses. See [`BlendMode`]'s own doc comment for two ways
-    /// this is not quite identical to CSS `mix-blend-mode` itself (a smaller keyword set, and `linearRGB` by default).
+    /// input is opaque), `blend` combines them photometrically. This means how their *colours* mix where both are
+    /// visible, using the standard blend-mode maths CSS `mix-blend-mode` also uses. See [`BlendMode`]'s own doc
+    /// comment for two ways this is not quite identical to CSS `mix-blend-mode` itself (a smaller keyword set, and
+    /// `linearRGB` by default).
     ///
     /// `in2` is written directly.
     ///
     /// ***IMPORTANT*** The value of `in2` is not validated. It is typically another primitive's `result` name, or
     /// one of the SVG keyword inputs (`"SourceGraphic"`/`"SourceAlpha"`).
     ///
-    /// `in` is not set by this method: if this is the filter's first primitive, its implicit input is `SourceGraphic`,
-    /// otherwise use the returned [`SvgNode`]'s [`set_attr`](crate::SvgNode::set_attr) to set `in` explicitly, the same
-    /// as every other primitive here.
+    /// `in` is not set by this method. If this is the filter's first primitive, its implicit input is `SourceGraphic`.
+    /// Otherwise, use the returned [`SvgNode`]'s [`set_attr`](crate::SvgNode::set_attr) to set `in` explicitly, the
+    /// same as every other primitive here.
     ///
     /// # Errors
     ///
@@ -29,10 +30,10 @@ impl SvgFilter {
     ///
     /// [`flood`](Self::flood) paints its colour *opaquely* across the entire filter region — a rectangle, unrelated
     /// to whatever shape or transparency the source graphic actually has. Blending that flood straight against
-    /// `SourceGraphic` (as in the example below) only changes *colour*; it does not touch *alpha*. Per the SVG
-    /// filter specification, `feBlend`'s result alpha is the union of its two inputs' alpha, so wherever the flood
-    /// is opaque — everywhere in the filter region, including the fully transparent corners of a circle's bounding
-    /// box, or the transparent parts of an image — the blended result stays opaque too, and the flood colour shows
+    /// `SourceGraphic` (as in the example below) only changes *colour*. It does not touch *alpha*. Per the SVG
+    /// filter specification, `feBlend`'s result alpha is the union of its two inputs' alpha. The flood is opaque
+    /// everywhere in the filter region, including the fully transparent corners of a circle's bounding box, or the
+    /// transparent parts of an image. So the blended result stays opaque there too, and the flood colour shows
     /// through where the source graphic had nothing at all.
     ///
     /// Composite the blended result back `In` the original `SourceGraphic` afterwards to clip it to the source's
@@ -40,8 +41,9 @@ impl SvgFilter {
     ///
     /// # Example
     ///
-    /// Multiplying a flood colour over the source graphic — a common way to tint an image without flattening its
-    /// own shading to a single colour, the way [`composite`](Self::composite)'s `In` operator alone would:
+    /// Multiplying a flood colour over the source graphic is a common way to tint an image without flattening its
+    /// own shading to a single colour. This differs from what [`composite`](Self::composite)'s `In` operator alone
+    /// would do:
     ///
     /// ```rust,no_run
     /// use svg_dom::{SvgRoot, root::filter::{BlendMode, CompositeOperator}};

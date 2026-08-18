@@ -19,10 +19,10 @@ impl SvgRoot {
     ///   `"my-shape"` is the `id` attribute of the target element. The referenced element is typically defined inside
     ///   `<defs>` and is not rendered directly.
     ///
-    ///   This crate writes `href` unchanged, so SVG 2's other reference forms are also representable: a same-origin
-    ///   external SVG document's fragment (`"icons.svg#my-shape"`), or an entire external SVG document when the URL
-    ///   has no fragment. Cross-origin external `<use>` references are prohibited by SVG 2, and browsers may impose
-    ///   further restrictions on external resource loading.
+    ///   This crate writes `href` unchanged, so SVG 2's other reference forms are also representable. These include
+    ///   a same-origin external SVG document's fragment (`"icons.svg#my-shape"`), or an entire external SVG document
+    ///   when the URL has no fragment. Cross-origin external `<use>` references are prohibited by SVG 2, and
+    ///   browsers may impose further restrictions on external resource loading.
     /// * `at` — position in the parent coordinate system, written as `x`/`y` attributes on the `<use>` element.
     ///   These apply an additional translation on top of any coordinate already implied by the `transform` attribute.
     ///   Pass [`Point::origin`](Point::origin) when you intend to control positioning entirely via `transform`.
@@ -31,11 +31,11 @@ impl SvgRoot {
     /// or any other copy.  However, what those attributes actually *do* depends on their kind:
     ///
     /// - `transform` is a geometric attribute not an inherited one.
-    ///   `opacity` is applied once to the whole generated instance like a group opacity
+    ///   `opacity` is applied once to the whole generated instance like a group opacity.
     ///   Both of these attributes always take effect independently per copy.
     /// - Presentation properties such as `fill` and `stroke` only provide an *inherited* value to the referenced
     ///   content. They do **not** override an explicit `fill` or `stroke` already set on the referenced element or one
-    ///   of its descendants
+    ///   of its descendants.
     /// - A `<use>` on a `<symbol>` that hard-codes its own colours will not be recoloured by `set_fill` on the `<use>`
     ///   instance.
     ///  

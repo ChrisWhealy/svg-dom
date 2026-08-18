@@ -37,10 +37,10 @@ impl SvgRoot {
     /// Use this constructor when the `<svg>` placeholder already exists in the HTML and its size has been set using the
     /// `width` and `height` attributes.
     ///
-    /// The element is first looked up by `id`.  If found, this `id` must really belong to an `<svg>` element!
+    /// The element is first located by `id`. If found, this `id` must really belong to an `<svg>` element!
     ///
     /// Only the `width` and `height` attributes are read to seed the cached viewport (see [`width`](Self::width) and
-    /// [`height`](Self::height)); the rendered size is **not** measured.
+    /// [`height`](Self::height)). The rendered size is **not** measured.
     ///
     /// If the units are omitted (e.g. `width="800"`) or explicitly stated in pixels (`width="800px"`), then both are
     /// parsed correctly. Other relative units (such as `%`, `em`, `cm`, etc) and elements sized purely with CSS (for
@@ -84,7 +84,7 @@ impl SvgRoot {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates a new `<svg>` element, sizes it, and appends it to an existing HTML element.
     ///
-    /// Use this constructor when the the element needs to be created programmatically, or when the SVG dimensions can
+    /// Use this constructor when the element needs to be created programmatically, or when the SVG dimensions can
     /// only be known at runtime (e.g. derived from data).
     ///
     /// # Arguments
@@ -196,7 +196,7 @@ impl SvgRoot {
         // that has been altered.
         let old = self.viewport.get();
 
-        // Bail out early?
+        // Exit early?
         if old == size {
             return Ok(());
         }
@@ -222,22 +222,22 @@ impl SvgRoot {
     /// `width`/`height` ([`set_viewport`](Self::set_viewport), or the `size` passed to [`create_in`](Self::create_in))
     /// defines the `<svg>` element's size within the surrounding page.
     ///
-    /// `viewBox` however is independent of that: it maps the rendered area onto an internal `(x, y, width, height)`
+    /// `viewBox` however is independent of that. It maps the rendered area onto an internal `(x, y, width, height)`
     /// coordinate region, so everything drawn inside the `<svg>` is scaled (via `x`/`y` and offset) to fit. This is the
     /// standard way to give a diagram a fixed, resolution-independent drawing surface that still renders at whatever
     /// pixel size is used in the viewport.
     ///
-    /// Unlike `width`/`height`, `viewBox` is not cached by this crate; there is no `view_box()` getter to pair with it.
+    /// Unlike `width`/`height`, `viewBox` is not cached by this crate. There is no `view_box()` getter to pair with it.
     /// The factory methods on `SvgRoot` (such as `rect`, `circle`, etc.) place elements using the coordinates you pass
-    /// them directly, so nothing here needs to read `viewBox` back in order to stay consistent: it only affects how the
-    /// browser maps those coordinates onto the page, not what value to pass them in the first place.
+    /// them directly. Nothing here needs to consult `viewBox` to stay consistent. It only affects how the browser maps
+    /// those coordinates onto the page, not what value you pass them in the first place.
     ///
     /// # Errors
     ///
     /// Returns [`Error::InvalidViewBox`] if any component is not finite (`NaN`/`±infinity`), or if either of `width` or
     /// `height` are negative.
     ///
-    /// A `width`/`height` of exactly `0.0` is accepted; as per the SVG spec, it is a trick to disable rendering.
+    /// A `width`/`height` of exactly `0.0` is accepted. As per the SVG spec, it is a trick to disable rendering.
     ///
     /// # Example
     ///

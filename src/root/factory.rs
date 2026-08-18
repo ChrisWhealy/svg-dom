@@ -10,9 +10,9 @@ use web_sys::{Document, SvgElement};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// This trait is shared by both [`SvgRoot`](crate::SvgRoot) and [`SvgBatch`](crate::SvgBatch).
 ///
-/// Although `SvgRoot` appends directly to a live `<svg>` node and `SvgBatch` appends to a `DocumentFragment` (that is
-/// only added to the DOM only after it has been successfully created), the element creation and initial attribute
-/// writing are identical.
+/// `SvgRoot` appends directly to a live `<svg>` node. `SvgBatch` appends to a `DocumentFragment`, which is added to
+/// the DOM only after it has been successfully created. Despite this difference, element creation and initial
+/// attribute writing are identical for both.
 pub(crate) trait SvgFactory {
     fn document(&self) -> &Document;
     fn attrs(&self) -> &RefCell<SvgAttrs>;

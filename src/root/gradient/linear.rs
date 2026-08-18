@@ -14,8 +14,8 @@ use super::*;
 /// horizontal left-to-right gradient. This is the most common case, so for that, you only need to add stops.
 ///
 /// These stop percentages only coincide with the bare numbers `0`/`1` once resolved under the default
-/// `gradientUnits="objectBoundingBox"`; under `userSpaceOnUse`, a percentage resolves against the viewport instead,
-/// so writing an explicit `0`/`1` in that mode means "0/1 user units", not "0%/100% of the viewport".
+/// `gradientUnits="objectBoundingBox"`. Under `userSpaceOnUse`, a percentage resolves against the viewport instead.
+/// So writing an explicit `0`/`1` in that mode means "0/1 user units", not "0%/100% of the viewport".
 ///
 /// Apply the gradient to any shape with
 /// [`SvgNode::set_fill_linear_gradient`](crate::SvgNode::set_fill_linear_gradient) (fill) or
@@ -64,8 +64,8 @@ impl SvgLinearGradient {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Returns the cached `url(#id)` reference, ready to write directly to a `fill`/`stroke` attribute.
     ///
-    /// Visibility need only be `pub(crate)` since [`set_fill_linear_gradient`](crate::SvgNode::set_fill_linear_gradient)
-    /// and its stroke sibling are the only functions that need it; external callers use [`id`](Self::id) instead.
+    /// Visibility is `pub(crate)` because [`set_fill_linear_gradient`](crate::SvgNode::set_fill_linear_gradient)
+    /// and its stroke sibling are the only functions that need it. External callers use [`id`](Self::id) instead.
     pub(crate) fn url_ref(&self) -> &str {
         self.0.url_ref()
     }
@@ -91,8 +91,8 @@ impl SvgLinearGradient {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Returns a reference to the underlying `web-sys` `SvgElement`.
     ///
-    /// Avoid writing the `id` attribute through this handle; use [`set_id`](Self::set_id) instead so the cached value
-    /// stays in sync.
+    /// Avoid writing the `id` attribute through this handle. Use [`set_id`](Self::set_id) instead, so the cached
+    /// value stays in sync.
     pub fn as_element(&self) -> &SvgElement {
         self.0.as_element()
     }
@@ -103,8 +103,8 @@ impl SvgLinearGradient {
     /// `offset` is a fraction in the range `[0.0, 1.0]` giving the position along the gradient axis.
     /// `color` is any valid SVG/CSS colour value (`"red"`, `"#ff0000"`, `"rgb(255,0,0)"`, etc.).
     ///
-    /// Stops are rendered in document order; therefore, for more predictable results, they should be added in ascending
-    /// offset order.
+    /// Stops are rendered in document order. Therefore, for more predictable results, add them in ascending offset
+    /// order.
     ///
     /// # Errors
     ///
@@ -203,9 +203,9 @@ impl SvgLinearGradient {
     /// This is a generic escape hatch for attributes not covered by a named setter.
     ///
     /// ***WARNING***
-    /// Name and value are written verbatim; so do not pass any untrusted input.
+    /// Name and value are written verbatim. So do not pass any untrusted input.
     ///
-    /// Passing `"id"` (case-insensitively) returns [`Error::ReservedAttribute`]; use [`set_id`](Self::set_id) instead.
+    /// Passing `"id"` (case-insensitively) returns [`Error::ReservedAttribute`]. Use [`set_id`](Self::set_id) instead.
     pub fn set_attr(&self, name: &str, value: &str) -> Result<(), Error> {
         self.0.set_attr(name, value)
     }
@@ -228,7 +228,7 @@ impl SvgLinearGradient {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Formats `value` through the element's internal scratch buffer and writes it as `name`.
     ///
-    /// Passing `"id"` (case-insensitively) returns [`Error::ReservedAttribute`]; use [`set_id`](Self::set_id) instead.
+    /// Passing `"id"` (case-insensitively) returns [`Error::ReservedAttribute`]. Use [`set_id`](Self::set_id) instead.
     pub fn set_attr_display<T: std::fmt::Display>(&self, name: &str, value: T) -> Result<(), Error> {
         self.0.set_attr_display(name, value)
     }

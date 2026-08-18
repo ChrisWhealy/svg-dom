@@ -29,7 +29,7 @@ pub enum PatternUnits {
     /// For `patternContentUnits` (SVG default): shapes inside the tile use that same coordinate space.
     UserSpaceOnUse,
     /// For `patternUnits` (SVG default): the tile's `x`, `y`, `width`, and `height` are fractions of the referencing
-    /// element's bounding box — `(0, 0)` maps to the top-left corner and `(1, 1)` maps to the bottom-right corner.
+    /// element's bounding box. `(0, 0)` maps to the top-left corner, and `(1, 1)` maps to the bottom-right corner.
     /// For `patternContentUnits`: shapes inside the tile use that same fractional coordinate space.
     ObjectBoundingBox,
 }
@@ -47,8 +47,8 @@ impl PatternUnits {
 /// A `<pattern>` element that defines a tiled fill or stroke paint server.
 ///
 /// `<pattern>` tiles its content across any element that references it via `fill="url(#id)"` or `stroke="url(#id)"`.
-/// Like [`SvgClipPath`](crate::SvgClipPath), it acts as a shape container; unlike gradients, each tile is a full
-/// rendered graphic rather than a colour interpolation.
+/// Like [`SvgClipPath`](crate::SvgClipPath), it acts as a shape container.
+/// Unlike gradients, each tile is a full rendered graphic rather than a colour interpolation.
 ///
 /// Obtain one from [`SvgDefs::pattern`](crate::SvgDefs::pattern) or
 /// [`SvgDefs::build_pattern`](crate::SvgDefs::build_pattern), and apply it to any element with
@@ -136,8 +136,8 @@ impl SvgPattern {
     ///
     /// The returned value is sliced out of the cached `url(#id)` reference (see `url_ref`) built at construction time
     /// and kept in sync by [`set_id`](Self::set_id). The slice is exact because pattern ids are restricted at
-    /// validation time to always match the pattern `[A-Za-z_][A-Za-z0-9_-]*`, which is pure ASCII, so byte offsets from
-    /// `URL_PREFIX`'s length and the string's end always land on the bare id exactly.
+    /// validation time to always match the pattern `[A-Za-z_][A-Za-z0-9_-]*`. That pattern is pure ASCII, so byte
+    /// offsets from `URL_PREFIX`'s length and the string's end always land on the bare id exactly.
     ///
     /// [`set_attr`](Self::set_attr) and [`set_attr_display`](Self::set_attr_display) reject `"id"` so they cannot
     /// desynchronise the cache through the normal API.
@@ -151,7 +151,8 @@ impl SvgPattern {
     /// Returns the cached `url(#id)` reference, ready to write directly to a `fill`/`stroke` attribute.
     ///
     /// Visibility need only be `pub(crate)` since `set_fill_pattern_ref` and `set_stroke_pattern_ref` are the only
-    /// functions that need it; external callers use [`id`](Self::id) instead.
+    /// functions that need it.
+    /// External callers use [`id`](Self::id) instead.
     pub(crate) fn url_ref(&self) -> &str {
         &self.url_ref
     }
@@ -186,8 +187,8 @@ impl SvgPattern {
     /// Returns a reference to the underlying `web-sys` `SvgElement`.
     ///
     /// This provides a direct escape hatch to the DOM.
-    /// Avoid writing the `id` attribute through this handle; use [`set_id`](Self::set_id) instead so the cached value
-    /// stays in sync.
+    /// Avoid writing the `id` attribute through this handle.
+    /// Use [`set_id`](Self::set_id) instead so the cached value stays in sync.
     pub fn as_element(&self) -> &SvgElement {
         &self.element
     }
@@ -257,8 +258,9 @@ impl SvgPattern {
     /// The four values are formatted as `"x y width height"`.
     /// When `viewBox` is present, the pattern's content is scaled to fit the tile dimensions.
     ///
-    /// ***Note*** — once a `viewBox` is set, it establishes the tile content's coordinate system on its own; as per the
-    /// SVG 2 specification, any [`set_pattern_content_units`](Self::set_pattern_content_units) value is then ignored.
+    /// ***Note*** — once a `viewBox` is set, it establishes the tile content's coordinate system on its own.
+    /// As per the SVG 2 specification, any [`set_pattern_content_units`](Self::set_pattern_content_units) value is
+    /// then ignored.
     ///
     /// [`set_pattern_units`](Self::set_pattern_units) is unaffected and still controls the tile's own `x`, `y`, `width`,
     /// and `height`.
@@ -266,8 +268,8 @@ impl SvgPattern {
     /// # Errors
     ///
     /// Returns [`Error::InvalidViewBox`] if any component is not finite (`NaN`/`±infinity`), or if `w`/`h` is
-    /// negative. A `w`/`h` of exactly `0.0` is accepted; per the SVG spec it disables rendering rather than being an
-    /// error.
+    /// negative. A `w`/`h` of exactly `0.0` is accepted.
+    /// Per the SVG spec, it disables rendering rather than being an error.
     pub fn set_view_box(&self, x: f64, y: f64, w: f64, h: f64) -> Result<(), Error> {
         super::utils::validate_view_box(x, y, w, h)?;
         self.attrs
@@ -279,7 +281,8 @@ impl SvgPattern {
     /// Sets any attribute on the `<pattern>` element by name and string value.
     ///
     /// This is the generic escape hatch for attributes not covered by the named setters above (e.g. `class`, `style`).
-    /// Name and value are written verbatim; do not pass untrusted input.
+    /// Name and value are written verbatim.
+    /// Do not pass untrusted input.
     ///
     /// # Reserved attributes
     ///
@@ -296,7 +299,8 @@ impl SvgPattern {
     /// Sets several attributes in one call.
     ///
     /// Equivalent to calling [`set_attr`](Self::set_attr) for each pair.
-    /// Returns the first error encountered; attributes written before the error are left in place.
+    /// Returns the first error encountered.
+    /// Attributes written before the error are left in place.
     pub fn set_attrs<I, K, V>(&self, attrs: I) -> Result<(), Error>
     where
         I: IntoIterator<Item = (K, V)>,
@@ -313,8 +317,8 @@ impl SvgPattern {
     /// Formats `value` through the element's internal scratch buffer and writes it as `name`.
     ///
     /// Uses the same `SvgAttrs` scratch buffer that the shape factories use internally, so no extra allocation is made.
-    /// Passing `"id"` (matched case-insensitively) returns [`Error::ReservedAttribute`];
-    /// use [`set_id`](Self::set_id) instead.
+    /// Passing `"id"` (matched case-insensitively) returns [`Error::ReservedAttribute`].
+    /// Use [`set_id`](Self::set_id) instead.
     pub fn set_attr_display<T: Display>(&self, name: &str, value: T) -> Result<(), Error> {
         if name.eq_ignore_ascii_case("id") {
             return Err(Error::ReservedAttribute("id"));

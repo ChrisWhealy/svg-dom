@@ -15,10 +15,10 @@ use super::svg_root::SvgRoot;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// The fixed prefix of a `url(#...)` reference.
 ///
-/// This value is used by every type below that caches a complete reference string (`SvgMarker`, `SvgClipPath`,
-/// `SvgMask`, `SvgPattern`, `SvgFilter`, `GradientInner`) rather than just its bare id, so the `url(#id)` value can be
-/// written to a `fill`/`stroke`/`clip-path`/`mask`/`marker-*`/`filter` attribute without allocating a fresh `String`
-/// on every reference.
+/// Every type below that caches a complete reference string uses this value, rather than just its bare id
+/// (`SvgMarker`, `SvgClipPath`, `SvgMask`, `SvgPattern`, `SvgFilter`, `GradientInner`).
+/// This lets the `url(#id)` value be written to a `fill`/`stroke`/`clip-path`/`mask`/`marker-*`/`filter` attribute
+/// without allocating a fresh `String` on every reference.
 pub(crate) const URL_PREFIX: &str = "url(#";
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -116,9 +116,9 @@ pub(crate) fn validate_symbol_id(id: &str) -> Result<(), Error> {
 ///
 /// Applies the same allow-list as [`validate_marker_id`]: the id must match `[A-Za-z_][A-Za-z0-9_-]*`. This is
 /// narrower than SVG/XML's own id grammar — it is a restriction this crate chooses, not a claim about what SVG
-/// itself permits. Unlike most of the other id-validated elements in this crate, a `<view>` is never wrapped in a
-/// `url(#id)` form — it is only ever referenced as a plain `#id` fragment, the same way [`validate_symbol_id`]
-/// already is.
+/// itself permits.
+/// Unlike most of the other id-validated elements in this crate, a `<view>` is never wrapped in a `url(#id)` form.
+/// It is only ever referenced as a plain `#id` fragment, the same way [`validate_symbol_id`] already is.
 pub(crate) fn validate_view_id(id: &str) -> Result<(), Error> {
     if is_valid_svg_id(id) {
         Ok(())
@@ -142,7 +142,8 @@ pub(crate) fn validate_pattern_id(id: &str) -> Result<(), Error> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// A `<defs>` element that holds reusable SVG assets such as markers and gradients.
 ///
-/// Elements created inside `<defs>` are not rendered directly; they are referenced by other elements via an `id`.
+/// Elements created inside `<defs>` are not rendered directly.
+/// Other elements reference them via an `id`.
 /// All the usual shape factory methods are available for building inner content of markers, but the primary purpose of
 /// `SvgDefs` is to serve as the container for named paint servers:
 ///
@@ -161,7 +162,8 @@ pub(crate) fn validate_pattern_id(id: &str) -> Result<(), Error> {
 /// Obtain one from [`SvgRoot::defs`].
 ///
 /// Each asset type's `SvgDefs` constructor methods live alongside that type's own definition (e.g. `marker` or
-/// `build_marker` are defined in `root::marker`, not here) rather than in this file, to prevent excessive file growth.
+/// `build_marker` are defined in `root::marker`, not here).
+/// This avoids excessive growth in this file.
 ///
 /// # Example
 ///
@@ -212,7 +214,8 @@ impl SvgDefs {
     /// Sets any attribute on the `<defs>` element by name and string value.
     ///
     /// This is the generic escape hatch for attributes not covered by a named setter (e.g. `class`, `style`).
-    /// Name and value are written verbatim; do not pass untrusted input.
+    /// Name and value are written verbatim.
+    /// Do not pass untrusted input.
     pub fn set_attr(&self, name: &str, value: &str) -> Result<(), Error> {
         self.element.set_attribute(name, value).map_err(dom_err)
     }
@@ -221,7 +224,8 @@ impl SvgDefs {
     /// Sets several attributes in one call.
     ///
     /// Equivalent to calling [`set_attr`](Self::set_attr) for each pair.
-    /// Returns the first error encountered; attributes written before the error are left in place.
+    /// Returns the first error encountered.
+    /// Attributes written before the error are left in place.
     pub fn set_attrs<I, K, V>(&self, attrs: I) -> Result<(), Error>
     where
         I: IntoIterator<Item = (K, V)>,
@@ -318,9 +322,11 @@ impl SvgDefs {
     /// Creates a `<metadata>` child inside `<defs>`.  Whilst this is syntactically valid, it is not the conventional
     /// placement for `<metadata>`.  That said, its meaning is unaffected by where this element sits in the tree.
     ///
-    /// Document-level metadata is more commonly placed directly beneath the root `<svg>` (as in SVG 2's own metadata
-    /// example) than inside `<defs>`, which the spec describes primarily as a container for objects defined for later
-    /// reference; use [`SvgRoot::metadata`](crate::SvgRoot::metadata) for that placement.
+    /// Document-level metadata is more commonly placed directly beneath the root `<svg>`, as in SVG 2's own metadata
+    /// example.
+    /// The spec describes `<defs>` primarily as a container for objects defined for later reference, not for
+    /// metadata.
+    /// Use [`SvgRoot::metadata`](crate::SvgRoot::metadata) for that placement.
     ///
     /// See [`SvgRoot::metadata`](crate::SvgRoot::metadata) for full documentation.
     pub fn metadata(&self, content: &str) -> Result<SvgNode, Error> {
@@ -354,9 +360,9 @@ impl SvgRoot {
     /// Use this when you need to extend `<defs>` dynamically — for example, adding markers in response to user
     /// actions after the initial build.
     ///
-    /// Prefer [`build_defs`](Self::build_defs) when all the contents are known upfront: that variant holds the
-    /// `<defs>` element detached until the closure succeeds, so a mid-build error leaves no partial element in the
-    /// live tree.
+    /// Prefer [`build_defs`](Self::build_defs) when all the contents are known upfront.
+    /// That variant holds the `<defs>` element detached until the closure succeeds.
+    /// A mid-build error therefore leaves no partial element in the live tree.
     /// With this method, if a subsequent call fails after `defs()` returns, the empty `<defs>` remains in the DOM.
     ///
     /// # Errors

@@ -35,7 +35,7 @@ mod region;
 /// A `<filter>` element that applies raster effects (blur, colour manipulation, compositing, ...) to any element that
 /// references it.
 ///
-/// A `<filter>` is a container of one or more filter-primitive elements (`<feGaussianBlur>`, `<feOffset>`, etc.); the
+/// A `<filter>` is a container of one or more filter-primitive elements (`<feGaussianBlur>`, `<feOffset>`, etc.). The
 /// browser evaluates them in document order and paints the final result in place of the referencing element.
 ///
 /// Obtain one from [`SvgDefs::filter`](crate::SvgDefs::filter) or
@@ -69,10 +69,10 @@ mod region;
 /// - [`diffuse_lighting`](Self::diffuse_lighting) (`<feDiffuseLighting>`)
 /// - [`specular_lighting`](Self::specular_lighting) (`<feSpecularLighting>`)
 ///
-/// The first five, taken together, can be used to build a *true* tinted, opacity-controlled drop shadow (blur the
-/// source alpha, offset the blurred mask, flood a colour, composite it into that offset mask, then merge
-/// underneath the original graphic; see [`composite`](Self::composite)'s example) rather than just a blurred copy
-/// of the source graphic's own colour.
+/// The first five, taken together, can build a *true* tinted, opacity-controlled drop shadow rather than just a
+/// blurred copy of the source graphic's own colour. Blur the source alpha, offset the blurred mask, flood a
+/// colour, composite it into that offset mask, then merge underneath the original graphic. See
+/// [`composite`](Self::composite)'s example.
 ///
 /// [`drop_shadow`](Self::drop_shadow) achieves the same effect using a single primitive, since the SVG specification
 /// defines it as a browser-native shorthand for exactly that chain.
@@ -80,54 +80,54 @@ mod region;
 /// [`color_matrix`](Self::color_matrix) is independent of the shadow primitives — greyscale, saturation, hue rotation,
 /// or an arbitrary linear colour transform via [`ColorMatrixType`].
 ///
-/// [`blend`](Self::blend) is also independent of the shadow primitives: unlike [`composite`](Self::composite)'s
+/// [`blend`](Self::blend) is also independent of the shadow primitives. Unlike [`composite`](Self::composite)'s
 /// geometric (Porter-Duff) combination, it mixes two inputs' *colours* using a [`BlendMode`] — the standard
-/// `<blend-mode>` keywords CSS `mix-blend-mode` also uses (see [`BlendMode`]'s own doc comment for two ways this
-/// is not quite the same thing as CSS `mix-blend-mode` itself).
+/// `<blend-mode>` keywords CSS `mix-blend-mode` also uses. See [`BlendMode`]'s own doc comment for two ways this
+/// is not quite the same thing as CSS `mix-blend-mode` itself.
 ///
-/// [`component_transfer`](Self::component_transfer) is likewise independent of the shadow primitives: a per-channel
-/// remap ([`TransferFunction`]) applied to red/green/blue/alpha individually, the standard way to do gamma correction,
-/// contrast/levels adjustment, posterisation ([`TransferFunction::Discrete`]), or an alpha fade/clip, none of which
-/// [`color_matrix`](Self::color_matrix)'s whole-pixel linear transform can express.
+/// [`component_transfer`](Self::component_transfer) is likewise independent of the shadow primitives. It applies a
+/// per-channel remap ([`TransferFunction`]) to red, green, blue, and alpha individually. This is the standard way to
+/// gamma-correct, adjust contrast or levels, posterise ([`TransferFunction::Discrete`]), or fade/clip alpha — none
+/// of which [`color_matrix`](Self::color_matrix)'s whole-pixel linear transform can express.
 ///
 /// [`turbulence`](Self::turbulence)/[`turbulence_xy`](Self::turbulence_xy) generate Perlin noise from nothing — a
-/// primitive that does not read from the `in` parameter — and [`displacement_map`](Self::displacement_map) uses another
+/// primitive that does not read from the `in` parameter. [`displacement_map`](Self::displacement_map) uses another
 /// input's channel values (typically that noise) to warp a second input pixel-by-pixel. Paired together they are the
-/// standard route to hand-drawn/organic textures; see [`displacement_map`](Self::displacement_map)'s own doc comment for a
-/// worked example.
+/// standard route to hand-drawn/organic textures. See [`displacement_map`](Self::displacement_map)'s own doc comment
+/// for a worked example.
 ///
 /// [`morphology`](Self::morphology)/[`morphology_xy`](Self::morphology_xy) take a component-wise minimum or maximum
-/// (via a [`MorphologyOperator`]) over a fixed radius, across the input's premultiplied R/G/B/A channels — against
-/// `SourceAlpha`, the common case, this thickens or thins an outline; independent of every other primitive above.
+/// (via a [`MorphologyOperator`]) over a fixed radius, across the input's premultiplied R/G/B/A channels. Against
+/// `SourceAlpha`, the common case, this thickens or thins an outline. Independent of every other primitive above.
 ///
-/// Alongside [`turbulence`](Self::turbulence) and [`turbulence_xy`](Self::turbulence_xy), [`image`](Self::image) is the
+/// Alongside [`turbulence`](Self::turbulence) and [`turbulence_xy`](Self::turbulence_xy), [`image`](Self::image) is
 /// a generator that does not read from an upstream primitive: its content comes from resolving an `href` link.
 ///
 /// A plain [`SvgRoot::image`](crate::SvgRoot::image) element, filtered on its own, already becomes that filter's
-/// `SourceGraphic` and can be colour-transformed or blended just like any other filtered element —
-/// [`image`](Self::image) is not needed for that. Its value is supplying a *second*, independent source, unrelated to
-/// whatever element the filter is applied to, that can be combined with the filtered element's own `SourceGraphic` or
-/// `SourceAlpha` within the same filter graph, without a second layered display element.
+/// `SourceGraphic` and can be colour-transformed or blended just like any other filtered element.
+/// [`image`](Self::image) is not needed for that. Its value is supplying a *second*, independent source, unrelated
+/// to whatever element the filter is applied to. This source can be combined with the filtered element's own
+/// `SourceGraphic` or `SourceAlpha` within the same filter graph, without a second layered display element.
 ///
-/// [`tile`](Self::tile) repeats its input's own primitive subregion across this primitive's subregion (behaving as the
-/// filter-graph counterpart to [`SvgDefs::pattern`](crate::SvgDefs::pattern)), which repeats a paint server instead of
-/// a filter-generated tile; see [`tile`](Self::tile)'s own doc comment for the narrowed-subregion step this needs to
-/// have any visible effect.
+/// [`tile`](Self::tile) repeats its input's own primitive subregion across this primitive's subregion, behaving as
+/// the filter-graph counterpart to [`SvgDefs::pattern`](crate::SvgDefs::pattern), which repeats a paint server
+/// instead of a filter-generated tile. See [`tile`](Self::tile)'s own doc comment for the narrowed-subregion step
+/// this needs to have any visible effect.
 ///
 /// [`convolve_matrix`](Self::convolve_matrix)/[`convolve_matrix_xy`](Self::convolve_matrix_xy) apply an arbitrary
 /// matrix convolution — the general-purpose image-processing operation behind sharpening, blurring, embossing, and
-/// edge-detection kernels — independent of every other primitive above; see its own doc comment for worked examples
-/// of each.
+/// edge-detection kernels. This is independent of every other primitive above. See its own doc comment for worked
+/// examples of each.
 ///
 /// [`diffuse_lighting`](Self::diffuse_lighting)/[`specular_lighting`](Self::specular_lighting) treat their input's
-/// alpha channel as a bump map and light it using a [`LightSource`] — [`diffuse_lighting`](Self::diffuse_lighting)
-/// produces a fully opaque, matte-lit surface, [`specular_lighting`](Self::specular_lighting) a highlight-only
-/// image (transparent wherever the highlight is absent) meant to be added back on top of the original graphic.
-/// Independent of every other primitive above; see either method's own doc comment for the classic bevel/emboss
-/// recipe that composites the two together.
+/// alpha channel as a bump map and light it using a [`LightSource`]. [`diffuse_lighting`](Self::diffuse_lighting)
+/// produces a fully opaque, matte-lit surface. [`specular_lighting`](Self::specular_lighting) produces a
+/// highlight-only image (transparent wherever the highlight is absent), meant to be added back on top of the
+/// original graphic. Independent of every other primitive above. See either method's own doc comment for the
+/// classic bevel/emboss recipe that composites the two together.
 ///
-/// The SVG filter specification defines seventeen effect primitives in total, each with its own attribute grammar;
-/// every one of them is now implemented above.
+/// The SVG filter specification defines seventeen effect primitives in total, each with its own attribute grammar.
+/// Every one of them is now implemented above.
 ///
 /// The filter region ([`set_x`](Self::set_x), [`set_y`](Self::set_y), [`set_width`](Self::set_width),
 /// [`set_height`](Self::set_height)) and coordinate-space ([`set_filter_units`](Self::set_filter_units),
@@ -154,8 +154,8 @@ mod region;
 pub struct SvgFilter {
     /// The complete `url(#id)` reference, built once at construction and kept in sync by [`set_id`](Self::set_id).
     /// Caching the full reference (rather than the bare id) means that
-    /// [`SvgNode::set_filter_ref`](crate::SvgNode::set_filter_ref) can write it straight to the `filter` attribute with
-    /// no per-call formatting allocation, however many elements the same filter is applied to.
+    /// [`SvgNode::set_filter_ref`](crate::SvgNode::set_filter_ref) can write it straight to the `filter` attribute
+    /// with no per-call formatting allocation. This holds however many elements the same filter is applied to.
     ///
     /// [`id`](Self::id) slices the bare id back out of this string rather than storing it separately.
     url_ref: String,
@@ -189,8 +189,8 @@ impl SvgFilter {
     ///
     /// The returned value is sliced out of the cached `url(#id)` reference (see `url_ref`) built at construction time
     /// and kept in sync by [`set_id`](Self::set_id). The slice is exact because filter ids are restricted at validation
-    /// time to match the pattern `[A-Za-z_][A-Za-z0-9_-]*`, which is pure ASCII, so byte offsets from `URL_PREFIX`'s
-    /// length and the string's end always land on the bare id exactly.
+    /// time to match the pattern `[A-Za-z_][A-Za-z0-9_-]*`, which is pure ASCII. Byte offsets from `URL_PREFIX`'s
+    /// length and the string's end therefore always land on the bare id exactly.
     ///
     /// [`set_attr`](Self::set_attr) and [`set_attr_display`](Self::set_attr_display) reject `"id"` so they cannot
     /// desynchronise the cache through the normal API.
@@ -207,7 +207,7 @@ impl SvgFilter {
     /// Returns the cached `url(#id)` reference, ready to write directly to a `filter` attribute.
     ///
     /// Visibility need only be `pub(crate)` since [`SvgNode::set_filter_ref`](crate::SvgNode::set_filter_ref) is the
-    /// only caller that needs it; external callers use [`id`](Self::id) instead.
+    /// only caller that needs it. External callers use [`id`](Self::id) instead.
     pub(crate) fn url_ref(&self) -> &str {
         &self.url_ref
     }
@@ -218,8 +218,9 @@ impl SvgFilter {
     /// This method takes `&mut self` because it mutates Rust-owned state (the cached reference string), unlike the
     /// other attribute setters that only write to the DOM.
     ///
-    /// The new `id` is subject to the same validation rules as the id supplied at construction time: it must match the
-    /// pattern `[A-Za-z_][A-Za-z0-9_-]*` — a letter or underscore followed by letters, digits, underscores, or hyphens.
+    /// The new `id` is subject to the same validation rules as the id supplied at construction time. It must match
+    /// the pattern `[A-Za-z_][A-Za-z0-9_-]*` — a letter or underscore followed by letters, digits, underscores, or
+    /// hyphens.
     ///
     /// ⚠️ Caveat ⚠️
     ///
@@ -247,8 +248,8 @@ impl SvgFilter {
     ///
     /// This provides a direct escape hatch to the DOM.
     ///
-    /// Avoid writing the `id` attribute through this handle; use [`set_id`](Self::set_id) instead so the cached value
-    /// stays in sync.
+    /// Avoid writing the `id` attribute through this handle. Use [`set_id`](Self::set_id) instead so the cached
+    /// value stays in sync.
     pub fn as_element(&self) -> &SvgElement {
         &self.element
     }
@@ -269,7 +270,7 @@ impl super::defs::SvgDefs {
     /// `<filter>` element detached until the closure succeeds, so a mid-build error leaves no partial element in
     /// `<defs>`.
     /// With this method, if a primitive or attribute setter fails after `filter()` returns, the partial `<filter>`
-    /// remains in `<defs>` (though an incomplete filter is harmless — it applies no effect unless referenced).
+    /// remains in `<defs>`. An incomplete filter is harmless, though — it applies no effect unless referenced.
     ///
     /// # Errors
     ///

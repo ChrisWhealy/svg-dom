@@ -9,7 +9,7 @@ impl SvgRoot {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates a `<line>` element between two points, appends it to the root, and returns its [`SvgNode`] handle.
     ///
-    /// A line has no fill; give it a `stroke` to make it visible.
+    /// A line has no fill. Give it a `stroke` to make it visible.
     ///
     /// # Arguments
     ///

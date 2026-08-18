@@ -19,7 +19,7 @@ use web_sys::{Document, DocumentFragment, Node};
 /// together using [`SvgRoot::batch`].
 ///
 /// If however, you wish to build into some other existing element (such as a `<g>`), then batch the child elements
-/// together use [`SvgRoot::batch_into`].
+/// together using [`SvgRoot::batch_into`].
 ///
 /// Irrespective of how the batch is created, you then call the same element factory methods as would normally be called
 /// on [`SvgRoot`], then call [`commit`](Self::commit).

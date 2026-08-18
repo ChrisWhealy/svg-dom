@@ -12,7 +12,7 @@ impl SvgRoot {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates an `<image>` element, appends it to the root, and returns its [`SvgNode`] handle.
     ///
-    /// `<image>` embeds a raster image (PNG, JPEG, WebP, etc...) or another SVG into the current SVG document.
+    /// `<image>` embeds a raster image (PNG, JPEG, WebP, etc.) or another SVG into the current SVG document.
     /// The image is fetched from `href` and rendered inside the rectangle defined by `top_left` and `size`.
     ///
     /// # Arguments
@@ -25,8 +25,8 @@ impl SvgRoot {
     /// * `top_left` — position of the top-left corner of the image rectangle, in user units.
     /// * `size` — width and height of the image rectangle, in user units.
     ///
-    ///   This factory takes a [`Size`] and therefore always writes both `width` and `height`; a zero value for either
-    ///   dimension prevents rendering; however, this is a constraint only of this convenience constructor, and not one
+    ///   This factory takes a [`Size`] and therefore always writes both `width` and `height`. A zero value for either
+    ///   dimension prevents rendering. However, this is a constraint only of this convenience constructor, not one
     ///   imposed by SVG 2 itself.
     ///
     ///   SVG 2 permits `width`/`height` to be omitted (`auto`) and will then derive these dimensions from the

@@ -1,11 +1,11 @@
 use crate::{SvgNode, SvgRoot, error::Error};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// Forwards SvgNode's `<title>`/`<desc>` accessibility helpers onto SvgRoot, since the root `<svg>` (being the natural
-// place to give a whole document/diagram its accessible name) is a separate wrapper type, not an SvgNode.
+// Forwards SvgNode's `<title>`/`<desc>` accessibility helpers onto SvgRoot. The root `<svg>` is a separate wrapper
+// type, not an SvgNode, even though it is the natural place to give a whole document or diagram its accessible name.
 //
-// Naming the root is one of the principal accessibility use cases for these helpers, not an edge case, so it belongs
-// here rather than being left as something only reachable via `SvgNode::new` internals the caller cannot construct.
+// Naming the root is one of the principal accessibility use cases for these helpers, not an edge case. It therefore
+// belongs here, rather than being left reachable only via `SvgNode::new` internals the caller cannot construct.
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 impl SvgRoot {
     /// # `<title>` child element on the root `<svg>`

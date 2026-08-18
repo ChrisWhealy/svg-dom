@@ -4,7 +4,7 @@ use std::fmt::Write;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Which of the two candidate elliptical arcs to draw between the start and end points (the SVG `large-arc-flag`).
 ///
-/// An elliptical arc between two points with a given radius has exactly two geometric solutions; `ArcSize` picks
+/// An elliptical arc between two points with a given radius has exactly two geometric solutions. `ArcSize` picks
 /// between them, and [`ArcSweep`] then picks the rotation direction for the chosen one.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ArcSize {
@@ -47,9 +47,10 @@ impl ArcSweep {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Parameters for an elliptical arc path segment (the SVG `A`/`a` command).
 ///
-/// Bundled into a named-field struct rather than a five-element tuple variant so that the two SVG boolean flags
-/// (`large-arc-flag`, `sweep-flag`) become the self-documenting [`ArcSize`] and [`ArcSweep`] enums instead of two
-/// adjacent `bool`s, which are easy to transpose by mistake and give no clue at the call site which is which.
+/// This is bundled into a named-field struct rather than a five-element tuple variant. That way, the two SVG boolean
+/// flags (`large-arc-flag`, `sweep-flag`) become the self-documenting [`ArcSize`] and [`ArcSweep`] enums instead of
+/// two adjacent `bool`s. Two adjacent `bool`s are easy to transpose by mistake and give no clue at the call site
+/// about which flag is which.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct EllipticalArc {
     /// Ellipse x/y radii.
@@ -72,15 +73,15 @@ impl EllipticalArc {
     /// round-trip representation. Callers pass an already-`MAX_DPS`-clamped value (clamping happens once, in
     /// [`write_d_fixed`](crate::write_d_fixed), not per command), so this method does not clamp again.
     ///
-    /// The two flags are deliberately never subject to `dps`: the SVG path grammar's `flag` production is exactly
-    /// one `"0"` or `"1"` digit, not a decimal number, so they are always written via `ArcSize`/`ArcSweep`'s `u8`
-    /// `Display` regardless of the requested precision — rounding them would either be a no-op (they are already
-    /// integral) or, worse, invalid path syntax if ever formatted with a decimal point.
+    /// The two flags are deliberately never subject to `dps`. The SVG path grammar's `flag` production is exactly
+    /// one `"0"` or `"1"` digit, not a decimal number. So they are always written via `ArcSize`/`ArcSweep`'s `u8`
+    /// `Display` regardless of the requested precision. Rounding them would either be a no-op, since they are
+    /// already integral, or, worse, invalid path syntax if ever formatted with a decimal point.
     ///
-    /// `cmd` is restricted to `'A'`/`'a'` by construction, not by validation: `pub(super)` keeps this callable only
-    /// from the two known-correct call sites in `path_def.rs`, so an external caller can never pass an arbitrary
-    /// `char` here and produce an invalid command letter — the same guarantee `PathDef` gives the `d` string as a
-    /// whole would otherwise leak right back out through this one method.
+    /// `cmd` is restricted to `'A'`/`'a'` by construction, not by validation. `pub(super)` keeps this callable only
+    /// from the two known-correct call sites in `path_def.rs`. So an external caller can never pass an arbitrary
+    /// `char` here and produce an invalid command letter. Otherwise, this one method would leak the same guarantee
+    /// that `PathDef` gives the `d` string as a whole.
     pub(super) fn write(&self, out: &mut String, cmd: char, dps: Option<usize>) {
         match dps {
             Some(n) => {

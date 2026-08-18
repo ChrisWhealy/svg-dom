@@ -49,8 +49,9 @@ impl ClipPathUnits {
 /// as children. `<g>` is not permitted, so wrapping several clip shapes in a group would produce a non-conforming SVG
 /// with undefined cross-browser behaviour.
 ///
-/// There is no need for such a construction anyway: every shape added directly to a `<clipPath>` already contributes to
-/// the same unioned clip region, so multiple shapes can be added as direct siblings instead of needing to group them.
+/// There is no need for such a construction anyway.
+/// Every shape added directly to a `<clipPath>` already contributes to the same unioned clip region.
+/// Multiple shapes can therefore be added as direct siblings instead of being grouped.
 ///
 /// Obtain one from [`SvgDefs::clip_path`](crate::SvgDefs::clip_path) or
 /// [`SvgDefs::build_clip_path`](crate::SvgDefs::build_clip_path), and apply it to any element with
@@ -59,9 +60,9 @@ impl ClipPathUnits {
 ///
 /// # Coordinate Spaces
 ///
-/// By default (`clipPathUnits="userSpaceOnUse"`) the shapes inside the `<clipPath>` are interpreted in the *current*
-/// *user coordinate system* of the element the clip path is applied to, and not unconditionally the outer SVG root's
-/// coordinate system. Those coincide only when nothing between the referencing element and the root applies a transform
+/// By default (`clipPathUnits="userSpaceOnUse"`), the shapes inside the `<clipPath>` are interpreted in the *current*
+/// *user coordinate system* of the element the clip path is applied to. This is not unconditionally the outer SVG
+/// root's coordinate system. Those coincide only when nothing between the referencing element and the root applies a transform
 /// or establishes a new viewport. A referencing element nested inside a transformed `<g>` or a nested `<svg>` clips in
 /// that ancestor's local coordinates instead.
 ///
@@ -93,8 +94,8 @@ pub struct SvgClipPath {
     /// The complete `url(#id)` reference, built once at construction and kept in sync by [`set_id`](Self::set_id).
     /// Caching the full reference (rather than the bare id) means
     /// [`SvgNode::set_clip_path_ref`](crate::SvgNode::set_clip_path_ref) can write it straight to the `clip-path`
-    /// attribute with no per-call formatting allocation, irrespective of the number of elements the clip path is
-    /// applied to.
+    /// attribute with no per-call formatting allocation.
+    /// This holds irrespective of the number of elements the clip path is applied to.
     ///
     /// [`id`](Self::id) slices the bare id back out of this string rather than storing it separately.
     url_ref: String,
@@ -129,7 +130,7 @@ impl SvgClipPath {
     ///
     /// The returned value is sliced out of the cached `url(#id)` reference (see `url_ref`) built at construction time
     /// and kept in sync by [`set_id`](Self::set_id). The slice is exact because clip-path ids are restricted at
-    /// validation time to the pattern `[A-Za-z_][A-Za-z0-9_-]*`, which is pure ASCII, so byte offsets from
+    /// validation time to the pattern `[A-Za-z_][A-Za-z0-9_-]*`. That pattern is pure ASCII, so byte offsets from
     /// `URL_PREFIX`'s length and the string's end always land on the bare id exactly.
     ///
     /// [`set_attr`](Self::set_attr) and [`set_attr_display`](Self::set_attr_display) reject `"id"` so they cannot
@@ -147,7 +148,8 @@ impl SvgClipPath {
     /// Returns the cached `url(#id)` reference, ready to write directly to a `clip-path` attribute.
     ///
     /// Visibility need only be `pub(crate)` since [`SvgNode::set_clip_path_ref`](crate::SvgNode::set_clip_path_ref) is
-    /// the only function that needs it; external callers use [`id`](Self::id) instead.
+    /// the only function that needs it.
+    /// External callers use [`id`](Self::id) instead.
     pub(crate) fn url_ref(&self) -> &str {
         &self.url_ref
     }
@@ -158,8 +160,9 @@ impl SvgClipPath {
     /// This method takes `&mut self` because it mutates Rust-owned state (the cached reference string), unlike the
     /// other attribute setters that write only to the DOM.
     ///
-    /// The new `id` is subject to the same validation rules as the id supplied at construction time: it must match the
-    /// pattern `[A-Za-z_][A-Za-z0-9_-]*` — a letter or underscore followed by letters, digits, underscores, or hyphens.
+    /// The new `id` is subject to the same validation rules as the id supplied at construction time.
+    /// It must match the pattern `[A-Za-z_][A-Za-z0-9_-]*` — a letter or underscore followed by letters, digits,
+    /// underscores, or hyphens.
     ///
     /// ⚠️ Caveat ⚠️
     ///
@@ -186,8 +189,8 @@ impl SvgClipPath {
     /// Returns a reference to the underlying `web-sys` `SvgElement`.
     ///
     /// This provides a direct escape hatch to the DOM.
-    /// Avoid writing the `id` attribute through this handle; use [`set_id`](Self::set_id) instead so the cached value
-    /// stays in sync.
+    /// Avoid writing the `id` attribute through this handle.
+    /// Use [`set_id`](Self::set_id) instead so the cached value stays in sync.
     pub fn as_element(&self) -> &SvgElement {
         &self.element
     }
@@ -212,7 +215,8 @@ impl SvgClipPath {
     ///
     /// ⚠️ Caveat ⚠️
     ///
-    /// Name and value are written verbatim; do not pass untrusted input.
+    /// Name and value are written verbatim.
+    /// Do not pass untrusted input.
     ///
     /// # Reserved attributes
     ///
@@ -229,7 +233,8 @@ impl SvgClipPath {
     /// Sets several attributes in one call.
     ///
     /// Equivalent to calling [`set_attr`](Self::set_attr) for each pair.
-    /// Returns the first error encountered; attributes written before the error are left in place.
+    /// Returns the first error encountered.
+    /// Attributes written before the error are left in place.
     pub fn set_attrs<I, K, V>(&self, attrs: I) -> Result<(), Error>
     where
         I: IntoIterator<Item = (K, V)>,
@@ -247,8 +252,8 @@ impl SvgClipPath {
     ///
     /// Uses the same `SvgAttrs` scratch buffer that the shape factories use internally, so no extra allocation is made.
     ///
-    /// Passing `"id"` (matched case-insensitively) returns [`Error::ReservedAttribute`];
-    /// use [`set_id`](Self::set_id) instead.
+    /// Passing `"id"` (matched case-insensitively) returns [`Error::ReservedAttribute`].
+    /// Use [`set_id`](Self::set_id) instead.
     pub fn set_attr_display<T: std::fmt::Display>(&self, name: &str, value: T) -> Result<(), Error> {
         if name.eq_ignore_ascii_case("id") {
             return Err(Error::ReservedAttribute("id"));
@@ -280,8 +285,8 @@ impl SvgClipPath {
     /// A clip region is computed from the raw *fill* geometry of its children, never from rendering properties.
     /// `stroke`/`stroke-width` do not participate in that computation at all, visible or not.
     ///
-    /// Since a `<line>` is one-dimensional and therefore cannot have any fill area under any circumstances, on its own,
-    /// it contributes nothing to the clip silhouette, regardless of how it is stroked.
+    /// Since a `<line>` is one-dimensional, it can never have a fill area on its own.
+    /// It therefore contributes nothing to the clip silhouette, regardless of how it is stroked.
     ///
     /// When defining clip regions, prefer area shapes (`<rect>`, `<circle>`, `<path>`, `<polygon>`).
     pub fn line(&self, start: Point, end: Point) -> Result<SvgNode, Error> {
@@ -365,7 +370,7 @@ impl super::defs::SvgDefs {
     /// `<clipPath>` element detached until the closure succeeds, so a mid-build error leaves no partial element in
     /// `<defs>`.
     /// With this method, if a shape or attribute setter fails after `clip_path()` returns, the partial `<clipPath>`
-    /// remains in `<defs>` (though an incomplete clip path is harmless — it clips nothing unless referenced).
+    /// remains in `<defs>`. This is harmless, though — an unreferenced clip path clips nothing.
     ///
     /// # Errors
     ///

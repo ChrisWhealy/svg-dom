@@ -9,12 +9,12 @@ impl SvgFilter {
     /// creates a `<feMorphology>`, writes `operator` and `radius` as its `operator`/`radius` attributes, then
     /// appends it.
     ///
-    /// `radius` is a pre-built [`fmt::Arguments`] rather than a `&str` so the two public callers can pass either a
-    /// single number or an `"x y"` pair through
-    /// [`display_element`](crate::root::attrs::SvgAttrs::display_element)'s retained scratch buffer without first
-    /// collecting into an owned `String` — the same technique the private `gaussian_blur_args`/`turbulence_args`
-    /// helpers use for [`gaussian_blur`](Self::gaussian_blur)/[`turbulence`](Self::turbulence) and their `_xy`
-    /// counterparts.
+    /// `radius` is a pre-built [`fmt::Arguments`] rather than a `&str`. This lets the two public callers pass either
+    /// a single number or an `"x y"` pair through
+    /// [`display_element`](crate::root::attrs::SvgAttrs::display_element)'s retained scratch buffer, without first
+    /// collecting into an owned `String`. This is the same technique the private `gaussian_blur_args`/
+    /// `turbulence_args` helpers use for [`gaussian_blur`](Self::gaussian_blur)/[`turbulence`](Self::turbulence) and
+    /// their `_xy` counterparts.
     fn morphology_args(&self, radius: fmt::Arguments<'_>, operator: MorphologyOperator) -> Result<SvgNode, Error> {
         let el = create_svg_element::<SvgElement>(&self.document, "feMorphology", "SvgElement")?;
         el.set_attribute("operator", operator.as_str()).map_err(dom_err)?;
@@ -26,33 +26,33 @@ impl SvgFilter {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Appends a `<feMorphology>` primitive to this filter, applying a rectangular morphological erosion or
     /// dilation (selected by `operator`) component-wise to the input's premultiplied R/G/B/A values within
-    /// `radius` of each pixel — a per-pixel minimum for [`MorphologyOperator::Erode`], maximum for
+    /// `radius` of each pixel. This is a per-pixel minimum for [`MorphologyOperator::Erode`], maximum for
     /// [`MorphologyOperator::Dilate`].
     ///
     /// The common case — passing `SourceAlpha` as `in` — shrinks or expands the source *silhouette*, since alpha
-    /// is the only non-degenerate channel there; that is what [`MorphologyOperator::Erode`]/
+    /// is the only non-degenerate channel there. That is what [`MorphologyOperator::Erode`]/
     /// [`MorphologyOperator::Dilate`]'s own doc comments describe, and what the outline example below uses. Against
     /// `SourceGraphic` (this primitive's implicit input if it is the filter's first, since `in` is not set by this
-    /// method), the same min/max is taken across colour channels too, which can shift or bleed colours at edges
-    /// where they differ between neighbouring pixels — worth knowing before assuming this primitive only ever
-    /// touches shape, never colour.
+    /// method), the same min/max is taken across colour channels too. This can shift or bleed colours at edges
+    /// where they differ between neighbouring pixels. It is worth knowing this before assuming this primitive only
+    /// ever touches shape, never colour.
     ///
     /// Applying `Erode` then `Dilate` with the same `radius` forms an "opening", which removes small protrusions
-    /// and narrow features (a thin bridge or spike can vanish in the `Erode` pass and, unlike a solid region,
-    /// cannot be reconstructed by the `Dilate` pass that follows). The reverse order forms a "closing", which
+    /// and narrow features. A thin bridge or spike can vanish in the `Erode` pass and, unlike a solid region,
+    /// cannot be reconstructed by the `Dilate` pass that follows. The reverse order forms a "closing", which
     /// fills small gaps and notches instead. Neither reconstructs the geometry the first pass removed or added,
     /// so either operation may alter the resulting silhouette rather than merely smoothing it.
     ///
     /// `radius` is interpreted in the coordinate system established by
-    /// [`primitiveUnits`](Self::set_primitive_units) — user-space units under the default
-    /// [`FilterUnits::UserSpaceOnUse`](super::super::FilterUnits::UserSpaceOnUse), or a fraction of the referencing
-    /// element's bounding box under
-    /// [`FilterUnits::ObjectBoundingBox`](super::super::FilterUnits::ObjectBoundingBox) — for example, `0.1`
-    /// represents 10% of the relevant dimension. (The SVG `radius` grammar is one or two plain `<number>` values;
-    /// there is no percentage token to write here, just a fraction expressed as a plain `f64`.)
+    /// [`primitiveUnits`](Self::set_primitive_units). Under the default
+    /// [`FilterUnits::UserSpaceOnUse`](super::super::FilterUnits::UserSpaceOnUse), these are user-space units.
+    /// Under [`FilterUnits::ObjectBoundingBox`](super::super::FilterUnits::ObjectBoundingBox), each value is a
+    /// fraction of the referencing element's bounding box, so `0.1` represents 10% of the relevant dimension.
+    /// (The SVG `radius` grammar is one or two plain `<number>` values. There is no percentage token to write here,
+    /// just a fraction expressed as a plain `f64`.)
     /// A `radius` of `0.0` (the SVG default if this is never called with a non-zero value) disables the effect
-    /// entirely — `in` passes through unchanged. A negative value is not rejected, but has the identical effect:
-    /// per the SVG spec, "a negative or zero value disables the effect ... the result is the filter input image".
+    /// entirely — `in` passes through unchanged. A negative value is not rejected, but has the identical effect.
+    /// Per the SVG spec, "a negative or zero value disables the effect ... the result is the filter input image".
     ///
     /// See [`morphology_xy`](Self::morphology_xy) for a radius with independent horizontal and vertical extent — the
     /// SVG `radius` attribute accepts either one or two numbers, and this method covers only the one-number form.
@@ -82,7 +82,7 @@ impl SvgFilter {
     /// ```
     ///
     /// ***⚠️ [`Dilate`](MorphologyOperator::Dilate) expands the rendered area, and may be clipped by the filter
-    /// region*** — the filter region is a hard clipping rectangle, and the SVG default (`-10% -10% 120% 120%` of
+    /// region.*** The filter region is a hard clipping rectangle. The SVG default (`-10% -10% 120% 120%` of
     /// the referencing element's bounding box) only allows for a modest 10% margin on each side. A large enough
     /// `radius` can therefore produce a visibly clipped edge on the dilated result. Increase the filter's
     /// [`x`](Self::set_x)/[`y`](Self::set_y)/[`width`](Self::set_width)/[`height`](Self::set_height) where

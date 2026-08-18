@@ -4,20 +4,21 @@ impl SvgRoot {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates a `<switch>` element, appends it to the root, and returns its [`SvgNode`] handle.
     ///
-    /// `<switch>` renders at most, one of its direct children: the first one, in document order, whose conditional
-    /// processing attributes all evaluate to true, rather than rendering every child as `<g>` would.
+    /// `<switch>` renders at most one of its direct children: the first one, in document order, whose conditional
+    /// processing attributes all evaluate to true. Unlike `<g>`, which renders every child, `<switch>` picks only
+    /// that single match.
     ///
-    /// As per the SVG 2 specification, if none match, it renders **nothing**. A child with none of those attributes set
-    /// always passes, so by appending an attribute-free element last (in document order), you create a fallback that
-    /// guarantees something renders even when every other conditional child fails.
+    /// As per the SVG 2 specification, if none match, it renders **nothing**. A child with none of those attributes
+    /// set always passes. Appending an attribute-free element last, in document order, therefore creates a fallback
+    /// that guarantees something renders even when every other conditional child fails.
     ///
     /// Add children with [`SvgNode::append`], the same way as [`group`](Self::group). The conditional attributes
-    /// themselves — `systemLanguage`, `requiredExtensions` (`requiredFeatures` existed in earlier SVG versions but
-    /// was removed from SVG 2 because it proved unreliable as a feature-support test) — are not wrapped by named
-    /// parameters; set them directly on each child via
-    /// [`SvgNode::set_attr`](crate::SvgNode::set_attr)/[`set_attrs`](crate::SvgNode::set_attrs). This crate performs
-    /// no validation of its own on them: the browser evaluates each child's test attributes and picks the first
-    /// match at render time.
+    /// themselves — `systemLanguage` and `requiredExtensions` — are not wrapped by named parameters.
+    /// (`requiredFeatures` existed in earlier SVG versions, but SVG 2 removed it because it proved unreliable as a
+    /// feature-support test.) Set them directly on each child via
+    /// [`SvgNode::set_attr`](crate::SvgNode::set_attr)/[`set_attrs`](crate::SvgNode::set_attrs). This crate does not
+    /// validate them on its own: the browser evaluates each child's test attributes and picks the first match at
+    /// render time.
     ///
     /// # Errors
     ///

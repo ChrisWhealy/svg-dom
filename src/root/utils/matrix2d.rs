@@ -12,8 +12,8 @@
 /// ```
 ///
 /// [`SvgNode::set_matrix`](crate::SvgNode::set_matrix) writes these out in the SVG function's own `a, b, c, d, e, f`
-/// order (`h_scale, v_skew, h_skew, v_scale, h_trans, v_trans`) to build the `matrix(...)` string — the field names
-/// exist for the call site, not because the underlying attribute grammar groups them this way.
+/// order: `h_scale, v_skew, h_skew, v_scale, h_trans, v_trans`. This builds the `matrix(...)` string. The field
+/// names exist for the call site, not because the underlying attribute grammar groups them this way.
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Matrix2D {

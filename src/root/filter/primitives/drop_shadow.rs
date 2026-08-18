@@ -20,11 +20,11 @@ impl SvgFilter {
     /// As per the SVG specification, `<feDropShadow>`'s result already includes its `in` input painted over the shadow,
     /// exactly as the final `merge(&[shadow, "SourceGraphic"])` step does in the manual chain.
     ///
-    /// A `<filter>` containing only `drop_shadow(...)` is already a complete, ready-to-use shadow effect; adding a
+    /// A `<filter>` containing only `drop_shadow(...)` is already a complete, ready-to-use shadow effect. Adding a
     /// further `merge` call would paint the original graphic on top a second time.
     ///
     /// If this is the filter's first (and only) primitive, its implicit `in` is `SourceGraphic`, and that is also what
-    /// gets composited back on top; which is the common case this shorthand exists for.
+    /// gets composited back on top. This is the common case this shorthand exists for.
     ///
     /// Use the returned [`SvgNode`]'s [`set_attr`](crate::SvgNode::set_attr) to set `in` or `result` explicitly for
     /// anything else.

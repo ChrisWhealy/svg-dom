@@ -23,17 +23,20 @@ impl SvgFilter {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the width of the filter region.
     ///
-    /// The SVG default filter region is `-10% -10% 120% 120%` of the referencing element's bounding box, which can clip
-    /// a wide blur or a large [`morphology`](Self::morphology) [`Dilate`](super::MorphologyOperator::Dilate) radius;
-    /// widen `width`/`height` explicitly for large [`gaussian_blur`](Self::gaussian_blur) `std_deviation` or
+    /// The SVG default filter region is `-10% -10% 120% 120%` of the referencing element's bounding box.
+    /// This can clip a wide blur or a large [`morphology`](Self::morphology) [`Dilate`](super::MorphologyOperator::Dilate)
+    /// radius.
+    /// Widen `width`/`height` explicitly for large [`gaussian_blur`](Self::gaussian_blur) `std_deviation` or
     /// `morphology`/[`morphology_xy`](Self::morphology_xy) `radius` values.
     ///
     /// ⚠️ Performance ⚠️
     ///
-    /// Expand the region only enough to contain the intended effect. Per the SVG filter specification, the filter
-    /// region is a hard clip: every intermediate offscreen buffer the browser rasterises while evaluating this filter's
-    /// primitives is bounded by it, so an unnecessarily large region can inflate both rasterisation work and temporary
-    /// memory use, not just the final painted area.
+    /// Expand the region only enough to contain the intended effect.
+    /// Per the SVG filter specification, the filter region is a hard clip.
+    /// Every intermediate offscreen buffer the browser rasterises while evaluating this filter's primitives is
+    /// bounded by it.
+    /// An unnecessarily large region can therefore inflate both rasterisation work and temporary memory use, not
+    /// just the final painted area.
     ///
     /// See [`set_x`](Self::set_x) for the coordinate space this value is interpreted in.
     pub fn set_width(&self, v: f64) -> Result<(), Error> {
@@ -43,8 +46,9 @@ impl SvgFilter {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the height of the filter region.
     ///
-    /// See [`set_width`](Self::set_width) for why this often needs widening beyond the SVG default, why it should
-    /// not be widened further than the effect needs, and for the coordinate space this value is interpreted in.
+    /// See [`set_width`](Self::set_width) for why this often needs widening beyond the SVG default.
+    /// That same doc explains why it should not be widened further than the effect needs, and the coordinate space
+    /// this value is interpreted in.
     pub fn set_height(&self, v: f64) -> Result<(), Error> {
         self.attrs.borrow_mut().display_element(&self.element, "height", v)
     }

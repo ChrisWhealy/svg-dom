@@ -8,13 +8,17 @@ use web_sys::SvgElement;
 /// (`<feDistantLight>`, `<fePointLight>`, `<feSpotLight>`) is to be appended, and also supplies that element's
 /// attributes.
 ///
-/// All variants contain only small, directly copied numeric data (`f64`/`Option<f64>` fields, no `Vec`/`String`)
-/// and allocate nothing, so `Copy` is appropriate here — the same judgement already applied to small coordinate
-/// types such as [`Point`](crate::root::utils::Point). This is not literally free (`Spot`, the largest variant,
-/// carries seven `f64`s plus an `Option<f64>`), but it is allocation-free and cheap relative to the DOM operations
-/// each call site actually performs, and it rules out an unnecessary move/borrow decision at every call site —
-/// including reusing the same light description across a `diffuse_lighting`/`specular_lighting` pair, as the demo
-/// does.
+/// All variants contain only small, directly copied numeric data (`f64`/`Option<f64>` fields, no `Vec`/`String`),
+/// and allocate nothing.
+/// `Copy` is appropriate here, the same judgement already applied to small coordinate types such as
+/// [`Point`](crate::root::utils::Point).
+///
+/// This is not literally free: [`Spot`](Self::Spot), the largest variant, carries seven `f64`s plus an
+/// `Option<f64>`.
+/// It is still allocation-free and cheap relative to the DOM operations each call site actually performs.
+/// It also avoids an unnecessary move-or-borrow decision at every call site.
+/// This includes reusing the same light description across a `diffuse_lighting`/`specular_lighting` pair, as the
+/// demo does.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum LightSource {
     /// A `<feDistantLight>`: the light arrives as parallel rays from an infinitely distant source, with no position of
@@ -27,11 +31,13 @@ pub enum LightSource {
         elevation: f64,
     },
 
-    /// A `<fePointLight>`: a positional light source, in the same way a bare bulb is. The light's *direction* varies
-    /// across the surface — computed per-pixel as the (normalised) vector from that surface point to `(x, y, z)` — but
-    /// as per the SVG spec, its *colour* intensity does not: there is no inverse-square (or any other) distance
-    /// attenuation term, unlike a physically-based point light. A pixel far from `(x, y, z)` is lit with the same light
-    /// colour as one directly beneath it, just from a different angle.
+    /// A `<fePointLight>`: a positional light source, in the same way a bare bulb is.
+    /// The light's *direction* varies across the surface, computed per-pixel as the (normalised) vector from that
+    /// surface point to `(x, y, z)`.
+    /// Its *colour* intensity does not vary, as per the SVG spec.
+    /// There is no inverse-square, or any other, distance attenuation term, unlike a physically-based point light.
+    /// A pixel far from `(x, y, z)` is lit with the same light colour as one directly beneath it, just from a
+    /// different angle.
     Point {
         /// The light position, in the coordinate system established by
         /// [`primitiveUnits`](super::SvgFilter::set_primitive_units).  This is the same `primitiveUnits`-dependent
@@ -41,13 +47,15 @@ pub enum LightSource {
         y: f64,
         /// Height above the surface, in the same coordinate system as `x`/`y`. Larger values make the incident-light
         /// direction more uniform across the surface (closer to a [`Distant`](Self::Distant) light shining straight
-        /// down) rather than fanning out sharply near the light.
+        /// down), rather than diverging sharply near the light.
         z: f64,
     },
 
     /// A `<feSpotLight>`: a light source that emits light similar to [`Point`](Self::Point), but aimed at
-    /// `(points_at_x, points_at_y, points_at_z)` and optionally narrowed to a cone via `limiting_cone_angle` — the
-    /// standard choice for a directed, theatrical spotlight rather than an omnidirectional point source.
+    /// `(points_at_x, points_at_y, points_at_z)`.
+    /// It can optionally narrow to a cone via `limiting_cone_angle`.
+    /// This is the standard choice for a directed, theatrical spotlight, rather than an omnidirectional point
+    /// source.
     Spot {
         /// Light position — see [`Point`](Self::Point)'s own field docs for the coordinate system.
         x: f64,
@@ -62,30 +70,37 @@ pub enum LightSource {
         /// See `points_at_x`'s own field doc, above.
         points_at_z: f64,
         /// Controls how tightly the light concentrates towards the direct axis between the light and the point it
-        /// is aimed at.  In spite of sharing the same SVG attribute name and default (`1.0`) as
-        /// [`specular_lighting`](super::SvgFilter::specular_lighting)'s `specular_exponent` parameter, this one shapes
-        /// the spotlight's beam (larger values narrow and brighten the beam's centre), the Phong shininess exponent
-        /// shapes how sharp the *surface's* specular highlight looks.
+        /// is aimed at.
+        /// This shares the same SVG attribute name and default (`1.0`) as
+        /// [`specular_lighting`](super::SvgFilter::specular_lighting)'s `specular_exponent` parameter, but the two
+        /// are not the same thing.
+        /// This one shapes the spotlight's beam: larger values narrow and brighten the beam's centre.
+        /// The Phong shininess exponent instead shapes how sharp the *surface's* specular highlight looks.
         ///
         /// Do not confuse the two when translating an SVG example that uses `specularExponent` on both
         /// `<feSpecularLighting>` and `<feSpotLight>`.
         specular_exponent: f64,
-        /// The half-angle, in degrees, of an *additional* hard-edged cutoff cone around the spotlight's own aim axis —
-        /// `None` (the SVG default when the attribute is omitted entirely) applies no such cutoff, but the spotlight
-        /// is still directional even then: every sample is still lit according to `pow(-L·S, specular_exponent)`
-        /// (where `L` is the unit vector from the surface to `(x, y, z)`, and `S` the unit vector from `(x, y, z)`
-        /// towards `(points_at_x, points_at_y, points_at_z)`), which already falls off away from the aim axis and
-        /// produces no light at all on the rear-facing side where `L·S` is positive.
+        /// The half-angle, in degrees, of an *additional* hard-edged cutoff cone around the spotlight's own aim axis.
+        /// `None`, the SVG default when the attribute is omitted entirely, applies no such cutoff.
+        /// The spotlight is still directional even then.
+        /// Every sample is still lit according to `pow(-L·S, specular_exponent)`.
+        /// Here `L` is the unit vector from the surface to `(x, y, z)`, and `S` is the unit vector from
+        /// `(x, y, z)` towards `(points_at_x, points_at_y, points_at_z)`.
+        /// This already falls off away from the aim axis, producing no light at all on the rear-facing side, where
+        /// `L·S` is positive.
         ///
         /// `limiting_cone_angle` only adds a sharp additional edge on top of that existing falloff; omitting it does
         /// not make the light omnidirectional.
         ///
-        /// `Some(0.0)` is a cone of zero width: in principle only a sample falling exactly on the aim axis survives the
-        /// cutoff, which in practice reads as unlit at any rasterised resolution, though "exactly zero width" is the
-        /// precise definition rather than "no light at all" in some absolute sense.
+        /// `Some(0.0)` is a cone of zero width.
+        /// In principle, only a sample falling exactly on the aim axis survives the cutoff.
+        /// In practice, this reads as unlit at any rasterised resolution.
+        /// "Exactly zero width" is the precise definition, though, rather than "no light at all" in some absolute
+        /// sense.
         ///
-        /// Use `None` when only the natural `specular_exponent` falloff is wanted, `Some(angle)` to additionally
-        /// hard-clip the beam to a narrower cone than that falloff alone would produce.
+        /// Use `None` when only the natural `specular_exponent` falloff is wanted.
+        /// Use `Some(angle)` to additionally hard-clip the beam to a narrower cone than that falloff alone would
+        /// produce.
         limiting_cone_angle: Option<f64>,
     },
 }
@@ -108,9 +123,12 @@ impl LightSource {
 /// [`diffuse_lighting`](SvgFilter::diffuse_lighting) and [`specular_lighting`](SvgFilter::specular_lighting) return
 /// only `primitive`, since a light source's own attributes are usually fixed at construction. An application that later
 /// wants to change the light itself (say sweeping a [`LightSource::Distant`]'s own `azimuth` from a slider) needs a
-/// retainable handle to that child element too. Nothing else in this crate exposes one: `append_light_source`, which
-/// creates it, is private to this crate, so without this struct the only way to reach that child again is a raw
-/// CSS-selector query outside `svg-dom`'s own typed API.
+/// retainable handle to that child element too.
+///
+/// Nothing else in this crate exposes one.
+/// `append_light_source`, which creates it, is private to this crate.
+/// Without this struct, the only way to reach that child again is a raw CSS-selector query outside `svg-dom`'s own
+/// typed API.
 #[derive(Clone)]
 pub struct LightingNodes {
     /// The `<feDiffuseLighting>`/`<feSpecularLighting>` primitive itself — the same node
@@ -125,11 +143,12 @@ pub struct LightingNodes {
 impl SvgFilter {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates the one light-source child `light_source` describes, writes its attributes, and appends it to
-    /// `parent` — shared by [`diffuse_lighting`](Self::diffuse_lighting) and
-    /// [`specular_lighting`](Self::specular_lighting), the only two elements a light source can appear inside.
+    /// `parent`.
+    /// Shared by [`diffuse_lighting`](Self::diffuse_lighting) and [`specular_lighting`](Self::specular_lighting),
+    /// the only two elements a light source can appear inside.
     ///
     /// Returns the appended child as an [`SvgNode`], so [`diffuse_lighting_with_light`](Self::diffuse_lighting_with_light)/
-    /// [`specular_lighting_with_light`](Self::specular_lighting_with_light) can hand it back to the caller. The plain
+    /// [`specular_lighting_with_light`](Self::specular_lighting_with_light) can return it to the caller. The plain
     /// [`diffuse_lighting`](Self::diffuse_lighting)/[`specular_lighting`](Self::specular_lighting) methods discard it.
     pub(super) fn append_light_source(&self, parent: &SvgElement, light_source: LightSource) -> Result<SvgNode, Error> {
         let child = create_svg_element::<SvgElement>(&self.document, light_source.tag(), "SvgElement")?;

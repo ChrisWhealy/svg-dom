@@ -11,15 +11,15 @@ impl SvgFilter {
     /// TransferFunction)` pair in `funcs`, in the order given.
     ///
     /// A channel not named in `funcs` gets no `<feFuncX>` child at all, which the SVG spec defines as identical to
-    /// giving it an explicit [`TransferFunction::Identity`] — `feComponentTransfer` only touches the channels you
+    /// giving it an explicit [`TransferFunction::Identity`]. `feComponentTransfer` only touches the channels you
     /// actually mention.
     ///
     /// `funcs` is not deduplicated: naming the same [`Channel`] twice creates two `<feFuncX>` children of the same tag,
     /// in the order given. Per the SVG spec, when a `<feComponentTransfer>` has more than one child for the same
-    /// channel, only the *last* one has any effect — the earlier ones are created but ignored, not applied in sequence.
+    /// channel, only the *last* one has any effect. The earlier ones are created but ignored, not applied in sequence.
     ///
-    /// There is no error for this situation; so if you build `funcs` programmatically, you must take care not to supply
-    /// multiple functions for the same `Channel`.
+    /// There is no error for this situation. So if you build `funcs` programmatically, you must take care not to
+    /// supply multiple functions for the same `Channel`.
     ///
     /// If this is the filter's first primitive, its implicit input is `SourceGraphic`, otherwise use the returned
     /// [`SvgNode`]'s [`set_attr`](crate::SvgNode::set_attr) to set `in` explicitly, the same as every other
@@ -30,7 +30,7 @@ impl SvgFilter {
     /// - [`Error::Dom`] — the browser refused to create or append the `<feComponentTransfer>` element or any of its
     ///   `<feFuncX>` children.
     /// - [`Error::InvalidTransferFunction`] — a [`TransferFunction::Table`] with exactly one value, or a
-    ///   [`TransferFunction::Discrete`] with zero values, was supplied; see that variant's own doc comment for why
+    ///   [`TransferFunction::Discrete`] with zero values, was supplied. See that variant's own doc comment for why
     ///   neither has a defined SVG meaning.
     ///
     /// # Example

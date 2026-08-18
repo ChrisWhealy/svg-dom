@@ -15,7 +15,7 @@ use web_sys::{Document, SvgElement};
 ///
 /// Unlike a plain `<g>` in `<defs>`, a `<symbol>` can carry its own `viewBox` and `preserveAspectRatio`. The browser
 /// scales the symbol's content to fit the `<use>` element's `width` and `height`, exactly as it would an embedded
-/// `<svg>` — so the same definition renders correctly at any size with no extra work.
+/// `<svg>`. So the same definition renders correctly at any size with no extra work.
 ///
 /// Obtain one from [`SvgDefs::symbol`](crate::SvgDefs::symbol) or
 /// [`SvgDefs::build_symbol`](crate::SvgDefs::build_symbol), then stamp copies with
@@ -27,8 +27,8 @@ use web_sys::{Document, SvgElement};
 /// then maps that internal space to its own `width` and `height`, scaled according to
 /// [`set_preserve_aspect_ratio`](Self::set_preserve_aspect_ratio) (default: `xMidYMid meet`).
 ///
-/// If no `viewBox` is set, the symbol has no intrinsic size, so scaling will not occur and the content is positioned in
-/// the same coordinate space as the referencing `<use>` element.
+/// If no `viewBox` is set, the symbol has no intrinsic size, so scaling will not occur. The content is then
+/// positioned in the same coordinate space as the referencing `<use>` element.
 ///
 /// # Example
 ///
@@ -109,7 +109,7 @@ impl SvgSymbol {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Returns a reference to the underlying `web-sys` `SvgElement`.
     ///
-    /// Avoid writing the `id` attribute through this handle; use [`set_id`](Self::set_id) instead so the
+    /// Avoid writing the `id` attribute through this handle. Use [`set_id`](Self::set_id) instead so the
     /// cached value stays in sync.
     pub fn as_element(&self) -> &SvgElement {
         &self.element
@@ -125,7 +125,7 @@ impl SvgSymbol {
     /// # Errors
     ///
     /// Returns [`Error::InvalidViewBox`] if any component is not finite (`NaN`/`±infinity`), or if either of `width` or
-    /// `height` is negative. A `width`/`height` of exactly `0.0` is accepted; as per the SVG spec, it is a trick to
+    /// `height` is negative. A `width`/`height` of exactly `0.0` is accepted. As per the SVG spec, it is a trick to
     /// disable rendering.
     ///
     /// # Example
@@ -165,7 +165,7 @@ impl SvgSymbol {
     /// Sets any attribute on the `<symbol>` element by name and string value.
     ///
     /// This is the generic escape hatch for attributes not covered by the named setters above (e.g. `class`, `style`,
-    /// `overflow`).  Name and value are written verbatim; so do not pass untrusted input!
+    /// `overflow`).  Name and value are written verbatim, so do not pass untrusted input!
     ///
     /// # Reserved attributes
     ///
@@ -202,8 +202,8 @@ impl SvgSymbol {
     ///
     /// Uses the same `SvgAttrs` scratch buffer that the shape factories use internally, so no extra allocation is made.
     ///
-    /// Passing `"id"` (matched case-insensitively) returns [`Error::ReservedAttribute`];
-    /// use [`set_id`](Self::set_id) instead.
+    /// Passing `"id"` (matched case-insensitively) returns [`Error::ReservedAttribute`].
+    /// Use [`set_id`](Self::set_id) instead.
     pub fn set_attr_display<T: std::fmt::Display>(&self, name: &str, value: T) -> Result<(), Error> {
         if name.eq_ignore_ascii_case("id") {
             return Err(Error::ReservedAttribute("id"));
@@ -296,7 +296,7 @@ impl super::defs::SvgDefs {
     /// Creates a `<symbol>` child element with the given `id`, appends it to `<defs>` immediately and returns its
     /// handle.
     ///
-    /// A `<symbol>` defines a reusable viewport: unlike a plain `<g>` in `<defs>`, it can carry a `viewBox` so
+    /// A `<symbol>` defines a reusable viewport. Unlike a plain `<g>` in `<defs>`, it can carry a `viewBox` so
     /// that each `<use>` instance scales the content to its own `width` and `height`.
     ///
     /// Each shape added to the returned [`SvgSymbol`] is appended to the live element one at a time.

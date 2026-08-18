@@ -5,12 +5,12 @@ use web_sys::SvgElement;
 impl SvgFilter {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Appends a `<feOffset>` primitive to this filter, shifting its input by `(dx, dy)` in the coordinate system
-    /// established by [`primitiveUnits`](Self::set_primitive_units) — user-space units under the default
-    /// [`FilterUnits::UserSpaceOnUse`](super::super::FilterUnits::UserSpaceOnUse), or a fraction of the referencing
-    /// element's bounding box under
-    /// [`FilterUnits::ObjectBoundingBox`](super::super::FilterUnits::ObjectBoundingBox) — for example, `0.1`
-    /// represents 10% of the relevant dimension. (The SVG `dx`/`dy` grammar is a plain `<number>`; there is no
-    /// percentage token to write here, just a fraction expressed as a plain `f64`.)
+    /// established by [`primitiveUnits`](Self::set_primitive_units). Under the default
+    /// [`FilterUnits::UserSpaceOnUse`](super::super::FilterUnits::UserSpaceOnUse), these are user-space units. Under
+    /// [`FilterUnits::ObjectBoundingBox`](super::super::FilterUnits::ObjectBoundingBox), each value is a fraction of
+    /// the referencing element's bounding box, so `0.1` represents 10% of the relevant dimension. (The SVG `dx`/`dy`
+    /// grammar is a plain `<number>`. There is no percentage token to write here, just a fraction expressed as a
+    /// plain `f64`.)
     ///
     /// The most common use is shifting a blurred alpha silhouette to build a drop shadow — see [`merge`](Self::merge)
     /// for combining the result back with the original graphic.

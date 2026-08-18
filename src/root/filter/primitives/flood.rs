@@ -13,11 +13,11 @@ impl SvgFilter {
     /// rendering result.  This is the same convention as used by
     /// [`SvgLinearGradient::add_stop_opacity`](crate::SvgLinearGradient::add_stop_opacity)
     ///
-    /// On its own, a flood fills the entire filter region with one flat colour, which by itself is rarely useful, but
-    /// when combined with [`composite`](Self::composite) (`operator: `
-    /// [`In`](super::super::CompositeOperator::In)) against a blurred alpha mask, it is the standard way to give a
-    /// drop shadow an actual colour and opacity rather than leaving it simply as a blurred copy of the source
-    /// graphic's own fill; see [`composite`](Self::composite)'s example.
+    /// On its own, a flood fills the entire filter region with one flat colour, which by itself is rarely useful.
+    /// When combined with [`composite`](Self::composite) (`operator: `
+    /// [`In`](super::super::CompositeOperator::In)) against a blurred alpha mask, it becomes the standard way to give
+    /// a drop shadow an actual colour and opacity. This avoids leaving the shadow as a plain blurred copy of the
+    /// source graphic's own fill. See [`composite`](Self::composite)'s example.
     ///
     /// # Errors
     ///

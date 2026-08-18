@@ -13,11 +13,11 @@ impl SvgFilter {
     /// `in2` is written directly.
     ///
     /// ***IMPORTANT*** The value of `in2` is not validated.  It is typically another primitive's `result` name, or one
-    /// of the SVG keyword inputs `"SourceGraphic"`/`"SourceAlpha"`).
+    /// of the SVG keyword inputs `"SourceGraphic"`/`"SourceAlpha"`.
     ///
-    /// `in` is not set by this method: if this is the filter's first primitive, its implicit input is `SourceGraphic`,
-    /// otherwise use the returned [`SvgNode`]'s [`set_attr`](crate::SvgNode::set_attr) to set `in` explicitly, the same
-    /// as every other primitive here.
+    /// `in` is not set by this method. If this is the filter's first primitive, its implicit input is `SourceGraphic`.
+    /// Otherwise, use the returned [`SvgNode`]'s [`set_attr`](crate::SvgNode::set_attr) to set `in` explicitly, the
+    /// same as every other primitive here.
     ///
     /// # Errors
     ///
@@ -26,9 +26,9 @@ impl SvgFilter {
     /// # Example
     ///
     /// A true tinted, semi-transparent drop shadow (as opposed to the blurred-copy approximation produced by
-    /// [`merge`](Self::merge)), matching the SVG specification's own `feDropShadow` expansion: offset the blurred
-    /// alpha mask first, then flood a colour and composite it into that offset mask before merging underneath the
-    /// original graphic:
+    /// [`merge`](Self::merge)), matching the SVG specification's own `feDropShadow` expansion. Offset the blurred
+    /// alpha mask first, then flood a colour and composite it into that offset mask. Finally, merge the result
+    /// underneath the original graphic:
     ///
     /// ```rust,no_run
     /// use svg_dom::{SvgRoot, root::filter::CompositeOperator};

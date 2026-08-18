@@ -5,10 +5,10 @@ impl SvgFilter {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets any attribute on the `<filter>` element by name and string value.
     ///
-    /// This is the generic escape hatch for attributes not having a named setter: e.g. [`set_x`](Self::set_x),
-    /// [`set_y`](Self::set_y), [`set_width`](Self::set_width) and [`set_height`](Self::set_height) only accept a bare
-    /// `f64`, so pass an explicit SVG length or percentage (e.g. `"-20%"`) here when the filter region needs that
-    /// syntax instead of a plain number.
+    /// This is the generic escape hatch for attributes without a named setter.
+    /// [`set_x`](Self::set_x), [`set_y`](Self::set_y), [`set_width`](Self::set_width), and [`set_height`](Self::set_height)
+    /// only accept a bare `f64`.
+    /// Use this method instead when the filter region needs an explicit SVG length or percentage, such as `"-20%"`.
     ///
     /// ⚠️ Caveat ⚠️
     ///
@@ -45,7 +45,7 @@ impl SvgFilter {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Formats `value` through the element's internal scratch buffer and writes it as `name`.
     ///
-    /// Uses the same `SvgAttrs` scratch buffer that the shape factories use internally, so no extra allocation is made.
+    /// Uses the same `SvgAttrs` scratch buffer that the shape factories use internally, avoiding any extra allocation.
     /// Passing `"id"` (matched case-insensitively) returns [`Error::ReservedAttribute`];
     /// use [`set_id`](Self::set_id) instead.
     pub fn set_attr_display<T: std::fmt::Display>(&self, name: &str, value: T) -> Result<(), Error> {
