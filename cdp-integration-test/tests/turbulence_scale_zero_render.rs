@@ -88,7 +88,7 @@ use std::time::Duration;
 ///   scaleSixtySamples: [[r,g,b,a], ...]
 /// }
 /// ```
-/// 
+///
 /// Each sample sits 3px inside or 3px outside its own circle's own radius, at one of eight angles around it (inside
 /// samples first, then outside, in the same angle order), so index `i` in one array corresponds to the same offset and
 /// angle as index `i` in either other.
