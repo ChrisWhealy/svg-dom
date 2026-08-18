@@ -6,7 +6,9 @@ This directory describes what `svg-dom` currently supports:
 * their capabilities
 * element-focused guides for the ones with enough surface area to warrant one
 
-The basic element factories (`circle`, `ellipse`, `g`, `line`, `polygon`, `polyline`, `rect`) are listed below but do not yet have their own thematic page here — their construction is largely self-explanatory (a factory method plus the shared presentation-attribute setters on `SvgNode`), so consult their own rustdoc for the full signature of each.
+The basic element factories (`circle`, `ellipse`, `g`, `line`, `polygon`, `polyline`, `rect`) are listed below, but do not yet have their own thematic page here.
+Their construction is largely self-explanatory — a factory method, plus the shared presentation-attribute setters on `SvgNode`.
+Consult their own rustdoc for the full signature of each.
 
 Note that `<g>` is a structural/container element (SVG 2 classifies it as such), not a shape, despite sharing this factory grouping with the others for construction purposes.
 

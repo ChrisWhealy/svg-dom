@@ -39,7 +39,10 @@ The `MarkerUnits` enum controls whether `markerWidth`/`markerHeight` are relativ
 
 `stroke="none"` does not itself make the marker properties inapplicable.
 
-`set_view_box(x, y, width, height)` establishes an internal coordinate system for the marker's content, mapped onto the `markerWidth`/`markerHeight` viewport — the same `viewBox` relationship `<symbol>`/`<use>` has, validated the same way (`Error::InvalidViewBox` on a non-finite component or a negative `width`/`height`). `preserveAspectRatio` has no dedicated setter for `<marker>`; use `set_attr("preserveAspectRatio", value)`.
+`set_view_box(x, y, width, height)` establishes an internal coordinate system for the marker's content, mapped onto the `markerWidth`/`markerHeight` viewport.
+This is the same `viewBox` relationship `<symbol>`/`<use>` has, validated the same way — `Error::InvalidViewBox` on a non-finite component or a negative `width`/`height`.
+`preserveAspectRatio` has no dedicated setter for `<marker>`.
+Use `set_attr("preserveAspectRatio", value)`.
 
 ---
 
@@ -52,8 +55,9 @@ Obtain a handle via `SvgRoot::image(href, top_left, size)` or `SvgBatch::image(h
   When using `data:image/svg+xml`, use base64 encoding to avoid percent-encoding `<`, `>`, and `#`.
 - `top_left` and `size` define the display rectangle.
 
-  `svg-dom`'s `image` constructor requires a `Size` and therefore always writes both `width` and `height`; a zero value for either dimension prevents rendering.
-  This constraint is applied only by this convenience constructor, it is not actually part of SVG 2 itself.
+  `svg-dom`'s `image` constructor requires a `Size` and therefore always writes both `width` and `height`.
+  A zero value for either dimension prevents rendering.
+  This constraint is applied only by this convenience constructor. It is not actually part of SVG 2 itself.
   SVG 2 permits automatic sizing from the referenced resource's own intrinsic dimensions when `width`/`height` are omitted.
 
 - Control aspect-ratio handling with `set_attr("preserveAspectRatio", value)`:
@@ -68,7 +72,8 @@ Obtain a handle via `SvgRoot::image(href, top_left, size)` or `SvgBatch::image(h
 
 A `<symbol>` defines a reusable viewport.
 Unlike a plain `<g>` in `<defs>`, it can carry its own `viewBox` and `preserveAspectRatio`.
-The browser scales the symbol's content to fit the `<use>` element's `width` and `height`, exactly as it would an embedded `<svg>` &mdash; so the same definition renders correctly at any size with no manual rescaling.
+The browser scales the symbol's content to fit the `<use>` element's `width` and `height`, exactly as it would an embedded `<svg>`.
+So the same definition renders correctly at any size, with no manual rescaling.
 
 ### <symbol> API
 
@@ -104,7 +109,7 @@ svg.use_node("#badge", Point::new(60.0, 10.0))?.set_attr("width", "80")?;
 Symbol ids follow the same allow-pattern as markers and gradients: `[A-Za-z_][A-Za-z0-9_-]*`.
 A non-conforming id causes `Error::InvalidSymbolId` to be raised before any DOM call is made.
 
-Always use `SvgSymbol::set_id` to rename a symbol after construction; `set_attr("id", ...)` will be rejected with `Error::ReservedAttribute` to protect the cached value.
+Always use `SvgSymbol::set_id` to rename a symbol after construction. `set_attr("id", ...)` will be rejected with `Error::ReservedAttribute`, to protect the cached value.
 
 ---
 
@@ -115,7 +120,8 @@ Always use `SvgSymbol::set_id` to rename a symbol after construction; `set_attr(
 Obtain a handle via `SvgRoot::use_node(href, at)` or `SvgBatch::use_node(href, at)`.
 
 - `href` is normally a local fragment reference such as `"#my-shape"` (the `id` attribute of the target element).
-  The crate writes the value unchanged, so same-origin external SVG references such as `"icons.svg#my-shape"` are also representable (a URL containing no fragment references the whole external document), subject to browser security and resource-loading restrictions.
+  The crate writes the value unchanged, so same-origin external SVG references, such as `"icons.svg#my-shape"`, are also representable.
+  A URL containing no fragment references the whole external document, subject to browser security and resource-loading restrictions.
 - SVG 2 prohibits cross-origin external `<use>` references.
 - `at` is an `(x, y)` offset in the parent coordinate system; pass `Point::origin()` to control positioning entirely through `transform`.
 - Each returned `SvgNode` is independent: attributes set on one copy never affect the original or any other copy, but what an attribute actually does depends on its kind:
@@ -140,7 +146,7 @@ A `<use>` element can reference any element by id, including a `<symbol>` (see t
 Obtain a handle via `SvgRoot::anchor(href)` or `SvgBatch::anchor(href)`, then add children with `SvgNode::append`, exactly as with `group`.
 
 - `href` accepts anything a browser can navigate to: a relative path, an absolute URL, or a same-document fragment (`"#section"`).
-- `target` (`"_blank"`, `"_self"`, `"_parent"`, `"_top"`, or a named frame — the same vocabulary as HTML `<a target>`) is not wrapped by a named parameter; set it via `set_attr("target", value)`, alongside any other attribute (`download`, `rel`, ...) not covered here.
+- `target` (`"_blank"`, `"_self"`, `"_parent"`, `"_top"`, or a named frame — the same vocabulary as HTML `<a target>`) is not wrapped by a named parameter. Set it via `set_attr("target", value)`, alongside any other attribute (`download`, `rel`, ...) not covered here.
 - `href` is written verbatim; do not pass a `javascript:` URL or other attacker-controlled string without validation.
 
 ```rust,no_run
@@ -156,19 +162,24 @@ link.append(&label)?;
 ***⚠️ Links cannot be nested*** — an `<a>` appended somewhere inside another `<a>` has its own `href` ignored and is inactive, the same as in HTML. `SvgNode::append` does not check for this, so avoid appending the result of one `anchor` call inside another.
 
 ***⚠️ The clickable region is each child's own hit region, not the wrapper's bounding box*** — unlike wrapping children in a `<g>` purely for a shared transform, `<a>` does not make the whole rectangular area spanning its children clickable.
-Only points within each rendered child's `pointer-events`-defined hit region are clickable — not necessarily identical to its visibly painted pixels, since `fill`, `stroke`, `visibility`, and `pointer-events` itself all influence what that region actually covers; empty space between or around the children does not automatically become part of the link.
+Only points within each rendered child's `pointer-events`-defined hit region are clickable.
+That is not necessarily identical to its visibly painted pixels, since `fill`, `stroke`, `visibility`, and `pointer-events` itself all influence what that region actually covers.
+Empty space between or around the children does not automatically become part of the link.
 
 ---
 
 ## `<switch>`
 
-`<switch>` renders at most one of its direct children: the first one, in document order, whose conditional  processing attributes all evaluate to true, rather than rendering every child as `<g>` would.
+`<switch>` renders at most one of its direct children: the first one, in document order, whose conditional processing attributes all evaluate to true.
+This differs from rendering every child, the way `<g>` would.
 As per the SVG 2 specification, if none match, it renders **nothing**.
-A child with none of those attributes set always passes, so by appending an attribute-free element last (in document order), you create a fallback that guarantees something renders even when every other conditional child fails.
+A child with none of those attributes set always passes.
+So by appending an attribute-free element last, in document order, you create a fallback that guarantees something renders even when every other conditional child fails.
 
 Obtain a handle via `SvgRoot::switch()` or `SvgBatch::switch()`, then add children with `SvgNode::append`, exactly as with `group`.
 
-The conditional attributes themselves — `systemLanguage`, `requiredExtensions` (`requiredFeatures` existed in earlier SVG versions but was removed from SVG 2 because it proved unreliable as a feature-support test) — are not wrapped by named parameters; set them directly on each child via `set_attr`/`set_attrs`.
+The conditional attributes themselves — `systemLanguage`, `requiredExtensions` (`requiredFeatures` existed in earlier SVG versions but was removed from SVG 2 because it proved unreliable as a feature-support test) — are not wrapped by named parameters.
+Set them directly on each child via `set_attr`/`set_attrs`.
 This crate performs no validation or selection of its own: the browser evaluates each child's test attributes and picks the first match at render time.
 
 ```rust,no_run
@@ -195,7 +206,8 @@ switch.append(&fallback)?;
 
 SVG 2 activates `#viewId` fragment navigation only when the SVG resource named by `viewId` is itself *the document being navigated*, not merely any document that happens to contain a matching id. Concretely:
 
-- **A standalone SVG document, navigated directly** (opened in its own tab, or as the top-level document a same-document `#viewId` link/hash change targets): the browser substitutes its effective `viewBox`/`preserveAspectRatio` with this view's own, with no JavaScript needed.
+- **A standalone SVG document, navigated directly** (opened in its own tab, or as the top-level document a same-document `#viewId` link/hash change targets).
+  The browser substitutes its effective `viewBox`/`preserveAspectRatio` with this view's own, with no JavaScript needed.
 - **An external reference into an exported SVG file** — `<img src="diagram.svg#viewId">`, an SVG `<image>` with that `href`, or a plain hyperlink to `diagram.svg#viewId` — activates the same substitution for that resource.
 
   [`SvgNode::set_href`](crate::SvgNode::set_href) can re-trigger it on an already-loaded reference by changing the
@@ -203,7 +215,8 @@ SVG 2 activates `#viewId` fragment navigation only when the SVG resource named b
 - **An inline `<svg>` embedded in an HTML page — the case every [`SvgRoot::attach`](crate::SvgRoot::attach)/
   [`SvgRoot::create_in`](crate::SvgRoot::create_in) call in this crate deals with — does *not* qualify.**
 
-  The embedded SVG is not itself the navigated document, so this behaviour never activates for it; a same-page `<a href="#viewId">` click — whether an SVG-native [`SvgRoot::anchor`](crate::SvgRoot::anchor) inside it or a plain HTML link outside it — only updates `location.hash`, with no visible effect.
+  The embedded SVG is not itself the navigated document, so this behaviour never activates for it.
+  A same-page `<a href="#viewId">` click — whether an SVG-native [`SvgRoot::anchor`](crate::SvgRoot::anchor) inside it or a plain HTML link outside it — only updates `location.hash`, with no visible effect.
   Use [`SvgRoot::set_view_box`](crate::SvgRoot::set_view_box)/[`SvgRoot::set_viewport`](crate::SvgRoot::set_viewport) directly instead — the caller already has a live handle, so there is no need to go through a URL fragment.
 
 `<view>` is therefore useful primarily when an SVG document is exported, or embedded/navigated independently of any running WASM code — not for switching the viewport of the very SVG a running WASM instance is attached to.
@@ -230,27 +243,39 @@ preview.set_href("diagram.svg#detail")?;
 
 `<view>` is therefore useful primarily when an SVG document is exported, or embedded/navigated independently of any running WASM code — not for switching the viewport of the very SVG a running WASM instance is attached to.
 
-View ids follow the same crate-imposed allow-pattern as symbols and markers: `[A-Za-z_][A-Za-z0-9_-]*`. This is narrower than SVG/XML's own id grammar; it is a restriction this crate chooses, not a claim about what SVG itself permits, in exchange for every accepted id being unambiguously safe to embed in a `#id` fragment reference. A non-conforming id causes `Error::InvalidViewId` before any DOM call is made.
+View ids follow the same crate-imposed allow-pattern as symbols and markers: `[A-Za-z_][A-Za-z0-9_-]*`.
+This is narrower than SVG/XML's own id grammar.
+It is a restriction this crate chooses, not a claim about what SVG itself permits, in exchange for every accepted id being unambiguously safe to embed in a `#id` fragment reference.
+A non-conforming id causes `Error::InvalidViewId` before any DOM call is made.
 
-Always use `SvgView::set_id` to rename a view after construction; `set_attr("id", ...)` will be rejected with `Error::ReservedAttribute` to protect the cached value.
+Always use `SvgView::set_id` to rename a view after construction. `set_attr("id", ...)` will be rejected with `Error::ReservedAttribute`, to protect the cached value.
 
 ---
 
 ## `<foreignObject>`
 
-`<foreignObject>` defines a rectangular containing block in SVG user space within which foreign (typically HTML) content is laid out by the browser's own engine — CSS text flow/wrapping, form controls, and other HTML features that SVG's own text and shape model does not provide.
+`<foreignObject>` defines a rectangular containing block in SVG user space.
+Foreign (typically HTML) content is laid out inside it by the browser's own engine — CSS text flow/wrapping, form controls, and other HTML features that SVG's own text and shape model does not provide.
 
-Obtain a handle via `SvgRoot::foreign_object(top_left, size)` or `SvgBatch::foreign_object(top_left, size)`, which set `x`/`y`/`width`/`height` exactly like `rect`/`image`. Unlike most other reusable elements on this page, there is no `SvgDefs::foreign_object` — the same is true of `<image>`, since both place directly-rendered content at a position, rather than defining something referenced later.
+Obtain a handle via `SvgRoot::foreign_object(top_left, size)` or `SvgBatch::foreign_object(top_left, size)`, which set `x`/`y`/`width`/`height` exactly like `rect`/`image`.
+Unlike most other reusable elements on this page, there is no `SvgDefs::foreign_object`.
+The same is true of `<image>`, since both place directly-rendered content at a position, rather than defining something referenced later.
 
 ### This is a containing block, not an unconditional clip
 
-Browsers clip content to the rectangle by default — `<foreignObject>` gets `overflow: hidden` from the UA stylesheet, the same as `<svg>`/`<symbol>`/`<marker>`/`<pattern>`, the other elements that establish a new viewport — but that is an ordinary, overridable CSS property, not a structural guarantee SVG's rendering model enforces. Content set to `overflow: visible` can still paint outside the rectangle.
+Browsers clip content to the rectangle by default.
+`<foreignObject>` gets `overflow: hidden` from the UA stylesheet, the same as `<svg>`/`<symbol>`/`<marker>`/`<pattern>` — the other elements that establish a new viewport.
+But that is an ordinary, overridable CSS property, not a structural guarantee SVG's rendering model enforces.
+Content set to `overflow: visible` can still paint outside the rectangle.
 
 ### No content-setting method — by design
 
-The factory returns an *empty* `<foreignObject>`; there is no `set_inner_html`/`set_content` method to fill it. That is a deliberate limit on this crate's public surface, not a missing feature.
+The factory returns an *empty* `<foreignObject>`.
+There is no `set_inner_html`/`set_content` method to fill it.
+That is a deliberate limit on this crate's public surface, not a missing feature.
 
-A string-based HTML convenience method would need to parse caller-supplied markup (typically via `innerHTML` or an equivalent browser parsing API) and parsing arbitrary markup means taking on sanitisation and trust concerns this crate has no business maintaining.
+A string-based HTML convenience method would need to parse caller-supplied markup, typically via `innerHTML` or an equivalent browser parsing API.
+Parsing arbitrary markup means taking on sanitisation and trust concerns this crate has no business maintaining.
 No part of this crate's public API parses a string as markup anywhere (the crate's top-level documentation states that guarantee explicitly), and this factory does not make an exception for `<foreignObject>`.
 Callers can instead construct nodes explicitly through the raw DOM escape hatch described below.
 
@@ -282,7 +307,8 @@ HTML content inside a `<foreignObject>` is treated like any other non-SVG node t
 
   A `<foreignObject>` whose first child is HTML causes `first_child()` to return `None` even if a genuine SVG element exists as a later sibling, say, the *second* child.
 
-This is existing, general behaviour that every one of those methods already documents individually; it applies here because `<foreignObject>` is the element on which it is actually reachable.
+This is existing, general behaviour that every one of those methods already documents individually.
+It applies here because `<foreignObject>` is the element on which it is actually reachable.
 Use `as_element()` and the raw `web_sys` API if you need to see that content too.
 
 ### Browser support

@@ -41,7 +41,9 @@ Four typed helpers are available on any `SvgNode` for styling text:
 In other words, the baseline of the letters follow the outline defined by the path instead of a straight line.
 
 `text_path(href, content)` is implemented generically on `SvgNode`, but per the SVG2 content model, `<text>` is the only conforming parent for a `<textPath>`.
-When called on the `SvgNode` returned by `SvgRoot::text` or `SvgBatch::text`, `<tspan>` and `<textPath>` may contain text and nested `<tspan>` elements, but not a nested `<textPath>`; the crate does not enforce this at the type level, so calling `text_path` on one of those will not error, but the resulting markup will not conform to the SVG2 content model spec.
+When called on the `SvgNode` returned by `SvgRoot::text` or `SvgBatch::text`, `<tspan>` and `<textPath>` may contain text and nested `<tspan>` elements, but not a nested `<textPath>`.
+The crate does not enforce this at the type level.
+So calling `text_path` on one of those will not error, but the resulting markup will not conform to the SVG2 content model spec.
 
 | Method | Effect |
 |---|---|
@@ -56,7 +58,8 @@ When called on the `SvgNode` returned by `SvgRoot::text` or `SvgBatch::text`, `<
 - All text styling helpers (`set_fill`, `set_font_size`, `set_font_family`) work on the returned `SvgNode` exactly as they do for `<tspan>`.
 - To offset by a percentage of the path length instead of an absolute distance, call `set_attr("startOffset", "50%")` directly.
 
-**Browser support:** `side` is an SVG2 addition; verify it renders as expected on every browser you target before relying on `TextPathSide::Right` in production.
+**Browser support:** `side` is an SVG2 addition.
+Verify it renders as expected on every browser you target, before relying on `TextPathSide::Right` in production.
 
 ---
 
@@ -72,7 +75,7 @@ Call these helpers only on an `SvgNode` wrapping a `<text>`, `<textPath>`, or `<
 | Method | Effect |
 |---|---|
 | `node.tspan(content)` | Appends a `<tspan>` with `content`; inherits position from the parent. |
-| `node.tspan_dy(dy, content)` | Same, but also sets `dy` — advances the text position `dy` user units downward, *continuing from the current horizontal position*. Correct for superscripts, subscripts, and other in-line vertical nudges, but it does **not** reset `x` position, so subsequent lines form a staircase descending to the right by however much the previous line's rendered width was, rather than staying left-aligned. This is analogous to the old dot-matrix printer problem of issuing a line feed command, but not issuing a carriage return command. |
+| `node.tspan_dy(dy, content)` | Same, but also sets `dy` — advances the text position `dy` user units downward, *continuing from the current horizontal position*. Correct for superscripts, subscripts, and other in-line vertical nudges. But it does **not** reset `x` position. So subsequent lines form a staircase descending to the right, by however much the previous line's rendered width was, rather than staying left-aligned. This is analogous to the old dot-matrix printer problem of issuing a line feed command, but not issuing a carriage return command. |
 | `node.tspan_line(x, dy, content)` | Sets **both** an absolute `x` and a relative `dy` — resets the horizontal position to `x` and advances `dy` user units down. This is the correct helper for aligned multi-line text. |
 | `node.set_dy(dy)` | Sets the `dy` attribute on an existing node. |
 | `node.set_dx(dx)` | Sets the `dx` attribute on an existing node (horizontal offset). |
@@ -80,7 +83,9 @@ Call these helpers only on an `SvgNode` wrapping a `<text>`, `<textPath>`, or `<
 All text styling helpers (`set_fill`, `set_font_size`, `set_font_family`, `set_text_anchor`, `set_dominant_baseline`) work on the returned `SvgNode` and override the inherited value for that span only.
 
 **Multi-line, left-aligned text:**<br>
-Create a `<text>` with an empty content string (`""`), add the first line as a plain `tspan` (it inherits `x` from the parent), then add each subsequent line with `tspan_line(x, line_height, content)` using the same `x` every time:
+Create a `<text>` with an empty content string (`""`).
+Add the first line as a plain `tspan` — it inherits `x` from the parent.
+Then add each subsequent line with `tspan_line(x, line_height, content)`, using the same `x` every time:
 
 ```rust,no_run
 use svg_dom::{SvgRoot, root::utils::Point};

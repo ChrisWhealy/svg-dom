@@ -10,17 +10,21 @@
 
 A `<path>` is created either from a hand-written `d` string (`SvgRoot::path(d)`) or, if you prefer a type-safe approach, from a sequence of typed `PathDef` segments (`SvgRoot::path_from_defs(&[PathDef])`).
 
-A hand-written `d` string is free text, so any typos will be silently accepted by the SVG parser, which will then simply stop rendering at the first bad token rather than reporting an error.
+A hand-written `d` string is free text, so any typos will be silently accepted by the SVG parser.
+The parser will then simply stop rendering at the first bad token, rather than reporting an error.
 
-The use of `path_from_defs` removes that failure mode for individual commands since the `d` attribute is built internally from `PathDef` values, so a mistyped command letter, wrong argument count, or invalid arc flag can never be constructed.
+Using `path_from_defs` removes that failure mode for individual commands.
+The `d` attribute is built internally from `PathDef` values, so a mistyped command letter, wrong argument count, or invalid arc flag can never be constructed.
 
 That guarantee is about individual commands, yet it is still possible to create a command sequence that fails to be a valid path:
 
-- Any non-empty path ***must*** start with a moveto (`M`/`m`) command; a browser silently renders nothing for a path that starts with anything else. 
+- Any non-empty path ***must*** start with a moveto (`M`/`m`) command.
+   A browser silently renders nothing for a path that starts with anything else.
    `path_from_defs`, `SvgNode::set_d_from_defs`, and the `SvgAttrs` / `AnimationFrame` `d_from_defs` methods all check this (requiring an O(1) look at the first command) and return `Error::InvalidPathData` if it fails.
    `build_d` / `write_d` (and their `_fixed` siblings) do **not** perform this check, since they may legitimately be used to build path-data *fragments* rather than a complete, standalone path.
 
-- Coordinates are unconstrained `f64` values, so nothing stops `f64::NAN` or `f64::INFINITY` from being supplied — the SVG number grammar has no representation for either, so `PathDef` cannot format a valid path from one.
+- Coordinates are unconstrained `f64` values, so nothing stops `f64::NAN` or `f64::INFINITY` from being supplied.
+   The SVG number grammar has no representation for either, so `PathDef` cannot format a valid path from one.
    No function in the path API checks for this, since doing so would mean visiting every numeric argument of every command on every call, including the buffer-reusing per-frame ones.
    Validate with `f64::is_finite()` before constructing a `PathDef` if your coordinates come from a calculation (division, trigonometry) that could produce one.
 
@@ -41,7 +45,7 @@ That guarantee is about individual commands, yet it is still possible to create 
 | `path(d)` | `SvgRoot`, `SvgBatch`, `SvgDefs`, `SvgClipPath`, `SvgMarker`, `SvgMask`, `SvgPattern`, `SvgSymbol` | Creates a `<path>` from a raw `d` string. |
 | `path_from_defs(&[PathDef])` | Same set of types | Creates a `<path>` from typed segments, writing `d` through the factory's own retained `SvgAttrs` buffer — no extra allocation beyond the first call. |
 | `SvgNode::set_d(d)` | Any `SvgNode` | Updates an existing `<path>`'s `d` string. |
-| `SvgNode::set_d_from_defs(&[PathDef])` | Any `SvgNode` | Updates an existing `<path>`'s `d` from typed segments. Allocates a fresh `String` per call; consequently, this should only be used for occasional updates. See below for the hot-path alternatives. |
+| `SvgNode::set_d_from_defs(&[PathDef])` | Any `SvgNode` | Updates an existing `<path>`'s `d` from typed segments. Allocates a fresh `String` per call. This should only be used for occasional updates — see below for the hot-path alternatives. |
 | `build_d(&[PathDef])` | Free function | Builds a `d` string without creating or updating any element — useful for composing a path in pieces. |
 | `write_d(&mut String, &[PathDef])` | Free function | The buffer-reusing counterpart to `build_d`, for a hot path that rebuilds a curve every frame. |
 

@@ -41,7 +41,8 @@ This a gradient that radiates outward from the focal point at `fx / fy` towards 
 
 - `set_fr` sets the radius of the focal/start circle (SVG 2).
 
-  The gradient's `0%` stop is mapped to that circle's perimeter, and its interior is painted with the first stop's colour; however, `fr` does not inherently create a hole.
+  The gradient's `0%` stop is mapped to that circle's perimeter, and its interior is painted with the first stop's colour.
+  However, `fr` does not inherently create a hole.
   A hollow-looking centre is created from the stop colours themselves, e.g. a transparent first stop.
 
 - Apply with `SvgNode::set_fill_radial_gradient` / `SvgNode::set_stroke_radial_gradient`.
@@ -63,7 +64,7 @@ Applicable to both gradient types:
 ***IMPORTANT***
 
 * All gradient ids must match the pattern `[A-Za-z_][A-Za-z0-9_-]*`.
-* The ids used by the SVG paint-server are document-scoped not SVG-element-scoped; therefore, they must be globally unique across all `<svg>` elements on the page (using `url(#id)`).
+* The ids used by the SVG paint-server are document-scoped, not SVG-element-scoped. Therefore, they must be globally unique across all `<svg>` elements on the page, when referenced via `url(#id)`.
 
 A fully qualified prefix such as `"my-app-sky-gradient"` is a practical guard against collisions.
 
@@ -72,7 +73,8 @@ A fully qualified prefix such as `"my-app-sky-gradient"` is a practical guard ag
 ## `<pattern>`
 
 A `<pattern>` element defines a tiled graphic that is painted repeatedly to fill (or stroke) the region of any element that references it via `fill="url(#id)"` or `stroke="url(#id)"`.
-Like `<clipPath>`, it is a shape container; but unlike the linear or radial gradients, each tile is a full rendered graphic rather than a colour interpolation.
+Like `<clipPath>`, it is a shape container.
+But unlike the linear or radial gradients, each tile is a full rendered graphic, rather than a colour interpolation.
 
 To live-append a `<pattern>` directly to the DOM, call `SvgDefs::pattern(id)`
 
@@ -97,7 +99,8 @@ Apply it to any element with `SvgNode::set_fill_pattern_ref(&pat)` or `SvgNode::
 | `set_attr(name, value)` | — | Generic setter for unlisted attributes |
 
 ***IMPORTANT***<br>
-When a `viewBox` is present, it establishes the tile content's coordinate system on its own, and the value of `patternContentUnits` is ignored — as per the SVG 2 spec, a `viewBox` supersedes it.
+When a `viewBox` is present, it establishes the tile content's coordinate system on its own.
+The value of `patternContentUnits` is then ignored — as per the SVG 2 spec, a `viewBox` supersedes it.
 `patternUnits` is unaffected either way and always controls the tile's own `x`, `y`, `width`, and `height` values.
 
 All shape factory methods are available on `SvgPattern`.
@@ -154,4 +157,4 @@ Ok::<(), svg_dom::Error>(())
 
 * All pattern ids must match the pattern `[A-Za-z_][A-Za-z0-9_-]*`.
 * Ids are document-scoped, so they must be globally unique across all `<svg>` elements on the page.
-* Always use `SvgPattern::set_id` to rename a pattern after construction; `set_attr("id", ...)` will be rejected with `Error::ReservedAttribute` to protect the cached value.
+* Always use `SvgPattern::set_id` to rename a pattern after construction. `set_attr("id", ...)` will be rejected with `Error::ReservedAttribute`, to protect the cached value.

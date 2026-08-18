@@ -10,7 +10,8 @@
 ## `<clipPath>`
 
 A `<clipPath>` restricts the rendered region of any element that references it.
-The browser paints only the parts of the referencing element that fall inside the union of all shapes placed inside the `<clipPath>`; everything lying outside this boundary remains invisible.
+The browser paints only the parts of the referencing element that fall inside the union of all shapes placed inside the `<clipPath>`.
+Everything lying outside this boundary remains invisible.
 
 To live-append a path to the DOM, call `SvgDefs::clip_path(id)`.
 
@@ -26,14 +27,18 @@ Remove the clip with `SvgNode::remove_clip_path()`.
 Available on `SvgClipPath`: `rect`, `circle`, `ellipse`, `line`, `path`, `polyline`, `polygon`, `text`
 
 There is deliberately no `group()` here, unlike `SvgMask`/`SvgPattern`/`SvgSymbol`.
-Per the CSS Masking Module Level 1 content model, `<clipPath>` only accepts shape elements, `<text>`, and `<use>` as children; however, `<g>` is not a conforming child, so wrapping several clip shapes in a group would produce non-conforming SVG with undefined cross-browser behaviour.
+Per the CSS Masking Module Level 1 content model, `<clipPath>` only accepts shape elements, `<text>`, and `<use>` as children.
+`<g>`, however, is not a conforming child.
+So wrapping several clip shapes in a group would produce non-conforming SVG with undefined cross-browser behaviour.
 
-Instead, add multiple shapes as direct siblings of the `<clipPath>`; every shape added already contributes to the same unioned clip region, so grouping is not necessary.
+Instead, add multiple shapes as direct siblings of the `<clipPath>`.
+Every shape added already contributes to the same unioned clip region, so grouping is not necessary.
 
 A clip region is computed purely from the raw *fill* geometry of its children.
 Irrespective of their visibility, `stroke` and `stroke-width` do not participate in this computation.
 
-A `<line>` is one-dimensional and therefore cannot have any fill area under any circumstances, so on its own, it contributes nothing to the clip silhouette, however it is stroked.
+A `<line>` is one-dimensional and therefore cannot have any fill area under any circumstances.
+So on its own, it contributes nothing to the clip silhouette, no matter how it is stroked.
 
 When defining clip regions, prefer area shapes (`rect`, `circle`, `path`, `polygon`) over `<line>`.
 
@@ -58,13 +63,14 @@ Controlled by `SvgClipPath::set_units(ClipPathUnits)`:
 
 * All clip-path ids must match the pattern `[A-Za-z_][A-Za-z0-9_-]*`.
 * Ids are document-scoped, so they must be globally unique across all `<svg>` elements on the page.
-* A `<clipPath>` defined in one `<svg>`'s `<defs>` can only be referenced by elements inside the same document; it cannot be used across `\<iframe\>`s or shadow trees.
+* A `<clipPath>` defined in one `<svg>`'s `<defs>` can only be referenced by elements inside the same document. It cannot be used across `\<iframe\>`s or shadow trees.
 
 ---
 
 ## `<mask>`
 
-A `<mask>` reveals or hides parts of any element that references it based either on both the luminance and alpha values of the mask's own rendered content, or on the alpha-only value of the mask's own rendered content.
+A `<mask>` reveals or hides parts of any element that references it.
+This is based either on the combined luminance and alpha of the mask's own rendered content, or on its alpha value alone.
 
 Unlike `<clipPath>`, which defines a hard, binary boundary defined purely by shape geometry (where something is either inside or outside the boundary), `<mask>` supports gradual transparency.
 Each pixel of the referencing element is scaled by a value derived from the corresponding pixel of the mask's rendered content.
@@ -105,10 +111,12 @@ Controlled by `SvgMask::set_mask_type(MaskType)`:
 | `Luminance` | ✅ | The masked element is revealed according to the combination of the mask content's perceived brightness *and* its opacity.<br>Transparent content hides fully no matter how bright its colour is. |
 | `Alpha` |  | The mask content's rendered alpha channel determines visibility; colour and luminance are ignored.<br>Alpha may come from `fill-opacity`, `stroke-opacity`, overall `opacity`, transparent paint or images, gradients, and filter output — not just `fill-opacity`/`opacity`. |
 
-`mask-type` expresses the `<mask>` element's own preference; the element that *references* the mask can override it with its own `mask-mode` **CSS property**.
-Unlike `mask-type`, `mask-mode` is not an SVG presentation attribute, so it cannot be set as a plain XML attribute — a literal `mask-mode="alpha"` attribute is not the specification-defined syntax, whatever some browsers happen to tolerate.
+`mask-type` expresses the `<mask>` element's own preference.
+The element that *references* the mask can override it with its own `mask-mode` **CSS property**.
+Unlike `mask-type`, `mask-mode` is not an SVG presentation attribute, so it cannot be set as a plain XML attribute.
+A literal `mask-mode="alpha"` attribute is not the specification-defined syntax, whatever some browsers happen to tolerate.
 
-There is no dedicated typed setter for it; write it into the element's `style` attribute instead, e.g. `SvgNode::set_attr("style", "mask-mode: alpha")`.
+There is no dedicated typed setter for it. Write it into the element's `style` attribute instead, e.g. `SvgNode::set_attr("style", "mask-mode: alpha")`.
 On its own, this statement will overwrite the whole `style` attribute, so merge in any other inline declarations the element may already need/have.
 
 `mask-mode`'s default, `match-source`, honours `mask-type`, so this override only matters if a caller sets `mask-mode` explicitly.
@@ -134,4 +142,5 @@ A mask shape that extends further than this (a wide gradient sweep or a large so
 To widen it explicitly, use `set_x`/`set_y`/`set_width`/`set_height` when that happens.
 
 ***WARNING***<br>Keep the region only as large as required.
-As with a `<filter>` region, while evaluating the mask, the browser must create an offscreen buffer, so creating an unnecessarily large region may increase rendering and memory cost.
+As with a `<filter>` region, the browser must create an offscreen buffer while evaluating the mask.
+So creating an unnecessarily large region may increase rendering and memory cost.
