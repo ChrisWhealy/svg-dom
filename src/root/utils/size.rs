@@ -31,7 +31,7 @@ impl Size {
 
     /// Returns the height as a freshly allocated `String`.
     ///
-    /// Deprecated for the same reason as [`get_width_str`](Self::get_width_str); use the allocation-light setters named there.
+    /// Deprecated for the same reason as [`get_width_str`](Self::get_width_str). Use the allocation-light setters named there.
     #[deprecated(
         since = "0.1.39",
         note = "allocates a String per call; instead, format through a reused buffer with SvgNode::set_attr_display, SvgAttrs::display, or AttrWriter::display"

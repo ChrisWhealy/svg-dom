@@ -12,11 +12,12 @@ impl SvgFilter {
     /// [`convolve_matrix_xy`](Self::convolve_matrix_xy): creates a `<feConvolveMatrix>`, writes `order` alongside
     /// `kernelMatrix`, `divisor`, `edgeMode`, and `preserveAlpha`, then appends it.
     ///
-    /// `order` is a pre-built [`fmt::Arguments`] rather than a `&str` so the two public callers can pass either a
-    /// single number or an `"x y"` pair through
-    /// [`display_element`](crate::root::attrs::SvgAttrs::display_element)'s retained scratch buffer without first
-    /// collecting into an owned `String` — the same technique the private `gaussian_blur_args`/`turbulence_args`/
-    /// `morphology_args` helpers use for their own `<number-optional-number>` attribute.
+    /// `order` is a pre-built [`fmt::Arguments`] rather than a `&str`.
+    /// This lets the two public callers pass either a single number or an `"x y"` pair through
+    /// [`display_element`](crate::root::attrs::SvgAttrs::display_element)'s retained scratch buffer, without first
+    /// collecting into an owned `String`.
+    /// The private `gaussian_blur_args`/`turbulence_args`/`morphology_args` helpers use the same technique for
+    /// their own `<number-optional-number>` attribute.
     fn convolve_matrix_args(
         &self,
         order: fmt::Arguments<'_>,
@@ -40,79 +41,96 @@ impl SvgFilter {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Appends a `<feConvolveMatrix>` primitive to this filter, applying a square `order`×`order` matrix convolution
-    /// — the general image-processing operation behind sharpening, blurring, embossing, and edge-detection kernels.
+    /// Appends a `<feConvolveMatrix>` primitive to this filter, applying a square `order`×`order` matrix convolution.
+    /// This is the general image-processing operation behind sharpening, blurring, embossing, and edge-detection
+    /// kernels.
     ///
     /// `kernel_matrix` must contain exactly `order * order` values, in row-major order (left-to-right, top-to-bottom,
-    /// matching the SVG spec's own reading order for the rectangle it describes). Per the SVG specification, the
-    /// kernel is applied *rotated 180 degrees* relative to the input, to match the convolution convention used in
-    /// most computer-graphics textbooks — for a kernel that is not rotationally symmetric (a directional
-    /// edge-detect, for instance), write it already accounting for this rotation, or equivalently, treat the values
-    /// you supply as already describing the rotated kernel.
+    /// matching the SVG spec's own reading order for the rectangle it describes).
+    /// Per the SVG specification, the kernel is applied *rotated 180 degrees* relative to the input.
+    /// This matches the convolution convention used in most computer-graphics textbooks.
+    /// For a kernel that is not rotationally symmetric, a directional edge-detect for instance, write it already
+    /// accounting for this rotation.
+    /// Equivalently, treat the values you supply as already describing the rotated kernel.
     ///
     /// For each output pixel, every kernel entry is multiplied by the corresponding input pixel in its
-    /// `order`×`order` neighbourhood, the products are summed, divided by `divisor`, and `bias` (`0.0` unless set
-    /// via the generic escape hatch — see below) is added: `(Σ kernel × source) / divisor + bias`.
+    /// `order`×`order` neighbourhood.
+    /// The products are summed, divided by `divisor`, and `bias` is added: `(Σ kernel × source) / divisor + bias`.
+    /// `bias` defaults to `0.0` unless set via the generic escape hatch — see below.
     ///
-    /// Prefer small kernels, normally `3` or `5`: this per-pixel sum is taken over `order * order` entries, so
-    /// rendering cost rises with the *square* of `order`, and the SVG specification itself recommends small values
-    /// (`3` given as its own example), warning that larger ones "may result in very high CPU overhead" without a
-    /// proportionate visual benefit. This is a rendering-cost warning about the browser's own evaluation of the
-    /// resulting `<feConvolveMatrix>`, not a cost inside this crate — serializing `kernel_matrix` here is linear in
-    /// its length regardless of `order`. A large `order` is not rejected; it is legal SVG and occasionally
-    /// necessary, just markedly more expensive to render than the `3`×`3`/`5`×`5` kernels used throughout this
-    /// primitive's own examples.
+    /// Prefer small kernels, normally `3` or `5`.
+    /// This per-pixel sum is taken over `order * order` entries, so rendering cost rises with the *square* of
+    /// `order`.
+    /// The SVG specification itself recommends small values (`3` given as its own example).
+    /// It warns that larger ones "may result in very high CPU overhead" without a proportionate visual benefit.
+    /// This is a rendering-cost warning about the browser's own evaluation of the resulting `<feConvolveMatrix>`,
+    /// not a cost inside this crate.
+    /// Serializing `kernel_matrix` here is linear in its length, regardless of `order`.
+    /// A large `order` is not rejected; it is legal SVG and occasionally necessary, just markedly more expensive to
+    /// render than the `3`×`3`/`5`×`5` kernels used throughout this primitive's own examples.
     ///
-    /// `divisor` scales the summed products down to a usable range — for a kernel whose values already sum to `1.0`
-    /// (the common case for a blur or sharpen kernel that should preserve overall brightness), `1.0` is the natural
-    /// choice. A kernel whose values sum to something else (many edge-detect kernels sum to `0`) still needs an
-    /// explicit `divisor`, since there is no single value that is "natural" for every such kernel — `1.0` is a
-    /// reasonable default when in doubt, and is what every example below uses.
+    /// `divisor` scales the summed products down to a usable range.
+    /// For a kernel whose values already sum to `1.0`, the common case for a blur or sharpen kernel that should
+    /// preserve overall brightness, `1.0` is the natural choice.
+    /// A kernel whose values sum to something else, many edge-detect kernels sum to `0`, still needs an explicit
+    /// `divisor`.
+    /// There is no single value that is "natural" for every such kernel.
+    /// `1.0` is a reasonable default when in doubt, and is what every example below uses.
     ///
-    /// Per the SVG spec, `divisor: 0.0` is not an error: the renderer silently substitutes the sum of
-    /// `kernel_matrix`'s own values instead (or `1.0`, if that sum is itself `0.0`), rather than dividing by zero.
+    /// Per the SVG spec, `divisor: 0.0` is not an error.
+    /// The renderer silently substitutes the sum of `kernel_matrix`'s own values instead, or `1.0` if that sum is
+    /// itself `0.0`, rather than dividing by zero.
     /// This crate does not special-case or reject `0.0` before it reaches the DOM, since the fallback is already
-    /// well-defined; pass the value you actually intend rather than relying on it.
+    /// well-defined.
+    /// Pass the value you actually intend, rather than relying on it.
     ///
     /// `edge_mode` selects how the input is virtually extended wherever the kernel overhangs its border — see
     /// [`EdgeMode`] for the three keywords and what each looks like in practice.
     ///
-    /// `preserve_alpha`, if `true`, un-premultiplies colour before convolving (so only R/G/B are affected, and alpha
-    /// passes through completely unfiltered), then re-premultiplies the result — the usual choice when convolving a
-    /// partially-transparent input whose edges should not visibly erode or bleed. If `false` (the SVG default), the
-    /// convolution runs directly on premultiplied R/G/B/A, so the alpha channel is convolved too, alongside colour.
+    /// `preserve_alpha`, if `true`, un-premultiplies colour before convolving, so only R/G/B are affected and alpha
+    /// passes through completely unfiltered.
+    /// It then re-premultiplies the result.
+    /// This is the usual choice when convolving a partially-transparent input whose edges should not visibly erode
+    /// or bleed.
+    /// If `false` (the SVG default), the convolution runs directly on premultiplied R/G/B/A, so the alpha channel is
+    /// convolved too, alongside colour.
     ///
-    /// If this is the filter's first primitive, its implicit input is `SourceGraphic`. Use the returned [`SvgNode`]'s
-    /// [`set_attr`](crate::SvgNode::set_attr) to set `in` or `result` (neither has a dedicated setter), and likewise
-    /// for `bias`, `targetX`, or `targetY` — every one of which keeps its own SVG default unless set explicitly (see
-    /// the warning below for `bias`).
+    /// If this is the filter's first primitive, its implicit input is `SourceGraphic`.
+    /// Use the returned [`SvgNode`]'s [`set_attr`](crate::SvgNode::set_attr) to set `in` or `result`, since neither
+    /// has a dedicated setter.
+    /// Do the same for `bias`, `targetX`, or `targetY`.
+    /// Each of these keeps its own SVG default unless set explicitly — see the warning below for `bias`.
     ///
     /// `kernelUnitLength` is also reachable the same way, but is a deprecated legacy attribute for requesting
-    /// explicit kernel sampling intervals: the current Filter Effects specification marks it deprecated and slated
-    /// for removal, since it does not reliably achieve the device-independent rendering it was meant to provide. It
-    /// remains available through `set_attr` since a deprecated attribute is not a removed one, but should not be
+    /// explicit kernel sampling intervals.
+    /// The current Filter Effects specification marks it deprecated and slated for removal.
+    /// It does not reliably achieve the device-independent rendering it was meant to provide.
+    /// It remains available through `set_attr` since a deprecated attribute is not a removed one, but should not be
     /// relied upon for platform-independent rendering.
     ///
     /// See [`convolve_matrix_xy`](Self::convolve_matrix_xy) for an `order_x`×`order_y` rectangular kernel — the SVG
     /// `order` attribute accepts either one or two numbers, and this method covers only the one-number,
     /// square-kernel form.
     ///
-    /// ***⚠️ A `kernel_matrix` whose length does not equal `order * order` is not rejected*** — per the SVG spec,
-    /// `<feConvolveMatrix>` "acts as a pass through filter" in that case (`in` is rendered unchanged), rather than
-    /// this crate raising an error or the browser refusing to render. Double-check `kernel_matrix.len()` against
-    /// `order * order` yourself; a silently inert filter is easy to mistake for a filter that simply has no visible
-    /// effect on the chosen input.
+    /// ***⚠️ A `kernel_matrix` whose length does not equal `order * order` is not rejected***.
+    /// Per the SVG spec, `<feConvolveMatrix>` "acts as a pass through filter" in that case, and `in` is rendered
+    /// unchanged.
+    /// This crate does not raise an error, nor does the browser refuse to render.
+    /// Double-check `kernel_matrix.len()` against `order * order` yourself; a silently inert filter is easy to
+    /// mistake for a filter that simply has no visible effect on the chosen input.
     ///
-    /// ***⚠️ `bias` defaults to `0.0`, which clamps every negative convolution result to black*** — a kernel whose
-    /// values can produce a negative sum (most edge-detect and emboss kernels) needs a non-zero `bias` to shift that
-    /// range back into the visible `0.0`–`1.0` window; `0.5` is the standard choice for a *classic* embossed-grey
-    /// look, so the flat (zero-response) areas of the image render as mid-grey rather than black. Set it via
-    /// `set_attr("bias", "0.5")` on the returned node — see the emboss example below.
+    /// ***⚠️ `bias` defaults to `0.0`, which clamps every negative convolution result to black***.
+    /// A kernel whose values can produce a negative sum, most edge-detect and emboss kernels, needs a non-zero
+    /// `bias` to shift that range back into the visible `0.0`–`1.0` window.
+    /// `0.5` is the standard choice for a *classic* embossed-grey look.
+    /// This makes the flat (zero-response) areas of the image render as mid-grey, rather than black.
+    /// Set it via `set_attr("bias", "0.5")` on the returned node — see the emboss example below.
     ///
-    /// `order` itself, unlike the two caveats above, *is* rejected when it is `0`: the SVG spec requires `order`'s
-    /// component(s) to be an integer greater than zero, and (unlike the length-mismatch or zero-`divisor` cases) gives
-    /// no defined fallback for a zero component, so this crate returns [`Error::InvalidConvolveMatrixOrder`] rather
-    /// than serializing a value the specification never assigns a meaning to.
+    /// `order` itself, unlike the two caveats above, *is* rejected when it is `0`.
+    /// The SVG spec requires `order`'s component(s) to be an integer greater than zero.
+    /// Unlike the length-mismatch or zero-`divisor` cases, it gives no defined fallback for a zero component.
+    /// This crate therefore returns [`Error::InvalidConvolveMatrixOrder`], rather than serializing a value the
+    /// specification never assigns a meaning to.
     ///
     /// # Errors
     ///
@@ -140,9 +158,9 @@ impl SvgFilter {
     /// Ok::<(), svg_dom::Error>(())
     /// ```
     ///
-    /// A 3×3 emboss kernel — its values sum to `0.0`, so a flat region of input convolves to `0.0`; `bias: 0.5`
-    /// (set via the generic escape hatch, since it is not one of this method's own parameters) shifts that midpoint
-    /// up to mid-grey instead of black:
+    /// A 3×3 emboss kernel — its values sum to `0.0`, so a flat region of input convolves to `0.0`.
+    /// `bias: 0.5` (set via the generic escape hatch, since it is not one of this method's own parameters) shifts
+    /// that midpoint up to mid-grey instead of black:
     ///
     /// ```rust,no_run
     /// use svg_dom::{SvgRoot, root::filter::EdgeMode};
@@ -178,18 +196,20 @@ impl SvgFilter {
     /// Appends a `<feConvolveMatrix>` primitive to this filter with an `order_x`×`order_y` rectangular kernel,
     /// writing the SVG `order="order_x order_y"` two-number form internally.
     ///
-    /// `kernel_matrix` must contain exactly `order_x * order_y` values — `order_x` columns per row, `order_y` rows —
-    /// in the same row-major, 180-degree-rotated sense [`convolve_matrix`](Self::convolve_matrix)'s own doc comment
-    /// describes.
+    /// `kernel_matrix` must contain exactly `order_x * order_y` values: `order_x` columns per row, `order_y` rows.
+    /// This is the same row-major, 180-degree-rotated sense [`convolve_matrix`](Self::convolve_matrix)'s own doc
+    /// comment describes.
     ///
-    /// A rectangular kernel is the natural shape for a directional effect — a `1`×`n` or `n`×`1` kernel applied
-    /// along one axis only (a horizontal-only or vertical-only blur/sharpen/motion-streak), rather than the
-    /// isotropic effect a square kernel of the same total width produces along both axes at once.
+    /// A rectangular kernel is the natural shape for a directional effect.
+    /// A `1`×`n` or `n`×`1` kernel applies along one axis only, a horizontal-only or vertical-only blur, sharpen, or
+    /// motion-streak.
+    /// A square kernel of the same total width instead produces an isotropic effect along both axes at once.
     ///
     /// See [`convolve_matrix`](Self::convolve_matrix) for `divisor`, `edge_mode`, `preserve_alpha`, the `in`/`result`/
     /// `bias`/`targetX`/`targetY` escape hatch, the length-mismatch pass-through caveat, the `bias` warning, and the
-    /// small-kernel performance recommendation, all of which apply identically here — the rendering cost rises with
-    /// `order_x * order_y` just as it does with `order * order` for a square kernel.
+    /// small-kernel performance recommendation.
+    /// All of these apply identically here.
+    /// The rendering cost rises with `order_x * order_y` just as it does with `order * order` for a square kernel.
     ///
     /// `kernelUnitLength` is likewise reachable via the same escape hatch, but see
     /// [`convolve_matrix`](Self::convolve_matrix)'s own doc comment for why it is a deprecated attribute this crate

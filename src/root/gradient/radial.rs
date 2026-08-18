@@ -3,16 +3,17 @@ use super::*;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// A `<radialGradient>` element defined inside a `<defs>` block.
 ///
-/// A radial gradient paints a smooth colour transition that radiates outward in a circle (or ellipse)
-/// from a focal point (`fx`, `fy`) through the outer circle defined by its centre (`cx`, `cy`) and radius (`r`).
+/// A radial gradient paints a smooth colour transition that radiates outward in a circle or ellipse from a focal
+/// point (`fx`, `fy`). The transition passes through an outer circle, defined by its centre (`cx`, `cy`) and radius
+/// (`r`).
 ///
 /// Under the default `gradientUnits="objectBoundingBox"`, all geometry values are fractions of the
 /// painted element's bounding box in [0.0, 1.0].
 ///
 /// The SVG-specified defaults — `cx="50%"`, `cy="50%"`, `r="50%"`, `fx`/`fy` matching `cx`/`cy` — produce a centred
 /// circular gradient that fills the element. These percentages only coincide with the bare numbers `0.5` once resolved
-/// under the default `objectBoundingBox` units; under `userSpaceOnUse` however, a percentage resolves against the
-/// viewport instead, so writing an explicit `0.5` in that mode means "0.5 user units", not "50% of the viewport".
+/// under the default `objectBoundingBox` units. Under `userSpaceOnUse`, a percentage resolves against the viewport
+/// instead. So writing an explicit `0.5` in that mode means "0.5 user units", not "50% of the viewport".
 ///
 /// Apply the gradient to any shape with
 /// [`SvgNode::set_fill_radial_gradient`](crate::SvgNode::set_fill_radial_gradient) (fill) or
@@ -57,8 +58,8 @@ impl SvgRadialGradient {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Returns the cached `url(#id)` reference, ready to write directly to a `fill`/`stroke` attribute.
     ///
-    /// Visibility need only be `pub(crate)` since [`set_fill_radial_gradient`](crate::SvgNode::set_fill_radial_gradient)
-    /// and its stroke sibling are the only function that need it; external callers use [`id`](Self::id) instead.
+    /// Visibility is `pub(crate)` because [`set_fill_radial_gradient`](crate::SvgNode::set_fill_radial_gradient)
+    /// and its stroke sibling are the only functions that need it. External callers use [`id`](Self::id) instead.
     pub(crate) fn url_ref(&self) -> &str {
         self.0.url_ref()
     }
@@ -80,7 +81,7 @@ impl SvgRadialGradient {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Returns a reference to the underlying `web-sys` `SvgElement`.
     ///
-    /// Avoid writing the `id` attribute through this handle; use [`set_id`](Self::set_id) instead.
+    /// Avoid writing the `id` attribute through this handle. Use [`set_id`](Self::set_id) instead.
     pub fn as_element(&self) -> &SvgElement {
         self.0.as_element()
     }
@@ -101,7 +102,7 @@ impl SvgRadialGradient {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Appends a `<stop>` with an explicit `stop-opacity` to this gradient.
     ///
-    /// `opacity` is in [0.0, 1.0]; `0.0` is fully transparent, `1.0` is fully opaque.
+    /// `opacity` is in [0.0, 1.0]. `0.0` is fully transparent, and `1.0` is fully opaque.
     ///
     /// # Errors
     ///
@@ -200,7 +201,7 @@ impl SvgRadialGradient {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets any attribute on the `<radialGradient>` element by name and string value.
     ///
-    /// Passing `"id"` (case-insensitively) returns [`Error::ReservedAttribute`]; use [`set_id`](Self::set_id) instead.
+    /// Passing `"id"` (case-insensitively) returns [`Error::ReservedAttribute`]. Use [`set_id`](Self::set_id) instead.
     pub fn set_attr(&self, name: &str, value: &str) -> Result<(), Error> {
         self.0.set_attr(name, value)
     }
@@ -219,7 +220,7 @@ impl SvgRadialGradient {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Formats `value` through the element's internal scratch buffer and writes it as `name`.
     ///
-    /// Passing `"id"` (case-insensitively) returns [`Error::ReservedAttribute`]; use [`set_id`](Self::set_id) instead.
+    /// Passing `"id"` (case-insensitively) returns [`Error::ReservedAttribute`]. Use [`set_id`](Self::set_id) instead.
     pub fn set_attr_display<T: std::fmt::Display>(&self, name: &str, value: T) -> Result<(), Error> {
         self.0.set_attr_display(name, value)
     }

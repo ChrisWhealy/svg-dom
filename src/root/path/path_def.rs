@@ -6,34 +6,36 @@ use crate::{
 use std::fmt::Write;
 
 /// Rough per-command byte estimate used by [`build_d`] (unscaled) and [`build_d_fixed`] (as the base term added to
-/// [`APPROX_VALUES_PER_COMMAND`]`* dps`) to pre-size their fresh `String`, matching the flat default-precision guess
-/// `write_points` already uses per point.
+/// [`APPROX_VALUES_PER_COMMAND`]`* dps`) to pre-size their fresh `String`. It matches the flat default-precision
+/// guess `write_points` already uses per point.
 ///
-/// Command sizes vary hugely — `ClosePath` is one byte, a `CubicBezierTo` with six large float arguments can be
-/// several times this — so the estimate is deliberately not variant-aware: getting it exactly right would mean a
-/// second pass over `defs` matching every variant, which costs more than the reallocations it would save.  Being
-/// roughly right still avoids most of the doubling reallocations a bare `String::new()` would otherwise incur as a
-/// long path is built up from nothing.
+/// Command sizes vary hugely. For example, `ClosePath` is one byte. A `CubicBezierTo` with six large float
+/// arguments can be several times that size. So the estimate is deliberately not variant-aware. Getting it exactly
+/// right would mean a second pass over `defs` matching every variant, which costs more than the reallocations it
+/// would save. Being roughly right still avoids most of the doubling reallocations a bare `String::new()` would
+/// otherwise incur as a long path grows from nothing.
 ///
-/// [`write_d`] / [`write_d_fixed`] deliberately do *not* reserve anything themselves: they write into a
-/// caller-owned buffer that is typically reused across many calls (an animation frame, a `pointermove` handler), so
-/// its capacity is already retained from earlier calls after the first one. A caller who wants to avoid even that
-/// first-call growth can pre-size the buffer directly via `SvgAttrs::with_capacity`.
+/// [`write_d`] / [`write_d_fixed`] deliberately do *not* reserve anything themselves. They write into a
+/// caller-owned buffer that is typically reused across many calls, such as an animation frame or a `pointermove`
+/// handler. So its capacity is already retained from earlier calls after the first one. A caller who wants to avoid
+/// even that first-call growth can pre-size the buffer directly via `SvgAttrs::with_capacity`.
 const BASE_BYTES_PER_COMMAND: usize = 24;
 
 /// Rough average count of numeric arguments per [`PathDef`] command, used only by [`build_d_fixed`] to scale its
 /// capacity estimate by the requested precision.
 ///
-/// At high `dps`, [`BASE_BYTES_PER_COMMAND`] alone badly undershoots: a six-argument `CubicBezierTo` at `dps = 20`
+/// At high `dps`, [`BASE_BYTES_PER_COMMAND`] alone badly undershoots. A six-argument `CubicBezierTo` at `dps = 20`
 /// formats to roughly 138 bytes (`"C0.00000000000000000000 0.00000000000000000000 ..."`), nearly six times the
-/// flat 24-byte guess that was tuned for the *default*, shortest-round-trip format. Scaling the estimate by `dps`
-/// narrows that gap without a second pass over `defs`, though it does not eliminate it for a command shaped like
-/// that worst case: real commands range from zero numeric arguments (`ClosePath`) to six (`CubicBezierTo`) or seven
-/// raw fields (`EllipticalArcTo`, two of which — the flags — are never affected by `dps`), and three is a
-/// deliberately approximate *average* across that range, not a per-command worst-case bound — a true worst-case
-/// guarantee would need exactly the variant-aware pass this estimate exists to avoid. The reservation is closer to
-/// exact for the more common shorter commands (`MoveTo`, `LineTo`, `HorizontalLineTo`) and undershoots most for the
-/// rarer six-argument ones, which is the better trade-off on average.
+/// flat 24-byte guess tuned for the *default*, shortest-round-trip format.
+///
+/// Scaling the estimate by `dps` narrows that gap without a second pass over `defs`. It does not eliminate the gap
+/// for a command shaped like that worst case. Real commands range from zero numeric arguments (`ClosePath`) to six
+/// (`CubicBezierTo`) or seven raw fields (`EllipticalArcTo`). Two of `EllipticalArcTo`'s seven fields — the flags —
+/// are never affected by `dps`. Three is a deliberately approximate *average* across that range, not a per-command
+/// worst-case bound. A true worst-case guarantee would need exactly the variant-aware pass this estimate exists to
+/// avoid. The reservation is closer to exact for the more common shorter commands (`MoveTo`, `LineTo`,
+/// `HorizontalLineTo`) and undershoots most for the rarer six-argument ones, which is the better trade-off on
+/// average.
 const APPROX_VALUES_PER_COMMAND: usize = 3;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -224,14 +226,14 @@ impl PathDefRelative {
 /// A `<path>`'s `d` attribute is built from an ordered sequence of these — see [`write_d`] / [`build_d`], or the
 /// `path_from_defs` factory method available everywhere [`SvgRoot::path`](crate::SvgRoot::path) is.
 ///
-/// Absolute and relative commands can be freely mixed in the same sequence, exactly as real SVG path data allows —
-/// for example an initial [`PathDefAbsolute::MoveTo`] followed by a run of [`PathDefRelative`] draw commands.
+/// Absolute and relative commands can be freely mixed in the same sequence, exactly as real SVG path data allows.
+/// For example, an initial [`PathDefAbsolute::MoveTo`] can be followed by a run of [`PathDefRelative`] draw commands.
 ///
 /// # What this type does and does not guarantee
 ///
 /// Since each segment is a typed, well-formed command rather than free text, a `d` string built from one or more
-/// `PathDef` values can never contain a mistyped command letter, a missing or extra argument or an elliptical-arc flag
-/// that isn't a bare `0`/`1`.
+/// `PathDef` values can never contain a mistyped command letter. Nor can it contain a missing or extra argument, or
+/// an elliptical-arc flag that isn't a bare `0`/`1`.
 ///
 /// These are all mistakes a hand-written `d` string can make.  To make matters worse, if the SVG path parser encounters
 /// a sequence of mostly well-formed commands, it will render up to the first bad token, then silently stop.
@@ -241,17 +243,17 @@ impl PathDefRelative {
 /// a valid path:
 ///
 /// - **A non-empty path must start with a moveto.** `[PathDef::Abs(PathDefAbsolute::LineTo(..))]` is a sequence of
-///   individually well-formed commands that is nonetheless not valid path data — an SVG user agent renders nothing
-///   for a path whose first command isn't `M`/`m`, silently, with no error. The `path_from_defs` factory method,
+///   individually well-formed commands that is nonetheless not valid path data. An SVG user agent silently renders
+///   nothing for a path whose first command isn't `M`/`m`, with no error. The `path_from_defs` factory method,
 ///   [`SvgNode::set_d_from_defs`](crate::SvgNode::set_d_from_defs), and the `SvgAttrs` / `AnimationFrame`
 ///   `d_from_defs` methods all check this and return [`Error::InvalidPathData`](crate::Error::InvalidPathData) if
-///   it fails. [`build_d`] / [`write_d`] (and their `_fixed` siblings) do **not** check this — they are
+///   it fails. [`build_d`] / [`write_d`] (and their `_fixed` siblings) do **not** check this. They are
 ///   general-purpose formatters that may legitimately be asked to build a path-data *fragment* not meant to stand
 ///   alone, so they format whatever sequence they are given.
 /// - **Coordinates are unconstrained `f64` values.** Nothing stops a `Point` field from holding `f64::NAN` or
-///   `f64::INFINITY`; the SVG number grammar has no representation for either, so Rust's `Display` output for them
-///   (`"NaN"`, `"inf"`, `"-inf"`) is not valid path syntax. None of the functions in this module check for this —
-///   doing so would mean visiting every numeric argument of every command, which is real, non-trivial per-call work
+///   `f64::INFINITY`. The SVG number grammar has no representation for either. So Rust's `Display` output for them
+///   (`"NaN"`, `"inf"`, `"-inf"`) is not valid path syntax. None of the functions in this module check for this.
+///   Doing so would mean visiting every numeric argument of every command. That is real, non-trivial per-call work
 ///   this crate is not willing to add to `write_d`/`write_d_fixed`, the buffer-reusing functions meant for a hot
 ///   per-frame path. If your coordinates come from a calculation that could produce a non-finite value (division,
 ///   trigonometry), validate with [`f64::is_finite`] before constructing the `PathDef`.
@@ -276,13 +278,13 @@ impl PathDef {
 /// Rejects a non-empty `defs` slice whose first command is not a `MoveTo`.
 ///
 /// An empty slice is not rejected: an empty (or all-whitespace) `d` attribute is valid SVG, per the path grammar's
-/// optional `moveto-drawto-command-groups?` — it just renders nothing, which is not an error condition.
+/// optional `moveto-drawto-command-groups?`. It just renders nothing, which is not an error condition.
 ///
 /// A relative MoveTo (`m`) as the very first command will also be accepted, as per the SVG spec.  A leading `m` is
 /// treated as an absolute moveto, since there is no current point yet for it to be relative to.
 ///
 /// This is an O(1) check (it only ever looks at `defs[0]`), so every "commit this to a live `d` attribute" entry
-/// point in the crate calls it; see [`PathDef`]'s own documentation for exactly which functions do and do not.
+/// point in the crate calls it. See [`PathDef`]'s own documentation for exactly which functions do and do not.
 pub(crate) fn validate_starts_with_moveto(defs: &[PathDef]) -> Result<(), Error> {
     match defs.first() {
         None => Ok(()),
@@ -298,17 +300,17 @@ pub(crate) fn validate_starts_with_moveto(defs: &[PathDef]) -> Result<(), Error>
 /// Writes SVG path-data into a caller-owned buffer from a sequence of [`PathDef`] commands, replacing any previous
 /// contents.
 ///
-/// This is the buffer-reusing counterpart to [`build_d`]; use it on a hot path — an animation that rebuilds a curve
-/// every frame, say — to avoid allocating a fresh `String` on every call.
+/// This is the buffer-reusing counterpart to [`build_d`]. Use it on a hot path, such as an animation that rebuilds
+/// a curve every frame, to avoid allocating a fresh `String` on every call.
 ///
 /// No whitespace is written between commands for the same reason that a command letter cannot appear inside a number.
 /// Therefore, a command letter unambiguously terminates the previous command's last argument.
 ///
 /// Omitting the whitespace both after a command letter and before the next argument is a standard, lossless path-size
-/// optimisation.  For example, `"M10 10L100 50Z"` is semantically identical to `"M 10 10 L 100 50 Z"` in every
-/// conforming SVG implementation, so the emitted `d` string can be shorter without sacrificing precision or validity.
+/// optimisation. For example, `"M10 10L100 50Z"` is semantically identical to `"M 10 10 L 100 50 Z"` in every
+/// conforming SVG implementation. So the emitted `d` string can be shorter without sacrificing precision or validity.
 ///
-/// Every numeric argument uses the default shortest round-trip representation; see [`write_d_fixed`] for a version
+/// Every numeric argument uses the default shortest round-trip representation. See [`write_d_fixed`] for a version
 /// that trims each coordinate to a fixed number of decimal places instead.
 pub fn write_d(out: &mut String, defs: &[PathDef]) {
     out.clear();
@@ -322,10 +324,10 @@ pub fn write_d(out: &mut String, defs: &[PathDef]) {
 /// (clamped to `MAX_DPS` = 20).  The basic principle at work here is that shorter path strings mean less data needs to
 /// be sent across the WASM/JS boundary and consequently requires less DOM attribute storage.
 ///
-/// Mirrors `write_points`'s fixed-precision mode (the shared internal helper behind
-/// [`SvgAttrs::points_fixed`](crate::SvgAttrs::points_fixed)): use this for path data whose coordinates come from a
-/// calculation (an animation, a procedurally sampled curve) rather than a literal value, so the emitted `d` string
-/// does not carry more digits of precision than the caller actually needs.
+/// This mirrors `write_points`'s fixed-precision mode, the shared internal helper behind
+/// [`SvgAttrs::points_fixed`](crate::SvgAttrs::points_fixed). Use this for path data whose coordinates come from a
+/// calculation, such as an animation or a procedurally sampled curve, rather than a literal value. So the emitted
+/// `d` string does not carry more digits of precision than the caller actually needs.
 ///
 /// The two [`EllipticalArc`] flags (`large-arc-flag`, `sweep-flag`) are never affected by `dps`: the SVG grammar
 /// requires these Boolean flags to be represented by the digits `"0"` or `"1"`.  Consequently, they are always written
@@ -369,9 +371,9 @@ pub fn build_d(defs: &[PathDef]) -> String {
 /// Like [`build_d`], but writes every coordinate, length, and rotation angle with `dps` fixed decimal places
 /// (clamped to `MAX_DPS` = 20). See [`write_d_fixed`] for the full rationale.
 ///
-/// The capacity reservation scales with `dps`: at a high requested precision, a single number can be far longer
-/// than the flat `BASE_BYTES_PER_COMMAND` guess tuned for the default, shortest-round-trip format alone (see
-/// `APPROX_VALUES_PER_COMMAND`), so a high-precision fresh path still avoids most of the reallocate-and-copy
+/// The capacity reservation scales with `dps`. At a high requested precision, a single number can be far longer
+/// than the flat `BASE_BYTES_PER_COMMAND` guess, which is tuned for the default, shortest-round-trip format alone
+/// (see `APPROX_VALUES_PER_COMMAND`). So a high-precision fresh path still avoids most of the reallocate-and-copy
 /// doublings [`build_d`] avoids at the default precision.
 ///
 /// # Example

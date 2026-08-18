@@ -13,25 +13,27 @@ use web_sys::SvgElement;
 /// # Fragment navigation: three cases, only two of which apply to this crate
 ///
 /// SVG 2 activates `#viewId` fragment navigation only when the SVG resource named by `viewId` is itself *the
-/// document being navigated* — not merely any document that happens to contain a matching id. Concretely:
+/// document being navigated*. It does not activate merely because some document happens to contain a matching id.
+/// Concretely:
 ///
-/// - **A standalone SVG document, navigated directly** (opened in its own tab, or as the top-level document a
-///   same-document `#viewId` link/hash change targets): the browser substitutes its effective `viewBox`/
-///   `preserveAspectRatio` with this view's own, with no JavaScript needed.
+/// - **A standalone SVG document, navigated directly.** This includes a document opened in its own tab, or acting as
+///   the top-level document that a same-document `#viewId` link/hash change targets. The browser substitutes its
+///   effective `viewBox`/`preserveAspectRatio` with this view's own, with no JavaScript needed.
 /// - **An external reference into an exported SVG file** — `<img src="diagram.svg#viewId">`, an SVG `<image>` with
 ///   that `href`, or a plain hyperlink to `diagram.svg#viewId` — activates the same substitution for that resource.
 ///   [`SvgNode::set_href`](crate::SvgNode::set_href) can re-trigger it on an already-loaded reference by changing the
 ///   fragment.
 /// - **An inline `<svg>` embedded in an HTML page — the case every [`SvgRoot::attach`](crate::SvgRoot::attach)/
 ///   [`SvgRoot::create_in`](crate::SvgRoot::create_in) call in this crate deals with — does *not* qualify.** The
-///   embedded SVG is not itself the navigated document, so this behaviour never activates for it; a same-page
+///   embedded SVG is not itself the navigated document, so this behaviour never activates for it. A same-page
 ///   `<a href="#viewId">` click — whether an SVG-native [`SvgRoot::anchor`](crate::SvgRoot::anchor) inside it or a
 ///   plain HTML link outside it — only updates `location.hash`, with no visible effect. Use
 ///   [`SvgRoot::set_view_box`](crate::SvgRoot::set_view_box)/[`SvgRoot::set_viewport`](crate::SvgRoot::set_viewport)
-///   directly instead — the caller already has a live handle, so there is no need to go through a URL fragment.
+///   directly instead. The caller already has a live handle, so no URL fragment is needed.
 ///
 /// `<view>` is therefore useful primarily when an SVG document is exported, or embedded/navigated independently of
-/// any running WASM code — not for switching the viewport of the very SVG a running WASM instance is attached to.
+/// any running WASM code. It is not for switching the viewport of the very SVG a running WASM instance is attached
+/// to.
 ///
 /// Obtain one from [`SvgDefs::view`](crate::SvgDefs::view) or [`SvgDefs::build_view`](crate::SvgDefs::build_view).
 ///
@@ -62,9 +64,9 @@ pub struct SvgView {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 impl SvgView {
-    // `SvgView` does not offer child-element construction (SVG permits descriptive children such as <title>/<desc>
-    // on <view>, but nothing in this crate's own API needs to build), so unlike its sibling id-cached elements
-    // (`SvgSymbol`, `SvgMarker`, ...) it never needs a `Document` handle to create any — none is stored.
+    // `SvgView` does not offer child-element construction. SVG permits descriptive children such as <title>/<desc>
+    // on <view>, but nothing in this crate's own API needs to build them. Unlike its sibling id-cached elements
+    // (`SvgSymbol`, `SvgMarker`, ...), it therefore never needs a `Document` handle to create any, so none is stored.
     pub(crate) fn new(id: String, element: SvgElement) -> Self {
         Self {
             id,
@@ -95,7 +97,7 @@ impl SvgView {
     /// Renames the view by updating both the DOM `id` attribute and the cached value returned by [`id`](Self::id).
     ///
     /// **Note:** renaming a view does not update any `href`/URL fragment already written elsewhere (an `<a>`
-    /// element, an external `<img src>`, ...) — those store a snapshot of the id at the time the reference was
+    /// element, an external `<img src>`, ...). Those store a snapshot of the id at the time the reference was
     /// written.
     ///
     /// # Errors
@@ -113,7 +115,7 @@ impl SvgView {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Returns a reference to the underlying `web-sys` `SvgElement`.
     ///
-    /// Avoid writing the `id` attribute through this handle; use [`set_id`](Self::set_id) instead so the cached
+    /// Avoid writing the `id` attribute through this handle. Use [`set_id`](Self::set_id) instead so the cached
     /// value stays in sync.
     pub fn as_element(&self) -> &SvgElement {
         &self.element
@@ -128,7 +130,7 @@ impl SvgView {
     /// # Errors
     ///
     /// Returns [`Error::InvalidViewBox`] if any component is not finite (`NaN`/`±infinity`), or if either of `width`
-    /// or `height` is negative. A `width`/`height` of exactly `0.0` is accepted; as per the SVG spec, it is a trick
+    /// or `height` is negative. A `width`/`height` of exactly `0.0` is accepted. As per the SVG spec, it is a trick
     /// to disable rendering.
     pub fn set_view_box(&self, x: f64, y: f64, width: f64, height: f64) -> Result<(), Error> {
         super::utils::validate_view_box(x, y, width, height)?;
@@ -153,8 +155,8 @@ impl SvgView {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets any attribute on the `<view>` element by name and string value.
     ///
-    /// This is the generic escape hatch for attributes not covered by the named setters above.  Name and value are
-    /// written verbatim; so do not pass untrusted input!
+    /// This is the generic escape hatch for attributes not covered by the named setters above. Name and value are
+    /// written verbatim, so do not pass untrusted input!
     ///
     /// # Reserved attributes
     ///
@@ -191,8 +193,8 @@ impl SvgView {
     ///
     /// Uses the same `SvgAttrs` scratch buffer that the shape factories use internally, so no extra allocation is made.
     ///
-    /// Passing `"id"` (matched case-insensitively) returns [`Error::ReservedAttribute`];
-    /// use [`set_id`](Self::set_id) instead.
+    /// Passing `"id"` (matched case-insensitively) returns [`Error::ReservedAttribute`].
+    /// Use [`set_id`](Self::set_id) instead.
     pub fn set_attr_display<T: std::fmt::Display>(&self, name: &str, value: T) -> Result<(), Error> {
         if name.eq_ignore_ascii_case("id") {
             return Err(Error::ReservedAttribute("id"));
@@ -208,12 +210,12 @@ impl super::defs::SvgDefs {
     ///
     /// Unlike most elements built by `SvgDefs`, `<view>` has no rendered graphical content of its own. Instead, you call
     /// [`SvgView::set_view_box`](crate::SvgView::set_view_box) on the returned handle, then reference it (prefixed
-    /// with `#`) from an external or standalone-document URL fragment — see [`SvgView`]'s type-level docs for exactly
+    /// with `#`) from an external or standalone-document URL fragment. See [`SvgView`]'s type-level docs for exactly
     /// which cases that fragment navigation activates for.
     ///
-    /// Prefer [`build_view`](Self::build_view) when the `viewBox` is known upfront: that variant keeps the element
+    /// Prefer [`build_view`](Self::build_view) when the `viewBox` is known upfront. That variant keeps the element
     /// detached from the DOM until the closure succeeds, so a rejected `viewBox` does not leave a partial `<view>`
-    /// left lying around in `<defs>`.
+    /// in `<defs>`.
     ///
     /// # Errors
     ///

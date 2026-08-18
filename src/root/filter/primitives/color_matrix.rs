@@ -6,10 +6,10 @@ impl SvgFilter {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Appends a `<feColorMatrix>` primitive to this filter, transforming colours via [`matrix_type`](ColorMatrixType).
     ///
-    /// Writes the SVG `type` attribute from `matrix_type`'s variant, and — for every variant except
-    /// [`LuminanceToAlpha`](ColorMatrixType::LuminanceToAlpha), which needs none — the matching `values` attribute:
-    /// twenty space-separated numbers for [`Matrix`](ColorMatrixType::Matrix), or a single number for
-    /// [`Saturate`](ColorMatrixType::Saturate)/[`HueRotate`](ColorMatrixType::HueRotate).
+    /// Writes the SVG `type` attribute from `matrix_type`'s variant. For every variant except
+    /// [`LuminanceToAlpha`](ColorMatrixType::LuminanceToAlpha), which needs none, it also writes the matching
+    /// `values` attribute: twenty space-separated numbers for [`Matrix`](ColorMatrixType::Matrix), or a single
+    /// number for [`Saturate`](ColorMatrixType::Saturate)/[`HueRotate`](ColorMatrixType::HueRotate).
     ///
     /// If this is the filter's first primitive, its implicit input is `SourceGraphic`. Use the returned [`SvgNode`]'s
     /// [`set_attr`](crate::SvgNode::set_attr) to set `in` or `result`, neither of which has a dedicated setter yet.

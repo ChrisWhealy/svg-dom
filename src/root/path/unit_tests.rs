@@ -171,8 +171,8 @@ fn build_d_fixed_rounds_smooth_and_quadratic_bezier_arguments() {
     assert_eq!(d, "S0.33 0.00 0.00 0.00T0.33 0.00");
 }
 
-/// The two elliptical-arc flags must never be affected by `dps`: the SVG `flag` grammar production is exactly one
-/// `"0"` or `"1"` digit, not a decimal number, so rounding them to `"0.00"`/`"1.00"` would be invalid path syntax.
+/// The two elliptical-arc flags must never be affected by `dps`. The SVG `flag` grammar production is exactly one
+/// `"0"` or `"1"` digit, not a decimal number. So rounding them to `"0.00"`/`"1.00"` would be invalid path syntax.
 #[test]
 fn build_d_fixed_never_rounds_elliptical_arc_flags() {
     let d = build_d_fixed(
@@ -248,9 +248,9 @@ fn build_d_fixed_reserves_capacity_proportional_to_command_count() {
     );
 }
 
-/// The capacity estimate must grow with `dps`: a fixed flat per-command guess (tuned for the default,
-/// shortest-round-trip format) badly undershoots at high precision, since each number can be far longer than that
-/// guess accounts for.
+/// The capacity estimate must grow with `dps`. A fixed flat per-command guess, tuned for the default,
+/// shortest-round-trip format, badly undershoots at high precision. Each number can be far longer than that guess
+/// accounts for.
 #[test]
 fn build_d_fixed_capacity_grows_with_requested_precision() {
     let defs = [PathDef::Abs(PathDefAbsolute::CubicBezierTo(
@@ -266,16 +266,17 @@ fn build_d_fixed_capacity_grows_with_requested_precision() {
     );
 }
 
-/// Regression case for the specific worst case cited when this estimate was made precision-aware: a six-argument
+/// Regression case for the specific worst case cited when this estimate was made precision-aware. A six-argument
 /// `CubicBezierTo` at `dps = 20` formats to roughly 138 bytes (`"C0.00000000000000000000 0.00000000000000000000
 /// ..."`), nearly six times the flat 24-byte guess a precision-unaware estimate would have reserved.
 ///
 /// `APPROX_VALUES_PER_COMMAND` (3) is deliberately an *average* across command shapes (`ClosePath` has zero
-/// numeric arguments, `CubicBezierTo` has six), not a per-command worst-case bound — reaching a true worst-case
+/// numeric arguments, `CubicBezierTo` has six), not a per-command worst-case bound. Reaching a true worst-case
 /// guarantee would need the variant-aware second pass this estimate exists specifically to avoid. So this does not
-/// assert the reservation covers `CubicBezierTo`'s full length; it asserts the narrower, honest claim: the
-/// precision-aware formula reserves *more* than the old flat, precision-unaware guess would have, and covers a
-/// larger fraction of the real content — a measurable improvement, not a complete fix, for exactly this worst case.
+/// assert the reservation covers `CubicBezierTo`'s full length. Instead, it asserts the narrower, honest claim
+/// that the precision-aware formula reserves *more* than the old flat, precision-unaware guess would have. It also
+/// covers a larger fraction of the real content — a measurable improvement, not a complete fix, for exactly this
+/// worst case.
 #[test]
 fn build_d_fixed_capacity_formula_improves_on_flat_guess_for_high_precision_cubic_bezier() {
     let defs = [PathDef::Abs(PathDefAbsolute::CubicBezierTo(
@@ -307,9 +308,9 @@ fn build_d_fixed_capacity_formula_improves_on_flat_guess_for_high_precision_cubi
     );
 }
 
-/// `write_d` must not reserve on the caller's behalf: it writes into a buffer the caller is expected to reuse
-/// (and therefore already size correctly, via `SvgAttrs::with_capacity` if desired), so a fresh, empty buffer keeps
-/// whatever capacity `String`'s own incremental growth produces rather than a `build_d`-style upfront reservation.
+/// `write_d` must not reserve on the caller's behalf. It writes into a buffer the caller is expected to reuse, and
+/// therefore already size correctly via `SvgAttrs::with_capacity` if desired. So a fresh, empty buffer keeps
+/// whatever capacity `String`'s own incremental growth produces, rather than a `build_d`-style upfront reservation.
 #[test]
 fn write_d_does_not_preemptively_reserve_like_build_d_does() {
     let defs = [PathDef::Abs(PathDefAbsolute::MoveTo(Point::new(1.0, 2.0)))];
@@ -339,9 +340,8 @@ fn should_accept_absolute_move_first() {
     assert!(validate_starts_with_moveto(&defs).is_ok());
 }
 
-/// A leading relative `m` is accepted too: per the SVG spec, a path's very first moveto is always treated as
-/// absolute, even when written with the lowercase letter, since there is no current point yet for it to be
-/// relative to.
+/// A leading relative `m` is accepted too, per the SVG spec. A path's very first moveto is always treated as
+/// absolute, even when written with the lowercase letter. There is no current point yet for it to be relative to.
 #[test]
 fn should_accept_relative_move_first() {
     let defs = [PathDef::Rel(PathDefRelative::MoveTo(Point::new(0.0, 0.0)))];
@@ -391,14 +391,14 @@ fn should_accept_that_build_d_does_not_validate_leading_command() {
     assert_eq!(build_d(&defs), "L1 1");
 }
 
-/// Diagnostic, not a portability assertion: layout is not guaranteed by Rust, so this deliberately does not
+/// Diagnostic, not a portability assertion. Layout is not guaranteed by Rust, so this deliberately does not
 /// `assert_eq!` against a fixed byte count (see `docs/design_notes/path_data.md`, "Measuring `PathDef`'s nested-enum
 /// layout cost" for the rationale and the numbers observed on the host and wasm32 targets at the time of writing).
 ///
-/// The one assertion here is a structural regression guard rather than a target-specific magic number: wrapping
-/// `PathDefAbsolute`/`PathDefRelative` in `PathDef` can cost at most one extra alignment unit (the padded slot
-/// Rust's enum layout reserves for the outer discriminant when it cannot find a spare niche in the inner type),
-/// so `PathDef` must never be larger than that — if it were, either the outer wrapper stopped being a single
+/// The one assertion here is a structural regression guard rather than a target-specific magic number. Wrapping
+/// `PathDefAbsolute`/`PathDefRelative` in `PathDef` can cost at most one extra alignment unit. That is the padded
+/// slot Rust's enum layout reserves for the outer discriminant when it cannot find a spare niche in the inner type.
+/// So `PathDef` must never be larger than that. If it were, either the outer wrapper stopped being a single
 /// niche-or-one-word tag, or an inner variant grew unexpectedly.
 #[test]
 fn pathdef_size_diagnostics() {

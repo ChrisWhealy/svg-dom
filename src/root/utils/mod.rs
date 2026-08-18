@@ -11,8 +11,8 @@ pub use size::Size;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Validates the four components of a `viewBox` before it reaches the DOM.
 ///
-/// SVG defines `viewBox` as four SVG numbers; `NaN`/`±infinity` are not valid SVG numbers even though `f64` can
-/// represent them and `write!`/`Display` can format them without error, so every component must be finite and numeric.
+/// SVG defines `viewBox` as four SVG numbers. `NaN`/`±infinity` are not valid SVG numbers, even though `f64` can
+/// represent them and `write!`/`Display` can format them without error. So every component must be finite and numeric.
 ///
 /// As per the SVG spec, setting `width` or `height` to negative values causes the whole attribute to be in error, so
 /// both must be non-negative. Setting either `width` or `height` to be `0.0` is valid and is used to disable rendering.
@@ -34,7 +34,7 @@ pub(crate) fn validate_view_box(x: f64, y: f64, width: f64, height: f64) -> Resu
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Maximum `dps` accepted by [`write_points`] in fixed-precision mode.
 ///
-/// `f64` carries ~17 significant decimal digits; values above this limit produce only meaningless trailing zeros
+/// `f64` carries ~17 significant decimal digits. Values above this limit produce only meaningless trailing zeros
 /// and can generate enormous strings. Callers that pass a higher value are clamped to this constant.
 pub(crate) const MAX_DPS: usize = 20;
 

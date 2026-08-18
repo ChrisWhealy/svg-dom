@@ -5,48 +5,59 @@ use web_sys::SvgElement;
 impl SvgFilter {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Appends a `<feDiffuseLighting>` primitive to this filter, treating `in`'s alpha channel as a bump map and
-    /// lighting the resulting surface with `light_source` — a matte, non-shiny lighting model (Lambertian
-    /// reflectance), the diffuse half of the classic bevel/emboss lighting recipe.
+    /// lighting the resulting surface with `light_source`.
+    /// This is a matte, non-shiny lighting model (Lambertian reflectance), the diffuse half of the classic
+    /// bevel/emboss lighting recipe.
     ///
-    /// `surface_scale` multiplies the alpha-derived bump-map height before lighting is computed: `0.0` removes all
-    /// alpha-derived relief, leaving a perfectly flat surface — but *not* necessarily one uniformly lit by
-    /// `lighting_color` outright. A flat surface still has a single, constant normal, so its lit result still
-    /// depends on `diffuse_constant` and on the light's own direction relative to that normal: uniform only for
-    /// [`LightSource::Distant`], whose direction is the same everywhere by definition, but still position-dependent
-    /// across the flat plane for [`LightSource::Point`]/[`LightSource::Spot`], whose direction (and, for `Spot`,
-    /// beam concentration) varies from point to point even without any bump-map relief left to shade. Larger
-    /// `surface_scale` values exaggerate the apparent relief instead, making edges in `in`'s alpha channel read as
-    /// taller, more steeply lit ridges.
+    /// `surface_scale` multiplies the alpha-derived bump-map height before lighting is computed.
+    /// `0.0` removes all alpha-derived relief, leaving a perfectly flat surface.
+    /// This is *not* necessarily one uniformly lit by `lighting_color` outright.
+    /// A flat surface still has a single, constant normal.
+    /// Its lit result still depends on `diffuse_constant` and on the light's own direction relative to that normal.
+    /// This is uniform only for [`LightSource::Distant`], whose direction is the same everywhere by definition.
+    /// For [`LightSource::Point`]/[`LightSource::Spot`], the result is still position-dependent across the flat
+    /// plane.
+    /// Their direction (and, for `Spot`, beam concentration) varies from point to point, even without any bump-map
+    /// relief left to shade.
+    /// Larger `surface_scale` values exaggerate the apparent relief instead, making edges in `in`'s alpha channel
+    /// read as taller, more steeply lit ridges.
     ///
-    /// `diffuse_constant` scales the lit result's overall brightness — `1.0` is the SVG default. Per the SVG spec
-    /// this should be non-negative; this crate does not enforce that before reaching the DOM, since no defined
-    /// fallback or error classification is given for a negative value.
+    /// `diffuse_constant` scales the lit result's overall brightness — `1.0` is the SVG default.
+    /// Per the SVG spec this should be non-negative.
+    /// This crate does not enforce that before reaching the DOM, since no defined fallback or error classification
+    /// is given for a negative value.
     ///
     /// `lighting_color` sets the colour of the light itself (the SVG `lighting-color` property/presentation
-    /// attribute) — `"white"` is the SVG default, and every example below uses it. The value is written verbatim: an
-    /// invalid CSS colour does not cause a crate error, but the browser will not use it as a valid `lighting-color`
-    /// value.
+    /// attribute).
+    /// `"white"` is the SVG default, and every example below uses it.
+    /// The value is written verbatim: an invalid CSS colour does not cause a crate error, but the browser will not
+    /// use it as a valid `lighting-color` value.
     ///
-    /// `light_source` selects and configures the filter's one required light-source child — see [`LightSource`]
-    /// for the three available kinds ([`Distant`](LightSource::Distant), [`Point`](LightSource::Point),
-    /// [`Spot`](LightSource::Spot)) and what each looks like in practice.
+    /// `light_source` selects and configures the filter's one required light-source child.
+    /// See [`LightSource`] for the three available kinds ([`Distant`](LightSource::Distant), [`Point`](LightSource::Point),
+    /// [`Spot`](LightSource::Spot)), and what each looks like in practice.
     ///
-    /// ***⚠️ The result is fully opaque — `A = 1.0` everywhere*** — per the SVG spec, `feDiffuseLighting` always
-    /// produces an opaque `RGBA` image, regardless of `in`'s own alpha. Merging or blending this result directly on
-    /// top of `SourceGraphic` therefore hides the original entirely, rather than tinting it. The standard way to
-    /// recombine it with the original graphic is `composite(in2, CompositeOperator::Arithmetic)` with `k1: 1.0` and
-    /// `k2`/`k3`/`k4: 0.0` — a pure multiply of the two inputs' colours — not `merge`, which would simply paint the
-    /// opaque lit surface over everything. See the example below.
+    /// ***⚠️ The result is fully opaque: `A = 1.0` everywhere***.
+    /// Per the SVG spec, `feDiffuseLighting` always produces an opaque `RGBA` image, regardless of `in`'s own alpha.
+    /// Merging or blending this result directly on top of `SourceGraphic` therefore hides the original entirely,
+    /// rather than tinting it.
+    /// The standard way to recombine it with the original graphic is `composite(in2, CompositeOperator::Arithmetic)`
+    /// with `k1: 1.0` and `k2`/`k3`/`k4: 0.0`, a pure multiply of the two inputs' colours.
+    /// Do not use `merge`, which would simply paint the opaque lit surface over everything.
+    /// See the example below.
     ///
-    /// If this is the filter's first primitive, its implicit input is `SourceGraphic`. Use the returned
-    /// [`SvgNode`]'s [`set_attr`](crate::SvgNode::set_attr) to set `in` or `result` (neither has a dedicated
-    /// setter), and likewise for `kernelUnitLength` — see the warning below before using it.
+    /// If this is the filter's first primitive, its implicit input is `SourceGraphic`.
+    /// Use the returned [`SvgNode`]'s [`set_attr`](crate::SvgNode::set_attr) to set `in` or `result`, since neither
+    /// has a dedicated setter.
+    /// Do the same for `kernelUnitLength` — see the warning below before using it.
     ///
-    /// ***⚠️ `kernelUnitLength` is a deprecated legacy attribute*** — it requests an explicit, device-independent
-    /// kernel sampling interval, but the current Filter Effects specification marks it deprecated for
-    /// `feDiffuseLighting` and slated for eventual removal, since it does not reliably achieve the
-    /// platform-independent rendering it was meant to provide. It remains reachable through `set_attr` (a
-    /// deprecated attribute is not a removed one), but should not be relied upon.
+    /// ***⚠️ `kernelUnitLength` is a deprecated legacy attribute***.
+    /// It requests an explicit, device-independent kernel sampling interval.
+    /// The current Filter Effects specification marks it deprecated for `feDiffuseLighting` and slated for eventual
+    /// removal.
+    /// It does not reliably achieve the platform-independent rendering it was meant to provide.
+    /// It remains reachable through `set_attr` (a deprecated attribute is not a removed one), but should not be
+    /// relied upon.
     ///
     /// # Errors
     ///
@@ -90,9 +101,10 @@ impl SvgFilter {
     ///
     /// Use this instead of [`diffuse_lighting`](Self::diffuse_lighting) when an interactive application needs to change
     /// the light itself after construction, say sweeping a [`LightSource::Distant`]'s own `azimuth` from a slider, for
-    /// example. [`diffuse_lighting`](Self::diffuse_lighting) alone gives no way to reach that child element again: the
-    /// light source is appended internally, and nothing else in this crate returns a handle to it, so without this
-    /// method the only way to reach it is a raw CSS-selector query outside `svg-dom`'s own typed API.
+    /// example.
+    /// [`diffuse_lighting`](Self::diffuse_lighting) alone gives no way to reach that child element again.
+    /// The light source is appended internally, and nothing else in this crate returns a handle to it.
+    /// Without this method, the only way to reach it is a raw CSS-selector query outside `svg-dom`'s own typed API.
     ///
     /// Every parameter is identical to [`diffuse_lighting`](Self::diffuse_lighting)'s own — see its doc comment for
     /// what each one does. This differs only in its return type.

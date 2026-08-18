@@ -12,8 +12,8 @@ impl SvgFilter {
     /// primitive's result.
     ///
     /// Filtering a plain [`SvgRoot::image`](crate::SvgRoot::image) element allows that image to be colour-transformed,
-    /// blended, or composited on its own: the image becomes the filter's `SourceGraphic`, and any primitive that reads
-    /// `SourceGraphic` (the implicit input of a filter's first primitive) operates on it directly.
+    /// blended, or composited on its own. The image becomes the filter's `SourceGraphic`, and any primitive that
+    /// reads `SourceGraphic` (the implicit input of a filter's first primitive) operates on it directly.
     ///
     /// What `<feImage>` adds is a *second*, independent source, providing content unrelated to the element the filter
     /// is applied to. So a texture, logo, or displacement map can be combined with the filtered element's own
@@ -29,16 +29,16 @@ impl SvgFilter {
     /// Do not pass a `javascript:` URL or any other attacker-controlled string without validation.
     ///
     /// Use the returned [`SvgNode`]'s [`set_attr`](crate::SvgNode::set_attr) to set `result` when this primitive's
-    /// output must be referenced explicitly by a later primitive that is not immediately downstream, or when the filter
-    /// graph branches. For a simple linear chain, such as the example below, the next primitive can consume
-    /// `<feImage>`'s output implicitly by omitting its own `in`.
+    /// output must be referenced explicitly by a later primitive that is not immediately downstream. The same applies
+    /// when the filter graph branches. For a simple linear chain, such as the example below, the next primitive can
+    /// consume `<feImage>`'s output implicitly by omitting its own `in`.
     ///
     /// # Loading is asynchronous
     ///
     /// `href` is fetched the same way a plain [`SvgRoot::image`](crate::SvgRoot::image) element's is: asynchronously,
     /// after this method returns. A successful [`Ok`] here means nothing more than the fact that the `<feImage>` DOM
-    /// node was constructed — it says nothing about whether the resource identified by the `href` has finished loading,
-    /// or ever will.
+    /// node was constructed. It says nothing about whether the resource identified by the `href` has finished
+    /// loading, or ever will.
     ///
     /// A resource that is missing, unsupported, zero-sized, or fails to download will be rendered as transparent black
     /// across the primitive's subregion, as per the SVG specification.  The API will not report any error, resulting in
@@ -47,12 +47,13 @@ impl SvgFilter {
     /// # Taint and `feDisplacementMap`
     ///
     /// Per the Filter Effects specification, an `<feImage>` result is *tainted* when `href` references an SVG
-    /// element (a same-document `"#id"` reference — see the example below) or when an image resource is fetched in
-    /// no-CORS mode. A tainted result used as `in2` for [`displacement_map`](Self::displacement_map) makes that
-    /// displacement a pass-through: `in` is returned unmodified, with no error to signal the mistake.
+    /// element (a same-document `"#id"` reference — see the example below). It is also tainted when an image
+    /// resource is fetched in no-CORS mode. A tainted result used as `in2` for
+    /// [`displacement_map`](Self::displacement_map) makes that displacement a pass-through: `in` is returned
+    /// unmodified, with no error to signal the mistake.
     ///
     /// For a *fetched image resource* used as a displacement map, set `crossorigin` (not wrapped as a named
-    /// parameter) — typically `"anonymous"` — and ensure the server hosting `href` sends matching CORS headers, so
+    /// parameter) — typically `"anonymous"`. Also ensure the server hosting `href` sends matching CORS headers, so
     /// the fetch succeeds in CORS mode rather than no-CORS mode:
     ///
     /// ```rust,no_run

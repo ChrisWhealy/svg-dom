@@ -6,7 +6,7 @@ impl SvgRoot {
     /// `<a>` is similar to `<g>` in that it has no visual appearance of its own, but turns every child appended to it
     /// (via [`SvgNode::append`]) into a hyperlink.
     ///
-    /// When the user clicks on such a a rendered element, the browser navigates to `href`, just as it would for an HTML
+    /// When the user clicks on such a rendered element, the browser navigates to `href`, just as it would for an HTML
     /// `<a>` wrapped around its own child elements.
     ///
     /// # Arguments
@@ -15,9 +15,9 @@ impl SvgRoot {
     ///   a same-document fragment (`"#section"`).
     ///
     /// `target` uses the same vocabulary as HTML `<a target>`. It responds to `"_blank"`, `"_self"`, `"_parent"`,
-    /// `"_top"`, or a named frame, but is not wrapped by a named parameter: every meaningful use of `<a>` must supply
-    /// `href`, but `target` is only occasionally needed, so it is left to [`SvgNode::set_attr`](crate::SvgNode::set_attr)
-    /// alongside any other attribute (`download`, `rel`, etc.) not covered here.
+    /// `"_top"`, or a named frame, but this crate does not wrap it in a named parameter. Every meaningful use of
+    /// `<a>` must supply `href`, but `target` is only occasionally needed. Set it, along with any other attribute
+    /// (`download`, `rel`, etc.) not covered here, via [`SvgNode::set_attr`](crate::SvgNode::set_attr).
     ///
     /// ***⚠️ Links cannot be nested***
     ///
@@ -31,7 +31,7 @@ impl SvgRoot {
     /// area spanning its children clickable. Only points within each rendered child's `pointer-events`-defined hit
     /// region are clickable. And this is not necessarily identical to its visibly painted pixels, since `fill`,
     /// `stroke`, `visibility` and `pointer-events` itself all influence what that region actually covers.
-    /// There may be empty space between or around the children inside within what looks like the group's bounding box,
+    /// There may be empty space between or around the children within what looks like the group's bounding box,
     /// but this does not automatically become part of the clickable link.
     ///
     /// # Security

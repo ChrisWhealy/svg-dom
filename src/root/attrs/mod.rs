@@ -126,8 +126,8 @@ impl SvgAttrs {
     /// Like [`points`](Self::points), but writes each coordinate with `dps` fixed decimal places.
     ///
     /// Use this for large or animated `<polyline>`/`<polygon>` geometry where sub-pixel precision is less important
-    /// than performance: it shortens the `points` string meaning less data crosses the WASM/JS boundary and uses less
-    /// DOM attribute storage.
+    /// than performance. It shortens the `points` string, which means less data crosses the WASM/JS boundary and
+    /// uses less DOM attribute storage.
     ///
     /// `dps` is clamped to 20 — `f64` only carries ~17 significant digits, so values above that produce meaningless
     /// trailing zeros with no benefit.
@@ -172,9 +172,9 @@ impl SvgAttrs {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// The unchecked core of [`d_from_defs`](Self::d_from_defs), for crate-internal callers that have already run
-    /// [`validate_starts_with_moveto`] themselves — `create_path_from_defs` (the shared [`SvgFactory`] default
-    /// method behind every `path_from_defs` factory) validates before it creates a detached DOM node at all, so
+    /// This is the unchecked core of [`d_from_defs`](Self::d_from_defs), for crate-internal callers that have already
+    /// run [`validate_starts_with_moveto`] themselves. `create_path_from_defs` (the shared [`SvgFactory`] default
+    /// method behind every `path_from_defs` factory) validates before it creates a detached DOM node at all. So
     /// calling the public, re-validating [`d_from_defs`](Self::d_from_defs) afterwards would check the same slice
     /// twice for no reason.
     pub(crate) fn d_from_validated_defs(&mut self, node: &SvgNode, defs: &[PathDef]) -> Result<(), Error> {
@@ -186,9 +186,9 @@ impl SvgAttrs {
     /// Like [`d_from_defs`](Self::d_from_defs), but writes every coordinate, length, and rotation angle with `dps`
     /// fixed decimal places (clamped to 20).
     ///
-    /// Mirrors [`points_fixed`](Self::points_fixed): use this when the path data comes from a calculation — an
-    /// animation, a procedurally sampled curve — so the emitted `d` string does not carry more digits of precision
-    /// than the caller actually needs. The two `EllipticalArc` flags are never rounded; see
+    /// This mirrors [`points_fixed`](Self::points_fixed): use it when the path data comes from a calculation, such as
+    /// an animation or a procedurally sampled curve. So the emitted `d` string does not carry more digits of
+    /// precision than the caller actually needs. The two `EllipticalArc` flags are never rounded. See
     /// [`write_d_fixed`] for why.
     ///
     /// # Errors

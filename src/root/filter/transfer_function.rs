@@ -1,12 +1,14 @@
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// The remap applied by one `<feFuncX>` child of
-/// [`SvgFilter::component_transfer`](super::SvgFilter::component_transfer), selecting both the SVG `type` attribute
-/// and the attributes that go with it — the same one-enum-covers-a-`type`-dependent-attribute-shape
+/// [`SvgFilter::component_transfer`](super::SvgFilter::component_transfer).
+/// Selects both the SVG `type` attribute and the attributes that go with it.
+/// This is the same one-enum-covers-a-`type`-dependent-attribute-shape pattern
 /// [`ColorMatrixType`](super::ColorMatrixType) already uses for `<feColorMatrix>`.
 ///
-/// Deliberately does not derive `Copy`, for the same reason [`ColorMatrixType`](super::ColorMatrixType) does not:
-/// [`Table`](Self::Table) and [`Discrete`](Self::Discrete) each carry a `Vec<f64>`, and making that implicitly
-/// copyable would encourage silent full-`Vec` clones at call sites when only a move or borrow was needed.
+/// Deliberately does not derive `Copy`, for the same reason [`ColorMatrixType`](super::ColorMatrixType) does not.
+/// [`Table`](Self::Table) and [`Discrete`](Self::Discrete) each carry a `Vec<f64>`.
+/// Making that implicitly copyable would encourage silent full-`Vec` clones at call sites that only needed a move
+/// or a borrow.
 #[derive(Debug, Clone, PartialEq)]
 pub enum TransferFunction {
     /// No change to this channel — the SVG default for any channel that gets no `<feFuncX>` child at all. Only
@@ -15,11 +17,12 @@ pub enum TransferFunction {
     /// A piecewise-linear lookup table: the channel's `0.0`–`1.0` value selects between consecutive entries by
     /// linear interpolation.
     ///
-    /// The SVG spec defines `n+1` values as `n` interpolation regions; zero entries is explicitly defined as
-    /// equivalent to [`Identity`](Self::Identity), but a *single* entry leaves `n = 0` with no region for the
-    /// interpolation formula to apply to, so its behaviour is unspecified rather than "a constant function" — see
-    /// [`Error::InvalidTransferFunction`](crate::Error::InvalidTransferFunction), which
-    /// [`component_transfer`](super::SvgFilter::component_transfer) returns for exactly this case.
+    /// The SVG spec defines `n+1` values as `n` interpolation regions.
+    /// Zero entries is explicitly defined as equivalent to [`Identity`](Self::Identity).
+    /// A *single* entry leaves `n = 0`, with no region for the interpolation formula to apply to.
+    /// Its behaviour is therefore unspecified, rather than "a constant function".
+    /// [`component_transfer`](super::SvgFilter::component_transfer) returns
+    /// [`Error::InvalidTransferFunction`](crate::Error::InvalidTransferFunction) for exactly this case.
     ///
     /// For a portable constant transfer function, supply the same value twice instead: `Table(vec![0.5, 0.5])`.
     Table(Vec<f64>),
@@ -27,10 +30,13 @@ pub enum TransferFunction {
     /// formula, rather than interpolating between two neighbours the way [`Table`](Self::Table) does. Produces a
     /// posterised/quantised look.
     ///
-    /// Unlike [`Table`](Self::Table), a *single* value here is well-defined (every input maps to that one entry —
-    /// a constant function), but an *empty* list is not: the stepping formula divides by the value count and
-    /// indexes into the list with the result, both of which are undefined for zero values, and the spec gives the
-    /// empty list no identity fallback the way it does for `Table`. At least one value is required, or
+    /// Unlike [`Table`](Self::Table), a *single* value here is well-defined: every input maps to that one entry, a
+    /// constant function.
+    /// An *empty* list is not well-defined, though.
+    /// The stepping formula divides by the value count and indexes into the list with the result.
+    /// Both of these are undefined for zero values.
+    /// The spec also gives the empty list no identity fallback, unlike `Table`.
+    /// At least one value is required, or
     /// [`component_transfer`](super::SvgFilter::component_transfer) returns
     /// [`Error::InvalidTransferFunction`](crate::Error::InvalidTransferFunction).
     Discrete(Vec<f64>),

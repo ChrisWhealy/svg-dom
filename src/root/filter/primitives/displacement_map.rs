@@ -9,7 +9,7 @@ impl SvgFilter {
     ///
     /// For every output pixel, the `x_channel_selector`/`y_channel_selector` channel values of `in2` at that
     /// location (each `0.0`–`1.0`) are remapped to `-scale/2`..`scale/2` and used to offset which pixel of `in` is
-    /// read — the standard way to distort a shape using noise from [`turbulence`](Self::turbulence)/
+    /// read. This is the standard way to distort a shape using noise from [`turbulence`](Self::turbulence)/
     /// [`turbulence_xy`](Self::turbulence_xy), producing a hand-drawn/organic edge instead of a perfectly
     /// geometric one.
     ///
@@ -21,15 +21,15 @@ impl SvgFilter {
     /// `x_channel_selector`/`y_channel_selector` choose which of `in2`'s four channels drives the horizontal/
     /// vertical displacement respectively.
     ///
-    /// ***⚠️ [`Channel::Alpha`] for both selectors constrains every displacement vector to one diagonal*** — it is
-    /// the SVG default, and a valid choice when that constraint is exactly what is wanted, but passing the *same*
+    /// ***⚠️ [`Channel::Alpha`] for both selectors constrains every displacement vector to one diagonal.*** It is
+    /// the SVG default, and a valid choice when that constraint is exactly what is wanted. But passing the *same*
     /// channel for both selectors means `dx` and `dy` are always equal at every pixel (both computed from the same
-    /// `0.0`–`1.0` value), so displacement only ever points along the `y = x` line rather than freely in two
-    /// dimensions. For the general, more natural-looking "organic edge" case, select two *different* channels —
+    /// `0.0`–`1.0` value). Displacement then only ever points along the `y = x` line rather than freely in two
+    /// dimensions. For the general, more natural-looking "organic edge" case, select two *different* channels:
     /// [`Channel::Red`] for `x_channel_selector` and [`Channel::Green`] for `y_channel_selector`, as in the example
-    /// below — since [`turbulence`](Self::turbulence)/[`turbulence_xy`](Self::turbulence_xy) generate each colour
-    /// channel independently (the same choice the SVG specification's own explanatory `feDisplacementMap` example
-    /// makes).
+    /// below. This works because [`turbulence`](Self::turbulence)/[`turbulence_xy`](Self::turbulence_xy) generate
+    /// each colour channel independently, the same choice the SVG specification's own explanatory
+    /// `feDisplacementMap` example makes.
     ///
     /// `in2` is written directly.
     ///
@@ -37,14 +37,14 @@ impl SvgFilter {
     /// most often [`turbulence`](Self::turbulence)/[`turbulence_xy`](Self::turbulence_xy)'s output — or one of the
     /// SVG keyword inputs (`"SourceGraphic"`/`"SourceAlpha"`).
     ///
-    /// `in` is not set by this method: if this is the filter's first primitive, its implicit input is
-    /// `SourceGraphic`, otherwise use the returned [`SvgNode`]'s [`set_attr`](crate::SvgNode::set_attr) to set `in`
+    /// `in` is not set by this method. If this is the filter's first primitive, its implicit input is
+    /// `SourceGraphic`. Otherwise, use the returned [`SvgNode`]'s [`set_attr`](crate::SvgNode::set_attr) to set `in`
     /// explicitly, the same as every other primitive here.
     ///
     /// ***⚠️ Cross-browser rendering is not guaranteed to match exactly*** — the Filter Effects specification
     /// itself notes interoperability differences between implementations of `feDisplacementMap`, including
     /// disagreement on exactly how the displaced sample is interpolated. This crate's own tests only assert on DOM
-    /// structure and attribute values — none of them render this primitive and inspect pixels — so a filter that
+    /// structure and attribute values. None of them render this primitive and inspect pixels. So a filter that
     /// passes those tests is verified to be *well-formed*, not verified to *look* identical in every browser.
     ///
     /// # Errors

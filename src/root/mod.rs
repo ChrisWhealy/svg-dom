@@ -86,8 +86,9 @@ pub(crate) fn document() -> Result<Document, Error> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Creates a namespaced SVG element `tag` and casts it to `T`, mapping the two failure modes to [`Error::Dom`] /
-/// [`Error::CastFailed`] (`type_name` names the target type).
+/// Creates a namespaced SVG element `tag` and casts it to `T`.
+/// Creation failure maps to [`Error::Dom`].
+/// Cast failure maps to [`Error::CastFailed`], using `type_name` as the target type name.
 ///
 /// Centralises the create-and-cast pattern shared by [`SvgFactory::make_element`](factory::SvgFactory) and
 /// [`SvgRoot::create_in`](svg_root::SvgRoot::create_in).

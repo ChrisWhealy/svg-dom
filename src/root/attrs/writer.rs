@@ -4,8 +4,9 @@ use crate::{Error, PathDef, SvgNode, root::utils::Point};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Chainable attribute writer bound to a single [`SvgNode`].
 ///
-/// Obtain one from [`SvgAttrs::writer`] or [`SvgNode::attrs`](crate::SvgNode::attrs).  Each call returns `&mut Self`, so
-/// several attributes can be written in one expression while reusing the same scratch buffer.
+/// Obtain one from [`SvgAttrs::writer`] or [`SvgNode::attrs`](crate::SvgNode::attrs).
+/// Each call returns `&mut Self`, so several attributes can be written in one expression.
+/// The chain reuses the same scratch buffer throughout.
 pub struct AttrWriter<'a> {
     /// The reusable scratch buffer that backs the formatted writes.
     attrs: &'a mut SvgAttrs,

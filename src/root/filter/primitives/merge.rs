@@ -11,8 +11,8 @@ impl SvgFilter {
     /// example, an offset blurred shadow underneath the original graphic: `merge(&["offset-blur", "SourceGraphic"])`.
     ///
     /// Unlike [`gaussian_blur`](Self::gaussian_blur) and [`offset`](Self::offset), `<feMerge>` has no attributes of its
-    /// own to set beyond the generic `result` — its content is entirely the ordered list of `<feMergeNode>` children
-    /// this method builds, so there is nothing for the returned [`SvgNode`]'s [`set_attr`](crate::SvgNode::set_attr) to
+    /// own to set beyond the generic `result`. Its content is entirely the ordered list of `<feMergeNode>` children
+    /// this method builds. The returned [`SvgNode`]'s [`set_attr`](crate::SvgNode::set_attr) therefore has nothing to
     /// configure except `result`.
     ///
     /// # Errors

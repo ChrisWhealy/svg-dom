@@ -45,28 +45,31 @@ impl MaskUnits {
 ///
 /// `mask-type` expresses this mask element's own preferred interpretation.
 ///
-/// The element that *references* the mask can override it with its own `mask-mode` **CSS property** — unlike
-/// `mask-type`, `mask-mode` is not an SVG presentation attribute, so it cannot be set as a plain XML attribute.
+/// The element that *references* the mask can override it with its own `mask-mode` **CSS property**.
+/// Unlike `mask-type`, `mask-mode` is not an SVG presentation attribute, so it cannot be set as a plain XML attribute.
 /// A literal `mask-mode="alpha"` attribute is not the specification-defined syntax, however tolerant some browsers may
 /// happen to be about it.
 ///
-/// As a result, there is no dedicated typed setter for it; instead, write it into the element's `style` attribute
-/// e.g. `SvgNode::set_attr("style", "mask-mode: alpha")` — bearing in mind that this statement alone will overwrite the
-/// whole `style` attribute, so merge in any other inline declarations the element already has or might need.
+/// As a result, there is no dedicated typed setter for it.
+/// Instead, write it into the element's `style` attribute, e.g. `SvgNode::set_attr("style", "mask-mode: alpha")`.
+/// Note that this statement alone overwrites the whole `style` attribute, so merge in any other inline declarations
+/// the element already has or might need.
 ///
 /// `mask-mode`'s default value, `match-source`, honours whatever `mask-type` says, so the behaviour documented here
 /// is what callers get unless a referencing element opts out explicitly.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MaskType {
     /// The referencing element is revealed in proportion to the mask content's *luminance and alpha combined* — the
-    /// SVG default. Opaque white reveals fully and opaque black hides fully; intermediate brightness or alpha
-    /// produces partial visibility, and transparent content (whatever its colour) hides fully regardless of
-    /// brightness. A colour flood or gradient makes this behave intuitively without any extra `opacity` bookkeeping,
+    /// SVG default. Opaque white reveals fully, and opaque black hides fully.
+    /// Intermediate brightness or alpha produces partial visibility.
+    /// Transparent content, whatever its colour, hides fully regardless of brightness.
+    /// A colour flood or gradient makes this behave intuitively without any extra `opacity` bookkeeping,
     /// provided the content stays fully opaque.
     Luminance,
     /// The referencing element is revealed in proportion to the mask content's *alpha* channel alone, ignoring
-    /// colour/luminance entirely — a solid white shape with `fill-opacity="0.5"` reveals exactly 50%, and so does a
-    /// solid black shape with the same `fill-opacity`.
+    /// colour/luminance entirely.
+    /// A solid white shape with `fill-opacity="0.5"` reveals exactly 50%, and so does a solid black shape with the
+    /// same `fill-opacity`.
     Alpha,
 }
 
@@ -84,8 +87,9 @@ impl MaskType {
 /// the mask's own rendered content.
 ///
 /// Unlike [`SvgClipPath`](crate::SvgClipPath), which is a hard, binary (in/out) boundary defined purely by shape
-/// geometry, `<mask>` supports gradual transparency: each pixel of the referencing element is scaled by a value
-/// derived from the corresponding pixel of the mask's rendered content.  This is either the combined luminance and
+/// geometry, `<mask>` supports gradual transparency.
+/// Each pixel of the referencing element is scaled by a value derived from the corresponding pixel of the mask's
+/// rendered content.  This is either the combined luminance and
 /// alpha values (the default [`MaskType::Luminance`]), or just the alpha alone ([`MaskType::Alpha`]).
 ///
 /// Under the default, opaque white reveals fully, opaque black hides fully, and anything in between reveals partially,
@@ -100,13 +104,14 @@ impl MaskType {
 /// Unlike `<clipPath>`, `<mask>` has its own bounding region (`x`, `y`, `width`, `height`). Any content painted outside
 /// that region is clipped away before luminance/alpha is even evaluated.
 ///
-/// The SVG default region (defined as `-10%, -10%, 120%, 120%` of the referencing element's bounding box under the
-/// default [`MaskUnits::ObjectBoundingBox`]) comfortably covers content that stays close to the referencing element's
-/// own bounds, but a mask shape that extends further such as a wide gradient sweep or a large soft-edged reveal, can be
-/// silently clipped by this region.
+/// The SVG default region is `-10%, -10%, 120%, 120%` of the referencing element's bounding box, under the default
+/// [`MaskUnits::ObjectBoundingBox`].
+/// This comfortably covers content that stays close to the referencing element's own bounds.
+/// A mask shape that extends further, such as a wide gradient sweep or a large soft-edged reveal, can be silently
+/// clipped by this region.
 ///
 /// Widen it explicitly with [`set_x`](Self::set_x), [`set_y`](Self::set_y), [`set_width`](Self::set_width) and
-/// [`set_height`](Self::set_height) if the mask content is unexpectedly cut off.
+/// [`set_height`](Self::set_height) if the mask content is unexpectedly clipped.
 ///
 /// ⚠️ Caveat ⚠️
 ///
@@ -141,8 +146,8 @@ impl MaskType {
 pub struct SvgMask {
     /// The complete `url(#id)` reference, built once at construction then kept in sync by [`set_id`](Self::set_id).
     /// Caching the full reference (rather than the bare id) means [`SvgNode::set_mask_ref`](crate::SvgNode::set_mask_ref)
-    /// can write it straight to the `mask` attribute with no per-call formatting allocation, however many elements the
-    /// same mask is applied to.
+    /// can write it straight to the `mask` attribute with no per-call formatting allocation.
+    /// This holds however many elements the same mask is applied to.
     ///
     /// [`id`](Self::id) slices the bare id back out of this string rather than storing it separately.
     url_ref: String,
@@ -176,8 +181,8 @@ impl SvgMask {
     ///
     /// The returned value is sliced out of the cached `url(#id)` reference (see `url_ref`) built at construction time
     /// and kept in sync by [`set_id`](Self::set_id). The slice is exact because mask ids are restricted at validation
-    /// time to the pattern `[A-Za-z_][A-Za-z0-9_-]*`, which is pure ASCII, so byte offsets from `URL_PREFIX`'s length
-    /// and the string's end always land on the bare id exactly.
+    /// time to the pattern `[A-Za-z_][A-Za-z0-9_-]*`. That pattern is pure ASCII, so byte offsets from `URL_PREFIX`'s
+    /// length and the string's end always land on the bare id exactly.
     ///
     /// [`set_attr`](Self::set_attr) and [`set_attr_display`](Self::set_attr_display) reject `"id"` so they cannot
     /// desynchronise the cache through the normal API.
@@ -194,7 +199,8 @@ impl SvgMask {
     /// Returns the cached `url(#id)` reference, ready to write directly to a `mask` attribute.
     ///
     /// Visibility need only be `pub(crate)` since [`SvgNode::set_mask_ref`](crate::SvgNode::set_mask_ref) is the only
-    /// function that needs it; external callers use [`id`](Self::id) instead.
+    /// function that needs it.
+    /// External callers use [`id`](Self::id) instead.
     pub(crate) fn url_ref(&self) -> &str {
         &self.url_ref
     }
@@ -205,8 +211,9 @@ impl SvgMask {
     /// This method takes `&mut self` because it mutates Rust-owned state (the cached reference string), unlike the
     /// other attribute setters that write only to the DOM.
     ///
-    /// The new `id` is subject to the same validation rules as the id supplied at construction time: it must match the
-    /// pattern `[A-Za-z_][A-Za-z0-9_-]*` — a letter or underscore followed by letters, digits, underscores, or hyphens.
+    /// The new `id` is subject to the same validation rules as the id supplied at construction time.
+    /// It must match the pattern `[A-Za-z_][A-Za-z0-9_-]*` — a letter or underscore followed by letters, digits,
+    /// underscores, or hyphens.
     ///
     /// ⚠️ Caveat ⚠️
     ///
@@ -234,8 +241,8 @@ impl SvgMask {
     ///
     /// This provides a direct escape hatch to the DOM.
     ///
-    /// Avoid writing the `id` attribute through this handle; use [`set_id`](Self::set_id) instead so the cached value
-    /// stays in sync.
+    /// Avoid writing the `id` attribute through this handle.
+    /// Use [`set_id`](Self::set_id) instead so the cached value stays in sync.
     pub fn as_element(&self) -> &SvgElement {
         &self.element
     }
@@ -263,9 +270,9 @@ impl SvgMask {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the width of the mask region.
     ///
-    /// See the [type-level docs](Self) for why this often needs widening beyond the SVG default — and, in the same
-    /// breath, why it should not be widened further than the mask content actually needs, since the region bounds
-    /// the offscreen buffer the browser rasterises while evaluating the mask.
+    /// See the [type-level docs](Self) for why this often needs widening beyond the SVG default.
+    /// It should not be widened further than the mask content actually needs, though, since the region bounds the
+    /// offscreen buffer the browser rasterises while evaluating the mask.
     /// See [`set_x`](Self::set_x) for the coordinate space this value is interpreted in.
     pub fn set_width(&self, v: f64) -> Result<(), Error> {
         self.attrs.borrow_mut().display_element(&self.element, "width", v)
@@ -322,7 +329,8 @@ impl SvgMask {
     ///
     /// ⚠️ Caveat ⚠️
     ///
-    /// Name and value are written verbatim; so do not pass untrusted input!
+    /// Name and value are written verbatim.
+    /// Do not pass untrusted input!
     ///
     /// # Reserved attributes
     ///
@@ -340,7 +348,8 @@ impl SvgMask {
     ///
     /// Equivalent to calling [`set_attr`](Self::set_attr) for each pair.
     ///
-    /// Returns the first error encountered; attributes written before the error are left in place.
+    /// Returns the first error encountered.
+    /// Attributes written before the error are left in place.
     pub fn set_attrs<I, K, V>(&self, attrs: I) -> Result<(), Error>
     where
         I: IntoIterator<Item = (K, V)>,
@@ -357,8 +366,8 @@ impl SvgMask {
     /// Formats `value` through the element's internal scratch buffer and writes it as `name`.
     ///
     /// Uses the same `SvgAttrs` scratch buffer that the shape factories use internally, so no extra allocation is made.
-    /// Passing `"id"` (matched case-insensitively) returns [`Error::ReservedAttribute`];
-    /// use [`set_id`](Self::set_id) instead.
+    /// Passing `"id"` (matched case-insensitively) returns [`Error::ReservedAttribute`].
+    /// Use [`set_id`](Self::set_id) instead.
     pub fn set_attr_display<T: std::fmt::Display>(&self, name: &str, value: T) -> Result<(), Error> {
         if name.eq_ignore_ascii_case("id") {
             return Err(Error::ReservedAttribute("id"));
@@ -413,10 +422,12 @@ impl SvgMask {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates a `<polyline>` mask shape inside this `<mask>`.
     ///
-    /// A polyline remains open for stroking, but SVG implicitly closes it for filling — a straight edge is treated
-    /// as though it ran from the last point back to the first, purely for the purpose of computing the filled
-    /// region. Consequently, a non-degenerate (three-or-more-point) polyline already contributes a filled region
-    /// without needing to be turned into a polygon; `fill-rule` only selects how that implicitly closed area is
+    /// A polyline remains open for stroking, but SVG implicitly closes it for filling.
+    /// A straight edge is treated as though it ran from the last point back to the first, purely to compute the
+    /// filled region.
+    /// Consequently, a non-degenerate (three-or-more-point) polyline already contributes a filled region
+    /// without needing to be turned into a polygon.
+    /// `fill-rule` only selects how that implicitly closed area is
     /// classified (nonzero vs even-odd), not whether it exists. Use [`polygon`](Self::polygon) when an explicitly
     /// closed shape better expresses the intent.
     pub fn polyline(&self, points: &[Point]) -> Result<SvgNode, Error> {
@@ -432,8 +443,8 @@ impl SvgMask {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates a `<text>` mask shape inside this `<mask>`.
     ///
-    /// Text used as mask content reveals the referencing element through the glyph outlines — white (or any non-black)
-    /// fill text is the standard way to cut a legible hole through a solid shape.
+    /// Text used as mask content reveals the referencing element through the glyph outlines.
+    /// White (or any non-black) fill text is the standard way to cut a legible hole through a solid shape.
     pub fn text(&self, anchored_at: Point, content: &str) -> Result<SvgNode, Error> {
         self.create_text(anchored_at, content)
     }

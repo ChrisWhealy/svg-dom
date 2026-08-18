@@ -2,17 +2,20 @@
 /// The blend mode for [`SvgFilter::blend`](super::SvgFilter::blend), controlling how the `in` and `in2` inputs
 /// blend.
 ///
-/// Selects one of the sixteen standard `<blend-mode>` keywords (`normal` plus fifteen separable/non-separable
-/// modes) shared by CSS compositing and SVG `feBlend` — not the full CSS `mix-blend-mode` value set, which also
-/// accepts two CSS-only, property-specific modes (`plus-lighter`/`plus-darker`) this enum does not offer.
+/// Selects one of the sixteen standard `<blend-mode>` keywords: `normal` plus fifteen separable and non-separable
+/// modes.
+/// These are the modes shared by CSS compositing and SVG `feBlend`.
+/// This enum omits the two CSS-only, property-specific modes from the full CSS `mix-blend-mode` value set:
+/// `plus-lighter` and `plus-darker`.
 ///
-/// ***IMPORTANT*** SVG filter primitives operate in the `linearRGB` colour space by default, unlike CSS
-/// `mix-blend-mode` and most image editors, which operate in `sRGB`. The same [`BlendMode`] can therefore produce a
-/// visibly different result here than the "same" mode elsewhere, even with identical input colours. Set
-/// `color-interpolation-filters="sRGB"` on the `<filter>` element (via [`SvgFilter::set_attr`](super::SvgFilter::set_attr))
-/// — or on an individual primitive's own [`SvgNode`](crate::SvgNode) via
-/// [`set_attr`](crate::SvgNode::set_attr) to override it for just that one primitive — when an sRGB-space result is
-/// required to match CSS or an image editor.
+/// ***IMPORTANT*** SVG filter primitives operate in the `linearRGB` colour space by default.
+/// CSS `mix-blend-mode` and most image editors instead operate in `sRGB`.
+/// The same [`BlendMode`] can therefore produce a visibly different result here than the "same" mode elsewhere,
+/// even with identical input colours.
+/// Set `color-interpolation-filters="sRGB"` on the `<filter>` element, using
+/// [`SvgFilter::set_attr`](super::SvgFilter::set_attr), to match CSS or an image editor.
+/// Set it instead on an individual primitive's own [`SvgNode`](crate::SvgNode) via
+/// [`set_attr`](crate::SvgNode::set_attr) to override just that one primitive.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BlendMode {
     /// `in` painted over `in2` with no blending (SVG default) — identical to

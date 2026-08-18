@@ -72,10 +72,10 @@ impl SpreadMethod {
 /// Using a shared inner struct avoids duplicating the id/element/document/attrs fields and the many methods that operate
 /// identically on both types.
 ///
-/// `url_ref` caches the complete `url(#id)` reference (built once here, rebuilt in place by `set_id`) rather than just
-/// the bare id, so `set_fill_linear_gradient`/`set_fill_radial_gradient` and their stroke siblings can write it straight
-/// to the `fill`/`stroke` attribute with no per-call formatting allocation, however many elements the same gradient is
-/// applied to. `id()` slices the bare id back out of this string rather than storing it separately.
+/// `url_ref` caches the complete `url(#id)` reference rather than just the bare id. It is built once here and rebuilt
+/// in place by `set_id`. This lets `set_fill_linear_gradient`/`set_fill_radial_gradient` and their stroke siblings
+/// write it straight to the `fill`/`stroke` attribute with no per-call formatting allocation, however many elements
+/// share the gradient. `id()` slices the bare id back out of this string rather than storing it separately.
 struct GradientInner {
     url_ref: String,
     element: SvgElement,
@@ -99,9 +99,9 @@ impl GradientInner {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// The slice is exact because gradient ids are restricted at validation time to such that they always match the
-    /// pattern `[A-Za-z_][A-Za-z0-9_-]*`, which is pure ASCII, so byte offsets from `URL_PREFIX`'s length and the
-    /// string's end always land on the bare id exactly.
+    /// The slice below is exact because gradient ids are restricted at validation time to match the pattern
+    /// `[A-Za-z_][A-Za-z0-9_-]*`, which is pure ASCII. Byte offsets from `URL_PREFIX`'s length and the string's end
+    /// therefore always land on the bare id exactly.
     fn id(&self) -> &str {
         &self.url_ref[URL_PREFIX.len()..self.url_ref.len() - 1]
     }

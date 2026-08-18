@@ -33,13 +33,15 @@ impl MarkerUnits {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// A `<marker>` element defines a reusable graphic such as an arrowhead or dot, that the browser renders at a specified
-/// position along the shape's geometry using the methods `marker-start`, `marker-mid`, or `marker-end` on a shape.
+/// A `<marker>` element defines a reusable graphic, such as an arrowhead or dot.
+/// The browser renders it at a specified position along a shape's geometry, using the `marker-start`, `marker-mid`,
+/// or `marker-end` properties on that shape.
 ///
 /// The shapes inside it are added with the same factory methods available on [`SvgRoot`](crate::SvgRoot).
 ///
-/// Obtain one from [`SvgDefs::marker`](crate::SvgDefs::marker); attach it to a shape with
-/// [`SvgNode::set_marker_end`](crate::SvgNode::set_marker_end) and its `_start` / `_mid` siblings.
+/// Obtain one from [`SvgDefs::marker`](crate::SvgDefs::marker).
+/// Attach it to a shape with [`SvgNode::set_marker_end`](crate::SvgNode::set_marker_end) and its `_start` / `_mid`
+/// siblings.
 ///
 /// Marker rendering is not conditional on the shape having visible stroke paint since markers are a separate painting
 /// operation and `marker-start`/`-mid`/`-end` apply to the shape regardless of `stroke`.
@@ -77,7 +79,8 @@ impl MarkerUnits {
 pub struct SvgMarker {
     /// The complete `url(#id)` reference, built once at construction and kept in sync by [`set_id`](Self::set_id).
     /// Caching the full reference (rather than the bare id) means the `set_marker_*_ref` setters can write it straight
-    /// to their attribute with no per-call formatting allocation, however many elements this marker is applied to.
+    /// to their attribute with no per-call formatting allocation.
+    /// This holds however many elements this marker is applied to.
     ///
     /// [`id`](Self::id) slices the bare id back out of this string rather than storing it separately.
     url_ref: String,
@@ -111,7 +114,7 @@ impl SvgMarker {
     ///
     /// The returned value is sliced out of the cached `url(#id)` reference (see `url_ref`) built at construction time
     /// and kept in sync by [`set_id`](Self::set_id). The slice is exact because marker ids are restricted at validation
-    /// time to always match the pattern `[A-Za-z_][A-Za-z0-9_-]*`, which is pure ASCII, so byte offsets from
+    /// time to always match the pattern `[A-Za-z_][A-Za-z0-9_-]*`. That pattern is pure ASCII, so byte offsets from
     /// `URL_PREFIX`'s length and the string's end always land on the bare id exactly.
     ///
     /// [`set_attr`](Self::set_attr) and [`set_attr_display`](Self::set_attr_display) reject `"id"` so they cannot
@@ -129,7 +132,8 @@ impl SvgMarker {
     /// Returns the cached `url(#id)` reference, ready to write directly to a `marker-start`, `marker-mid` or
     /// `marker-end` attribute.
     ///
-    /// `pub(crate)` since only the `set_marker_*_ref` setters need it; external callers use [`id`](Self::id) instead.
+    /// `pub(crate)` since only the `set_marker_*_ref` setters need it.
+    /// External callers use [`id`](Self::id) instead.
     pub(crate) fn url_ref(&self) -> &str {
         &self.url_ref
     }
@@ -140,8 +144,9 @@ impl SvgMarker {
     /// This method takes `&mut self` because it mutates Rust-owned state (the cached reference string), unlike the
     /// other attribute setters that write only to the DOM.
     ///
-    /// The new `id` is subject to the same validation rules as the id supplied at construction time: it must
-    /// match `[A-Za-z_][A-Za-z0-9_-]*` — a letter or underscore followed by letters, digits, underscores, or hyphens.
+    /// The new `id` is subject to the same validation rules as the id supplied at construction time.
+    /// It must match `[A-Za-z_][A-Za-z0-9_-]*` — a letter or underscore followed by letters, digits, underscores, or
+    /// hyphens.
     ///
     /// **Note:** renaming a marker does not update any `marker-start`, `marker-mid`, or `marker-end` attributes
     /// already written to referencing elements — those store a snapshot of the reference at the time it was
@@ -166,8 +171,8 @@ impl SvgMarker {
     /// Returns a reference to the underlying `web-sys` `SvgElement`.
     ///
     /// This provides a direct escape hatch to the DOM.
-    /// Avoid writing the `id` attribute through this handle; use [`set_id`](Self::set_id) instead so the cached value
-    /// stays in sync.
+    /// Avoid writing the `id` attribute through this handle.
+    /// Use [`set_id`](Self::set_id) instead so the cached value stays in sync.
     pub fn as_element(&self) -> &SvgElement {
         &self.element
     }
@@ -216,8 +221,9 @@ impl SvgMarker {
     ///
     /// When present, the marker's `(x, y, width, height)` internal region is mapped onto the `markerWidth` /
     /// `markerHeight` viewport (see [`set_marker_width`](Self::set_marker_width) /
-    /// [`set_marker_height`](Self::set_marker_height)), scaled according to `preserveAspectRatio` and set via
-    /// [`set_attr`](Self::set_attr), since `<marker>` has no dedicated `preserveAspectRatio` setter in this crate.
+    /// [`set_marker_height`](Self::set_marker_height)), scaled according to `preserveAspectRatio`.
+    /// Set `preserveAspectRatio` via [`set_attr`](Self::set_attr), since `<marker>` has no dedicated setter for it in
+    /// this crate.
     ///
     /// If no `viewBox` is set, marker content is positioned directly in `markerWidth`/`markerHeight` units with no
     /// scaling, the same relationship [`SvgSymbol`](crate::SvgSymbol)'s `viewBox` has to its `<use>` viewport.
@@ -225,8 +231,8 @@ impl SvgMarker {
     /// # Errors
     ///
     /// Returns [`Error::InvalidViewBox`] if any component is not finite (`NaN`/`±infinity`), or if either `width` or
-    /// `height` is negative. A `width`/`height` of exactly `0.0` is accepted; as per the SVG spec, this is not an
-    /// error, rather it is a trick to disable rendering.
+    /// `height` is negative. A `width`/`height` of exactly `0.0` is accepted.
+    /// As per the SVG spec, this is not an error — it is a trick to disable rendering.
     ///
     /// # Example
     ///
@@ -251,7 +257,8 @@ impl SvgMarker {
     ///
     /// This is the generic escape hatch for attributes not covered by the named setters above (e.g.
     /// `preserveAspectRatio`, `overflow`, `class`, `style`).
-    /// Name and value are written verbatim; do not pass untrusted input.
+    /// Name and value are written verbatim.
+    /// Do not pass untrusted input.
     ///
     /// # Reserved attributes
     ///
@@ -268,7 +275,8 @@ impl SvgMarker {
     /// Sets several attributes in one call.
     ///
     /// Equivalent to calling [`set_attr`](Self::set_attr) for each pair.
-    /// Returns the first error encountered; attributes written before the error are left in place.
+    /// Returns the first error encountered.
+    /// Attributes written before the error are left in place.
     pub fn set_attrs<I, K, V>(&self, attrs: I) -> Result<(), Error>
     where
         I: IntoIterator<Item = (K, V)>,
@@ -286,8 +294,8 @@ impl SvgMarker {
     ///
     /// Uses the same `SvgAttrs` scratch buffer that the named numeric setters (`set_ref_x`, `set_marker_width`, ...)
     /// use internally, so no extra allocation is made.
-    /// Passing `"id"` (matched case-insensitively) returns [`Error::ReservedAttribute`];
-    /// use [`set_id`](Self::set_id) instead.
+    /// Passing `"id"` (matched case-insensitively) returns [`Error::ReservedAttribute`].
+    /// Use [`set_id`](Self::set_id) instead.
     pub fn set_attr_display<T: std::fmt::Display>(&self, name: &str, value: T) -> Result<(), Error> {
         if name.eq_ignore_ascii_case("id") {
             return Err(Error::ReservedAttribute("id"));
@@ -389,7 +397,7 @@ impl super::defs::SvgDefs {
     /// `<marker>` element detached until the closure succeeds, so a mid-build error leaves no partial marker in
     /// `<defs>`.
     /// With this method, if a shape or attribute setter fails after `marker()` returns, the partial `<marker>` element
-    /// remains in `<defs>` (though an incomplete marker is harmless — it renders nothing unless referenced).
+    /// remains in `<defs>`. This is harmless, though — an unreferenced marker renders nothing.
     ///
     /// # Errors
     ///

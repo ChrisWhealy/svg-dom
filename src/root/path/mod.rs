@@ -29,11 +29,11 @@ impl SvgRoot {
     ///
     /// The path can be updated later without recreating the element using [`SvgNode::set_d`].
     ///
-    /// Since `d` is free text, nothing stops it from being malformed — a typo'd command letter, a missing argument,
-    /// or a mismatched flag are all accepted silently by the SVG parser, which just stops rendering at the bad
+    /// Since `d` is free text, nothing stops it from being malformed. A typo'd command letter, a missing argument, or
+    /// a mismatched flag are all accepted silently by the SVG parser. The parser just stops rendering at the bad
     /// token. When the path data is being constructed rather than pasted in from an external source, prefer
-    /// [`path_from_defs`](Self::path_from_defs), which builds `d` from typed [`PathDef`] segments so malformed path
-    /// data cannot be constructed in the first place.
+    /// [`path_from_defs`](Self::path_from_defs) instead. It builds `d` from typed [`PathDef`] segments, so malformed
+    /// path data cannot be constructed in the first place.
     ///
     /// # Example
     ///
@@ -56,8 +56,8 @@ impl SvgRoot {
     /// Creates a `<path>` element from a sequence of typed [`PathDef`] segments, appends it to the root and returns
     /// its [`SvgNode`] handle.
     ///
-    /// This is the type-safe alternative to [`path`](Self::path): the `d` attribute is built internally by [`build_d`]
-    /// from `defs`, so a mistyped command letter, wrong argument count or invalid arc flag is impossible — see
+    /// This is the type-safe alternative to [`path`](Self::path). The `d` attribute is built internally by [`build_d`]
+    /// from `defs`, so a mistyped command letter, wrong argument count, or invalid arc flag is impossible. See
     /// [`PathDef`]'s own documentation for exactly what is and is not guaranteed.
     ///
     /// # Errors

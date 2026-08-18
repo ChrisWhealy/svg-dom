@@ -9,9 +9,10 @@ impl SvgFilter {
     /// [`gaussian_blur_xy`](Self::gaussian_blur_xy): creates a `<feGaussianBlur>`, writes `std_deviation` as its
     /// `stdDeviation` attribute, and appends it.
     ///
-    /// `std_deviation` is a pre-built [`fmt::Arguments`] rather than a `&str` so the two public callers can pass either
-    /// a single number or an `"x y"` pair through [`display_element`](crate::root::attrs::SvgAttrs::display_element)'s
-    /// retained scratch buffer without first collecting into an owned `String`.  This is the same technique used by
+    /// `std_deviation` is a pre-built [`fmt::Arguments`] rather than a `&str`. This lets the two public callers pass
+    /// either a single number or an `"x y"` pair through
+    /// [`display_element`](crate::root::attrs::SvgAttrs::display_element)'s retained scratch buffer, without first
+    /// collecting into an owned `String`. This is the same technique used by
     /// [`SvgPattern::set_view_box`](crate::SvgPattern::set_view_box) and
     /// [`SvgSymbol::set_view_box`](crate::SvgSymbol::set_view_box) to combine several numbers into one attribute.
     fn gaussian_blur_args(&self, std_deviation: fmt::Arguments<'_>) -> Result<SvgNode, Error> {
@@ -25,13 +26,13 @@ impl SvgFilter {
     /// Appends a `<feGaussianBlur>` primitive to this filter, blurring its input equally on both axes by
     /// `std_deviation`.
     ///
-    /// `std_deviation` is the standard deviation of the Gaussian blur kernel where larger values blur more and is
-    /// interpreted in the coordinate system established by [`primitiveUnits`](Self::set_primitive_units) — user-space
-    /// units under the default [`FilterUnits::UserSpaceOnUse`](super::super::FilterUnits::UserSpaceOnUse), or a
-    /// fraction of the referencing element's bounding box under
-    /// [`FilterUnits::ObjectBoundingBox`](super::super::FilterUnits::ObjectBoundingBox) — for example, `0.1`
-    /// represents 10% of the relevant dimension. (The SVG `stdDeviation` grammar is one or two plain `<number>`
-    /// values; there is no percentage token to write here, just a fraction expressed as a plain `f64`.)
+    /// `std_deviation` is the standard deviation of the Gaussian blur kernel, where larger values blur more. It is
+    /// interpreted in the coordinate system established by [`primitiveUnits`](Self::set_primitive_units). Under the
+    /// default [`FilterUnits::UserSpaceOnUse`](super::super::FilterUnits::UserSpaceOnUse), these are user-space
+    /// units. Under [`FilterUnits::ObjectBoundingBox`](super::super::FilterUnits::ObjectBoundingBox), each value is
+    /// a fraction of the referencing element's bounding box, so `0.1` represents 10% of the relevant dimension.
+    /// (The SVG `stdDeviation` grammar is one or two plain `<number>` values. There is no percentage token to write
+    /// here, just a fraction expressed as a plain `f64`.)
     ///
     /// A `std_deviation` of `0.0` produces no blur (the input passes through unchanged).
     ///
@@ -40,9 +41,9 @@ impl SvgFilter {
     /// the one-number form.
     ///
     /// If this is the filter's first primitive, its implicit input is `SourceGraphic` (the referencing element as
-    /// normally rendered). Use the returned [`SvgNode`]'s [`set_attr`](crate::SvgNode::set_attr) to set `in` (e.g.
-    /// `"SourceAlpha"`, or the `result` name of an earlier primitive) or `result` (to name this primitive's output for
-    /// a later primitive's `in`/`in2` to reference) — neither has a dedicated setter yet.
+    /// normally rendered). Use the returned [`SvgNode`]'s [`set_attr`](crate::SvgNode::set_attr) to set `in` or
+    /// `result`. Neither has a dedicated setter yet. `in` can be `"SourceAlpha"`, or the `result` name of an earlier
+    /// primitive. `result` names this primitive's output for a later primitive's `in`/`in2` to reference.
     ///
     /// # Errors
     ///

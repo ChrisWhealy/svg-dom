@@ -5,8 +5,9 @@
 pub enum CompositeOperator {
     /// `in` painted over `in2` (SVG default). Neither input is clipped to the other's shape.
     Over,
-    /// Only the part of `in` that overlaps `in2` is kept — the standard way to tint a mask, e.g. compositing a
-    /// flood colour "in" a blurred alpha silhouette to colour a drop shadow.
+    /// Only the part of `in` that overlaps `in2` is kept.
+    /// This is the standard way to tint a mask — for example, compositing a flood colour "in" a blurred alpha
+    /// silhouette to colour a drop shadow.
     In,
     /// Only the part of `in` that does *not* overlap `in2` is kept.
     Out,
@@ -16,14 +17,15 @@ pub enum CompositeOperator {
     Xor,
     /// The arithmetic sum of both inputs, clamped to fully opaque — brightens rather than blends.
     Lighter,
-    /// A per-pixel weighted sum `k1*i1*i2 + k2*i1 + k3*i2 + k4`, controlled by the `k1`–`k4` attributes (not
-    /// wrapped by a named parameter here; set them via the returned [`SvgNode`](crate::SvgNode)'s
-    /// [`set_attr`](crate::SvgNode::set_attr) — this is the one operator
-    /// [`composite`](super::SvgFilter::composite) does not fully configure on its own).
+    /// A per-pixel weighted sum: `k1*i1*i2 + k2*i1 + k3*i2 + k4`, controlled by the `k1`–`k4` attributes.
+    /// These are not wrapped by a named parameter here; set them via the returned [`SvgNode`](crate::SvgNode)'s
+    /// [`set_attr`](crate::SvgNode::set_attr).
+    /// This is the one operator [`composite`](super::SvgFilter::composite) does not fully configure on its own.
     ///
-    /// ***⚠️ `k1`–`k4` arguments all default to `0`*** — [`composite`](super::SvgFilter::composite) does not write
-    /// them, and the SVG initial value for each is `0`. Selecting `Arithmetic` and stopping there evaluates to
-    /// `0*i1*i2 + 0*i1 + 0*i2 + 0` for every pixel, i.e. **transparent black**, not a blend of the two inputs.
+    /// ***⚠️ `k1`–`k4` arguments all default to `0`***.
+    /// [`composite`](super::SvgFilter::composite) does not write them, and the SVG initial value for each is `0`.
+    /// Selecting `Arithmetic` and stopping there evaluates to `0*i1*i2 + 0*i1 + 0*i2 + 0` for every pixel, i.e.
+    /// **transparent black**, not a blend of the two inputs.
     ///
     /// Always set all four coefficients you need immediately after calling `composite` with this operator:
     ///

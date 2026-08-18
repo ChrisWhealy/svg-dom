@@ -12,9 +12,9 @@ impl SvgRoot {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Creates an empty `<foreignObject>` element, appends it to the root, and returns its [`SvgNode`] handle.
     ///
-    /// `<foreignObject>` defines a rectangular containing block in SVG user space within which foreign (typically
-    /// HTML) content is laid out by the browser's own engine — CSS text flow/wrapping, form controls, and other HTML
-    /// features that SVG's own text and shape model does not provide.
+    /// `<foreignObject>` defines a rectangular containing block in SVG user space. Within it, foreign — typically
+    /// HTML — content is laid out by the browser's own engine. That includes CSS text flow and wrapping, form
+    /// controls, and other HTML features that SVG's own text and shape model does not provide.
     ///
     /// `top_left` and `size` define that rectangle in the current user-space coordinate system, exactly like
     /// [`SvgRoot::rect`](crate::SvgRoot::rect)/[`SvgRoot::image`](crate::SvgRoot::image).
@@ -22,22 +22,21 @@ impl SvgRoot {
     /// # This is a containing block, not an unconditional clip
     ///
     /// The rectangle establishes the viewport and CSS containing block for the foreign content. Browsers clip to it
-    /// by default — `<foreignObject>` gets `overflow: hidden` from the UA stylesheet, the same as `<svg>`/`<symbol>`/
-    /// `<marker>`/`<pattern>`, the other elements that establish a new viewport — but that is an ordinary,
-    /// overridable CSS property, not a structural guarantee this crate or SVG's rendering model enforces. Content
-    /// set to `overflow: visible` (via [`SvgNode::set_attr`](crate::SvgNode::set_attr)) can still paint outside the
-    /// rectangle.
+    /// by default. `<foreignObject>` gets `overflow: hidden` from the UA stylesheet, the same as `<svg>`,
+    /// `<symbol>`, `<marker>`, and `<pattern>` — the other elements that establish a new viewport. That default is
+    /// an ordinary, overridable CSS property, though, not a structural guarantee this crate or SVG's rendering
+    /// model enforces. Content set to `overflow: visible` (via [`SvgNode::set_attr`](crate::SvgNode::set_attr)) can
+    /// still paint outside the rectangle.
     ///
     /// # No content-setting method — by design
     ///
-    /// This factory returns an *empty* `<foreignObject>`; there is no `set_inner_html` or `set_content` method to fill
-    /// it. This is not a missing feature, rather it is a deliberate design decision to limit the crate's public API
-    /// surface.
+    /// This factory returns an *empty* `<foreignObject>`. There is no `set_inner_html` or `set_content` method to
+    /// fill it. This is not a missing feature. Instead, the crate deliberately limits its public API surface here.
     ///
     /// A string-based HTML convenience method would need to parse caller-supplied markup (typically via `innerHTML` or
     /// an equivalent browser parsing API). However, parsing arbitrary markup means this crate must take on sanitisation
     /// and trust concerns that it has no business maintaining. No part of this crate's public API parses a string as
-    /// markup anywhere (this crate's top-level documentation states that guarantee explicitly), and this factory does
+    /// markup anywhere — this crate's top-level documentation states that guarantee explicitly. This factory does
     /// not make an exception for `<foreignObject>`.
     ///
     /// To add content, reach for the raw DOM via [`SvgNode::as_element`](crate::SvgNode::as_element) — already a
@@ -71,14 +70,14 @@ impl SvgRoot {
     ///   of DOM nodes actually present.
     /// - [`first_child`](crate::SvgNode::first_child), [`last_child`](crate::SvgNode::last_child),
     ///   [`next_sibling`](crate::SvgNode::next_sibling), [`previous_sibling`](crate::SvgNode::previous_sibling), and
-    ///   [`query_selector`](crate::SvgNode::query_selector) return a single result: each examines exactly one
-    ///   specific candidate (the actual first/last child, the immediately adjacent sibling, the browser's own first
-    ///   selector match) and returns `None` if *that* candidate is non-SVG. None of them search on for a different,
-    ///   later element that might qualify — a `<foreignObject>` whose first child is HTML makes `first_child()`
-    ///   return `None` even if a genuine SVG element exists as, say, the *second* child.
+    ///   [`query_selector`](crate::SvgNode::query_selector) return a single result. Each examines one specific
+    ///   candidate — the actual first or last child, the immediately adjacent sibling, or the browser's own first
+    ///   selector match — and returns `None` if *that* candidate is non-SVG. None of them search further for a
+    ///   different, later element that might qualify. A `<foreignObject>` whose first child is HTML makes
+    ///   `first_child()` return `None`, even if a genuine SVG element exists as, say, the *second* child.
     ///
-    /// This is existing, general behaviour that every one of those methods already documents individually; it is
-    /// called out here because `<foreignObject>` is the element it is actually reachable on. Use
+    /// This is existing, general behaviour that every one of those methods already documents individually. It is
+    /// noted here because `<foreignObject>` is the element on which it is actually reachable. Use
     /// [`as_element`](crate::SvgNode::as_element) and the raw `web_sys` API if you need to see that content too.
     ///
     /// # Browser support
