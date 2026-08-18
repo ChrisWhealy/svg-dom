@@ -138,16 +138,19 @@ pub enum Error {
     /// A `<view>` `id` string was rejected before reaching the DOM.
     ///
     /// This crate only accepts view ids matching `[A-Za-z_][A-Za-z0-9_-]*` — an ASCII letter or underscore followed by
-    /// zero or more ASCII letters, digits, underscores, or hyphens — the same conservative subset every other id-cached
-    /// element in this crate accepts. This is a restriction imposed by the crate, not by SVG/XML: the id grammar SVG
-    /// itself permits is considerably broader (for example, it allows a full stop and non-ASCII name characters).
+    /// zero or more ASCII letters, digits, underscores, or hyphens.
+    /// That is the same conservative subset every other id-cached element in this crate accepts.
+    /// This is a restriction imposed by the crate, not by SVG/XML.
+    /// The id grammar SVG itself permits is considerably broader — for example, it allows a full stop and non-ASCII
+    /// name characters.
     ///
-    /// Rejecting an id here does not mean it would be invalid SVG, only that this crate declines to accept it, in
-    /// exchange for every accepted id being trivially, unambiguously safe to embed in a plain `#id` fragment reference
-    /// (a `<view>` is never wrapped in a `url(#id)` form the way a marker/filter/mask/etc. is).
+    /// Rejecting an id here does not mean it would be invalid SVG.
+    /// It only means this crate declines to accept it, in exchange for every accepted id being trivially, unambiguously
+    /// safe to embed in a plain `#id` fragment reference.
+    /// A `<view>` is never wrapped in a `url(#id)` form, the way a marker/filter/mask/etc. is.
     ///
-    /// This validator does not check for uniqueness; SVG requires ids to be unique within a document, but enforcing
-    /// that is left to the caller.
+    /// This validator does not check for uniqueness.
+    /// SVG requires ids to be unique within a document, but enforcing that is left to the caller.
     ///
     /// This error is returned when a non-conforming string is passed to [`SvgDefs::view`](crate::SvgDefs::view) or
     /// [`SvgDefs::build_view`](crate::SvgDefs::build_view).
@@ -168,8 +171,8 @@ pub enum Error {
     /// A non-empty [`PathDef`](crate::PathDef) sequence did not begin with a `MoveTo` command.
     ///
     /// The SVG path grammar requires every non-empty path to start with a moveto (`M`/`m`).
-    /// All compliant SVG user agents will silently render nothing for a path whose first command is anything else,
-    /// neither will they report any error to the browser.
+    /// All compliant SVG user agents will silently render nothing for a path whose first command is anything else.
+    /// Nor will they report any error to the browser.
     ///
     /// This check catches that problem before it reaches the DOM.
     ///
@@ -178,22 +181,25 @@ pub enum Error {
     /// / [`d_from_defs_fixed`](crate::SvgAttrs::d_from_defs_fixed), and their
     /// [`AnimationFrame`](crate::AnimationFrame) counterparts.
     ///
-    /// Not returned by the lower-level [`build_d`](crate::build_d) / [`write_d`](crate::write_d) (or their `_fixed`
-    /// siblings): those are general-purpose formatters that may legitimately be used to build a path-data *fragment*
-    /// that is not meant to stand alone, so they format whatever `PathDef` sequence they are given without this check.
+    /// Not returned by the lower-level [`build_d`](crate::build_d)/[`write_d`](crate::write_d) (or their `_fixed`
+    /// siblings).
+    /// Those are general-purpose formatters that may legitimately be used to build a path-data *fragment* that is not
+    /// meant to stand alone.
+    /// So they format whatever `PathDef` sequence they are given, without this check.
     ///
-    /// This error is raised only by functions existing at the boundary where a path sequence about to be committed to
-    /// an element's live `d` attribute.
+    /// This error is raised only at the boundary where a path sequence is about to be committed to an element's live
+    /// `d` attribute.
     ///
     /// The inner `String` describes the problem.
     InvalidPathData(String),
 
     /// A `viewBox` was rejected before reaching the DOM.
     ///
-    /// SVG defines `viewBox` as 4 SVG numbers (`x`, `y`, `width`, `height`); this crate additionally requires `width`
-    /// and `height` to be non-negative (the SVG spec treats a negative value as an error for the whole attribute) and
-    /// every component to be finite (`NaN`/`±infinity` are not valid SVG numbers, even though `f64` can represent them
-    /// and `Display` can format them).
+    /// SVG defines `viewBox` as 4 SVG numbers: `x`, `y`, `width`, `height`.
+    /// This crate additionally requires `width` and `height` to be non-negative — the SVG spec treats a negative value
+    /// as an error for the whole attribute.
+    /// It also requires every component to be finite, since `NaN`/`±infinity` are not valid SVG numbers, even though
+    /// `f64` can represent them and `Display` can format them.
     ///
     /// A `width`/`height` of exactly `0.0` is valid syntax and is therefore accepted.  As per the SVG spec, this is a
     /// trick by which rendering of an element can be disabled if `width` or `height` is `0.0`.
@@ -208,14 +214,15 @@ pub enum Error {
     /// An empty or whitespace-only value was rejected before reaching the DOM.
     ///
     /// SVG 2 explicitly states that authoring tools and generators must not produce an empty or whitespace-only
-    /// `<title>` or `<desc>` element, since either can result in an apparently nameless object being exposed to
-    /// accessibility APIs — an empty `<title>` in particular can *suppress* an otherwise-usable accessible name
-    /// that would have been derived from other content.
+    /// `<title>` or `<desc>` element.
+    /// Either can result in an apparently nameless object being exposed to accessibility APIs.
+    /// An empty `<title>` in particular can *suppress* an otherwise-usable accessible name that would have been derived
+    /// from other content.
     ///
     /// Returned by [`SvgNode::set_title`](crate::SvgNode::set_title) and
-    /// [`SvgNode::set_desc`](crate::SvgNode::set_desc) when `text.trim()` is empty — this rejects the call outright
-    /// rather than silently creating (or leaving behind) a blank element or silently reinterpreting it as a
-    /// removal request.
+    /// [`SvgNode::set_desc`](crate::SvgNode::set_desc) when `text.trim()` is empty.
+    /// This rejects the call outright, rather than silently creating (or leaving behind) a blank element, or silently
+    /// reinterpreting it as a removal request.
     ///
     /// The inner `&'static str` is `"title"` or `"desc"`, naming which one was rejected.
     InvalidAccessibleText(&'static str),
