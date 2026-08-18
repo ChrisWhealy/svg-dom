@@ -17,7 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Apply a simplified form of ASD-STE100 to the svg_elements documentation (`c6f20c5`)
 - Apply a simplified form of ASD-STE100 to the testing documentation (`3434ce0`)
 - Apply a simplified form of ASD-STE100 to the doc comments in `src/animate` (`9de4b40`)
-- Apply a simplified form of ASD-STE100 to the doc comments in `src/error` (``)
+- Apply a simplified form of ASD-STE100 to the doc comments in `src/error` (`4e79b6a`)
+- Apply a simplified form of ASD-STE100 to the doc comments in `src/node` (``)
 
 # [Released]
 

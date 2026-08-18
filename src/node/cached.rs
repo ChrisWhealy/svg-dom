@@ -1,10 +1,11 @@
 //! Allocation-free redundant-write elision for high-frequency attribute updates.
 //!
 //! [`SvgNode::set_attr_if_changed`](crate::SvgNode::set_attr_if_changed) skips the DOM write when the value has not
-//! changed, but to decide that it calls `get_attribute` — which **allocates a fresh Rust `String` for the current value
-//! and crosses the wasm/JS boundary on every call**, even when it then writes nothing. On the exact "value usually
-//! repeats" hot path it is meant for (a cursor style or `opacity` flag touched on every `pointermove`), that is a
-//! per-event allocation plus a round-trip that buys only a comparison.
+//! changed.
+//! But to decide that, it calls `get_attribute`. That call **allocates a fresh Rust `String` for the current value and
+//! crosses the wasm/JS boundary on every call**, even when it then writes nothing.
+//! On the exact "value usually repeats" hot path it is meant for — a cursor style or `opacity` flag touched on
+//! every `pointermove` — that is real cost. It is a per-event allocation, plus a round-trip that buys only a comparison.
 //!
 //! `CachedAttr` removes both costs by remembering the last value it wrote on the **Rust** side. The no-op case becomes a
 //! plain `&str` comparison against an owned `String`: no allocation, and no call into JS at all. The DOM is touched only
@@ -43,7 +44,8 @@ use std::fmt::{self, Write};
 /// A caller-owned cache of the last value written to one attribute, used to elide redundant DOM writes.
 ///
 /// Prefer this to [`SvgNode::set_attr_if_changed`](crate::SvgNode::set_attr_if_changed) on genuinely high-frequency
-/// paths: it remembers the last value on the Rust side, so the unchanged case is a plain string comparison with no
+/// paths.
+/// It remembers the last value on the Rust side, so the unchanged case is a plain string comparison, with no
 /// allocation and no call into JS at all. See the module-level notes above for the full rationale.
 #[derive(Debug, Default)]
 pub struct CachedAttr {
@@ -85,9 +87,10 @@ impl CachedAttr {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Replaces the text content of `node`, but only if it differs from the value this cache last wrote.
     ///
-    /// The text-content analogue of [`set`](Self::set): a status readout updated on every `pointermove` typically shows
-    /// the same string frame after frame, and `set_text_content` marshals the string across the wasm/JS boundary on every
-    /// call. Caching the last value turns the unchanged case into a plain string comparison with no allocation and no
+    /// The text-content analogue of [`set`](Self::set).
+    /// A status readout updated on every `pointermove` typically shows the same string frame after frame, and
+    /// `set_text_content` marshals the string across the wasm/JS boundary on every call.
+    /// Caching the last value turns the unchanged case into a plain string comparison with no allocation and no
     /// DOM work.
     ///
     /// Dedicate a `CachedAttr` to *either* an attribute (via [`set`](Self::set)) *or* text content — not both, since the
@@ -108,14 +111,15 @@ impl CachedAttr {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Formats `args` into the caller-owned `scratch` buffer and writes it via [`set`](Self::set).
     ///
-    /// This is the allocation-light counterpart to `set(node, name, &format!(...))`: the candidate value is formatted
-    /// into a reused buffer instead of a fresh `String` each call, so a frequently-touched but rarely-changing
-    /// *formatted* attribute (a grid-snapped coordinate, a zoom percentage, etc) costs no per-call allocation **and**
-    /// no DOM write while it is unchanged.
+    /// This is the allocation-light counterpart to `set(node, name, &format!(...))`.
+    /// The candidate value is formatted into a reused buffer instead of a fresh `String` each call.
+    /// So a frequently-touched but rarely-changing *formatted* attribute — a grid-snapped coordinate, a zoom
+    /// percentage, etc. — costs no per-call allocation **and** no DOM write while it is unchanged.
     ///
-    /// `scratch` must be a buffer you own *separately* from the cache: the cache's own buffer holds the last-written
-    /// value it compares against, so the new value needs somewhere else to be built. Reuse one `scratch` across calls
-    /// (typically captured alongside the cache in the handler's state).
+    /// `scratch` must be a buffer you own *separately* from the cache.
+    /// The cache's own buffer holds the last-written value it compares against, so the new value needs somewhere
+    /// else to be built.
+    /// Reuse one `scratch` across calls (typically captured alongside the cache in the handler's state).
     pub fn set_fmt(
         &mut self,
         node: &SvgNode,
@@ -131,9 +135,10 @@ impl CachedAttr {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Formats `args` into the caller-owned `scratch` buffer and writes it via [`set_text`](Self::set_text).
     ///
-    /// The text-content counterpart to [`set_fmt`](Self::set_fmt): use it for a formatted status readout updated on
-    /// every event but usually showing the same text, to avoid both the per-call `format!` allocation and the redundant
-    /// `set_text_content`. See [`set_fmt`](Self::set_fmt) for the caller-owned `scratch` requirement.
+    /// The text-content counterpart to [`set_fmt`](Self::set_fmt).
+    /// Use it for a formatted status readout updated on every event but usually showing the same text, to avoid
+    /// both the per-call `format!` allocation and the redundant `set_text_content`.
+    /// See [`set_fmt`](Self::set_fmt) for the caller-owned `scratch` requirement.
     pub fn set_text_fmt(
         &mut self,
         node: &SvgNode,
@@ -148,9 +153,10 @@ impl CachedAttr {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Forgets the cached value so the next [`set`](Self::set) is guaranteed to write.
     ///
-    /// Call this if the attribute was changed by some other code path (for example a plain `set_attr`, or an animation),
-    /// so the cache does not wrongly believe a stale value is still current and skip a needed write. The backing buffer's
-    /// capacity is retained.
+    /// Call this if the attribute was changed by some other code path — for example a plain `set_attr`, or an
+    /// animation.
+    /// That keeps the cache from wrongly believing a stale value is still current, and skipping a needed write.
+    /// The backing buffer's capacity is retained.
     pub fn invalidate(&mut self) {
         self.last.clear();
         self.written = false;

@@ -26,7 +26,7 @@ impl SvgNode {
     /// Handlers are [`FnMut`], so a hot handler can *own and mutate* its own scratch state directly — for example a
     /// reusable [`SvgAttrs`](crate::SvgAttrs) or a `String` buffer — without wrapping it in `Rc<RefCell<...>>`. (The
     /// one constraint is that a handler must not be dispatched *re-entrantly* — i.e. synchronously triggering the same
-    /// event on the same node from within the handler — which would panic, just as a re-entrant `RefCell` borrow
+    /// event on the same node from within the handler. That would panic, just as a re-entrant `RefCell` borrow
     /// would.)
     ///
     /// **⚠️ Cycle Caveat ⚠️**
@@ -42,21 +42,24 @@ impl SvgNode {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Registers a one-shot event handler: the closure is called at most once, and the browser automatically removes
-    /// the listener after the first invocation (using the native `{ once: true }` `addEventListener` option).
+    /// Registers a one-shot event handler.
+    /// The closure is called at most once, and the browser automatically removes the listener after the first
+    /// invocation, using the native `{ once: true }` `addEventListener` option.
     ///
     /// The key advantage over an `FnMut` handler that calls [`remove_listeners`](Self::remove_listeners) on itself is
     /// that no manual removal is needed and the "remove the listener currently running" footgun is entirely avoided.
     ///
-    /// The handler receives a typed event `E`; `E` should be the concrete web-sys event type appropriate for
-    /// `event_type` (e.g. `MouseEvent` for `"click"`, `PointerEvent` for `"pointerdown"`).
+    /// The handler receives a typed event `E`.
+    /// `E` should be the concrete web-sys event type appropriate for `event_type`, e.g. `MouseEvent` for `"click"`,
+    /// `PointerEvent` for `"pointerdown"`.
     /// When the types match, the captured values inside `handler` are freed on the first dispatch, even if the node
     /// (and its listener store) lives on.
     /// A small listener shell (the `FnMut` wrapper closure) remains in the store until `clear_listeners`,
     /// `remove_listeners`, or node drop — the same lifetime as every other managed listener.
     ///
-    /// If `E` does not match the event the browser actually dispatches, the `instanceof` check fails, the handler is
-    /// silently not called, and the captured values are held until the node is dropped or its listeners are cleared.
+    /// If `E` does not match the event the browser actually dispatches, the `instanceof` check fails.
+    /// The handler is silently not called, and the captured values are held until the node is dropped or its
+    /// listeners are cleared.
     ///
     /// Prefer a typed helper such as [`on_click_once`](Self::on_click_once) or
     /// [`on_pointerdown_once`](Self::on_pointerdown_once) where one exists — they bake in the correct event type so

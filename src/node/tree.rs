@@ -38,7 +38,8 @@ impl SvgNode {
     /// Detaches this node from its parent in the DOM.
     ///
     /// The `SvgNode` handle remains valid after removal — it simply points at an element that is no longer part of the
-    /// document tree, so it can be re-inserted later with [`append`](Self::append) or [`insert_before`](Self::insert_before).
+    /// document tree.
+    /// So it can be re-inserted later with [`append`](Self::append) or [`insert_before`](Self::insert_before).
     ///
     /// Any managed event listeners stay registered on the (now detached) element and are still removed when the last
     /// handle is dropped.
@@ -62,8 +63,9 @@ impl SvgNode {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Inserts the `SvgNode` called `new_child` immediately before the existing `SvgNode` called `reference`.
     ///
-    /// This is the tree operation for **z-order control**: SVG paints children in document order, so inserting a node
-    /// before an existing sibling places it *behind* that sibling without rebuilding the rest of the tree.
+    /// This is the tree operation for **z-order control**: SVG paints children in document order.
+    /// So inserting a node before an existing sibling places it *behind* that sibling without rebuilding the rest
+    /// of the tree.
     ///
     /// To have the new child appear at the top of the visibility stack, use [`append`](Self::append) instead.
     ///
@@ -172,8 +174,8 @@ impl SvgNode {
     ///
     /// Every other [`SvgNode`] you hold was produced by a factory method ([`SvgRoot::rect`](crate::SvgRoot::rect) and
     /// friends) or is a [`clone`](Self::clone) of one. The handle returned here is different in kind: it wraps an
-    /// element that `svg-dom` almost certainly did **not** create, so it is a brand-new, *independent owner* of that
-    /// element rather than another reference to an existing owner.
+    /// element that `svg-dom` almost certainly did **not** create.
+    /// So it is a brand-new, *independent owner* of that element, rather than another reference to an existing owner.
     ///
     /// This fact has practical and potentially significant consequences:
     ///
@@ -181,15 +183,18 @@ impl SvgNode {
     ///
     ///   Managed event listeners (the `on_*` helpers) are tracked per *handle lineage* — a handle together with its
     ///   clones — and **not** per DOM element. This handle therefore does not share listener storage with whatever
-    ///   handle originally created or manages the parent, and it cannot see, remove, or otherwise interact with any
-    ///   listeners that were registered through those other handles.
+    ///   handle originally created or manages the parent.
+    ///   It cannot see, remove, or otherwise interact with any listeners that were registered through those other
+    ///   handles.
     ///
-    /// - **If you register a listener through this handle, this handle owns it**, with the usual lifetime: the listener
-    ///   is detached when the last clone of *this* handle is dropped. So, just as for a factory handle, you must keep
-    ///   this handle alive (store it somewhere lasting) if you want a listener registered on it to persist.
+    /// - **If you register a listener through this handle, this handle owns it**, with the usual lifetime.
+    ///   The listener is detached when the last clone of *this* handle is dropped. So, just as for a factory
+    ///   handle, you must keep this handle alive (store it somewhere lasting) if you want a listener registered on
+    ///   it to persist.
     ///
-    /// - It is otherwise an ordinary handle: it points at the same live DOM element, so reading or mutating its
-    ///   attributes and text takes effect immediately and is visible through any other handle to that element.
+    /// - It is otherwise an ordinary handle: it points at the same live DOM element.
+    ///   So reading or mutating its attributes and text takes effect immediately, and is visible through any other
+    ///   handle to that element.
     ///
     /// Consequently, treat `parent()` as **read-only navigation** — for example, walking up to a containing `<g>`
     /// from inside an event callback to read or modify its attributes.
@@ -319,10 +324,12 @@ impl SvgNode {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Returns a handle to every child element of this node, in document order.
     ///
-    /// Only SVG element children are included; text nodes, comments, and any non-SVG element child (for example, HTML
-    /// content inside a `<foreignObject>`) are all silently skipped, so the returned `Vec` can be shorter than the
-    /// node's actual DOM child count — the DOM count is used only as an upfront capacity reservation, treating it as
-    /// an upper bound on the result rather than the exact length.
+    /// Only SVG element children are included.
+    /// Text nodes, comments, and any non-SVG element child (for example, HTML content inside a `<foreignObject>`)
+    /// are all silently skipped.
+    /// So the returned `Vec` can be shorter than the node's actual DOM child count.
+    /// The DOM count is used only as an upfront capacity reservation, treating it as an upper bound on the result
+    /// rather than the exact length.
     ///
     /// Use [`SvgNode::as_element`] and the raw `web_sys` API if you need to see those too.
     ///
@@ -366,8 +373,9 @@ impl SvgNode {
     /// there is no match.
     ///
     /// This is a thin wrapper over the browser's own `Element.querySelector`, so the full CSS selector syntax is
-    /// available — including attribute selectors (`"[data-role='target']"`), which is the crate's answer to "find a
-    /// node by attribute" until (or instead of) a dedicated Rust-side query API is built.
+    /// available.
+    /// That includes attribute selectors (`"[data-role='target']"`), which is the crate's answer to "find a
+    /// node by attribute" until — or instead of — a dedicated Rust-side query API is built.
     ///
     /// If the match exists but is not an SVG element (for example HTML content inside a `<foreignObject>`), this
     /// returns `Ok(None)` rather than the match, the same non-search-further behaviour as
@@ -408,8 +416,10 @@ impl SvgNode {
     ///
     /// See [`query_selector`](Self::query_selector) for the selector syntax and error behaviour.
     /// As with [`children`](Self::children), any match that is not an SVG element is silently skipped rather than
-    /// included, so the returned `Vec` can be shorter than the DOM match count — the DOM match count is used only as
-    /// an upfront capacity reservation, treating it as an upper bound on the result rather than the exact length.
+    /// included.
+    /// So the returned `Vec` can be shorter than the DOM match count.
+    /// The DOM match count is used only as an upfront capacity reservation, treating it as an upper bound on the
+    /// result rather than the exact length.
     ///
     /// # ⚠️ Caveat ⚠️
     ///

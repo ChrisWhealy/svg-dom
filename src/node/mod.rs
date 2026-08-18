@@ -26,11 +26,11 @@ struct SvgNodeInner {
 
     // Listener storage is allocated only for interactive nodes. Most SVG elements are passive geometry, so keeping the
     // store behind `Option<Box<_>>` means a passive node carries no inline collection and allocates nothing until its
-    // first listener — the `Option<Box<...>>` is a single null pointer when empty.
+    // first listener. The `Option<Box<...>>` is a single null pointer when empty.
     //
     // `ListenerStore` then holds the first listener inline (`One`), so registering one listener is a single heap
-    // allocation (the `Box`) rather than the two an empty `Vec` would need (its own box plus an element buffer on the
-    // first push). A second listener upgrades `One` into `Many(Vec)`. See docs/design_notes/node_and_tree.md.
+    // allocation — the `Box`. That is rather than the two an empty `Vec` would need: its own box, plus an element
+    // buffer on the first push. A second listener upgrades `One` into `Many(Vec)`. See docs/design_notes/node_and_tree.md.
     //
     // Each entry stores both the event type and the Closure so the listener can be removed from the DOM before the
     // Closure is dropped. This prevents a detached DOM callback from pointing at an invalid wasm-bindgen closure.
@@ -60,19 +60,22 @@ impl Drop for SvgNodeInner {
 /// # Why this exists: To avoid a reference cycle
 ///
 /// A managed event listener is *owned by the node it is registered on*. If that listener's closure also captures a
-/// **strong** [`SvgNode`] clone of the same node, the node ends up owning a reference to itself:
+/// **strong** [`SvgNode`] clone of the same node, the node ultimately owns a reference to itself:
 ///
 /// ```text
 /// SvgNodeInner ─▶ EventListener ─▶ Closure ─▶ SvgNode (Rc) ─▶ the same SvgNodeInner
 /// ```
 ///
-/// That cycle keeps the node's strong count above zero even after every external handle is dropped, so the node is
-/// never freed and its managed listener is never removed from the DOM. For a node that lives for the whole page this
-/// is harmless (it was never going to be dropped anyway), but for a node you create, knowing that it will be discarded
-/// later, this is a genuine leak that defeats the crate's automatic listener cleanup.
+/// That cycle keeps the node's strong count above zero even after every external handle is dropped.
+/// The node is never freed, and its managed listener is never removed from the DOM.
 ///
-/// Capturing a `WeakSvgNode` instead breaks the cycle: the closure no longer keeps the node alive, so dropping the last
-/// strong handle frees the node and removes its listener as expected. Inside the closure call [`upgrade`](Self::upgrade)
+/// For a node that lives for the whole page this is harmless — it was never going to be dropped anyway.
+/// But for a node you create, knowing that it will be discarded later, this is a genuine leak that defeats the
+/// crate's automatic listener cleanup.
+///
+/// Capturing a `WeakSvgNode` instead breaks the cycle: the closure no longer keeps the node alive.
+/// Dropping the last strong handle frees the node and removes its listener as expected.
+/// Inside the closure call [`upgrade`](Self::upgrade)
 /// to obtain a temporary live handle for the duration of the event.
 ///
 /// # Example
@@ -111,8 +114,9 @@ impl WeakSvgNode {
 ///
 /// `SvgNode` wraps an `Rc` pointing to the real browser DOM node.
 ///
-/// Cloning is cheap — all clones refer to the **same underlying element** — so you can freely hand copies to event
-/// closures, animation callbacks, or other owners without having to perform any crazy lifetime gymnastics.
+/// Cloning is cheap — all clones refer to the **same underlying element**.
+/// So you can freely hand copies to event closures, animation callbacks, or other owners, without having to perform
+/// any crazy lifetime gymnastics.
 ///
 /// **IMPORTANT** Always obtain a node through one of the factory methods on [`SvgRoot`](crate::SvgRoot) such as `rect`,
 /// `circle`, or `line`, etc.  Do not attempt to construct one directly.
@@ -182,9 +186,10 @@ impl SvgNode {
     ///
     /// Returns a non-owning [`WeakSvgNode`] for this element.
     ///
-    /// Use this when a managed event listener on a node must refer back to that **same** node: capturing a strong
-    /// [`clone`](Self::clone) in such a closure creates a reference cycle that keeps the node (and its DOM listener)
-    /// alive forever. See [`WeakSvgNode`] for the full explanation and an example.
+    /// Use this when a managed event listener on a node must refer back to that **same** node.
+    /// Capturing a strong [`clone`](Self::clone) in such a closure creates a reference cycle that keeps the node —
+    /// and its DOM listener — alive forever.
+    /// See [`WeakSvgNode`] for the full explanation and an example.
     pub fn downgrade(&self) -> WeakSvgNode {
         WeakSvgNode {
             inner: Rc::downgrade(&self.inner),
@@ -198,14 +203,15 @@ impl SvgNode {
     /// Detaches and drops **all** managed event listeners registered through this handle lineage, leaving the node
     /// itself — its DOM element, children, and attributes — intact.
     ///
-    /// This is the listener counterpart to [`clear`](Self::clear): use it on a long-lived node whose behaviour changes
-    /// over time — one that swaps in mode-specific handlers, say — to discard the previous set before registering new
-    /// ones, without having to drop and recreate the node.
+    /// This is the listener counterpart to [`clear`](Self::clear).
+    /// Use it on a long-lived node whose behaviour changes over time — one that swaps in mode-specific handlers, say.
+    /// It discards the previous set before registering new ones, without having to drop and recreate the node.
     ///
-    /// Listeners are tracked per *handle lineage* (a handle together with its clones), exactly as described for
-    /// [`parent`](Self::parent), so this removes only the listeners registered through this handle or its clones — not
-    /// any registered through an independent handle to the same element. Calling it is idempotent: a node with no
-    /// managed listeners is a harmless no-op.
+    /// Listeners are tracked per *handle lineage* — a handle together with its clones — exactly as described for
+    /// [`parent`](Self::parent).
+    /// So this removes only the listeners registered through this handle or its clones, not any registered through
+    /// an independent handle to the same element.
+    /// Calling it is idempotent: a node with no managed listeners is a harmless no-op.
     ///
     /// # ⚠️ Caveat ⚠️
     ///
@@ -248,8 +254,8 @@ impl SvgNode {
     /// # ⚠️ Caveat ⚠️
     ///
     /// As with [`clear_listeners`](Self::clear_listeners), this affects only listeners registered through this handle
-    /// lineage, and the same caveat applies: do not call it for any event whose handler is currently running, as
-    /// that would free the executing closure.
+    /// lineage, and the same caveat applies.
+    /// Do not call it for any event whose handler is currently running, as that would free the executing closure.
     ///
     /// # Example
     ///
@@ -301,9 +307,10 @@ impl SvgNode {
     /// Registers a one-shot listener using `{ once: true }`.
     ///
     /// The `FnOnce` is wrapped in a `FnMut` via `Option::take` so it can be stored in the existing `EventClosure::Event`
-    /// slot.  The browser removes the listener after the first call; the closure shell remains in the store until
-    /// node drop or `clear_listeners`.  When the cast succeeds the captured values are released immediately; if the
-    /// cast fails they are held until the shell is freed.
+    /// slot.  The browser removes the listener after the first call.
+    /// The closure shell remains in the store until node drop or `clear_listeners`.
+    /// When the cast succeeds the captured values are released immediately.
+    /// If the cast fails they are held until the shell is freed.
     fn store_listener_once<E, F>(&self, event_type: &'static str, handler: F) -> Result<(), Error>
     where
         E: JsCast + 'static,
@@ -311,8 +318,9 @@ impl SvgNode {
     {
         let mut handler_opt = Some(handler);
         // Wrap the FnOnce in a FnMut so it fits the existing Closure<dyn FnMut(Event)> type.
-        // `dyn_into` performs an instanceof check: if the caller supplied a mismatched `E` the cast returns Err and the
-        // handler is silently not called (which is safer than hoping nothing bad will happen...)
+        // `dyn_into` performs an instanceof check.
+        // If the caller supplied a mismatched `E` the cast returns Err and the handler is silently not called —
+        // which is safer than hoping nothing bad will happen...
         let closure: Closure<dyn FnMut(Event)> = Closure::new(move |e: Event| {
             if let Ok(typed) = e.dyn_into::<E>() {
                 if let Some(h) = handler_opt.take() {

@@ -67,8 +67,8 @@ impl SvgNode {
     ///   is cheaper — skip this entirely.
     /// * For *occasional* de-duplication it is fine as-is.
     /// * For a *genuinely high-frequency* path where the value usually repeats, prefer [`crate::node::CachedAttr`],
-    ///   which remembers the last value on the Rust side: the unchanged case is then a plain string comparison with no
-    ///   allocation and no call into JS at all.
+    ///   which remembers the last value on the Rust side.
+    ///   The unchanged case is then a plain string comparison, with no allocation and no call into JS at all.
     ///
     /// # Example
     ///
@@ -77,8 +77,8 @@ impl SvgNode {
     /// let svg     = SvgRoot::attach("diagram")?;
     /// let surface = svg.rect(Point::origin(), Size::new(100.0, 50.0))?;
     ///
-    /// // Called many times per second from a pointermove handler; the DOM is only touched when the cursor
-    /// // actually needs to change.
+    /// // Called many times per second from a pointermove handler.
+    /// // The DOM is only touched when the cursor actually needs to change.
     /// surface.set_attr_if_changed("style", "cursor:grab")?;
     /// Ok::<(), svg_dom::Error>(())
     /// ```
@@ -445,9 +445,10 @@ impl SvgNode {
     ///
     /// Every `_ref` variant instead writes its handle's own cached `url(#id)` reference directly via
     /// [`set_attr`](Self::set_attr) (`SvgMarker::url_ref`, `SvgLinearGradient::url_ref`, ...), bypassing this
-    /// method entirely: that string is built once at the handle's construction time (and rebuilt in place by its
-    /// `set_id`), so there is no bare id left to format here and no per-call allocation, however many elements the
-    /// same handle is applied to.
+    /// method entirely.
+    /// That string is built once at the handle's construction time, and rebuilt in place by its `set_id`.
+    /// So there is no bare id left to format here, and no per-call allocation, however many elements the same
+    /// handle is applied to.
     fn set_url_ref(&self, attr: &str, id: &str) -> Result<(), Error> {
         self.set_attr(attr, &format!("{URL_PREFIX}{id})"))
     }
@@ -455,8 +456,8 @@ impl SvgNode {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the `marker-start` attribute, painting the given marker at the first vertex of the element's stroke.
     ///
-    /// `marker_id` is the bare `id` of an [`SvgMarker`] defined in a [`SvgDefs`](crate::SvgDefs) block;
-    /// the `url(#...)` wrapper is added automatically.
+    /// `marker_id` is the bare `id` of an [`SvgMarker`] defined in a [`SvgDefs`](crate::SvgDefs) block.
+    /// The `url(#...)` wrapper is added automatically.
     /// The same validation rules that apply at marker construction time are enforced here: an id that does not match
     /// `[A-Za-z_][A-Za-z0-9_-]*` returns [`Error::InvalidMarkerId`].
     ///
@@ -470,8 +471,8 @@ impl SvgNode {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the `marker-mid` attribute, painting the given marker at every intermediate vertex of the element's stroke.
     ///
-    /// `marker_id` is the bare `id` of an [`SvgMarker`] defined in a [`SvgDefs`](crate::SvgDefs) block;
-    /// the `url(#...)` wrapper is added automatically.
+    /// `marker_id` is the bare `id` of an [`SvgMarker`] defined in a [`SvgDefs`](crate::SvgDefs) block.
+    /// The `url(#...)` wrapper is added automatically.
     /// The same validation rules that apply at marker construction time are enforced here: an id that does not match
     /// `[A-Za-z_][A-Za-z0-9_-]*` returns [`Error::InvalidMarkerId`].
     ///
@@ -485,8 +486,8 @@ impl SvgNode {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the `marker-end` attribute, painting the given marker at the last vertex of the element's stroke.
     ///
-    /// `marker_id` is the bare `id` of an [`SvgMarker`] defined in a [`SvgDefs`](crate::SvgDefs) block;
-    /// the `url(#...)` wrapper is added automatically.
+    /// `marker_id` is the bare `id` of an [`SvgMarker`] defined in a [`SvgDefs`](crate::SvgDefs) block.
+    /// The `url(#...)` wrapper is added automatically.
     /// The same validation rules that apply at marker construction time are enforced here: an id that does not match
     /// `[A-Za-z_][A-Za-z0-9_-]*` returns [`Error::InvalidMarkerId`].
     /// Prefer [`set_marker_end_ref`](Self::set_marker_end_ref) when you have the [`SvgMarker`] handle available, as it
@@ -594,8 +595,9 @@ impl SvgNode {
     /// well-formed commands, and the sequence is checked to ensure it begins with a `MoveTo` — see [`PathDef`]'s own
     /// documentation for exactly what is and is not guaranteed.
     ///
-    /// This convenience setter formats through a fresh, short-lived `String` allocated and dropped on each call
-    /// (fine for an occasional update); however, if you need to morph a path on the hot path (e.g. a `pointermove`
+    /// This convenience setter formats through a fresh, short-lived `String` allocated and dropped on each call —
+    /// fine for an occasional update.
+    /// However, if you need to morph a path on the hot path (e.g. a `pointermove`
     /// handler, or on every animation frame), then prefer [`SvgAttrs::d_from_defs`](crate::SvgAttrs::d_from_defs) /
     /// [`AttrWriter::d_from_defs`](crate::AttrWriter::d_from_defs) or
     /// [`AnimationFrame::set_d_from_defs`](crate::AnimationFrame::set_d_from_defs), which reuse a caller-owned
@@ -765,8 +767,8 @@ impl SvgNode {
     /// Sets the `clip-path` attribute by bare clip-path `id`, restricting the rendered region of this element to the
     /// shapes defined inside the named [`SvgClipPath`].
     ///
-    /// `clip_path_id` is the bare `id` of a [`SvgClipPath`] defined in a [`SvgDefs`](crate::SvgDefs) block;
-    /// the `url(#...)` wrapper is added automatically.
+    /// `clip_path_id` is the bare `id` of a [`SvgClipPath`] defined in a [`SvgDefs`](crate::SvgDefs) block.
+    /// The `url(#...)` wrapper is added automatically.
     /// The same validation rules that apply at clip-path construction time are enforced here: an id that does not match
     /// `[A-Za-z_][A-Za-z0-9_-]*` returns [`Error::InvalidClipPathId`].
     ///
@@ -825,8 +827,8 @@ impl SvgNode {
     /// Sets the `mask` attribute by bare mask `id`, revealing or hiding parts of this element according to the
     /// luminance or alpha of the named [`SvgMask`]'s rendered content.
     ///
-    /// `mask_id` is the bare `id` of a [`SvgMask`] defined in a [`SvgDefs`](crate::SvgDefs) block; the `url(#...)`
-    /// wrapper is added automatically.
+    /// `mask_id` is the bare `id` of a [`SvgMask`] defined in a [`SvgDefs`](crate::SvgDefs) block.
+    /// The `url(#...)` wrapper is added automatically.
     ///
     /// The same validation rules that apply at mask construction time are enforced here: an id that does not match
     /// `[A-Za-z_][A-Za-z0-9_-]*` returns [`Error::InvalidMaskId`].
@@ -891,8 +893,8 @@ impl SvgNode {
     /// Sets the `filter` attribute identified by filter `id`, applying the raster effects defined inside the named
     /// [`SvgFilter`] to this element.
     ///
-    /// `filter_id` is the bare `id` of an [`SvgFilter`] defined in a [`SvgDefs`](crate::SvgDefs) block;
-    /// the `url(#...)` wrapper is added automatically.
+    /// `filter_id` is the bare `id` of an [`SvgFilter`] defined in a [`SvgDefs`](crate::SvgDefs) block.
+    /// The `url(#...)` wrapper is added automatically.
     /// The same validation rules that apply at filter construction time are enforced here: an id that does not match
     /// the pattern `[A-Za-z_][A-Za-z0-9_-]*` returns [`Error::InvalidFilterId`].
     ///

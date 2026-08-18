@@ -36,7 +36,8 @@ impl EventClosure {
 /// It deliberately does **not** store its own element handle. Detaching the browser-side callback is the owning
 /// node's responsibility — `SvgNodeInner::drop` calls [`ListenerStore::detach_all`] with the node's element before
 /// the closures are dropped. Because dropping the node is the only path that drops listeners, that single call is
-/// sufficient, and it avoids cloning an `SvgElement` (a wasm/JS ref-clone, plus a held JS-table slot) per listener.
+/// sufficient.
+/// It also avoids cloning an `SvgElement` — a wasm/JS ref-clone, plus a held JS-table slot — per listener.
 pub(super) struct EventListener {
     pub event_type: &'static str,
     pub closure: EventClosure,
@@ -52,10 +53,12 @@ impl EventListener {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// A node's managed-listener storage, sized for the common case.
 ///
-/// The first listener is held inline as `One`, so registering it costs a single heap allocation (the surrounding
-/// `Box<ListenerStore>`) instead of the two an empty `Vec` would need — one for the `Box<Vec>` and another for the
-/// element buffer on first `push`. A second listener upgrades the store to `Many`. Most interactive nodes have only
-/// one or two listeners, so this keeps the common case lean while still supporting any number.
+/// The first listener is held inline as `One`, so registering it costs a single heap allocation — the surrounding
+/// `Box<ListenerStore>`.
+/// That is instead of the two an empty `Vec` would need: one for the `Box<Vec>` and another for the element buffer
+/// on first `push`.
+/// A second listener upgrades the store to `Many`. Most interactive nodes have only one or two listeners, so this
+/// keeps the common case lean while still supporting any number.
 pub(super) enum ListenerStore {
     One(EventListener),
     Many(Vec<EventListener>),
@@ -64,11 +67,12 @@ pub(super) enum ListenerStore {
 impl ListenerStore {
     /// Adds a listener, upgrading a single-listener `One` store into a `Many` on the second insert.
     pub fn push(&mut self, listener: EventListener) {
-        // There was the idea to replace `self` with a non-allocating placeholder (`Vec::new()` does not allocate) so
-        // the existing contents can be moved out *by value* and matched exhaustively.
+        // This replaces `self` with a non-allocating placeholder (`Vec::new()` does not allocate), so the existing
+        // contents can be moved out *by value* and matched exhaustively.
         //
-        // Handling both variants here keeps the One --> Many upgrade path panic-free and eliminates the need for an
-        // "impossible" arm (`unreachable!()`), which if reached, would cause the WASM binary to self-destruct.
+        // Handling both variants here keeps the One --> Many upgrade path panic-free, and eliminates the need for
+        // an "impossible" arm (`unreachable!()`). If that arm were ever reached, it would cause the WASM binary to
+        // self-destruct.
         //
         // The `Many` arm only moves the Vec's 24-byte handle out and back (no extra
         // allocation), and `push` happens at listener-registration time, not on any hot path.
@@ -98,8 +102,8 @@ impl ListenerStore {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Detaches and removes every listener registered for `event_type`, returning `true` if the store is left empty
-    /// (so the owner can drop the whole `Box` and return to its allocation-free passive state).
+    /// Detaches and removes every listener registered for `event_type`, returning `true` if the store is left empty.
+    /// That lets the owner drop the whole `Box` and return to its allocation-free passive state.
     ///
     /// A `Many` store reduced to a single survivor is downgraded to `One`, preserving the lean single-listener
     /// representation that [`push`](Self::push) maintains.

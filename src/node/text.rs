@@ -89,9 +89,9 @@ pub enum TextPathMethod {
     ///
     /// ⚠️ Caveat ⚠️
     ///
-    /// Support for `Stretch` is inconsistent across browser engines and can result in visual distortion; therefore,
-    /// unless you have verified that `Stretch` renders acceptably on every target browser, you should prefer the use
-    /// of `Align`.
+    /// Support for `Stretch` is inconsistent across browser engines and can result in visual distortion.
+    /// Therefore, unless you have verified that `Stretch` renders acceptably on every target browser, you should
+    /// prefer the use of `Align`.
     Stretch,
 }
 
@@ -137,8 +137,9 @@ impl TextPathSpacing {
 ///
 /// **⚠️ Browser Support Caveat ⚠️**
 ///
-/// `side` is an SVG2 addition; verify it renders as expected on every browser you target
-/// before relying on [`Right`](TextPathSide::Right) in production.
+/// `side` is an SVG2 addition.
+/// Verify it renders as expected on every browser you target before relying on
+/// [`Right`](TextPathSide::Right) in production.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TextPathSide {
     /// Text is placed along the path in its natural direction, reading left-to-right as the path is traversed
@@ -164,9 +165,9 @@ impl SvgNode {
     /// Returns the rendered advance width of a text element's content, in user units, by wrapping
     /// [`SVGTextContentElement.getComputedTextLength()`]. Returns `None` for non-text elements.
     ///
-    /// This reflects the actual font metrics in effect (family, size, `letter-spacing`, `word-spacing` etc), so it is
-    /// the most reliable way to discover, for example, the width of a monospace digit (the CSS `ch` unit) at runtime
-    /// rather than hard-coding a guess.
+    /// This reflects the actual font metrics in effect (family, size, `letter-spacing`, `word-spacing` etc).
+    /// So it is the most reliable way to discover, for example, the width of a monospace digit (the CSS `ch` unit)
+    /// at runtime, rather than hard-coding a guess.
     ///
     /// The element must be attached to a rendered document for the measurement to be meaningful.
     ///
@@ -217,8 +218,8 @@ impl SvgNode {
     /// Formats `args` into the supplied scratch buffer and sets the result as this element's text content, reusing the
     /// buffer's allocation across calls. This is the text-content counterpart to
     /// [`set_attr_display`](Self::set_attr_display): use it for a label whose value changes on every event — a
-    /// coordinate or status readout updated on each `pointermove`, say — where `set_text(&format!(...))` would allocate
-    /// and drop a fresh `String` per event.
+    /// coordinate or status readout updated on each `pointermove`, say.
+    /// That's where `set_text(&format!(...))` would allocate and drop a fresh `String` per event.
     ///
     /// Keep one buffer in the handler's state and pass it on every call. If instead the text usually *repeats* between
     /// events, prefer [`CachedAttr::set_text`](crate::CachedAttr::set_text), which skips the DOM write entirely when the
@@ -289,9 +290,10 @@ impl SvgNode {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the `font-size` attribute in user units.
     ///
-    /// This convenience setter formats `size` into a short-lived `String` allocated and dropped on each call (which is
-    /// fine if you only need to perform a one-off styling);  however, if you need to animate the font size on a hot
-    /// path, prefer [`set_attr_display`](Self::set_attr_display) with a reused buffer instead.
+    /// This convenience setter formats `size` into a short-lived `String` allocated and dropped on each call — which
+    /// is fine if you only need to perform a one-off styling.
+    /// However, if you need to animate the font size on a hot path, prefer
+    /// [`set_attr_display`](Self::set_attr_display) with a reused buffer instead.
     ///
     /// # Example
     ///
@@ -372,8 +374,9 @@ impl SvgNode {
     ///
     /// `dy` shifts the text position downward (positive values) or upward (negative values) without resetting the
     /// horizontal position.  This makes it useful for superscripts, subscripts, and controlled vertical nudges,
-    /// but **not** for aligned multi-line text: after each span the horizontal position advances by the glyph advance
-    /// width, so successive `dy`-only spans drift rightward.
+    /// but **not** for aligned multi-line text.
+    /// After each span the horizontal position advances by the glyph advance width, so successive `dy`-only spans
+    /// drift rightward.
     ///
     /// For aligned multi-line text — where every line should start at the same `x` coordinate — use
     /// [`tspan_line`](Self::tspan_line), which combines an absolute `x` reset with a `dy` advance.
@@ -398,14 +401,15 @@ impl SvgNode {
     /// Creates a `<tspan>` child element with `content` as its text, appends it to `self` and returns a handle.
     ///
     /// `<tspan>` inherits all text presentation attributes (`font-family`, `font-size`, `fill` etc) from its `<text>`
-    /// parent; any attribute set on the returned `SvgNode` overrides the inherited value for that span only.
+    /// parent.
+    /// Any attribute set on the returned `SvgNode` overrides the inherited value for that span only.
     ///
     /// The first `<tspan>` in a `<text>` inherits the parent's `x` / `y` position.
-    /// Subsequent spans need a `dy` (or `dx`) to advance the current text position; use [`tspan_dy`](Self::tspan_dy)
-    /// as a convenience, or call [`set_dy`](Self::set_dy) on the returned handle.
+    /// Subsequent spans need a `dy` (or `dx`) to advance the current text position.
+    /// Use [`tspan_dy`](Self::tspan_dy) as a convenience, or call [`set_dy`](Self::set_dy) on the returned handle.
     ///
-    /// When a `<text>` element contains `<tspan>` children the text content set directly on `<text>` should be empty
-    /// (the factory sets it to `""` for you when you call [`SvgRoot::text`](crate::SvgRoot::text) with `""`).
+    /// When a `<text>` element contains `<tspan>` children the text content set directly on `<text>` should be empty.
+    /// The factory sets it to `""` for you when you call [`SvgRoot::text`](crate::SvgRoot::text) with `""`.
     ///
     /// # Errors
     ///
@@ -476,12 +480,13 @@ impl SvgNode {
     /// displacement `dy`, then returns the handle.
     ///
     /// This is the idiomatic way to produce aligned multi-line text inside a `<text>` element.
-    /// The `x` attribute resets the horizontal start position to an absolute coordinate for each new line, so every
-    /// line begins at the same `x` regardless of the rendered width of the preceding content.
+    /// The `x` attribute resets the horizontal start position to an absolute coordinate for each new line.
+    /// So every line begins at the same `x`, regardless of the rendered width of the preceding content.
     /// The `dy` attribute then advances the vertical position by that many user units relative to the previous line.
     ///
     /// The element is constructed detached: the `x` and `dy` attributes are written before the node is appended to the
-    /// parent, so any failures during construction leave the parent element unchanged.
+    /// parent.
+    /// So any failures during construction leave the parent element unchanged.
     ///
     /// # Errors
     ///
@@ -525,15 +530,16 @@ impl SvgNode {
     ///
     /// This method is implemented generically on `SvgNode`, but per the SVG2 content model `<text>` is the only
     /// conforming parent for a `<textPath>`. `<tspan>` and `<textPath>` may themselves contain text and nested
-    /// `<tspan>` elements, but not a nested `<textPath>`; calling this on one of those will not error, but the
-    /// resulting markup will not conform to the spec.
+    /// `<tspan>` elements, but not a nested `<textPath>`.
+    /// Calling this on one of those will not error, but the resulting markup will not conform to the spec.
     ///
     /// # Arguments
     ///
     /// * `href` — fragment reference to the path the text should follow, e.g. `"#wave"`, where `"wave"` is the `id`
-    ///   attribute of the target `<path>` (or, per SVG2, a basic shape such as `<circle>` or `<rect>`).
-    ///   The target is typically defined inside [`SvgDefs`](crate::SvgDefs) so it is not rendered on its own; give it
-    ///   a stroke and no fill (or place it in `<defs>`) to keep the guide path invisible.
+    ///   attribute of the target `<path>`.
+    ///   Or, per SVG2, a basic shape such as `<circle>` or `<rect>`.
+    ///   The target is typically defined inside [`SvgDefs`](crate::SvgDefs), so it is not rendered on its own.
+    ///   Give it a stroke and no fill — or place it in `<defs>` — to keep the guide path invisible.
     /// * `content` — the visible text string that is drawn along the path, starting from
     ///   [`set_start_offset`](Self::set_start_offset) (default `0`, the path's own start point).
     ///
@@ -584,9 +590,9 @@ impl SvgNode {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the `startOffset` attribute on a `<textPath>`, in user units measured along the referenced path.
     ///
-    /// Determines where the text begins: `0.0` (the default) starts at the path's own start point; larger values
-    /// slide the text further along the path (in the direction determined by [`TextPathSide`]) before the first
-    /// glyph is drawn.
+    /// Determines where the text begins: `0.0` (the default) starts at the path's own start point.
+    /// Larger values slide the text further along the path — in the direction determined by [`TextPathSide`] —
+    /// before the first glyph is drawn.
     ///
     /// To offset by a percentage of the path length instead of an absolute distance, use
     /// [`set_attr`](Self::set_attr) directly, e.g. `path_text.set_attr("startOffset", "50%")`.
@@ -613,7 +619,8 @@ impl SvgNode {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the `method` attribute on a `<textPath>`, controlling how glyphs are fitted onto the path.
     ///
-    /// See [`TextPathMethod`] for the available values; the SVG default is [`TextPathMethod::Align`].
+    /// See [`TextPathMethod`] for the available values.
+    /// The SVG default is [`TextPathMethod::Align`].
     pub fn set_text_path_method(&self, method: TextPathMethod) -> Result<(), Error> {
         self.set_attr("method", method.as_str())
     }
@@ -621,7 +628,8 @@ impl SvgNode {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the `spacing` attribute on a `<textPath>`, controlling glyph-spacing adjustment along the path.
     ///
-    /// See [`TextPathSpacing`] for the available values; the SVG default is [`TextPathSpacing::Exact`].
+    /// See [`TextPathSpacing`] for the available values.
+    /// The SVG default is [`TextPathSpacing::Exact`].
     pub fn set_text_path_spacing(&self, spacing: TextPathSpacing) -> Result<(), Error> {
         self.set_attr("spacing", spacing.as_str())
     }
@@ -629,8 +637,8 @@ impl SvgNode {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Sets the SVG2 `side` attribute on a `<textPath>`, controlling which side of the path the text renders on.
     ///
-    /// See [`TextPathSide`] for the available values and a browser-support caveat; the SVG default is
-    /// [`TextPathSide::Left`].
+    /// See [`TextPathSide`] for the available values and a browser-support caveat.
+    /// The SVG default is [`TextPathSide::Left`].
     pub fn set_text_path_side(&self, side: TextPathSide) -> Result<(), Error> {
         self.set_attr("side", side.as_str())
     }

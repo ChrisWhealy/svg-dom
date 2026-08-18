@@ -54,9 +54,10 @@ impl SvgNode {
     ///
     /// This wrapper uses the browser's `pointerenter` event rather than `mouseover`.
     /// `pointerenter` does **not** bubble, so it fires once when the pointer crosses the
-    /// boundary of this element and does not re-fire just because the pointer moves over
-    /// one of the element's children. This makes it the preferred wrapper for hover-like
-    /// behaviour on both leaf elements and grouped SVG content.
+    /// boundary of this element.
+    /// It does not re-fire just because the pointer moves over one of the element's children.
+    /// This makes it the preferred wrapper for hover-like behaviour on both leaf elements and
+    /// grouped SVG content.
     ///
     /// The handler receives a [`PointerEvent`], giving access to normal mouse-style
     /// coordinates plus pointer-specific data such as `pointer_id` and `pointer_type`.
