@@ -10,7 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Fixed
 
-- Doc only: Clarify doc comment statement in `SvgDefs` about markers (``)
+- Doc only: Clarify doc comment statement in `SvgDefs` about markers (`293cf83`)
+- Doc only: Correct `Error` description and `SvgDefs` inventory (``)
 
 ## Changed
 

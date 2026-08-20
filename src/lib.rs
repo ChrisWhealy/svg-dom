@@ -11,9 +11,9 @@
 //!
 //! | Module | Key type | Purpose |
 //! |---|---|---|
-//! | [`error`] | [`Error`] | Wrapper for Browser DOM errors |
+//! | [`error`] | [`Error`] | Crate-wide error type for DOM and validation failures |
 //! | [`root`] | [`SvgRoot`] / [`SvgAttrs`] | Wraps the `<svg>` root; factory for all child elements; reusable attribute writing |
-//! | [`root::defs`] | [`SvgDefs`] | `<defs>` container; factory for markers, gradients, clip-paths, patterns, filters, and symbols |
+//! | [`root::defs`] | [`SvgDefs`] | `<defs>` container; factory for markers, gradients, clip-paths, masks, patterns, filters, symbols, and views |
 //! | [`root::gradient`] | [`SvgLinearGradient`] / [`SvgRadialGradient`] | Gradient paint servers defined in `<defs>` |
 //! | [`root::clip_path`] | [`SvgClipPath`] / [`ClipPathUnits`] | Clipping region defined in `<defs>`, applied with `set_clip_path_ref` |
 //! | [`root::mask`] | [`SvgMask`] / [`MaskUnits`] / [`MaskType`] | Luminance/alpha mask defined in `<defs>`, applied with `set_mask_ref` |
