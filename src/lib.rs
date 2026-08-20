@@ -46,14 +46,19 @@
 //!
 //! The crate contains no `unsafe` code (this is enforced with `#![forbid(unsafe_code)]` for the library build).
 //!
-//! The SVG-building API is also safe by construction against script injection: all text content set through the public
-//! API uses `textContent`, never `innerHTML`, and there is no use of `eval`.
+//! The typed element and text APIs avoid script injection: text is written with `textContent`, never `innerHTML`, and
+//! the crate does not use `eval`.
 //! The interactive demo gallery (the separate `svg-dom-demo` workspace crate, built via `cargo demo`) does make use of
 //! `innerHTML` for its own syntax-highlighted source-code panels; that is an implementation detail of that showcase
 //! crate and forms no part of this library's own contract.
 //!
-//! The one thing to be aware of is [`SvgNode::set_attr`](crate::SvgNode::set_attr) (and [`set_attrs`](crate::SvgNode::set_attrs)),
-//! write attribute names and values **verbatim** via `setAttribute`.
+//! 
+//! ⚠️ Caveat ⚠️
+//! 
+//! [`SvgNode::set_attr`](crate::SvgNode::set_attr) and [`set_attrs`](crate::SvgNode::set_attrs) are deliberate escape
+//! hatches: they write attribute names and values **verbatim** via `setAttribute`.
+//! 
+//! They must not be passed untrusted values!
 //!
 //! Passing attacker-controlled input there can introduce script — for example an `onclick` attribute, or an `href`
 //! whose value is `javascript:...`. Treat attribute names and values as you would any HTML sink: do not pass untrusted
