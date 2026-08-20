@@ -8,11 +8,11 @@
 //! This matters more here than for most demos: one of the four demos' own designs is itself grounded in observed Chrome
 //! rendering behaviour rather than the SVG spec alone. `demo_light_sources.rs`'s own module doc comment states that a
 //! `limiting_cone_angle` of `0.0` renders as a fully open beam rather than the near-invisible cutoff the spec
-//! describes, which is why that slider's own range starts at `5` instead. Only a test of the renedred pixels can
+//! describes, which is why that slider's own range starts at `5` instead. Only a test of the rendered pixels can
 //! validate that claim.
 //!
 //! That same module doc comment also records a second observation: that in this sandbox's own Chrome, the spotlight's
-//! own `specular_exponent` had no visible effect at any value from `0.01` through `10000`. This is tghe reason why that
+//! own `specular_exponent` had no visible effect at any value from `0.01` through `10000`. This is the reason why that
 //! field was rejected as this demo's own interactive control for the open-Spot column in favour of `x`.
 //!
 //! This file deliberately does not regression-test that observation: a fixture asserting that varying

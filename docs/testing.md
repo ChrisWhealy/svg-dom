@@ -124,7 +124,7 @@ Two things they cannot see, because both live behind interfaces `wasm-bindgen-te
 The first is the actual, browser-*computed* accessibility tree — the accessible name and description a screen reader would receive after ARIA precedence, role computation, and pruning have been applied — which lives behind the browser's Accessibility CDP domain.
 The second is actual rendered pixels, which require rasterising the SVG to a canvas and reading them back.
 
-The `cdp-integration-test` crate hosts three integration test files, each driving a real Chrome instance directly over the Chrome DevTools Protocol (CDP) via the [`headless_chrome`](https://docs.rs/headless_chrome) crate.
+The `cdp-integration-test` crate hosts five integration test files, each driving a real Chrome instance directly over the Chrome DevTools Protocol (CDP) via the [`headless_chrome`](https://docs.rs/headless_chrome) crate.
 They share common fixture-build/serve/Chrome-launch setup code (`src/lib.rs`) but each with its own fixture scenario, its own running Chrome instance and its own `#[test]`s.
 See each file's own module doc comment for the full detail.
 
@@ -224,10 +224,61 @@ A genuine 30px displacement needs room to sample source pixels from outside the 
 This intentionally does not attempt broad screenshot testing across every slider position.
 A single identity test at scale zero, backed by one positive control at scale sixty, is enough to cover this specific, exact semantic claim without turning into a fragile visual regression suite.
 
+### `lighting_render.rs` — `demo_lighting.rs`'s own surfaceScale and azimuth sliders, against real rendered pixels
+
+`demo-app/src/browser_tests/paint/lighting.rs` proves the DOM part of both sliders: moving either one mutates `surfaceScale` on all four retained lighting primitives, or `azimuth` on all four `<feDistantLight>` children.
+It cannot prove that either mutation actually changes the *rendered* lighting.
+
+This single `#[test]` renders three circles built by `cdp-test-fixture`, all filtered through the exact same `feDiffuseLighting` recipe `demo_lighting.rs`'s own "diffuse-only" column uses: `#lighting-reference` (surfaceScale 6, azimuth 235deg), `#lighting-azimuth-90` (surfaceScale 6, azimuth 90deg), and `#lighting-scale-zero` (surfaceScale 0, azimuth 235deg).
+It samples eight points around each circle's own rim, 2px inside its nominal radius, where `feDiffuseLighting`'s own alpha-gradient bump map is non-flat.
+It then asserts three things:
+
+- `#lighting-reference`'s own eight rim samples vary meaningfully from one another.
+  This is the positive control that this fixture and sampling method actually detect real directional lighting when it is there.
+- `#lighting-scale-zero`'s own eight rim samples stay close to one another, well inside the variation shown by `#lighting-reference`.
+  This checks `panel-lighting.html`'s own claim that surfaceScale 0 flattens the bump map into a uniform lit surface, against real pixels rather than only the `surfaceScale="0"` attribute.
+- There is a material difference between at least one of the eight matching-angle samples of `#lighting-reference` and `#lighting-azimuth-90`.
+  Azimuth actually turns the rendered light, not just the `<feDistantLight>` attribute a DOM test can detect.
+
+The first check alone would be a one-sided claim about the sampling method's own sensitivity.
+It says nothing about whether a *flattened* bump map also rasterises correctly, which is exactly what the second check proves.
+Together they mean a pass on the second check reflects the fixture genuinely losing directional variation, not an insensitive sampling method that would have missed variation either way.
+
+This intentionally does not attempt broader screenshot testing across every slider position.
+These three fixed points are enough to cover both sliders' own specific rendering claims without turning into a fragile visual regression suite.
+
+Uses the same pixel-reading technique as `filter_blend_render.rs` and `turbulence_scale_zero_render.rs` — see that section above for the detail.
+
+### `light_sources_render.rs` — `demo_light_sources.rs`'s own four sliders, against real rendered pixels
+
+`demo-app/src/browser_tests/paint/light_sources.rs` can only prove the DOM part of the claims made by the four sliders: that moving each one mutates the correct attribute on the correct retained light-source node, and leaves the other three columns untouched.
+It cannot prove that any of those mutations actually change the *rendered* lighting.
+
+This matters more here than for most demos.
+One of the four demos' own designs is itself grounded in observed Chrome rendering behaviour, rather than the SVG spec alone.
+`demo_light_sources.rs`'s own module doc comment states that a `limiting_cone_angle` of `0.0` renders as a fully open beam, rather than the near-invisible cutoff the spec describes, which is why that slider's own range starts at `5` instead.
+Only a test of the rendered pixels can validate that claim.
+
+That same module doc comment also records a second observation: in this sandbox's own Chrome, the spotlight's own `specular_exponent` had no visible effect at any value from `0.01` through `10000`.
+This is the reason that field was rejected as this demo's own interactive control for the open-Spot column, in favour of `x`.
+This file deliberately does not regression-test that observation — a fixture asserting that varying `specular_exponent` continues to produce *no* visible change would fail the day Chrome fixes whatever causes that, and that failure would represent an improvement, not a regression.
+It remains a manually recorded observation in `demo_light_sources.rs`'s own module doc comment, not a claim this file verifies.
+
+This drives a real Chrome instance via CDP and renders rects built by `cdp-test-fixture`, grouped into four checks.
+Each check runs `demo_light_sources.rs`'s own exact `feSpecularLighting` recipe on a plain, flat rect, fixed at different slider positions:
+
+1. `#ls-distant-low` (elevation 15deg) vs `#ls-distant-high` (elevation 85deg) — checks that a flat Distant surface's own average brightness genuinely rises with elevation, `panel-light-sources.html`'s own claim.
+2. `#ls-point-low-z` (z 20) vs `#ls-point-high-z` (z 180) — checks that a lower light genuinely sharpens the hotspot (a bigger centre-to-corner contrast), rather than spreading it.
+3. `#ls-spot-left` (light at its own rect's left edge) vs `#ls-spot-right` (right edge), both with `pointsAtX` trailing by the same 80-unit offset `demo_light_sources.rs`'s own `SPOT_OPEN_AIM_OFFSET` uses — checks that the bright region genuinely moves horizontally with the light, not just the DOM attribute.
+4. `#ls-cone-zero` (`limitingConeAngle` 0deg) vs `#ls-cone-narrow` (5deg) vs `#ls-cone-wide` (90deg) — three rects, not two.
+   `#ls-cone-narrow` vs `#ls-cone-wide` alone only proves 5deg is a usefully narrow lower bound; it says nothing about 0deg being anomalous.
+   `#ls-cone-zero` checks that specific claim directly: the same off-axis sample stays dark at 5deg, but is materially brighter and close to the wide reading, at 0deg.
+   This is the highest-value check of the four, since both the slider's own chosen minimum (5, not 0) and `panel-light-sources.html`'s own explanation of why depend on this exact, sandbox-specific Chrome behaviour, rather than a specification guarantee.
+
 ### Why this lives outside the main crate
 
 The library's own `cargo test`/`cargo nextest run` stays fast and dependency-light on purpose.
-All three test files above need a real, local Chrome/Chromium binary, and pull in `headless_chrome` (and its own dependency tree).
+All five test files above need a real, local Chrome/Chromium binary, and pull in `headless_chrome` (and its own dependency tree).
 So, like `demo-server`, the crate hosting them lives in its own workspace member, excluded from the root package's `default-members`.
 Plain `cargo build`/`cargo test` at the project root never touch it.
 
@@ -235,8 +286,8 @@ Two supporting crates make this possible:
 
 | Crate | Role |
 |---|---|
-| `cdp-test-fixture` | A tiny `wasm-bindgen` cdylib that builds real `svg-dom` elements for all three test files: six accessibility scenarios (via `set_title`, `set_desc` and `set_attr`), one `#blend-circle` filter scenario (via `flood`/`blend`/`composite`), and a `#turbulence-reference`/`#turbulence-scale-zero`/`#turbulence-scale-sixty` trio (via `turbulence`/`displacement_map`) — and signals readiness by adding a `#fixture-ready` element |
-| `cdp-integration-test` | `src/lib.rs` holds the shared `fixture_dir`/`build_fixture`/`serve`/`launch_browser` setup helpers. `tests/accessibility_tree.rs`, `tests/filter_blend_render.rs`, and `tests/turbulence_scale_zero_render.rs` each use them to build their own fixture, serve it, launch their own Chrome instance, and run their own `#[test]`s |
+| `cdp-test-fixture` | A tiny `wasm-bindgen` cdylib that builds real `svg-dom` elements for all five test files: six accessibility scenarios (via `set_title`, `set_desc` and `set_attr`), one `#blend-circle` filter scenario (via `flood`/`blend`/`composite`), a `#turbulence-reference`/`#turbulence-scale-zero`/`#turbulence-scale-sixty` trio (via `turbulence`/`displacement_map`), a `#lighting-reference`/`#lighting-azimuth-90`/`#lighting-scale-zero` trio (via `diffuse_lighting`), and nine light-source rects (via `specular_lighting`) grouped into the four `ls-distant`/`ls-point`/`ls-spot`/`ls-cone` comparisons — and signals readiness by adding a `#fixture-ready` element |
+| `cdp-integration-test` | `src/lib.rs` holds the shared `fixture_dir`/`build_fixture`/`serve`/`launch_browser` setup helpers. `tests/accessibility_tree.rs`, `tests/filter_blend_render.rs`, `tests/turbulence_scale_zero_render.rs`, `tests/lighting_render.rs`, and `tests/light_sources_render.rs` each use them to build their own fixture, serve it, launch their own Chrome instance, and run their own `#[test]`s |
 
 ### Prerequisites
 
@@ -248,7 +299,7 @@ Same `wasm-pack` install as the browser tests, plus a local Chrome or Chromium i
 cargo test -p cdp-integration-test
 ```
 
-This runs all three test files — no separate command needed, since `cargo test -p` runs every integration test binary under a crate's `tests/` directory.
+This runs all five test files — no separate command needed, since `cargo test -p` runs every integration test binary under a crate's `tests/` directory.
 Each rebuilds the `cdp-test-fixture` wasm package, serves it on its own OS-assigned local port, and drives its own headless Chrome instance against it — no manual server or browser setup needed.
 
 Each test binary launches its own Chrome instance and does its own `wasm-pack build`.
@@ -266,7 +317,7 @@ It was initially added without any CI job at all, so it protected nothing.
 The workspace's `default-members` deliberately excludes it (see above), so plain `cargo test`/`cargo nextest run` never runs it.
 None of the other CI jobs invoke it either.
 A regression here could land on `main` without any CI job noticing.
-For example: any test file failing to compile, Chrome's actual accessible-name/description computation drifting away from what the crate assumes, a filter chain silently starting to leak, or a scale-zero displacement no longer rendering as a perfect circle.
+For example: any test file failing to compile, Chrome's actual accessible-name/description computation drifting away from what the crate assumes, a filter chain silently starting to leak, a scale-zero displacement no longer rendering as a perfect circle, or the lighting/light-source primitives silently losing their directional or positional effect on the rendered pixels.
 Being a separate job, rather than an extra step tacked onto `browser-tests`, means its failure is reported independently.
 It doesn't obscure, or get obscured by, the unrelated `wasm-bindgen-test` results, while still gating the merge like any other required check.
 

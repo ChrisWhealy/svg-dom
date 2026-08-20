@@ -1,6 +1,6 @@
 //! Shared setup helpers for `cdp-integration-test`'s Chrome-DevTools-Protocol integration tests.
 //!
-//! This crate hosts four integration test files under `tests/`, each verifying browser-computed behaviour that plain
+//! This crate hosts five integration test files under `tests/`, each verifying browser-computed behaviour that plain
 //! DOM inspection (and therefore `wasm-bindgen-test`) cannot see:
 //!
 //! - `accessibility_tree.rs` — accessible-name/description computation, via the Accessibility CDP domain.
