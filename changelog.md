@@ -12,7 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Doc only: Clarify doc comment statement in `SvgDefs` about markers (`293cf83`)
 - Doc only: Correct `Error` description and `SvgDefs` inventory (`f832d90`)
-- Doc only: Correct script injection safety claim (``)
+- Doc only: Correct script injection safety claim (`fff7bcc`)
+- Doc only: Correct stale feature overview (``)
 
 ## Changed
 

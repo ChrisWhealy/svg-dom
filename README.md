@@ -42,10 +42,14 @@ The `svg-dom` crate acts as a thin wrapper for `web-sys` SVG DOM bindings that a
      |---|---|---|
      | `<defs>` | `SvgDefs` | `build_defs` |
      | `<marker>` | `SvgMarker` | `build_marker` |
+     | `<linearGradient>` | `SvgLinearGradient` | `build_linear_gradient` |
+     | `<radialGradient>` | `SvgRadialGradient` | `build_radial_gradient` |
      | `<clipPath>` | `SvgClipPath` | `build_clip_path` |
      | `<mask>` | `SvgMask` | `build_mask` |
      | `<pattern>` | `SvgPattern` | `build_pattern` |
+     | `<filter>` | `SvgFilter` | `build_filter` |
      | `<symbol>` | `SvgSymbol` | `build_symbol` |
+     | `<view>` | `SvgView` | `build_view` |
    
      The deferred-append helpers only commit the element to the DOM once the closure used for construction has succeeded.
 
@@ -162,6 +166,9 @@ The coding used to create each demo is shown beneath each example.
 | `SvgMask` | `<mask>` element that reveals/hides rendered region by luminance or alpha; owned id cache + shape factories
 | `SvgPattern` | `<pattern>` element that tiles its content as a fill or stroke paint server; owned id cache + shape factories
 | `SvgFilter` | `<filter>` element applying raster effects via a chain of filter-primitive builder methods (`feGaussianBlur`, `feColorMatrix`, `feDiffuseLighting`, ...); owned id cache
+| `SvgLinearGradient` / `SvgRadialGradient` | `<linearGradient>`/`<radialGradient>` paint-server gradients; owned id cache
+| `SvgSymbol` | `<symbol>` element defining a reusable, scaled viewport; owned id cache + shape factories; stamped via `<use>`
+| `SvgView` | `<view>` element defining a named `viewBox`/`preserveAspectRatio`; owned id cache; navigated to via a `#id` URL fragment
 | `PathDef` | Type-safe `<path>` `d`-attribute segment; builds a path from `&[PathDef]` via `path_from_defs` that avoids the possibility of creating a malformed `d` string
 | `AnimationLoop` | Drives a `requestAnimationFrame` loop; stops on `Drop`
 | `SvgAttrs` / `AttrWriter` | Reusable scratch buffer for allocation-light attribute writing
