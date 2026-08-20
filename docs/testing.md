@@ -119,10 +119,32 @@ If a test fails, `wasm-bindgen-test` displays the `String` message directly with
 
 ## CDP Integration Tests — `cargo test -p cdp-integration-test`
 
-The above tests are designed to prove the DOM structure: the right element was created, updated, or removed in the right place, with the right attributes.
-Two things they cannot see, because both live behind interfaces `wasm-bindgen-test`'s WebDriver-run tests have no access to.
-The first is the actual, browser-*computed* accessibility tree — the accessible name and description a screen reader would receive after ARIA precedence, role computation, and pruning have been applied — which lives behind the browser's Accessibility CDP domain.
-The second is actual rendered pixels, which require rasterising the SVG to a canvas and reading them back.
+The above tests prove DOM structure: the right element was created, updated, or removed in the right place, with the right attributes.
+They do not test rendered output.
+Every assertion above checks attributes and element structure, not what the browser actually paints.
+
+CDP reaches one thing genuinely closed to `wasm-bindgen-test`: the browser's own *computed* accessibility tree.
+This is the accessible name and description a screen reader receives, after ARIA precedence, role computation, and pruning.
+That computation lives entirely behind the browser's Accessibility CDP domain, with no other route to it.
+
+Rendered pixels are different.
+Nothing about WebDriver stops a plain `wasm-bindgen-test` from rasterising.
+It can create a `<canvas>`, draw an SVG or `Image` onto it, and call `getImageData` directly.
+The crate's own dev-dependencies already enable `CanvasRenderingContext2d`, `HtmlCanvasElement`, `ImageData`, `XmlSerializer`, and `wasm-bindgen-futures` for exactly this.
+The CDP suite's own render checks use this same technique.
+CDP here only drives the asynchronous in-page script.
+It is not a requirement pixel checks structurally share with the accessibility-tree ones.
+
+So the real distinction is narrower than "wasm-bindgen-test cannot see it."
+The ordinary browser suite currently tests DOM state, not rasterised output.
+The CDP suite provides the only render-level assertions that exist today.
+That is where they were built, not because `wasm-bindgen-test` cannot rasterise.
+
+This leaves an available future route.
+The accessibility tests genuinely need Chrome/CDP, since there is no other way to reach the computed accessibility tree.
+The render checks do not.
+Some or all of the filter render checks could become async `wasm-bindgen-test`s instead, running in both Chrome and Firefox for stronger cross-engine coverage.
+The current, consolidated CDP suite is not broken, so this is an option worth recording, not a reason to refactor now.
 
 The `cdp-integration-test` crate hosts one Cargo integration-test binary, `tests/cdp/`, with five scenario modules, each driving Chrome directly over the Chrome DevTools Protocol (CDP) via the [`headless_chrome`](https://docs.rs/headless_chrome) crate.
 `tests/cdp/common.rs` builds the fixture, starts the static server, and launches Chrome exactly once for the whole binary, via a lazily-initialised `OnceLock`.

@@ -6,13 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Unreleased]
 
-# [Released]
-
 ## [0.2.11] - 2026-08-20
 
 ## Changed
 
 - Ensure all tests across the entire codebase return `Result<(), String>` (`02dff29`)
+
+## Fixed
+
+- Doc only: Correct explanation of why pixel tests require CDP (``)
+
+# [Released]
 
 ## [0.2.10] - 2026-08-20
 
