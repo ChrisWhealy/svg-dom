@@ -1,27 +1,14 @@
 //! Shared setup helpers for `cdp-integration-test`'s Chrome-DevTools-Protocol integration tests.
 //!
-//! This crate hosts five integration test files under `tests/`, each verifying browser-computed behaviour that plain
-//! DOM inspection (and therefore `wasm-bindgen-test`) cannot see:
+//! The tests themselves live in one Cargo integration-test binary, `tests/cdp/`, with one scenario per sibling
+//! module.
+//! See [`tests/cdp/main.rs`](https://github.com/ChrisWhealy/svg-dom/blob/main/cdp-integration-test/tests/cdp/main.rs)'s
+//! own module doc comment for the scenario list, why they now share one binary, why this crate lives in its own
+//! on-demand workspace member, how it runs in CI, and why the browser is launched with `sandbox(false)`.
 //!
-//! - `accessibility_tree.rs` — accessible-name/description computation, via the Accessibility CDP domain.
-//! - `filter_blend_render.rs` — `SvgFilter::blend`'s alpha-preserving tint chain, via actual rendered pixels.
-//! - `turbulence_scale_zero_render.rs` — `SvgFilter::displacement_map`'s `scale` argument at `0.0`, via actual
-//!   rendered pixels.
-//! - `lighting_render.rs` — `demo_lighting.rs`'s own surfaceScale and azimuth sliders, via actual rendered pixels.
-//! - `light_sources_render.rs` — `demo_light_sources.rs`'s own four sliders, via actual rendered pixels.
-//!
-//! All five drive a real Chrome instance against the same sibling `cdp-test-fixture` wasm crate (built once, served
-//! locally), so the functions below that build the fixture, serve it and launch Chrome, are shared here rather than
-//! duplicated per test file.
-//!
-//! Since cargo compiles each file under `tests/` as a separate binary with its own process, each test file still builds
-//! and launches its own instance of the fixture and Chrome. There is therefore no way to share the running
-//! `Browser`/`Tab` *instance* across files, only the setup code that creates one.
-//!
-//! See `accessibility_tree.rs`'s module doc comment for why this crate lives in its own on-demand workspace member, how
-//! it runs in CI and why the browser is launched with `sandbox(false)`. That reasoning applies equally to
-//! `filter_blend_render.rs`, `turbulence_scale_zero_render.rs`, `lighting_render.rs` and `light_sources_render.rs` and
-//! is not repeated here.
+//! The functions below build the `cdp-test-fixture` wasm package, serve it, and launch Chrome.
+//! `tests/cdp/common.rs` calls them exactly once per test run, via a lazily-initialised `OnceLock`, and hands
+//! every scenario module its own [`Tab`](headless_chrome::Tab) from the one shared [`Browser`] instance.
 
 use fd_lock::RwLock;
 use headless_chrome::{Browser, LaunchOptions, browser::default_executable};
@@ -39,10 +26,11 @@ pub fn fixture_dir() -> PathBuf {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Rebuilds the `cdp-test-fixture` wasm package so `serve`'s output is current.
 ///
-/// Each of this crate's `tests/*.rs` files is its own binary and calls this function independently. Nextest then runs
-/// those binaries concurrently. Since two `wasm-pack build` invocations running in the same `dir` will corrupt each
-/// other's intermediate state (wasm-bindgen's generated files, wasm-opt's temp output), this function must first take
-/// an exclusive cross-process file lock to cause the concurrent binaries to queue up and build one at a time.
+/// `tests/cdp/common.rs` calls this once per test run, from behind its own `OnceLock`, so within this crate's own
+/// `cdp` binary only one call is ever in flight. The exclusive cross-process file lock taken below still guards
+/// against a second, independent `cargo test`/`cargo nextest run` invocation racing this one: two `wasm-pack build`
+/// invocations running in the same `dir` at once would corrupt each other's intermediate state (wasm-bindgen's
+/// generated files, wasm-opt's temp output).
 pub fn build_fixture(dir: &PathBuf) {
     let lock_path = dir.join(".build_fixture.lock");
     let lock_file = OpenOptions::new()
@@ -101,7 +89,7 @@ pub fn serve(dir: PathBuf) -> u16 {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Launches Chrome with its sandbox disabled.
-/// See `accessibility_tree.rs`'s `# Why the browser is launched with sandbox(false)` doc section for an explanation.
+/// See `tests/cdp/main.rs`'s `# Why the browser is launched with sandbox(false)` doc section for an explanation.
 pub fn launch_browser() -> Result<Browser, Box<dyn std::error::Error>> {
     let path = default_executable().map_err(|e| format!("could not locate a Chrome/Chromium binary: {e}"))?;
     let launch_options = LaunchOptions::default_builder().path(Some(path)).sandbox(false).build()?;

@@ -124,9 +124,10 @@ Two things they cannot see, because both live behind interfaces `wasm-bindgen-te
 The first is the actual, browser-*computed* accessibility tree — the accessible name and description a screen reader would receive after ARIA precedence, role computation, and pruning have been applied — which lives behind the browser's Accessibility CDP domain.
 The second is actual rendered pixels, which require rasterising the SVG to a canvas and reading them back.
 
-The `cdp-integration-test` crate hosts five integration test files, each driving a real Chrome instance directly over the Chrome DevTools Protocol (CDP) via the [`headless_chrome`](https://docs.rs/headless_chrome) crate.
-They share common fixture-build/serve/Chrome-launch setup code (`src/lib.rs`) but each with its own fixture scenario, its own running Chrome instance and its own `#[test]`s.
-See each file's own module doc comment for the full detail.
+The `cdp-integration-test` crate hosts one Cargo integration-test binary, `tests/cdp/`, with five scenario modules, each driving Chrome directly over the Chrome DevTools Protocol (CDP) via the [`headless_chrome`](https://docs.rs/headless_chrome) crate.
+`tests/cdp/common.rs` builds the fixture, starts the static server, and launches Chrome exactly once for the whole binary, via a lazily-initialised `OnceLock`.
+To ensure isolation, each scenario module then opens its own tab within the shared browser.
+See each module's own doc comment for the full detail on what it verifies.
 
 ### `accessibility_tree.rs` — accessible-name/description computation
 
@@ -144,13 +145,14 @@ These functions confirm:
 - An `<a>` wrapping visible text is exposed as a named link (`anchor_with_visible_text_is_a_named_link`).
   SVG maps `<a>` to the ARIA "link" role automatically, and the accessible name comes from the linked text content itself, the same way it would for an HTML `<a>`.
 
-### `accessibility_tree.rs`: one shared browser session, seven independent results
+### `accessibility_tree.rs`: One shared tab, seven independent results
 
-Building the test fixture and launching Chrome are both expensive actions, so all seven tests share the same fixture build, static server, and Chrome tab via a lazily-initialised `OnceLock`, rather than each paying that startup cost independently.
+`tests/cdp/common.rs` already shares the fixture build, static server, and `Browser` process with every other module in this binary.
+Opening a fresh tab per scenario here would still cost a navigate-and-wait-for-readiness round trip seven times over, for content that never changes between them, so all seven scenarios additionally share one tab of their own, via a second, module-local `OnceLock`.
 
-`cargo test` still runs the seven test functions in parallel, so actual CDP calls against the shared tab are serialised behind a `Mutex`.
+`cargo test` runs the seven test functions in parallel, so actual CDP calls against that shared tab are serialised behind a `Mutex`.
 `find_element`'s underlying `DOM.getDocument`-then-`DOM.querySelector` sequence is not safe under concurrent access to the same session, even though `Browser` and `Tab` implement `Send + Sync` at the type level.
-See the module doc comment in `cdp-integration-test/tests/accessibility_tree.rs` for the full explanation.
+See the module doc comment in `cdp-integration-test/tests/cdp/accessibility_tree.rs` for the full explanation.
 
 Splitting the original single test (with sequential `assert_eq!` calls in one function) into separate `#[test]` functions was a deliberate correction.
 If they were bundled into a single function, only the first failing assertion was ever reported, and `cargo test` counted the whole scenario suite as a monolithic pass/fail.
@@ -177,10 +179,9 @@ It then asserts on the real pixel values:
 Because the pixel-sampling script is asynchronous — `Image` loading is not synchronous — it runs via the raw `Runtime.evaluate` CDP command, with `awaitPromise: true` and `returnByValue: true`.
 It is called directly, rather than through `headless_chrome::Tab`'s own `evaluate()` wrapper, which hardcodes `returnByValue: false`.
 
-This lives in its own file, rather than as more `#[test]`s in `accessibility_tree.rs`.
-So each file's module doc comment stays honestly scoped to what it actually verifies — accessible-name computation in one, filter alpha compositing in the other.
-That comes at the cost of each paying Chrome's startup cost independently, since `tests/*.rs` files are always separate binaries.
-There is no way to share a running `Browser`/`Tab` instance — only the setup code in `src/lib.rs` that creates one.
+This lives in its own module, rather than as more `#[test]`s in `accessibility_tree.rs`.
+So each module's doc comment stays retains its "common sense" scope for what it actually verifies — accessible-name computation in one, filter alpha compositing in the other.
+It shares `tests/cdp/common.rs`'s one `Browser` instance with every other module in this binary, opening only its own tab.
 
 ### `turbulence_scale_zero_render.rs` — `SvgFilter::displacement_map`'s `scale` at `0.0`, against real rendered pixels
 
@@ -278,8 +279,8 @@ Each check runs `demo_light_sources.rs`'s own exact `feSpecularLighting` recipe 
 ### Why this lives outside the main crate
 
 The library's own `cargo test`/`cargo nextest run` stays fast and dependency-light on purpose.
-All five test files above need a real, local Chrome/Chromium binary, and pull in `headless_chrome` (and its own dependency tree).
-So, like `demo-server`, the crate hosting them lives in its own workspace member, excluded from the root package's `default-members`.
+The `cdp` test binary above needs a real, local Chrome/Chromium binary, and pulls in `headless_chrome` (and its own dependency tree).
+So, like `demo-server`, the crate hosting it lives in its own workspace member, excluded from the root package's `default-members`.
 Plain `cargo build`/`cargo test` at the project root never touch it.
 
 Two supporting crates make this possible:
@@ -287,7 +288,7 @@ Two supporting crates make this possible:
 | Crate | Role |
 |---|---|
 | `cdp-test-fixture` | A tiny `wasm-bindgen` cdylib that builds real `svg-dom` elements for all five test files: six accessibility scenarios (via `set_title`, `set_desc` and `set_attr`), one `#blend-circle` filter scenario (via `flood`/`blend`/`composite`), a `#turbulence-reference`/`#turbulence-scale-zero`/`#turbulence-scale-sixty` trio (via `turbulence`/`displacement_map`), a `#lighting-reference`/`#lighting-azimuth-90`/`#lighting-scale-zero` trio (via `diffuse_lighting`), and nine light-source rects (via `specular_lighting`) grouped into the four `ls-distant`/`ls-point`/`ls-spot`/`ls-cone` comparisons — and signals readiness by adding a `#fixture-ready` element |
-| `cdp-integration-test` | `src/lib.rs` holds the shared `fixture_dir`/`build_fixture`/`serve`/`launch_browser` setup helpers. `tests/accessibility_tree.rs`, `tests/filter_blend_render.rs`, `tests/turbulence_scale_zero_render.rs`, `tests/lighting_render.rs`, and `tests/light_sources_render.rs` each use them to build their own fixture, serve it, launch their own Chrome instance, and run their own `#[test]`s |
+| `cdp-integration-test` | `src/lib.rs` holds the shared `fixture_dir`/`build_fixture`/`serve`/`launch_browser` setup helpers. `tests/cdp/common.rs` calls them once per test run and hands every scenario module its own tab from the one shared `Browser`. `tests/cdp/{accessibility_tree,filter_blend_render,turbulence_scale_zero_render,lighting_render,light_sources_render}.rs` are that binary's five scenario modules, each running its own `#[test]`s |
 
 ### Prerequisites
 
@@ -299,14 +300,14 @@ Same `wasm-pack` install as the browser tests, plus a local Chrome or Chromium i
 cargo test -p cdp-integration-test
 ```
 
-This runs all five test files — no separate command needed, since `cargo test -p` runs every integration test binary under a crate's `tests/` directory.
-Each rebuilds the `cdp-test-fixture` wasm package, serves it on its own OS-assigned local port, and drives its own headless Chrome instance against it — no manual server or browser setup needed.
+This runs the crate's one `cdp` test binary, covering all five scenario modules.
+It rebuilds the `cdp-test-fixture` wasm package once, serves it on an OS-assigned local port, and drives one shared headless Chrome instance against it for the whole run — no manual server or browser setup needed.
 
-Each test binary launches its own Chrome instance and does its own `wasm-pack build`.
-So running them concurrently — rather than letting `cargo test` run each binary to completion before starting the next — can starve a resource-constrained machine of CPU or memory.
-That produces unrelated-looking CDP timeouts in every binary at once, not just the one actually short on resources.
-If `cargo test -p cdp-integration-test` is aliased to `cargo nextest run` — nextest parallelises across test binaries by default — prefer running each file individually: `cargo test -p cdp-integration-test --test <file>`.
-Or constrain nextest's own concurrency, rather than treating a burst of simultaneous failures as several independent regressions.
+***IMPORTANT***<br>
+This shared-fixture, shared-browser design depends on every scenario running inside one process, which plain `cargo test` does.
+However, `cargo nextest run` does not: by design, nextest isolates every `#[test]` function in its own process, so under nextest, each scenario would rebuild the fixture and relaunch Chrome independently, instead of sharing one run's worth of setup — which defeats the purpose of this consolidation.
+
+If `cargo test` is aliased to `cargo nextest run` on your machine, invoke the real `cargo` binary for this crate instead, bypassing the alias — for example `command cargo test -p cdp-integration-test`.
 
 ### Running in CI
 
@@ -326,4 +327,4 @@ Recent Ubuntu (24.04+, which `ubuntu-latest` now resolves to) restricts unprivil
 That breaks Chrome's own sandbox initialisation, even for the runner's non-root user.
 Since this test only ever loads a local fixture page the crate builds itself, there is no untrusted content for the sandbox to matter for.
 So it is disabled unconditionally, not just in CI, to keep local and CI runs on the same code path.
-See the `# Why the browser is launched with sandbox(false)` section of the module doc comment for the full explanation.
+See the `# Why the browser is launched with sandbox(false)` section of `tests/cdp/main.rs`'s own module doc comment for the full explanation.

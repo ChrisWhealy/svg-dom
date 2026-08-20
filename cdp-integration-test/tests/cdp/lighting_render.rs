@@ -1,56 +1,55 @@
-//! Chrome-DevTools-Protocol (CDP) integration test for `demo_lighting.rs`'s own surfaceScale and azimuth sliders.
+//! `demo_lighting.rs`'s own surfaceScale and azimuth sliders, against real rendered pixels.
 //!
-//! `demo-app/src/browser_tests/paint/lighting.rs` proves the claims made for the DOM part of both sliders; namely that
+//! `demo-app/src/browser_tests/paint/lighting.rs` proves the claims made for the DOM part of both sliders: that
 //! moving either one mutates `surfaceScale` on all four retained lighting primitives, or `azimuth` on all four
-//! `<feDistantLight>` children. However, it cannot prove either mutation actually changes the *rendered* lighting.
+//! `<feDistantLight>` children.
+//! It cannot prove either mutation actually changes the *rendered* lighting.
 //!
-//! This test drives a real Chrome instance via CDP and renders three circles built by the sibling `cdp-test-fixture`
-//! wasm crate. These are all filtered through the exact same `feDiffuseLighting` recipe used by `demo_lighting.rs`'s
-//!  own "diffuse-only" column: `#lighting-reference` (surfaceScale 6, azimuth 235deg), `#lighting-azimuth-90`
-//! (surfaceScale 6, azimuth 90deg), and `#lighting-scale-zero` (surfaceScale 0, azimuth 235deg).
+//! This renders three circles built by the sibling `cdp-test-fixture` wasm crate, all filtered through the exact
+//! same `feDiffuseLighting` recipe `demo_lighting.rs`'s own "diffuse-only" column uses: `#lighting-reference`
+//! (surfaceScale 6, azimuth 235deg), `#lighting-azimuth-90` (surfaceScale 6, azimuth 90deg), and
+//! `#lighting-scale-zero` (surfaceScale 0, azimuth 235deg).
 //!
-//! It samples eight points around each circle's own rim, 2px inside its nominal radius, where `feDiffuseLighting`'s own
-//! alpha-gradient bump map is non-flat, since a plain circle's own interior alpha never varies.  It then asserts:
+//! It samples eight points around each circle's own rim, 2px inside its nominal radius, where
+//! `feDiffuseLighting`'s own alpha-gradient bump map is non-flat, since a plain circle's own interior alpha never
+//! varies.
+//! It then asserts three things:
 //!
-//! 1. `#lighting-reference`'s own eight rim samples vary meaningfully from one another — the positive control that
-//!   this fixture and sampling method actually detect real directional lighting when it is there.
-//! 2. `#lighting-scale-zero`'s own eight rim samples stay close to one another, well inside the variation shown by
-//!   `#lighting-reference` — `panel-lighting.html`'s own claim that surfaceScale 0 flattens the bump map into a uniform
-//!   lit surface, checked against real pixels rather than only the `surfaceScale="0"` attribute.
-//! 3. there is a material difference between at least one of the eight matching-angle samples `#lighting-reference` and
-//!   `#lighting-azimuth-90` — azimuth actually turns the rendered light, not just the `<feDistantLight>` attribute
-//!   detectable by a DOM test.
+//! 1. `#lighting-reference`'s own eight rim samples vary meaningfully from one another.
+//!    This is the positive control that this fixture and sampling method actually detect real directional
+//!    lighting when it is there.
+//! 2. `#lighting-scale-zero`'s own eight rim samples stay close to one another, well inside the variation shown
+//!    by `#lighting-reference`.
+//!    This checks `panel-lighting.html`'s own claim that surfaceScale 0 flattens the bump map into a uniform lit
+//!    surface, against real pixels rather than only the `surfaceScale="0"` attribute.
+//! 3. There is a material difference between at least one of the eight matching-angle samples of
+//!    `#lighting-reference` and `#lighting-azimuth-90`.
+//!    Azimuth actually turns the rendered light, not just the `<feDistantLight>` attribute a DOM test can detect.
 //!
-//! The first check alone would be a one-sided claim about the sampling method's own sensitivity: it says nothing
-//! about whether a *flattened* bump map also rasterises correctly, which is exactly what the second check proves.
-//! Together they mean a pass on the second check reflects the fixture genuinely losing directional variation, not an
-//! insensitive sampling method that would have missed variation either way.
+//! The first check alone would be a one-sided claim about the sampling method's own sensitivity.
+//! It says nothing about whether a *flattened* bump map also rasterises correctly, which is exactly what the
+//! second check proves.
+//! Together they mean a pass on the second check reflects the fixture genuinely losing directional variation, not
+//! an insensitive sampling method that would have missed variation either way.
 //!
-//! This intentionally does not attempt any broader screenshot testing across every slider position — these three fixed
-//! points are enough to cover both sliders' own specific rendering claims without turning into a fragile visual
-//! regression suite.
+//! This intentionally does not attempt broader screenshot testing across every slider position.
+//! These three fixed points are enough to cover both sliders' own specific rendering claims without turning into
+//! a fragile visual regression suite.
 //!
 //! # How the pixels are read
 //!
-//! Same technique as `filter_blend_render.rs` and `turbulence_scale_zero_render.rs`: serialise the fixture's `<svg>`
-//! to a `data:image/svg+xml` URL, load it into an `Image`, draw it to an offscreen `<canvas>`, then read the pixels
-//! back via `getImageData`.
+//! Same technique as `filter_blend_render.rs` and `turbulence_scale_zero_render.rs`: serialise the fixture's
+//! `<svg>` to a `data:image/svg+xml` URL, load it into an `Image`, draw it to an offscreen `<canvas>`, then read
+//! the pixels back via `getImageData`.
 //!
-//! Since `Image` loading is asynchronous, the script must also be asynchronous, so it runs via `Runtime.evaluate` with
-//! `awaitPromise: true` and `returnByValue: true`, called directly rather than through `headless_chrome::Tab`'s own
-//! `evaluate()` wrapper. That wrapper hardcodes `returnByValue: false`, which only inlines primitive results, not the
-//! object with which this script resolves.
-//!
-//! # Why this is a separate test file
-//!
-//! See `filter_blend_render.rs`'s own module doc comment for the general reasoning: keeping the scope of test file in
-//! its "common sense" location.  This does however come at the cost that each test needs to pay Chrome's startup cost,
-//! since `tests/*.rs` files are always separate binaries with no way to share a running `Browser`/`Tab` instance.
+//! Since `Image` loading is asynchronous, the script must also be asynchronous, so it runs via `Runtime.evaluate`
+//! with `awaitPromise: true` and `returnByValue: true`, called directly rather than through
+//! `headless_chrome::Tab`'s own `evaluate()` wrapper.
+//! That wrapper hardcodes `returnByValue: false`, which only inlines primitive results, not the object with which
+//! this script resolves.
 
-use cdp_integration_test::{build_fixture, fixture_dir, launch_browser, serve};
 use headless_chrome::protocol::cdp::Runtime;
 use serde_json::Value;
-use std::time::Duration;
 
 /// The in-page async script: rasterises the fixture's `<svg>` and returns eight samples for each of the
 /// `#lighting-reference`, `#lighting-azimuth-90`, and `#lighting-scale-zero` circles respectively.
@@ -117,26 +116,26 @@ const SAMPLE_SCRIPT: &str = r#"
 "#;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Component-wise `(r, g, b, a)` from a JSON `[r, g, b, a]` array, panicking with `context` on any malformed value.
-fn rgba(value: &Value, context: &str) -> (u8, u8, u8, u8) {
+/// Component-wise `(r, g, b, a)` from a JSON `[r, g, b, a]` array.
+fn rgba(value: &Value, context: &str) -> Result<(u8, u8, u8, u8), String> {
     let arr = value
         .as_array()
-        .unwrap_or_else(|| panic!("{context}: expected a 4-element array, got {value}"));
-    let component = |i: usize| {
+        .ok_or_else(|| format!("{context}: expected a 4-element array, got {value}"))?;
+    let component = |i: usize| -> Result<u8, String> {
         arr.get(i)
             .and_then(Value::as_u64)
-            .unwrap_or_else(|| panic!("{context}: expected a numeric component at index {i}, got {value}"))
-            as u8
+            .map(|n| n as u8)
+            .ok_or_else(|| format!("{context}: expected a numeric component at index {i}, got {value}"))
     };
-    (component(0), component(1), component(2), component(3))
+    Ok((component(0)?, component(1)?, component(2)?, component(3)?))
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// A JSON array of `[r, g, b, a]` arrays, decoded via [`rgba`].
-fn rgba_list(value: &Value, context: &str) -> Vec<(u8, u8, u8, u8)> {
+fn rgba_list(value: &Value, context: &str) -> Result<Vec<(u8, u8, u8, u8)>, String> {
     value
         .as_array()
-        .unwrap_or_else(|| panic!("{context}: expected an array, got {value}"))
+        .ok_or_else(|| format!("{context}: expected an array, got {value}"))?
         .iter()
         .enumerate()
         .map(|(i, v)| rgba(v, &format!("{context}[{i}]")))
@@ -146,10 +145,7 @@ fn rgba_list(value: &Value, context: &str) -> Vec<(u8, u8, u8, u8)> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// The largest single-channel gap between two samples.
 fn max_component_diff(a: (u8, u8, u8, u8), b: (u8, u8, u8, u8)) -> u8 {
-    [a.0.abs_diff(b.0), a.1.abs_diff(b.1), a.2.abs_diff(b.2), a.3.abs_diff(b.3)]
-        .into_iter()
-        .max()
-        .expect("four elements")
+    a.0.abs_diff(b.0).max(a.1.abs_diff(b.1)).max(a.2.abs_diff(b.2)).max(a.3.abs_diff(b.3))
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -166,17 +162,8 @@ fn max_spread(samples: &[(u8, u8, u8, u8)]) -> u8 {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #[test]
-fn lighting_sliders_change_rendered_pixels() {
-    let dir = fixture_dir();
-    build_fixture(&dir);
-    let port = serve(dir);
-
-    let browser = launch_browser().expect("failed to launch Chrome — is it installed locally?");
-    let tab = browser.new_tab().expect("failed to open a new tab");
-    tab.navigate_to(&format!("http://127.0.0.1:{port}/index.html"))
-        .expect("failed to navigate to fixture page");
-    tab.wait_for_element_with_custom_timeout("#fixture-ready", Duration::from_secs(10))
-        .expect("fixture did not signal readiness in time");
+fn lighting_sliders_change_rendered_pixels() -> Result<(), String> {
+    let tab = super::common::new_tab()?;
 
     let evaluated = tab
         .call_method(Runtime::Evaluate {
@@ -197,23 +184,29 @@ fn lighting_sliders_change_rendered_pixels() {
             unique_context_id: None,
             serialization_options: None,
         })
-        .expect("Runtime.evaluate failed");
+        .map_err(|e| format!("Runtime.evaluate failed: {e}"))?;
 
     if let Some(exception) = evaluated.exception_details {
-        panic!("pixel-sampling script threw: {exception:?}");
+        return Err(format!("pixel-sampling script threw: {exception:?}"));
     }
     let value = evaluated
         .result
         .value
-        .expect("evaluate did not return a value — was returnByValue set?");
+        .ok_or_else(|| "evaluate did not return a value — was returnByValue set?".to_owned())?;
 
-    let reference_samples = rgba_list(&value["referenceSamples"], "referenceSamples");
-    let azimuth_90_samples = rgba_list(&value["azimuth90Samples"], "azimuth90Samples");
-    let scale_zero_samples = rgba_list(&value["scaleZeroSamples"], "scaleZeroSamples");
+    let reference_samples = rgba_list(&value["referenceSamples"], "referenceSamples")?;
+    let azimuth_90_samples = rgba_list(&value["azimuth90Samples"], "azimuth90Samples")?;
+    let scale_zero_samples = rgba_list(&value["scaleZeroSamples"], "scaleZeroSamples")?;
 
-    assert_eq!(reference_samples.len(), 8, "expected 8 rim samples for the reference circle");
-    assert_eq!(azimuth_90_samples.len(), 8, "expected 8 rim samples for the azimuth-90 circle");
-    assert_eq!(scale_zero_samples.len(), 8, "expected 8 rim samples for the scale-zero circle");
+    if reference_samples.len() != 8 {
+        return Err("expected 8 rim samples for the reference circle".to_owned());
+    }
+    if azimuth_90_samples.len() != 8 {
+        return Err("expected 8 rim samples for the azimuth-90 circle".to_owned());
+    }
+    if scale_zero_samples.len() != 8 {
+        return Err("expected 8 rim samples for the scale-zero circle".to_owned());
+    }
 
     // --- positive control: real directional lighting at a non-zero surfaceScale should vary meaningfully around
     // the rim, not sit flat like an unlit silhouette. Without this, a low `max_spread` on the scale-zero circle
@@ -225,13 +218,14 @@ fn lighting_sliders_change_rendered_pixels() {
     // bright grey, an observed spread of 234 against this threshold of 20. ---
     let reference_spread = max_spread(&reference_samples);
     const MIN_REFERENCE_SPREAD: u8 = 20;
-    assert!(
-        reference_spread >= MIN_REFERENCE_SPREAD,
-        "expected the reference circle's own 8 rim samples to vary by at least {MIN_REFERENCE_SPREAD} between \
-         its own brightest and darkest points, but the largest gap found was only {reference_spread} — either \
-         directional lighting is not reaching the page, or this sampling method cannot detect it, which would \
-         silently undermine the surfaceScale-zero check below"
-    );
+    if reference_spread < MIN_REFERENCE_SPREAD {
+        return Err(format!(
+            "expected the reference circle's own 8 rim samples to vary by at least {MIN_REFERENCE_SPREAD} between \
+             its own brightest and darkest points, but the largest gap found was only {reference_spread} — either \
+             directional lighting is not reaching the page, or this sampling method cannot detect it, which would \
+             silently undermine the surfaceScale-zero check below"
+        ));
+    }
 
     // --- surfaceScale 0 flattens the bump map: panel-lighting.html's own claim, checked against real pixels. The
     // threshold sits well under MIN_REFERENCE_SPREAD, so a bump map that only partly flattened would still fail
@@ -240,13 +234,14 @@ fn lighting_sliders_change_rendered_pixels() {
     // land on too. ---
     let scale_zero_spread = max_spread(&scale_zero_samples);
     const MAX_SCALE_ZERO_SPREAD: u8 = 8;
-    assert!(
-        scale_zero_spread <= MAX_SCALE_ZERO_SPREAD,
-        "expected the scale-zero circle's own 8 rim samples to stay within {MAX_SCALE_ZERO_SPREAD} of one \
-         another (a uniformly lit flat surface), but the largest gap found was {scale_zero_spread} — surfaceScale \
-         0 should flatten the bump map entirely, leaving no rim-to-rim variation for a non-zero surfaceScale to \
-         create"
-    );
+    if scale_zero_spread > MAX_SCALE_ZERO_SPREAD {
+        return Err(format!(
+            "expected the scale-zero circle's own 8 rim samples to stay within {MAX_SCALE_ZERO_SPREAD} of one \
+             another (a uniformly lit flat surface), but the largest gap found was {scale_zero_spread} — surfaceScale \
+             0 should flatten the bump map entirely, leaving no rim-to-rim variation for a non-zero surfaceScale to \
+             create"
+        ));
+    }
 
     // --- azimuth 90 actually turns the rendered light: at least one of the 8 matching-angle samples should
     // differ materially from the reference circle's own azimuth-235 rendering. A conservative threshold, well
@@ -260,10 +255,13 @@ fn lighting_sliders_change_rendered_pixels() {
         .zip(azimuth_90_samples.iter())
         .filter(|(reference, azimuth_90)| max_component_diff(**reference, **azimuth_90) > AZIMUTH_CHANGE_THRESHOLD)
         .count();
-    assert!(
-        differing_samples >= 1,
-        "expected at least one of the 8 rim samples to differ from the reference circle by more than \
-         {AZIMUTH_CHANGE_THRESHOLD} at azimuth 90, but none did — either turning the light is not reaching the \
-         page, or this fixture/sampling method cannot detect it"
-    );
+    if differing_samples < 1 {
+        return Err(format!(
+            "expected at least one of the 8 rim samples to differ from the reference circle by more than \
+             {AZIMUTH_CHANGE_THRESHOLD} at azimuth 90, but none did — either turning the light is not reaching the \
+             page, or this fixture/sampling method cannot detect it"
+        ));
+    }
+
+    Ok(())
 }

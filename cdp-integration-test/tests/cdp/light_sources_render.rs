@@ -1,4 +1,4 @@
-//! Chrome-DevTools-Protocol (CDP) integration test for `demo_light_sources.rs`'s own four sliders.
+//! `demo_light_sources.rs`'s own four sliders, against real rendered pixels.
 //!
 //! `demo-app/src/browser_tests/paint/light_sources.rs` can only prove the DOM part of the claims made by the four
 //! sliders. That is, that moving each one mutates the correct attribute on the correct retained light-source node, and
@@ -20,9 +20,9 @@
 //! and that failure would represent an improvement, not a regression. This remains a manually recorded observation in
 //! `demo_light_sources.rs`'s own module doc comment, not a claim this file verifies.
 //!
-//! This drives a real Chrome instance via CDP and renders rects built by the sibling `cdp-test-fixture` wasm crate,
-//! grouped into four checks, each running `demo_light_sources.rs`'s own exact `feSpecularLighting` recipe on a plain,
-//! flat rect, fixed at different slider positions:
+//! This renders rects built by the sibling `cdp-test-fixture` wasm crate, grouped into four checks, each running
+//! `demo_light_sources.rs`'s own exact `feSpecularLighting` recipe on a plain, flat rect, fixed at different
+//! slider positions:
 //!
 //! 1. `#ls-distant-low` (elevation 15deg) vs `#ls-distant-high` (elevation 85deg) — checks that a flat Distant
 //!   surface's own average brightness genuinely rises with elevation, panel-light-sources.html's own claim.
@@ -47,18 +47,9 @@
 //! with `awaitPromise: true` and `returnByValue: true`. This is called directly rather than through
 //! `headless_chrome::Tab`'s own `evaluate()` wrapper. That wrapper hardcodes `returnByValue: false`, which only inlines
 //! primitive results, not the object with which this script resolves.
-//!
-//! # Why this is a separate test file
-//!
-//! See `filter_blend_render.rs`'s own module doc comment for the general reasoning: keeping the tests in each file
-//! scoped in a "common sense" way.  However, this comes at the cost of having to pay Chrome's startup cost for each
-//! test run, since all `tests/*.rs` files are built as separate binaries and therefore have no means to share a running
-//! `Browser`/`Tab` instance.
 
-use cdp_integration_test::{build_fixture, fixture_dir, launch_browser, serve};
 use headless_chrome::protocol::cdp::Runtime;
 use serde_json::Value;
-use std::time::Duration;
 
 /// The in-page async script: rasterises the fixture's `<svg>` and returns the alpha channel at a handful of named local
 /// offsets within each of the nine rects, keyed by rect id then offset name.
@@ -146,26 +137,18 @@ const SAMPLE_SCRIPT: &str = r#"
 "#;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// `samples[id][offset_name]` as a plain `u8`, panicking with context on any malformed value.
-fn sample(value: &Value, id: &str, offset_name: &str) -> u8 {
+/// `samples[id][offset_name]` as a plain `u8`.
+fn sample(value: &Value, id: &str, offset_name: &str) -> Result<u8, String> {
     value[id][offset_name]
         .as_u64()
-        .unwrap_or_else(|| panic!("samples[{id:?}][{offset_name:?}] missing or not a number: {value}")) as u8
+        .map(|n| n as u8)
+        .ok_or_else(|| format!("samples[{id:?}][{offset_name:?}] missing or not a number: {value}"))
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #[test]
-fn light_sources_sliders_change_rendered_pixels() {
-    let dir = fixture_dir();
-    build_fixture(&dir);
-    let port = serve(dir);
-
-    let browser = launch_browser().expect("failed to launch Chrome — is it installed locally?");
-    let tab = browser.new_tab().expect("failed to open a new tab");
-    tab.navigate_to(&format!("http://127.0.0.1:{port}/index.html"))
-        .expect("failed to navigate to fixture page");
-    tab.wait_for_element_with_custom_timeout("#fixture-ready", Duration::from_secs(10))
-        .expect("fixture did not signal readiness in time");
+fn light_sources_sliders_change_rendered_pixels() -> Result<(), String> {
+    let tab = super::common::new_tab()?;
 
     let evaluated = tab
         .call_method(Runtime::Evaluate {
@@ -186,84 +169,95 @@ fn light_sources_sliders_change_rendered_pixels() {
             unique_context_id: None,
             serialization_options: None,
         })
-        .expect("Runtime.evaluate failed");
+        .map_err(|e| format!("Runtime.evaluate failed: {e}"))?;
 
     if let Some(exception) = evaluated.exception_details {
-        panic!("pixel-sampling script threw: {exception:?}");
+        return Err(format!("pixel-sampling script threw: {exception:?}"));
     }
     let value = evaluated
         .result
         .value
-        .expect("evaluate did not return a value — was returnByValue set?");
+        .ok_or_else(|| "evaluate did not return a value — was returnByValue set?".to_owned())?;
 
     // --- Distant: average brightness (five samples) should rise clearly with elevation ---
-    let distant_avg = |id: &str| -> f64 {
+    let distant_avg = |id: &str| -> Result<f64, String> {
         let names = ["centre", "topLeft", "topRight", "bottomLeft", "bottomRight"];
-        names.iter().map(|n| f64::from(sample(&value, id, n))).sum::<f64>() / names.len() as f64
+        let mut total = 0.0;
+        for n in names {
+            total += f64::from(sample(&value, id, n)?);
+        }
+        Ok(total / names.len() as f64)
     };
-    let distant_low_avg = distant_avg("ls-distant-low");
-    let distant_high_avg = distant_avg("ls-distant-high");
+    let distant_low_avg = distant_avg("ls-distant-low")?;
+    let distant_high_avg = distant_avg("ls-distant-high")?;
     const MIN_DISTANT_BRIGHTNESS_GAP: f64 = 20.0;
-    assert!(
-        distant_high_avg - distant_low_avg >= MIN_DISTANT_BRIGHTNESS_GAP,
-        "expected elevation 85deg to average at least {MIN_DISTANT_BRIGHTNESS_GAP} brighter than elevation \
-         15deg, but got {distant_low_avg:.1} (low) vs {distant_high_avg:.1} (high) — panel-light-sources.html's \
-         own claim that raising elevation brightens the uniform sheen"
-    );
+    if distant_high_avg - distant_low_avg < MIN_DISTANT_BRIGHTNESS_GAP {
+        return Err(format!(
+            "expected elevation 85deg to average at least {MIN_DISTANT_BRIGHTNESS_GAP} brighter than elevation \
+             15deg, but got {distant_low_avg:.1} (low) vs {distant_high_avg:.1} (high) — panel-light-sources.html's \
+             own claim that raising elevation brightens the uniform sheen"
+        ));
+    }
 
     // --- Point: centre-to-corner contrast should be bigger (a sharper hotspot) at low z than high z ---
-    let point_contrast =
-        |id: &str| -> i32 { i32::from(sample(&value, id, "centre")) - i32::from(sample(&value, id, "topLeft")) };
-    let point_low_z_contrast = point_contrast("ls-point-low-z");
-    let point_high_z_contrast = point_contrast("ls-point-high-z");
+    let point_contrast = |id: &str| -> Result<i32, String> {
+        Ok(i32::from(sample(&value, id, "centre")?) - i32::from(sample(&value, id, "topLeft")?))
+    };
+    let point_low_z_contrast = point_contrast("ls-point-low-z")?;
+    let point_high_z_contrast = point_contrast("ls-point-high-z")?;
     const MIN_POINT_CONTRAST_GAP: i32 = 15;
-    assert!(
-        point_low_z_contrast - point_high_z_contrast >= MIN_POINT_CONTRAST_GAP,
-        "expected z 20's own centre-to-corner contrast to exceed z 180's own by at least \
-         {MIN_POINT_CONTRAST_GAP}, but got {point_low_z_contrast} (low z) vs {point_high_z_contrast} (high z) — \
-         a lower light should sharpen the hotspot, not spread it"
-    );
+    if point_low_z_contrast - point_high_z_contrast < MIN_POINT_CONTRAST_GAP {
+        return Err(format!(
+            "expected z 20's own centre-to-corner contrast to exceed z 180's own by at least \
+             {MIN_POINT_CONTRAST_GAP}, but got {point_low_z_contrast} (low z) vs {point_high_z_contrast} (high z) — \
+             a lower light should sharpen the hotspot, not spread it"
+        ));
+    }
 
     // Spot (no cone): the bright region should move with the light, not stay fixed. Compared within each
     // rect (its own side nearest the light against its own side farthest from it), not across the two rects at
     // the same absolute point — the two lights' own reflection peaks are not equally strong at their own
     // opposite edges, an asymmetry of this particular geometry, not a sign either rect is failing to track its
     // own light. The direction each rect's own bright region leans is the thing being checked here.
-    let spot_left_bias = i32::from(sample(&value, "ls-spot-left", "leftAtLightHeight"))
-        - i32::from(sample(&value, "ls-spot-left", "rightAtLightHeight"));
-    let spot_right_bias = i32::from(sample(&value, "ls-spot-right", "rightAtLightHeight"))
-        - i32::from(sample(&value, "ls-spot-right", "leftAtLightHeight"));
+    let spot_left_bias = i32::from(sample(&value, "ls-spot-left", "leftAtLightHeight")?)
+        - i32::from(sample(&value, "ls-spot-left", "rightAtLightHeight")?);
+    let spot_right_bias = i32::from(sample(&value, "ls-spot-right", "rightAtLightHeight")?)
+        - i32::from(sample(&value, "ls-spot-right", "leftAtLightHeight")?);
     const MIN_SPOT_BIAS: i32 = 20;
-    assert!(
-        spot_left_bias >= MIN_SPOT_BIAS,
-        "expected the light-left rect's own left-edge sample to exceed its own right-edge sample by at least \
-         {MIN_SPOT_BIAS}, but got a bias of only {spot_left_bias}"
-    );
-    assert!(
-        spot_right_bias >= MIN_SPOT_BIAS,
-        "expected the light-right rect's own right-edge sample to exceed its own left-edge sample by at least \
-         {MIN_SPOT_BIAS}, but got a bias of only {spot_right_bias}"
-    );
+    if spot_left_bias < MIN_SPOT_BIAS {
+        return Err(format!(
+            "expected the light-left rect's own left-edge sample to exceed its own right-edge sample by at least \
+             {MIN_SPOT_BIAS}, but got a bias of only {spot_left_bias}"
+        ));
+    }
+    if spot_right_bias < MIN_SPOT_BIAS {
+        return Err(format!(
+            "expected the light-right rect's own right-edge sample to exceed its own left-edge sample by at least \
+             {MIN_SPOT_BIAS}, but got a bias of only {spot_right_bias}"
+        ));
+    }
 
     // Spot (with cone): a sample well off the beam's own aim axis should stay dark under the narrow cone,
     // but light up once the cone widens. This is the check that backs the slider's own chosen minimum (5, not
     // 0) and panel-light-sources.html's own explanation of why.
-    let cone_narrow_off_axis = sample(&value, "ls-cone-narrow", "topLeft");
-    let cone_wide_off_axis = sample(&value, "ls-cone-wide", "topLeft");
+    let cone_narrow_off_axis = sample(&value, "ls-cone-narrow", "topLeft")?;
+    let cone_wide_off_axis = sample(&value, "ls-cone-wide", "topLeft")?;
     const MAX_NARROW_OFF_AXIS_BRIGHTNESS: u8 = 30;
     const MIN_CONE_WIDENING_GAP: i32 = 15;
-    assert!(
-        cone_narrow_off_axis <= MAX_NARROW_OFF_AXIS_BRIGHTNESS,
-        "expected the narrow cone (5deg) to leave a sample well off its own aim axis at or below \
-         {MAX_NARROW_OFF_AXIS_BRIGHTNESS}, but got {cone_narrow_off_axis} — the hard-edged cutoff should exclude \
-         it almost entirely"
-    );
-    assert!(
-        i32::from(cone_wide_off_axis) - i32::from(cone_narrow_off_axis) >= MIN_CONE_WIDENING_GAP,
-        "expected widening the cone from 5deg to 90deg to brighten that same off-axis sample by at least \
-         {MIN_CONE_WIDENING_GAP}, but got {cone_narrow_off_axis} (narrow) vs {cone_wide_off_axis} (wide) — \
-         widening the cone should illuminate a region the narrow cone left dark"
-    );
+    if cone_narrow_off_axis > MAX_NARROW_OFF_AXIS_BRIGHTNESS {
+        return Err(format!(
+            "expected the narrow cone (5deg) to leave a sample well off its own aim axis at or below \
+             {MAX_NARROW_OFF_AXIS_BRIGHTNESS}, but got {cone_narrow_off_axis} — the hard-edged cutoff should exclude \
+             it almost entirely"
+        ));
+    }
+    if i32::from(cone_wide_off_axis) - i32::from(cone_narrow_off_axis) < MIN_CONE_WIDENING_GAP {
+        return Err(format!(
+            "expected widening the cone from 5deg to 90deg to brighten that same off-axis sample by at least \
+             {MIN_CONE_WIDENING_GAP}, but got {cone_narrow_off_axis} (narrow) vs {cone_wide_off_axis} (wide) — \
+             widening the cone should illuminate a region the narrow cone left dark"
+        ));
+    }
 
     // The 0deg Chrome anomaly itself: demo_light_sources.rs's own module doc comment and
     // panel-light-sources.html both state that limitingConeAngle 0 renders as a fully open beam in this
@@ -272,22 +266,24 @@ fn light_sources_sliders_change_rendered_pixels() {
     // narrow lower bound; it says nothing about 0deg, which this checks directly: the same off-axis sample
     // should be materially brighter at 0deg than at 5deg, and close to the wide (90deg) reading, matching "fully
     // open" rather than "even narrower than 5deg".
-    let cone_zero_off_axis = sample(&value, "ls-cone-zero", "topLeft");
+    let cone_zero_off_axis = sample(&value, "ls-cone-zero", "topLeft")?;
     const MIN_ZERO_VS_NARROW_GAP: i32 = 20;
     const MAX_ZERO_VS_WIDE_DIFF: i32 = 10;
-    assert!(
-        i32::from(cone_zero_off_axis) - i32::from(cone_narrow_off_axis) >= MIN_ZERO_VS_NARROW_GAP,
-        "expected the 0deg cone to leave that same off-axis sample at least {MIN_ZERO_VS_NARROW_GAP} brighter \
-         than the 5deg cone does, but got {cone_zero_off_axis} (0deg) vs {cone_narrow_off_axis} (5deg) — this is \
-         the specific claim that the slider's own minimum (5, not 0) and panel-light-sources.html's own \
-         explanation both depend on"
-    );
-    assert!(
-        (i32::from(cone_zero_off_axis) - i32::from(cone_wide_off_axis)).abs() <= MAX_ZERO_VS_WIDE_DIFF,
-        "expected the 0deg cone's own off-axis sample to land within {MAX_ZERO_VS_WIDE_DIFF} of the wide \
-         (90deg) cone's own reading, matching a fully open beam rather than a partial cutoff, but got \
-         {cone_zero_off_axis} (0deg) vs {cone_wide_off_axis} (90deg)"
-    );
+    if i32::from(cone_zero_off_axis) - i32::from(cone_narrow_off_axis) < MIN_ZERO_VS_NARROW_GAP {
+        return Err(format!(
+            "expected the 0deg cone to leave that same off-axis sample at least {MIN_ZERO_VS_NARROW_GAP} brighter \
+             than the 5deg cone does, but got {cone_zero_off_axis} (0deg) vs {cone_narrow_off_axis} (5deg) — this is \
+             the specific claim that the slider's own minimum (5, not 0) and panel-light-sources.html's own \
+             explanation both depend on"
+        ));
+    }
+    if (i32::from(cone_zero_off_axis) - i32::from(cone_wide_off_axis)).abs() > MAX_ZERO_VS_WIDE_DIFF {
+        return Err(format!(
+            "expected the 0deg cone's own off-axis sample to land within {MAX_ZERO_VS_WIDE_DIFF} of the wide \
+             (90deg) cone's own reading, matching a fully open beam rather than a partial cutoff, but got \
+             {cone_zero_off_axis} (0deg) vs {cone_wide_off_axis} (90deg)"
+        ));
+    }
 
     // Positive control: a sample exactly on the beam's own aim axis should stay lit even under the narrow
     // cone, proving the off-axis reading above reflects the hard-edged cutoff itself, not the whole beam going
@@ -299,18 +295,22 @@ fn light_sources_sliders_change_rendered_pixels() {
     // and the light's own halfway-vector geometry still shape the result away from a flat maximum), but it is
     // clearly non-zero, unlike the off-axis reading above — the threshold checks for exactly that contrast, not
     // for a peak brightness.
-    let cone_narrow_exact_aim = sample(&value, "ls-cone-narrow", "exactAim");
-    let cone_wide_near_aim = sample(&value, "ls-cone-wide", "nearAim");
+    let cone_narrow_exact_aim = sample(&value, "ls-cone-narrow", "exactAim")?;
+    let cone_wide_near_aim = sample(&value, "ls-cone-wide", "nearAim")?;
     const MIN_EXACT_AIM_BRIGHTNESS: u8 = 15;
     const MIN_NEAR_AIM_BRIGHTNESS: u8 = 60;
-    assert!(
-        cone_narrow_exact_aim >= MIN_EXACT_AIM_BRIGHTNESS,
-        "expected a sample exactly on the beam's own aim axis to stay at or above {MIN_EXACT_AIM_BRIGHTNESS} \
-         even under the narrow (5deg) cone, but got {cone_narrow_exact_aim}"
-    );
-    assert!(
-        cone_wide_near_aim >= MIN_NEAR_AIM_BRIGHTNESS,
-        "expected a sample near the beam's own aim axis to stay at or above {MIN_NEAR_AIM_BRIGHTNESS} under the \
-         wide (90deg) cone, but got {cone_wide_near_aim}"
-    );
+    if cone_narrow_exact_aim < MIN_EXACT_AIM_BRIGHTNESS {
+        return Err(format!(
+            "expected a sample exactly on the beam's own aim axis to stay at or above {MIN_EXACT_AIM_BRIGHTNESS} \
+             even under the narrow (5deg) cone, but got {cone_narrow_exact_aim}"
+        ));
+    }
+    if cone_wide_near_aim < MIN_NEAR_AIM_BRIGHTNESS {
+        return Err(format!(
+            "expected a sample near the beam's own aim axis to stay at or above {MIN_NEAR_AIM_BRIGHTNESS} under the \
+             wide (90deg) cone, but got {cone_wide_near_aim}"
+        ));
+    }
+
+    Ok(())
 }

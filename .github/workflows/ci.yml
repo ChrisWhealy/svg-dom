@@ -158,7 +158,7 @@ jobs:
       # Unlike `browser-tests`, this job does not need the AppArmor/unprivileged-userns workaround: the shared
       # `launch_browser` helper (cdp-integration-test/src/lib.rs) launches Chrome with `.sandbox(false)`, precisely
       # so it never attempts the AppArmor-dependent sandbox initialisation that workaround exists for — see
-      # `accessibility_tree.rs`'s own `# Why the browser is launched with sandbox(false)` doc section. The
+      # `tests/cdp/main.rs`'s own `# Why the browser is launched with sandbox(false)` doc section. The
       # `sudo sysctl` step `browser-tests` needs has no effect here and is deliberately omitted.
       - name: Install wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
@@ -174,13 +174,13 @@ jobs:
         run: google-chrome --version || google-chrome-stable --version || chromium-browser --version
 
       # Builds the cdp-test-fixture wasm package, serves it locally, and drives the runner's own Chrome over
-      # the DevTools Protocol — see the module doc comment in cdp-integration-test/tests/accessibility_tree.rs
-      # for what this verifies and why it is a separate job rather than folded into `browser-tests`: it needs
+      # the DevTools Protocol — see the module doc comment in cdp-integration-test/tests/cdp/main.rs for what
+      # this verifies and why it is a separate job rather than folded into `browser-tests`: it needs
       # headless_chrome and a real local Chrome binary, neither of which the wasm-bindgen-test-based browser tests
       # require, and keeping it isolated means a failure here doesn't obscure results from the other jobs. This
-      # single command runs every CDP test binary in the crate, not just the accessibility-tree scenarios the
-      # step name once implied — see cdp-integration-test/src/lib.rs's own module doc comment for the current
-      # list, rather than duplicating (and re-drifting) it here.
+      # single command runs the crate's one `cdp` test binary, covering every scenario module — see
+      # cdp-integration-test/tests/cdp/main.rs's own module doc comment for the current list, rather than
+      # duplicating (and re-drifting) it here.
       - name: Run the CDP integration tests (accessibility tree + render checks)
         run: cargo test -p cdp-integration-test
 

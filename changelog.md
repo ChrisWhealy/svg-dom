@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Unreleased]
 
+## [0.2.10] - 2026-08-20
+
+## Changed
+
+- Refactor CDP tests to share single Chrome instance (``)
+
 # [Released]
 
 ## [0.2.9] - 2026-08-20
