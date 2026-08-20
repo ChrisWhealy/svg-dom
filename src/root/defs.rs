@@ -144,8 +144,8 @@ pub(crate) fn validate_pattern_id(id: &str) -> Result<(), Error> {
 ///
 /// Elements created inside `<defs>` are not rendered directly.
 /// Other elements reference them via an `id`.
-/// All the usual shape factory methods are available for building inner content of markers, but the primary purpose of
-/// `SvgDefs` is to serve as the container for named paint servers:
+/// The usual shape factory methods are also available for creating reusable geometry directly inside `<defs>`.
+/// The primary purpose of `SvgDefs`, though, is to serve as the container for named paint servers:
 ///
 /// | Asset | Factory | Eager variant |
 /// |---|---|---|
