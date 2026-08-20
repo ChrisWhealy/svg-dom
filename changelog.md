@@ -14,7 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Fixed
 
-- Doc only: Correct explanation of why pixel tests require CDP (``)
+- Doc only: Correct explanation of why pixel tests require CDP (`04ff31a`)
+- Doc only: Correct use of the term 'paint server' (``)
 
 # [Released]
 

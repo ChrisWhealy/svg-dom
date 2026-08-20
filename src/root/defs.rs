@@ -15,14 +15,14 @@ use super::svg_root::SvgRoot;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// The fixed prefix of a `url(#...)` reference.
 ///
-/// Every type below that caches a complete reference string uses this value, rather than just its bare id
+/// Every type that caches a complete reference string uses this value, rather than just its bare id
 /// (`SvgMarker`, `SvgClipPath`, `SvgMask`, `SvgPattern`, `SvgFilter`, `GradientInner`).
 /// This lets the `url(#id)` value be written to a `fill`/`stroke`/`clip-path`/`mask`/`marker-*`/`filter` attribute
 /// without allocating a fresh `String` on every reference.
 pub(crate) const URL_PREFIX: &str = "url(#";
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Checks whether `id` is safe to embed in a `url(#...)` CSS/SVG paint-server reference.
+/// Checks whether `id` is safe to embed in a `url(#...)` CSS/SVG URL reference.
 ///
 /// A valid id must match `[A-Za-z_][A-Za-z0-9_-]*`: it must begin with an ASCII letter or underscore,
 /// followed by zero or more ASCII letters, digits, underscores, or hyphens.
@@ -42,7 +42,7 @@ fn is_valid_svg_id(id: &str) -> bool {
 /// A valid id must match `[A-Za-z_][A-Za-z0-9_-]*`: it must begin with an ASCII letter or underscore,
 /// followed by zero or more ASCII letters, digits, underscores, or hyphens.
 /// This conservative allow-list ensures that any accepted id can be safely embedded in the generated
-/// `url(#id)` CSS/SVG paint-server reference without quoting, escaping, or browser-specific interpretation.
+/// `url(#id)` CSS/SVG URL reference without quoting, escaping, or browser-specific interpretation.
 pub(crate) fn validate_marker_id(id: &str) -> Result<(), Error> {
     if is_valid_svg_id(id) {
         Ok(())
@@ -145,7 +145,7 @@ pub(crate) fn validate_pattern_id(id: &str) -> Result<(), Error> {
 /// Elements created inside `<defs>` are not rendered directly.
 /// Other elements reference them via an `id`.
 /// The usual shape factory methods are also available for creating reusable geometry directly inside `<defs>`.
-/// The primary purpose of `SvgDefs`, though, is to serve as the container for named paint servers:
+/// The primary purpose of `SvgDefs`, though, is to serve as the container for named reusable resources:
 ///
 /// | Asset | Factory | Eager variant |
 /// |---|---|---|
