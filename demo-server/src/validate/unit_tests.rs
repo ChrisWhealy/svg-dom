@@ -3,11 +3,11 @@ use super::*;
 /// The workspace root — `demo-server`'s own parent directory. Used both by tests that read the real
 /// `demo-app/src/lib.rs` and by tests that need a `root` argument for [`validate`] pointing at a synthetic
 /// directory laid out the same way.
-fn workspace_root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
+fn workspace_root() -> Result<PathBuf, String> {
+    Ok(Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
-        .expect("demo-server has a parent directory")
-        .to_path_buf()
+        .ok_or_else(|| "demo-server has a parent directory".to_owned())?
+        .to_path_buf())
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -17,26 +17,33 @@ fn workspace_root() -> PathBuf {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 #[test]
-fn should_validate_the_real_project_successfully() {
-    assert!(validate(&workspace_root()).is_ok());
+fn should_validate_the_real_project_successfully() -> Result<(), String> {
+    validate(&workspace_root()?).map_err(|e| format!("expected Ok, got {e:?}"))?;
+    Ok(())
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #[test]
-fn should_report_io_error_for_unreadable_lib_rs() {
-    let tmp = tempfile::tempdir().expect("create temp dir");
-    let err = validate(tmp.path()).expect_err("a missing demo-app/src/lib.rs must be reported");
-    assert!(matches!(err, ValidationError::Io { .. }), "wrong error variant: {err}");
+fn should_report_io_error_for_unreadable_lib_rs() -> Result<(), String> {
+    let tmp = tempfile::tempdir().map_err(|e| format!("create temp dir: {e:?}"))?;
+    let err = match validate(tmp.path()) {
+        Err(e) => e,
+        Ok(()) => return Err("a missing demo-app/src/lib.rs must be reported".to_owned()),
+    };
+    if !matches!(err, ValidationError::Io { .. }) {
+        return Err(format!("wrong error variant: {err}"));
+    }
+    Ok(())
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #[test]
-fn should_report_duplicate_gallery_id() {
+fn should_report_duplicate_gallery_id() -> Result<(), String> {
     // The duplicate check runs before the gallery ids are compared against the real MANIFEST, so a synthetic
     // `lib.rs` can use ids that do not exist in the real catalogue at all and still exercise this path.
-    let tmp = tempfile::tempdir().expect("create temp dir");
+    let tmp = tempfile::tempdir().map_err(|e| format!("create temp dir: {e:?}"))?;
     let src_dir = tmp.path().join("demo-app").join("src");
-    fs::create_dir_all(&src_dir).expect("create demo-app/src");
+    fs::create_dir_all(&src_dir).map_err(|e| format!("create demo-app/src: {e:?}"))?;
     fs::write(
         src_dir.join("lib.rs"),
         r#"
@@ -46,30 +53,36 @@ fn should_report_duplicate_gallery_id() {
             }
         "#,
     )
-    .expect("write lib.rs");
+    .map_err(|e| format!("write lib.rs: {e:?}"))?;
 
-    let err = validate(tmp.path()).expect_err("a duplicated gallery id must be rejected");
-    assert!(
-        matches!(&err, ValidationError::DuplicateGalleryId(id) if id == "panel-synthetic"),
-        "wrong error variant: {err}"
-    );
+    let err = match validate(tmp.path()) {
+        Err(e) => e,
+        Ok(()) => return Err("a duplicated gallery id must be rejected".to_owned()),
+    };
+    if !matches!(&err, ValidationError::DuplicateGalleryId(id) if id == "panel-synthetic") {
+        return Err(format!("wrong error variant: {err}"));
+    }
+    Ok(())
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #[test]
-fn should_report_catalogue_mismatch() {
+fn should_report_catalogue_mismatch() -> Result<(), String> {
     // No demo_gallery! entries at all is the simplest way to guarantee every real MANIFEST id is "missing from
     // the gallery", without needing to know any of their names.
-    let tmp = tempfile::tempdir().expect("create temp dir");
+    let tmp = tempfile::tempdir().map_err(|e| format!("create temp dir: {e:?}"))?;
     let src_dir = tmp.path().join("demo-app").join("src");
-    fs::create_dir_all(&src_dir).expect("create demo-app/src");
-    fs::write(src_dir.join("lib.rs"), "no demo_gallery! entries here").expect("write lib.rs");
+    fs::create_dir_all(&src_dir).map_err(|e| format!("create demo-app/src: {e:?}"))?;
+    fs::write(src_dir.join("lib.rs"), "no demo_gallery! entries here").map_err(|e| format!("write lib.rs: {e:?}"))?;
 
-    let err = validate(tmp.path()).expect_err("an empty gallery must be reported as a catalogue mismatch");
-    assert!(
-        matches!(err, ValidationError::CatalogueMismatch(_)),
-        "wrong error variant: {err}"
-    );
+    let err = match validate(tmp.path()) {
+        Err(e) => e,
+        Ok(()) => return Err("an empty gallery must be reported as a catalogue mismatch".to_owned()),
+    };
+    if !matches!(err, ValidationError::CatalogueMismatch(_)) {
+        return Err(format!("wrong error variant: {err}"));
+    }
+    Ok(())
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -77,31 +90,39 @@ fn should_report_catalogue_mismatch() {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 #[test]
-fn should_extract_every_panel_id_in_order() {
+fn should_extract_every_panel_id_in_order() -> Result<(), String> {
     let lib_rs = r#"
         demo_gallery! {
             "panel-rect" => shapes::demo_rect,
             "panel-circle" => shapes::demo_circle,
         }
     "#;
-    assert_eq!(extract_gallery_panel_ids(lib_rs), vec!["panel-rect", "panel-circle"]);
+    let ids = extract_gallery_panel_ids(lib_rs);
+    if ids != vec!["panel-rect", "panel-circle"] {
+        return Err(format!("expected [\"panel-rect\", \"panel-circle\"], got {ids:?}"));
+    }
+    Ok(())
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #[test]
-fn should_extract_every_occurrence_including_duplicates() {
+fn should_extract_every_occurrence_including_duplicates() -> Result<(), String> {
     let lib_rs = r#"
         demo_gallery! {
             "panel-rect" => shapes::demo_rect,
             "panel-rect" => shapes::some_other_demo,
         }
     "#;
-    assert_eq!(extract_gallery_panel_ids(lib_rs), vec!["panel-rect", "panel-rect"]);
+    let ids = extract_gallery_panel_ids(lib_rs);
+    if ids != vec!["panel-rect", "panel-rect"] {
+        return Err(format!("expected [\"panel-rect\", \"panel-rect\"], got {ids:?}"));
+    }
+    Ok(())
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #[test]
-fn should_ignore_panel_strings_not_followed_by_fat_arrow() {
+fn should_ignore_panel_strings_not_followed_by_fat_arrow() -> Result<(), String> {
     // Even inside the invocation body, a bare panel-shaped string with no `=>` immediately after it must not be
     // picked up as an entry.
     let lib_rs = r#"
@@ -110,12 +131,16 @@ fn should_ignore_panel_strings_not_followed_by_fat_arrow() {
             "panel-circle" => shapes::demo_circle,
         }
     "#;
-    assert_eq!(extract_gallery_panel_ids(lib_rs), vec!["panel-circle"]);
+    let ids = extract_gallery_panel_ids(lib_rs);
+    if ids != vec!["panel-circle"] {
+        return Err(format!("expected [\"panel-circle\"], got {ids:?}"));
+    }
+    Ok(())
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #[test]
-fn should_ignore_panel_strings_outside_the_gallery_invocation() {
+fn should_ignore_panel_strings_outside_the_gallery_invocation() -> Result<(), String> {
     // The exact false positive this function's brace-scoped extraction exists to rule out: a comment showing an
     // example entry, sitting outside demo_gallery!'s own braces, has the same `"id" => path::func` shape as a real
     // entry but must not be picked up as one just because it appears somewhere in the file.
@@ -125,12 +150,16 @@ fn should_ignore_panel_strings_outside_the_gallery_invocation() {
             "panel-circle" => shapes::demo_circle,
         }
     "#;
-    assert_eq!(extract_gallery_panel_ids(lib_rs), vec!["panel-circle"]);
+    let ids = extract_gallery_panel_ids(lib_rs);
+    if ids != vec!["panel-circle"] {
+        return Err(format!("expected [\"panel-circle\"], got {ids:?}"));
+    }
+    Ok(())
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #[test]
-fn should_skip_demo_gallery_mentions_that_are_not_the_invocation() {
+fn should_skip_demo_gallery_mentions_that_are_not_the_invocation() -> Result<(), String> {
     // Mirrors demo-app/src/lib.rs's own shape: plain-text and doc-comment mentions of `demo_gallery!` (by name,
     // not immediately followed by `{`) sit above the real invocation there — see gallery_invocation_body's own doc
     // comment.
@@ -141,13 +170,20 @@ fn should_skip_demo_gallery_mentions_that_are_not_the_invocation() {
             "panel-circle" => shapes::demo_circle,
         }
     "#;
-    assert_eq!(extract_gallery_panel_ids(lib_rs), vec!["panel-circle"]);
+    let ids = extract_gallery_panel_ids(lib_rs);
+    if ids != vec!["panel-circle"] {
+        return Err(format!("expected [\"panel-circle\"], got {ids:?}"));
+    }
+    Ok(())
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #[test]
-fn should_extract_nothing_from_text_with_no_gallery_entries() {
-    assert!(extract_gallery_panel_ids("no panel ids in here at all").is_empty());
+fn should_extract_nothing_from_text_with_no_gallery_entries() -> Result<(), String> {
+    if !extract_gallery_panel_ids("no panel ids in here at all").is_empty() {
+        return Err("expected no panel ids".to_owned());
+    }
+    Ok(())
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -155,22 +191,34 @@ fn should_extract_nothing_from_text_with_no_gallery_entries() {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 #[test]
-fn should_detect_duplicate_gallery_id() {
+fn should_detect_duplicate_gallery_id() -> Result<(), String> {
     let ids = ["panel-rect".to_string(), "panel-circle".to_string(), "panel-rect".to_string()];
-    assert_eq!(find_duplicate_gallery_id(&ids), Some("panel-rect"));
+    let found = find_duplicate_gallery_id(&ids);
+    if found != Some("panel-rect") {
+        return Err(format!("expected Some(\"panel-rect\"), got {found:?}"));
+    }
+    Ok(())
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #[test]
-fn should_accept_unique_gallery_ids() {
+fn should_accept_unique_gallery_ids() -> Result<(), String> {
     let ids = ["panel-rect".to_string(), "panel-circle".to_string()];
-    assert_eq!(find_duplicate_gallery_id(&ids), None);
+    let found = find_duplicate_gallery_id(&ids);
+    if found.is_some() {
+        return Err(format!("expected None, got {found:?}"));
+    }
+    Ok(())
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #[test]
-fn should_accept_empty_gallery_ids() {
-    assert_eq!(find_duplicate_gallery_id(&[]), None);
+fn should_accept_empty_gallery_ids() -> Result<(), String> {
+    let found = find_duplicate_gallery_id(&[]);
+    if found.is_some() {
+        return Err(format!("expected None, got {found:?}"));
+    }
+    Ok(())
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -179,9 +227,13 @@ fn should_accept_empty_gallery_ids() {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 #[test]
-fn should_detect_real_gallery_has_no_duplicate_ids() {
-    let lib_rs_path = workspace_root().join("demo-app").join("src").join("lib.rs");
-    let lib_rs = fs::read_to_string(&lib_rs_path).expect("read demo-app/src/lib.rs");
+fn should_detect_real_gallery_has_no_duplicate_ids() -> Result<(), String> {
+    let lib_rs_path = workspace_root()?.join("demo-app").join("src").join("lib.rs");
+    let lib_rs = fs::read_to_string(&lib_rs_path).map_err(|e| format!("read demo-app/src/lib.rs: {e:?}"))?;
     let ids = extract_gallery_panel_ids(&lib_rs);
-    assert_eq!(find_duplicate_gallery_id(&ids), None, "demo_gallery! has a duplicated panel id");
+    let found = find_duplicate_gallery_id(&ids);
+    if found.is_some() {
+        return Err(format!("demo_gallery! has a duplicated panel id: {found:?}"));
+    }
+    Ok(())
 }

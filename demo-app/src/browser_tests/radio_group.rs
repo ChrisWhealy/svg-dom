@@ -9,7 +9,7 @@ use wasm_bindgen_test::wasm_bindgen_test;
 // Three demos build a radio group through this one shared function.
 // A single direct test at this level covers all three, instead of testing the same mechanics three times.
 #[wasm_bindgen_test]
-fn radio_group_checks_default_clears_prior_selection_and_calls_on_select() {
+fn radio_group_checks_default_clears_prior_selection_and_calls_on_select() -> Result<(), String> {
     let root = container("foreign-html-radio-group");
 
     const OPTIONS: [(&str, &str); 2] = [("a", "Alpha"), ("b", "Beta")];
@@ -22,20 +22,37 @@ fn radio_group_checks_default_clears_prior_selection_and_calls_on_select() {
         crate::foreign_html::radio_group(&document(), "demo-legend", "radio-group-test", &OPTIONS, "a", move |value| {
             recorder.borrow_mut().push(value)
         })
-        .expect("radio_group should build without error");
-    root.append_child(&fieldset).expect("append fieldset to container");
+        .map_err(|e| format!("radio_group should build without error: {e:?}"))?;
+    root.append_child(&fieldset)
+        .map_err(|e| format!("append fieldset to container: {e:?}"))?;
 
-    let alpha = find_radio(&root, "demo-legend", "Alpha");
-    let beta = find_radio(&root, "demo-legend", "Beta");
+    let alpha = find_radio(&root, "demo-legend", "Alpha")?;
+    let beta = find_radio(&root, "demo-legend", "Beta")?;
 
     // The default value starts checked. Asserted before any interaction, so a later mismatch can only come
     // from the selection itself, not from construction.
-    assert!(alpha.checked(), "the default option should start checked");
-    assert!(!beta.checked());
-    assert!(selected.borrow().is_empty(), "on_select should not fire before any selection");
+    if !alpha.checked() {
+        return Err("the default option should start checked".to_owned());
+    }
+    if beta.checked() {
+        return Err("Beta should not start checked".to_owned());
+    }
+    if !selected.borrow().is_empty() {
+        return Err("on_select should not fire before any selection".to_owned());
+    }
 
-    select_radio(&beta);
-    assert!(beta.checked());
-    assert!(!alpha.checked(), "selecting Beta should clear Alpha");
-    assert_eq!(selected.borrow().as_slice(), ["b"], "on_select should receive Beta's own value");
+    select_radio(&beta)?;
+    if !beta.checked() {
+        return Err("Beta should be checked after selecting it".to_owned());
+    }
+    if alpha.checked() {
+        return Err("selecting Beta should clear Alpha".to_owned());
+    }
+    if selected.borrow().as_slice() != ["b"] {
+        return Err(format!(
+            "on_select should receive Beta's own value, got {:?}",
+            selected.borrow()
+        ));
+    }
+    Ok(())
 }

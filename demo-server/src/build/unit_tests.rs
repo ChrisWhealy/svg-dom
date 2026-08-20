@@ -1,11 +1,11 @@
 use super::*;
 
 /// The workspace root — `demo-server`'s own parent directory. See `validate::unit_tests`'s identical helper.
-fn workspace_root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
+fn workspace_root() -> Result<PathBuf, String> {
+    Ok(Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
-        .expect("demo-server has a parent directory")
-        .to_path_buf()
+        .ok_or_else(|| "demo-server has a parent directory".to_owned())?
+        .to_path_buf())
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -17,39 +17,39 @@ fn workspace_root() -> PathBuf {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 #[test]
-fn should_prepare_the_real_gallery_without_building_wasm() {
-    let stage_root = tempfile::tempdir().expect("create temp dir");
+fn should_prepare_the_real_gallery_without_building_wasm() -> Result<(), String> {
+    let stage_root = tempfile::tempdir().map_err(|e| format!("create temp dir: {e:?}"))?;
     let stage = StagePaths::new(stage_root.path());
 
-    let result = prepare_gallery(&workspace_root(), &stage, 8080);
-    assert!(
-        result.is_ok(),
-        "prepare_gallery failed against the real project: {:?}",
-        result.err()
-    );
+    let result = prepare_gallery(&workspace_root()?, &stage, 8080);
+    if result.is_err() {
+        return Err(format!("prepare_gallery failed against the real project: {:?}", result.err()));
+    }
 
-    let html = fs::read_to_string(stage.demo_dir.join("index.html")).expect("read staged index.html");
-    assert!(
-        html.contains(r#"id="panel-rect""#),
-        "staged index.html is missing a known real panel"
-    );
-    assert!(
-        html.contains("http://127.0.0.1:8080/demo/"),
-        "staged index.html did not substitute the port placeholder"
-    );
-    assert!(
-        !html.contains("{{"),
-        "staged index.html still contains an unresolved placeholder"
-    );
+    let html =
+        fs::read_to_string(stage.demo_dir.join("index.html")).map_err(|e| format!("read staged index.html: {e:?}"))?;
+    if !html.contains(r#"id="panel-rect""#) {
+        return Err("staged index.html is missing a known real panel".to_owned());
+    }
+    if !html.contains("http://127.0.0.1:8080/demo/") {
+        return Err("staged index.html did not substitute the port placeholder".to_owned());
+    }
+    if html.contains("{{") {
+        return Err("staged index.html still contains an unresolved placeholder".to_owned());
+    }
 
-    assert!(stage.demo_dir.join("style.css").is_file(), "style.css was not staged");
-    assert!(stage.demo_dir.join("view-demo.svg").is_file(), "view-demo.svg was not staged");
+    if !stage.demo_dir.join("style.css").is_file() {
+        return Err("style.css was not staged".to_owned());
+    }
+    if !stage.demo_dir.join("view-demo.svg").is_file() {
+        return Err("view-demo.svg was not staged".to_owned());
+    }
 
     // The whole point of prepare_gallery vs. build_gallery: staging must not touch pkg/ at all.
-    assert!(
-        !stage.pkg_dir.exists(),
-        "prepare_gallery must not build (or even create a directory for) the wasm package"
-    );
+    if stage.pkg_dir.exists() {
+        return Err("prepare_gallery must not build (or even create a directory for) the wasm package".to_owned());
+    }
+    Ok(())
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -57,11 +57,18 @@ fn should_prepare_the_real_gallery_without_building_wasm() {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 #[test]
-fn should_derive_stage_paths_from_target_dir() {
+fn should_derive_stage_paths_from_target_dir() -> Result<(), String> {
     let stage = StagePaths::new(Path::new("/tmp/target"));
-    assert_eq!(stage.stage_dir, Path::new("/tmp/target/demo-gallery"));
-    assert_eq!(stage.demo_dir, Path::new("/tmp/target/demo-gallery/demo"));
-    assert_eq!(stage.pkg_dir, Path::new("/tmp/target/demo-gallery/pkg"));
+    if stage.stage_dir != Path::new("/tmp/target/demo-gallery") {
+        return Err(format!("unexpected stage_dir: {:?}", stage.stage_dir));
+    }
+    if stage.demo_dir != Path::new("/tmp/target/demo-gallery/demo") {
+        return Err(format!("unexpected demo_dir: {:?}", stage.demo_dir));
+    }
+    if stage.pkg_dir != Path::new("/tmp/target/demo-gallery/pkg") {
+        return Err(format!("unexpected pkg_dir: {:?}", stage.pkg_dir));
+    }
+    Ok(())
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -69,28 +76,35 @@ fn should_derive_stage_paths_from_target_dir() {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 #[test]
-fn should_copy_asset_successfully() {
-    let tmp = tempfile::tempdir().expect("create temp dir");
+fn should_copy_asset_successfully() -> Result<(), String> {
+    let tmp = tempfile::tempdir().map_err(|e| format!("create temp dir: {e:?}"))?;
     let src = tmp.path().join("src.txt");
     let dest = tmp.path().join("dest.txt");
-    fs::write(&src, b"hello").expect("write src");
+    fs::write(&src, b"hello").map_err(|e| format!("write src: {e:?}"))?;
 
-    assert!(copy_asset(&src, &dest).is_ok());
-    assert_eq!(fs::read_to_string(&dest).expect("read dest"), "hello");
+    copy_asset(&src, &dest).map_err(|e| format!("expected Ok, got {e:?}"))?;
+    let contents = fs::read_to_string(&dest).map_err(|e| format!("read dest: {e:?}"))?;
+    if contents != "hello" {
+        return Err(format!("expected \"hello\", got {contents:?}"));
+    }
+    Ok(())
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #[test]
-fn should_report_copy_asset_error_with_both_paths() {
-    let tmp = tempfile::tempdir().expect("create temp dir");
+fn should_report_copy_asset_error_with_both_paths() -> Result<(), String> {
+    let tmp = tempfile::tempdir().map_err(|e| format!("create temp dir: {e:?}"))?;
     let src = tmp.path().join("missing.txt");
     let dest = tmp.path().join("dest.txt");
 
-    let err = copy_asset(&src, &dest).expect_err("copying a missing file must fail");
-    assert!(
-        matches!(&err, BuildError::CopyAsset { src: s, dest: d, .. } if *s == src && *d == dest),
-        "wrong error variant: {err}"
-    );
+    let err = match copy_asset(&src, &dest) {
+        Err(e) => e,
+        Ok(()) => return Err("copying a missing file must fail".to_owned()),
+    };
+    if !matches!(&err, BuildError::CopyAsset { src: s, dest: d, .. } if *s == src && *d == dest) {
+        return Err(format!("wrong error variant: {err}"));
+    }
+    Ok(())
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -98,13 +112,13 @@ fn should_report_copy_asset_error_with_both_paths() {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 #[test]
-fn should_report_spawn_error_when_wasm_pack_is_not_on_path() {
+fn should_report_spawn_error_when_wasm_pack_is_not_on_path() -> Result<(), String> {
     // Points `PATH` at an empty directory for the duration of this one call, so `Command::new("wasm-pack")` fails
     // to resolve to a binary at all — this is what exercises `WasmSpawn` without needing to actually run (or
     // deliberately break) a real wasm-pack build. `cargo-nextest` runs each test in its own process, so mutating
     // process-wide `PATH` here cannot affect any other test.
-    let empty_path_dir = tempfile::tempdir().expect("create temp dir");
-    let out_dir = tempfile::tempdir().expect("create temp dir");
+    let empty_path_dir = tempfile::tempdir().map_err(|e| format!("create temp dir: {e:?}"))?;
+    let out_dir = tempfile::tempdir().map_err(|e| format!("create temp dir: {e:?}"))?;
     let original_path = std::env::var_os("PATH");
 
     // SAFETY: this process is single-threaded for the duration of this test (cargo-nextest gives each test its
@@ -120,8 +134,14 @@ fn should_report_spawn_error_when_wasm_pack_is_not_on_path() {
         }
     }
 
-    let err = result.expect_err("wasm-pack must not be found on an empty PATH");
-    assert!(matches!(err, BuildError::WasmSpawn(_)), "wrong error variant: {err}");
+    let err = match result {
+        Err(e) => e,
+        Ok(()) => return Err("wasm-pack must not be found on an empty PATH".to_owned()),
+    };
+    if !matches!(err, BuildError::WasmSpawn(_)) {
+        return Err(format!("wrong error variant: {err}"));
+    }
+    Ok(())
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -129,15 +149,21 @@ fn should_report_spawn_error_when_wasm_pack_is_not_on_path() {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 #[test]
-fn should_stop_at_validate_without_reaching_later_phases() {
+fn should_stop_at_validate_without_reaching_later_phases() -> Result<(), String> {
     // An empty `root` has no `demo-app/src/lib.rs`, so `validate::validate` must fail — and, because
     // `build_gallery` short-circuits via `?`, `panels::assemble` and `build_wasm` (which would otherwise spawn a
     // real `wasm-pack`) must never run. This is what actually proves the phases are chained in order, not just
     // that each one works in isolation.
-    let root = tempfile::tempdir().expect("create temp dir");
-    let target_dir = tempfile::tempdir().expect("create temp dir");
+    let root = tempfile::tempdir().map_err(|e| format!("create temp dir: {e:?}"))?;
+    let target_dir = tempfile::tempdir().map_err(|e| format!("create temp dir: {e:?}"))?;
     let stage = StagePaths::new(target_dir.path());
 
-    let err = build_gallery(root.path(), &stage, 8080).expect_err("an empty root must fail validation");
-    assert!(matches!(err, BuildError::Validate(_)), "wrong error variant: {err}");
+    let err = match build_gallery(root.path(), &stage, 8080) {
+        Err(e) => e,
+        Ok(()) => return Err("an empty root must fail validation".to_owned()),
+    };
+    if !matches!(err, BuildError::Validate(_)) {
+        return Err(format!("wrong error variant: {err}"));
+    }
+    Ok(())
 }

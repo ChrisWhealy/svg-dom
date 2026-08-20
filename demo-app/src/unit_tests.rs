@@ -10,12 +10,12 @@ use super::*;
 /// This test is what actually catches that class of drift, on every `cargo test` run rather than only when someone
 /// happens to look at a panel in a browser.
 #[test]
-fn every_registered_demo_has_extractable_source() {
+fn every_registered_demo_has_extractable_source() -> Result<(), String> {
     for (_, _, demo_path) in DEMO_PANELS {
         let (module_path, fn_name) = split_demo_path(demo_path);
-        assert!(
-            demo_fn_source(module_path, fn_name).is_some(),
-            "source not found for {demo_path}"
-        );
+        if demo_fn_source(module_path, fn_name).is_none() {
+            return Err(format!("source not found for {demo_path}"));
+        }
     }
+    Ok(())
 }

@@ -77,40 +77,48 @@ fn container(id: &str) -> web_sys::Element {
 /// Finding it this way, rather than by position, is itself part of what this test verifies.
 /// It only succeeds if the fieldset/legend grouping and each radio's `<label>` association are both actually
 /// present, not just the radios themselves.
-fn find_radio(root: &web_sys::Element, group_legend: &str, option_label: &str) -> web_sys::HtmlInputElement {
-    let fieldsets = root.query_selector_all("fieldset").expect("query fieldsets");
+fn find_radio(
+    root: &web_sys::Element,
+    group_legend: &str,
+    option_label: &str,
+) -> Result<web_sys::HtmlInputElement, String> {
+    let fieldsets = root
+        .query_selector_all("fieldset")
+        .map_err(|e| format!("query fieldsets: {e:?}"))?;
     for i in 0..fieldsets.length() {
         let fieldset = fieldsets
             .item(i)
-            .expect("fieldset item")
+            .ok_or_else(|| "fieldset item".to_owned())?
             .dyn_into::<web_sys::Element>()
-            .expect("fieldset is an Element");
+            .map_err(|_| "fieldset is an Element".to_owned())?;
         let legend_text = fieldset
             .query_selector("legend")
-            .expect("query legend")
+            .map_err(|e| format!("query legend: {e:?}"))?
             .and_then(|l| l.text_content());
         if legend_text.as_deref() != Some(group_legend) {
             continue;
         }
 
-        let labels = fieldset.query_selector_all("label").expect("query labels");
+        let labels = fieldset
+            .query_selector_all("label")
+            .map_err(|e| format!("query labels: {e:?}"))?;
         for j in 0..labels.length() {
             let label = labels
                 .item(j)
-                .expect("label item")
+                .ok_or_else(|| "label item".to_owned())?
                 .dyn_into::<web_sys::Element>()
-                .expect("label is an Element");
+                .map_err(|_| "label is an Element".to_owned())?;
             if label.text_content().as_deref().map(str::trim) == Some(option_label) {
                 return label
                     .query_selector("input")
-                    .expect("query input")
-                    .expect("radio input inside label")
+                    .map_err(|e| format!("query input: {e:?}"))?
+                    .ok_or_else(|| "radio input inside label".to_owned())?
                     .dyn_into::<web_sys::HtmlInputElement>()
-                    .expect("input is an HtmlInputElement");
+                    .map_err(|_| "input is an HtmlInputElement".to_owned());
             }
         }
     }
-    panic!("no radio found for group {group_legend:?}, option {option_label:?}");
+    Err(format!("no radio found for group {group_legend:?}, option {option_label:?}"))
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -120,8 +128,9 @@ fn find_radio(root: &web_sys::Element, group_legend: &str, option_label: &str) -
 /// an actual click does.
 /// So that has to be done by hand.
 /// The slider tests apply this same principle to `value`.
-fn select_radio(radio: &web_sys::HtmlInputElement) {
+fn select_radio(radio: &web_sys::HtmlInputElement) -> Result<(), String> {
     radio.set_checked(true);
-    let event = web_sys::Event::new("change").expect("create change event");
-    radio.dispatch_event(&event).expect("dispatch change");
+    let event = web_sys::Event::new("change").map_err(|e| format!("create change event: {e:?}"))?;
+    radio.dispatch_event(&event).map_err(|e| format!("dispatch change: {e:?}"))?;
+    Ok(())
 }
