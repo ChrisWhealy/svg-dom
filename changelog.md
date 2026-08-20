@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Unreleased]
 
+# [Released]
+
 ## [0.2.11] - 2026-08-20
 
 ## Changed
@@ -16,9 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Doc only: Correct explanation of why pixel tests require CDP (`04ff31a`)
 - Doc only: Correct use of the term 'paint server' (`6dd5e65`)
-- Doc only: Correct description of `<title>` tooltip behaviour (``)
-
-# [Released]
+- Doc only: Correct description of `<title>` tooltip behaviour (`196ed04`)
 
 ## [0.2.10] - 2026-08-20
 
