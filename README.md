@@ -82,7 +82,7 @@ The `svg-dom` crate acts as a thin wrapper for `web-sys` SVG DOM bindings that a
    These values are used when calculating the element's computed accessible name and description.
    However, when present, the name or description values supplied by ARIA will take precedence over `<title>` and `<desc>`.
 
-   `<title>` drives the browser's native hover tooltip value.
+   Browsers commonly expose `<title>` as a native hover tooltip.
 
 ## What This Crate Is NOT
 

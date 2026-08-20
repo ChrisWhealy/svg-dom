@@ -71,7 +71,7 @@ pub(crate) fn demo() -> Result<(), Error> {
     caption(
         &svg,
         W / 2.0,
-        "set_title() also drives the browser's native hover tooltip; set_desc() has no visible tooltip",
+        "set_title() commonly also becomes the browser's native hover tooltip; set_desc() has no visible tooltip",
     )?;
 
     Ok(())

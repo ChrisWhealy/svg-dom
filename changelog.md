@@ -15,7 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## Fixed
 
 - Doc only: Correct explanation of why pixel tests require CDP (`04ff31a`)
-- Doc only: Correct use of the term 'paint server' (``)
+- Doc only: Correct use of the term 'paint server' (`6dd5e65`)
+- Doc only: Correct description of `<title>` tooltip behaviour (``)
 
 # [Released]
 
