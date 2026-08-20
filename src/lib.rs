@@ -52,12 +52,12 @@
 //! `innerHTML` for its own syntax-highlighted source-code panels; that is an implementation detail of that showcase
 //! crate and forms no part of this library's own contract.
 //!
-//! 
+//!
 //! ⚠️ Caveat ⚠️
-//! 
+//!
 //! [`SvgNode::set_attr`](crate::SvgNode::set_attr) and [`set_attrs`](crate::SvgNode::set_attrs) are deliberate escape
 //! hatches: they write attribute names and values **verbatim** via `setAttribute`.
-//! 
+//!
 //! They must not be passed untrusted values!
 //!
 //! Passing attacker-controlled input there can introduce script — for example an `onclick` attribute, or an `href`
