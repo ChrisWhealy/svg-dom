@@ -139,7 +139,9 @@ fn desc_supplies_accessible_description() -> Result<(), String> {
         return Err(format!("expected the accessible name to be \"Icon\", got {name:?}"));
     }
     if description.as_deref() != Some("Writes the current document to disk.") {
-        return Err(format!("a <desc> should supply the accessible description, got {description:?}"));
+        return Err(format!(
+            "a <desc> should supply the accessible description, got {description:?}"
+        ));
     }
     Ok(())
 }

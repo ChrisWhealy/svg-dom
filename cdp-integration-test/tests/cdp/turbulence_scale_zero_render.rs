@@ -231,7 +231,10 @@ fn turbulence_scale_zero_matches_reference_while_scale_sixty_visibly_differs() -
     // The largest single-channel gap between two samples — the same metric both the negative and positive
     // control below judge their own threshold against, just on opposite sides of it.
     let max_component_diff = |a: (u8, u8, u8, u8), b: (u8, u8, u8, u8)| {
-        a.0.abs_diff(b.0).max(a.1.abs_diff(b.1)).max(a.2.abs_diff(b.2)).max(a.3.abs_diff(b.3))
+        a.0.abs_diff(b.0)
+            .max(a.1.abs_diff(b.1))
+            .max(a.2.abs_diff(b.2))
+            .max(a.3.abs_diff(b.3))
     };
 
     // --- negative control: zero displacement should rasterise unchanged ---

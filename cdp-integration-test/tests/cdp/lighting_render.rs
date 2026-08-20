@@ -145,7 +145,10 @@ fn rgba_list(value: &Value, context: &str) -> Result<Vec<(u8, u8, u8, u8)>, Stri
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// The largest single-channel gap between two samples.
 fn max_component_diff(a: (u8, u8, u8, u8), b: (u8, u8, u8, u8)) -> u8 {
-    a.0.abs_diff(b.0).max(a.1.abs_diff(b.1)).max(a.2.abs_diff(b.2)).max(a.3.abs_diff(b.3))
+    a.0.abs_diff(b.0)
+        .max(a.1.abs_diff(b.1))
+        .max(a.2.abs_diff(b.2))
+        .max(a.3.abs_diff(b.3))
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
