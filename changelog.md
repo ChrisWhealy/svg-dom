@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Unreleased]
 
+# [Released]
+
 ## [0.2.9] - 2026-08-20
 
 ## Fixed
@@ -18,8 +20,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## Changed
 
 - Update the `tests/filter/` inventory in `docs/testing.md` (`19eaca9`)
-
-# [Released]
 
 ## [0.2.8] - 2026-08-19
 
