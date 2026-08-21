@@ -19,13 +19,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Doc only: Correct `AnimationLoop` lifecycle statement (`4c9db64`)
 - Correct `AnimationFrame` unit test messages (`cdec57d`)
 - Correct typo in test error message (`06c3bee`)
+- Doc only: Correct description of `AnimationLoop::stop()` behaviour (``)
 
 ## Changed
 
 - Initialise `AnimationFrame::scratch` with an arbitrary capacity of 16 bytes (`9c38ad5`)
 - Drop `StopPending` state used by `AnimationState` as it turns out to be unnecessary (`2e88594`)
 - Drop `AnimLoopState` because dropping `StopPending` made it redundant (`a4e771a`)
-- Wrap RAF handle id in `Option` to distinguish genuine stopped case (``)
+- Wrap RAF handle id in `Option` to distinguish genuine stopped case (`03ba650`)
 
 ## Added
 

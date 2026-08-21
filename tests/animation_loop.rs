@@ -230,21 +230,25 @@ async fn should_not_leak_when_animloop_dropped_from_within_callback() -> Result<
         .map_err(|e| e.to_string())?,
     );
 
-    // RAF fires → handle dropped → stop() clears the slot synchronously → DropFlag freed, all within the same frame.
-    // Three frames is more than enough margin to confirm nothing further happens afterward.
+    // RAF fires → handle dropped → stop() clears the slot synchronously, but the closure (and DropFlag inside it) is
+    // still executing at that point, so wasm-bindgen keeps it alive until this callback invocation returns — which
+    // happens moments later, still within the same frame. Three frames is more than enough margin to confirm nothing
+    // further happens afterward.
     wait_for_frames(3).await;
 
     common::check_eq(drop_count.get(), 1u32)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Calling `stop()` from inside the running callback must release captured values immediately, even when the
-/// `AnimationLoop` handle is kept alive after the stop.
+/// Calling `stop()` from inside the running callback must not retain captured values for the lifetime of the
+/// `AnimationLoop` handle, even when that handle is kept alive after the stop.
 ///
-/// `stop()` clears the closure slot synchronously regardless of dispatch state, so captures are never retained for
-/// the lifetime of the handle — see `stop()`'s doc comment for why dropping the closure mid-invocation is safe.
+/// `stop()` clears the closure slot synchronously, but the closure is still executing at that point, so
+/// `wasm_bindgen::Closure` keeps its captures alive until the callback returns — see `stop()`'s doc comment.
+/// The important property this test isolates is that release does not additionally wait on the handle: the captures
+/// are freed as soon as the currently executing callback returns, not whenever the handle itself is later dropped.
 ///
-/// A `DropFlag` proves the captures are freed immediately, independently of handle lifetime.
+/// A `DropFlag` proves the captures are freed independently of handle lifetime.
 #[wasm_bindgen_test]
 async fn should_not_retain_captures_after_stop_from_within_callback() -> Result<(), String> {
     struct DropFlag(Rc<Cell<u32>>);
@@ -271,7 +275,7 @@ async fn should_not_retain_captures_after_stop_from_within_callback() -> Result<
         .map_err(|e| e.to_string())?,
     );
 
-    // RAF fires → stop() called → closure freed synchronously, within the same frame → DropFlag dropped.
+    // RAF fires → stop() called → closure freed once the callback returns, within the same frame → DropFlag dropped.
     wait_for_frames(3).await;
 
     // Captures must already be released by the time we check, well before touching the handle.

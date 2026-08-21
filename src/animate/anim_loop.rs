@@ -143,7 +143,9 @@ impl AnimationLoop {
                 Some(Ok(h)) => handle_inner.set(Some(h)),
                 Some(Err(_)) => {
                     // requestAnimationFrame failed. The loop cannot continue.
-                    // Release captures immediately rather than holding them until the AnimationLoop is dropped.
+                    // Clear the slot now rather than holding it until the AnimationLoop is dropped. This runs from
+                    // inside the still-executing closure, so just like stop(), the actual release follows once this
+                    // callback invocation returns.
                     *closure_inner.borrow_mut() = None;
                 },
                 None => {}, // stop() already cleared the slot during this callback — nothing to do
@@ -166,11 +168,14 @@ impl AnimationLoop {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Cancels the pending animation frame and stops the loop.
     ///
-    /// After `stop()` returns, the callback will not be called again, the pending `requestAnimationFrame` handle is
-    /// cancelled, and the closure — along with any values it captured — is released immediately.
-    /// This holds even when `stop()` is called from **inside** the running callback itself (e.g. a one-shot animation
-    /// that stops itself on the first frame): a `wasm_bindgen::Closure` dropped from within its own currently-executing
-    /// invocation keeps its data alive for the rest of that call, and only frees it once the call returns.
+    /// After `stop()` returns, the callback will not be called again, and the pending `requestAnimationFrame` handle is
+    /// cancelled.
+    /// `stop()` also immediately clears the stored `Closure` handle.
+    /// If the closure is not currently executing, that releases it — and everything it captured — at that point.
+    /// If `stop()` is called from **inside** the running callback itself (e.g. a one-shot animation that stops itself
+    /// on the first frame), `wasm_bindgen::Closure` keeps the executing closure's data alive until that invocation
+    /// returns, then frees it: the captures are never retained merely because the `AnimationLoop` handle itself stays
+    /// alive, but they do outlive the `stop()` call by the remainder of the current callback.
     /// `tests/animation_loop.rs`'s `closure_can_drop_itself_from_within_its_own_invocation` verifies this directly, in
     /// a real browser.
     /// See `docs/design_notes/animation.md` for more detail.
