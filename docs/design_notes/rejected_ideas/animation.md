@@ -83,9 +83,11 @@ The scheduler would only add infrastructure to solve a problem the API does not 
 ### Mutation during dispatch multiplies a problem already shown to be subtle
 
 `AnimationLoop` already required careful handling for the "stop from inside the callback" case (see the [`requestAnimationFrame` self-rescheduling pattern](../animation.md) design note).
-`AnimLoopState::Dispatching` prevents an immediate closure drop, which would be a use-after-free of `Rc` fields still on the stack.
-A deferred `setTimeout(0)` then cleans up the slot once the callback has fully returned.
-A scheduler with `N` callbacks inherits all of this complexity, and multiplies it.
+`stop()` drops the closure synchronously (even when called from inside that closure's own currently-running invocation).
+This relies on a `wasm_bindgen::Closure` guarantee verified by a dedicated regression test.
+
+`AnimLoopState::Dispatching` is still needed so that once the callback returns, the RAF wrapper can tell whether `stop()` already cleared the slot and then skip re-scheduling into it.
+A scheduler with `N` callbacks inherits this dispatch-state bookkeeping, and multiplies it.
 Any callback can deregister *itself*, deregister *another* callback, add new callbacks, or drop the whole scheduler.
 
 The RFC acknowledges this directly and proposes a slot table with tombstones followed by post-dispatch compaction.

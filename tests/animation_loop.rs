@@ -3,6 +3,7 @@ use std::{
     rc::Rc,
 };
 use svg_dom::AnimationLoop;
+use wasm_bindgen::{JsCast, JsValue, closure::Closure};
 use wasm_bindgen_test::*;
 
 mod common;
@@ -27,6 +28,70 @@ async fn wait_for_frames(n: u32) {
         });
         wasm_bindgen_futures::JsFuture::from(promise).await.unwrap();
     }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// wasm-bindgen `Closure` self-drop guarantee
+//
+// AnimationLoop's stop() drops the RAF closure synchronously, even when called from inside that closure's own
+// currently-running invocation. That is only sound if dropping a wasm-bindgen `Closure` from inside its own invocation
+// is actually safe. This test isolates that one claim, independent of AnimationLoop, by dropping a bare `Closure` from
+// inside its own body and checking that its captures are released only after the call returns — not during the call,
+// and not with a crash/trap either way.
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// Dropping a `Closure` from inside its own currently-executing invocation (by clearing the `Rc<RefCell<Option<_>>>`
+/// slot that is its only owner) must not crash, and must not free its captures until the call returns.
+///
+/// `marker`'s `Rc::strong_count` is the observable: one strong reference is held by the test itself, a second by the
+/// clone the closure captured. While the closure body is running (even after it clears its own slot), that captured
+/// clone is still logically part of the still-executing call frame, so the count must still read 2 at that point.
+/// Only once `call0` returns — proving wasm-bindgen kept the closure's data alive for the duration of the call —
+/// does the count fall back to 1.
+#[wasm_bindgen_test]
+fn closure_can_drop_itself_from_within_its_own_invocation() -> Result<(), String> {
+    type SelfDropSlot = Rc<RefCell<Option<Closure<dyn FnMut()>>>>;
+
+    let marker = Rc::new(());
+    let slot: SelfDropSlot = Rc::new(RefCell::new(None));
+    let ran = Rc::new(Cell::new(false));
+    let count_during_call = Rc::new(Cell::new(0usize));
+
+    let slot_inner = slot.clone();
+    let marker_inner = marker.clone();
+    let ran_inner = ran.clone();
+    let count_during_call_inner = count_during_call.clone();
+
+    let closure: Closure<dyn FnMut()> = Closure::new(move || {
+        // Self-drop: clear the slot holding this very closure, from inside its own invocation.
+        *slot_inner.borrow_mut() = None;
+        // `marker_inner`'s clone is still captured by this still-running call frame at this point, so the shared
+        // count must still include it.
+        count_during_call_inner.set(Rc::strong_count(&marker_inner));
+        ran_inner.set(true);
+    });
+
+    *slot.borrow_mut() = Some(closure);
+
+    // Invoke through the JS-visible function reference, borrowed out for the call only — mirrors AnimationLoop's own
+    // borrow-then-release-then-call pattern, avoiding a BorrowMutError when the callback re-borrows `slot`.
+    let js_fn = {
+        let borrow = slot.borrow();
+        borrow
+            .as_ref()
+            .ok_or("closure not stored")?
+            .as_ref()
+            .unchecked_ref::<js_sys::Function>()
+            .clone()
+    };
+    js_fn
+        .call0(&JsValue::NULL)
+        .map_err(|e| format!("calling the self-dropping closure failed: {e:?}"))?;
+
+    common::check(ran.get(), "the closure body did not run")?;
+    common::check(slot.borrow().is_none(), "the closure did not actually clear its own slot")?;
+    common::check_eq(count_during_call.get(), 2usize)?; // captured clone still alive mid-call
+    common::check_eq(Rc::strong_count(&marker), 1usize) // released once the call returned
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -135,8 +200,12 @@ async fn should_freeze_callback_count_when_drop_called_after_running() -> Result
 
 /// Dropping the `AnimationLoop` handle from inside its own callback must not leak the closure or its captures.
 ///
-/// Without the deferred-cleanup `setTimeout(0)` in `Drop`, the self-referencing `Rc` cycle is never broken and the
-/// `FrameClosure` (along with all the values it has captured) leaks permanently.
+/// `Drop` calls `stop()`, which clears the closure slot synchronously — even though this drops the very closure
+/// whose invocation is still on the call stack.
+///
+/// `wasm_bindgen::Closure`'s self-drop-during-invocation guarantee (see `stop()`'s doc comment) is what makes this
+/// safe.
+///
 /// A `DropFlag` (a helper that increments a counter when dropped) lets the test observe whether the closure was freed.
 #[wasm_bindgen_test]
 async fn should_not_leak_when_animloop_dropped_from_within_callback() -> Result<(), String> {
@@ -161,21 +230,21 @@ async fn should_not_leak_when_animloop_dropped_from_within_callback() -> Result<
         .map_err(|e| e.to_string())?,
     );
 
-    // RAF fires → handle dropped → setTimeout(0) scheduled → setTimeout fires (between frames) →
-    // slot cleared → DropFlag freed.  Three frames is more than enough margin.
+    // RAF fires → handle dropped → stop() clears the slot synchronously → DropFlag freed, all within the same frame.
+    // Three frames is more than enough margin to confirm nothing further happens afterward.
     wait_for_frames(3).await;
 
     common::check_eq(drop_count.get(), 1u32)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/// Calling `stop()` from inside the running callback must release captured values promptly via the deferred timer,
-/// even when the `AnimationLoop` handle is kept alive after the stop.
+/// Calling `stop()` from inside the running callback must release captured values immediately, even when the
+/// `AnimationLoop` handle is kept alive after the stop.
 ///
-/// Without the `setTimeout(0)` in `stop()`, the closure and its captures would be retained as long as the handle
-/// lives, which equates to a memory-retention bug for long-lived handles.
+/// `stop()` clears the closure slot synchronously regardless of dispatch state, so captures are never retained for
+/// the lifetime of the handle — see `stop()`'s doc comment for why dropping the closure mid-invocation is safe.
 ///
-/// A `DropFlag` proves the captures are freed by the next-tick timer, independently of handle lifetime.
+/// A `DropFlag` proves the captures are freed immediately, independently of handle lifetime.
 #[wasm_bindgen_test]
 async fn should_not_retain_captures_after_stop_from_within_callback() -> Result<(), String> {
     struct DropFlag(Rc<Cell<u32>>);
@@ -202,10 +271,10 @@ async fn should_not_retain_captures_after_stop_from_within_callback() -> Result<
         .map_err(|e| e.to_string())?,
     );
 
-    // RAF fires → stop() called → setTimeout(0) scheduled → setTimeout fires → closure freed → DropFlag dropped.
+    // RAF fires → stop() called → closure freed synchronously, within the same frame → DropFlag dropped.
     wait_for_frames(3).await;
 
-    // Captures must be released by the deferred timer before we even touch the handle.
+    // Captures must already be released by the time we check, well before touching the handle.
     common::check_eq(drop_count.get(), 1u32)?;
 
     // The handle itself is still alive, proving this is the stop()-from-callback path, not drop()-from-callback.
@@ -215,11 +284,11 @@ async fn should_not_retain_captures_after_stop_from_within_callback() -> Result<
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Calling `stop()` twice from inside the running callback must not crash and must prevent re-scheduling.
 ///
-/// Before the `StopPending` fix, the second `stop()` would see state `Stopped` (not `Dispatching`), enter the
-/// synchronous cleanup branch, and drop the `FrameClosure` while the wrapper was still executing past `callback(ts)`,
-/// recreating the use-after-free the dispatch guard was added to prevent.
+/// The first call clears the closure slot synchronously — dropping the very closure whose invocation is still
+/// running. The second call is a plain idempotent no-op: it re-cancels an already-cancelled handle and re-clears an
+/// already-`None` slot.
 ///
-/// A `DropFlag` proves the closure is freed exactly once, after the callback has returned.
+/// A `DropFlag` proves the closure is freed exactly once.
 #[wasm_bindgen_test]
 async fn should_allow_stop_twice_from_within_callback() -> Result<(), String> {
     struct DropFlag(Rc<Cell<u32>>);
@@ -252,17 +321,16 @@ async fn should_allow_stop_twice_from_within_callback() -> Result<(), String> {
     wait_for_frames(3).await;
 
     common::check_eq(count.get(), 1u32)?; // fired exactly once
-    common::check_eq(drop_count.get(), 1u32) // captures freed exactly once (via deferred timer)
+    common::check_eq(drop_count.get(), 1u32) // captures freed exactly once
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Calling `stop()` then immediately dropping the `AnimationLoop` handle from inside its own callback must not crash.
 ///
-/// `stop()` sets state to `StopPending` and schedules a deferred timer.  The subsequent `Drop` on the handle calls
-/// `stop()` again; without the `StopPending` state it would see `Stopped`, enter the synchronous cleanup branch, and
-/// drop the `FrameClosure` while the wrapper body is still executing.
+/// The explicit `stop()` call clears the closure slot synchronously.  The subsequent `Drop` on the handle calls
+/// `stop()` again — a plain idempotent no-op, since the slot is already `None` and the handle already cancelled.
 ///
-/// A `DropFlag` proves the captures are freed exactly once after the callback has returned.
+/// A `DropFlag` proves the captures are freed exactly once.
 #[wasm_bindgen_test]
 async fn should_allow_stop_then_drop_from_within_callback() -> Result<(), String> {
     struct DropFlag(Rc<Cell<u32>>);
@@ -285,9 +353,9 @@ async fn should_allow_stop_then_drop_from_within_callback() -> Result<(), String
             let _ = &flag;
             count_cb.set(count_cb.get() + 1);
             if let Some(anim) = slot_cb.borrow().as_ref() {
-                anim.stop(); // first: sets StopPending, schedules deferred drop
+                anim.stop(); // first: clears the slot synchronously
             }
-            // Drop the handle — Drop calls stop() again, but now sees StopPending → no-op.
+            // Drop the handle — Drop calls stop() again, a no-op since the slot is already None.
             slot_cb.borrow_mut().take();
         })
         .map_err(|e| e.to_string())?,
@@ -296,15 +364,15 @@ async fn should_allow_stop_then_drop_from_within_callback() -> Result<(), String
     wait_for_frames(3).await;
 
     common::check_eq(count.get(), 1u32)?; // fired exactly once
-    common::check_eq(drop_count.get(), 1u32) // captures freed exactly once (via deferred timer)
+    common::check_eq(drop_count.get(), 1u32) // captures freed exactly once
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Calling `stop()` from inside the running callback must not crash and must prevent re-scheduling — the loop must fire
 /// exactly once.
 ///
-/// This guards against creating a use-after-free: without the `AnimLoopState` dispatch guard, `stop()` would drop the
-/// closure slot while the inner RAF closure was still executing past `callback(ts)`.
+/// `stop()` drops the closure slot while the RAF wrapper is still executing past `callback(ts)`; after `callback(ts)`
+/// returns, the `AnimLoopState` check stops the wrapper from re-scheduling into that now-cleared slot.
 #[wasm_bindgen_test]
 async fn should_allow_stop_from_within_callback() -> Result<(), String> {
     let count = Rc::new(Cell::new(0u32));
