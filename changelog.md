@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Unreleased]
 
+## [0.2.12] - 2026-08-21
+
+## Fixed
+
+- Doc only: Correct description of browser suite test functionality (``)
+
 # [Released]
 
 ## [0.2.11] - 2026-08-20

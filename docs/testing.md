@@ -119,31 +119,25 @@ If a test fails, `wasm-bindgen-test` displays the `String` message directly with
 
 ## CDP Integration Tests — `cargo test -p cdp-integration-test`
 
-The above tests prove DOM structure: the right element was created, updated, or removed in the right place, with the right attributes.
-They do not test rendered output.
-Every assertion above checks attributes and element structure, not what the browser actually paints.
+The above tests mostly prove DOM structure: that the correct element was created, updated, or removed in the correct place, with the correct attributes.
+Most of the above assertions check only the DOM element structure and the attributes of those elements, not what the browser actually paints.
 
-CDP reaches one thing genuinely closed to `wasm-bindgen-test`: the browser's own *computed* accessibility tree.
-This is the accessible name and description a screen reader receives, after ARIA precedence, role computation, and pruning.
-That computation lives entirely behind the browser's Accessibility CDP domain, with no other route to it.
-
-Rendered pixels are different.
-Nothing about WebDriver stops a plain `wasm-bindgen-test` from rasterising.
-It can create a `<canvas>`, draw an SVG or `Image` onto it, and call `getImageData` directly.
+That is not because `wasm-bindgen-test` cannot rasterise since `tests/view.rs` already includes render-level pixel assertions.
+Instead, it creates an offscreen `<canvas>`, draws an `SvgImageElement` onto it then calls `getImageData` to sample the actual RGBA pixels.
+Those pixels prove that navigating to an SVG `<view>` fragment changes the rendered viewport.
 The crate's own dev-dependencies already enable `CanvasRenderingContext2d`, `HtmlCanvasElement`, `ImageData`, `XmlSerializer`, and `wasm-bindgen-futures` for exactly this.
-The CDP suite's own render checks use this same technique.
-CDP here only drives the asynchronous in-page script.
-It is not a requirement pixel checks structurally share with the accessibility-tree ones.
+Because the ordinary browser suite runs in both Firefox and Chrome, that view-fragment test is a genuine cross-engine rasterisation check.
 
-So the real distinction is narrower than "wasm-bindgen-test cannot see it."
-The ordinary browser suite currently tests DOM state, not rasterised output.
-The CDP suite provides the only render-level assertions that exist today.
-That is where they were built, not because `wasm-bindgen-test` cannot rasterise.
+So the real distinction is narrower than "wasm-bindgen-test cannot see rendered output."
+Most of the ordinary browser suite tests DOM structure and state, but `tests/view.rs` already proves render-level, cross-engine pixel assertions belong there too.
+
+The filter and lighting render checks below currently live in the CDP suite by construction, not by necessity.
+`tests/view.rs` shows the same rasterise-and-sample technique already works in plain `wasm-bindgen-test`.
+Only the computed accessibility tree genuinely requires CDP: it lives entirely behind the browser's Accessibility CDP domain, with no other route to it.
 
 This leaves an available future route.
-The accessibility tests genuinely need Chrome/CDP, since there is no other way to reach the computed accessibility tree.
-The render checks do not.
-Some or all of the filter render checks could become async `wasm-bindgen-test`s instead, running in both Chrome and Firefox for stronger cross-engine coverage.
+Some or all of the filter render checks could move to async `wasm-bindgen-test`s, following `tests/view.rs`'s own precedent.
+They could then run in both Chrome and Firefox, for stronger cross-engine coverage.
 The current, consolidated CDP suite is not broken, so this is an option worth recording, not a reason to refactor now.
 
 The `cdp-integration-test` crate hosts one Cargo integration-test binary, `tests/cdp/`, with five scenario modules, each driving Chrome directly over the Chrome DevTools Protocol (CDP) via the [`headless_chrome`](https://docs.rs/headless_chrome) crate.
@@ -209,7 +203,8 @@ It shares `tests/cdp/common.rs`'s one `Browser` instance with every other module
 
 The demo gallery's own turbulence panel (`demo/panels/panel-turbulence.html`) prominently states that scale 0 restores a perfect geometric circle.
 `demo-app/src/browser_tests/paint/turbulence.rs` proves the DOM half of that claim — the scale slider does reach `scale="0"` on the real `feDisplacementMap` element.
-But it cannot prove the circle actually *renders* as a perfect circle at that value, for the same reason `wasm-bindgen-test` cannot prove any rendering claim.
+That test only checks DOM structure and attributes, not rendered pixels.
+The render-level check for this exact claim lives here, in the CDP suite, instead.
 A structural test is satisfied by a `scale="0"` attribute sitting on a filter chain that renders however it likes.
 
 This single `#[test]` renders three circles built by `cdp-test-fixture`: `#turbulence-reference` (a plain, unfiltered circle), `#turbulence-scale-zero` (passed through `turbulence` → `displacement_map` with `scale` fixed at `0.0`), and `#turbulence-scale-sixty` (the same chain again, with `scale` fixed at `60.0` — `demo_turbulence.rs`'s own documented maximum).
