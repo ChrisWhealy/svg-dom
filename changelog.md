@@ -10,7 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Fixed
 
-- Doc only: Correct description of timestamp value received by `requestAnimationFrame` (``)
+- Doc only: Correct description of timestamp value received by `requestAnimationFrame` (`3f55433`)
+- Doc only: Clarify CDP CI docs (``)
 
 # [Released]
 

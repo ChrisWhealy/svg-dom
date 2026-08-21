@@ -311,10 +311,29 @@ Plain `cargo build`/`cargo test` at the project root never touch it.
 
 Two supporting crates make this possible:
 
-| Crate | Role |
-|---|---|
-| `cdp-test-fixture` | A tiny `wasm-bindgen` cdylib that builds real `svg-dom` elements for all five test files: seven accessibility scenarios (via `set_title`, `set_desc` and `set_attr`), one `#blend-circle` filter scenario (via `flood`/`blend`/`composite`), a `#turbulence-reference`/`#turbulence-scale-zero`/`#turbulence-scale-sixty` trio (via `turbulence`/`displacement_map`), a `#lighting-reference`/`#lighting-azimuth-90`/`#lighting-scale-zero` trio (via `diffuse_lighting`), and nine light-source rects (via `specular_lighting`) grouped into the four `ls-distant`/`ls-point`/`ls-spot`/`ls-cone` comparisons — and signals readiness by adding a `#fixture-ready` element |
-| `cdp-integration-test` | `src/lib.rs` holds the shared `fixture_dir`/`build_fixture`/`serve`/`launch_browser` setup helpers. `tests/cdp/common.rs` calls them once per test run and hands every scenario module its own tab from the one shared `Browser`. `tests/cdp/{accessibility_tree,filter_blend_render,turbulence_scale_zero_render,lighting_render,light_sources_render}.rs` are that binary's five scenario modules, each running its own `#[test]`s |
+<table>
+<tr><th>Crate</th><th>Role</th></tr>
+<tr>
+    <td><code>cdp-test-fixture</code></td>
+    <td>A tiny <code>wasm-bindgen</code> cdylib that builds real <code>svg-dom</code> elements for all five scenario modules:
+        <ol>
+            <li>Seven accessibility scenarios (via <code>set_title</code>, <code>set_desc</code> and <code>set_attr</code>)</li>
+            <li>One <code>#blend-circle</code> filter scenario (via <code>flood</code>, <code>blend</code> and <code>composite</code>)</li>
+            <li>A <code>#turbulence-reference</code>, <code>#turbulence-scale-zero</code>, <code>#turbulence-scale-sixty</code> trio (via <code>turbulence</code> and <code>displacement_map</code>)</li>
+            <li>A <code>#lighting-reference</code>, <code>#lighting-azimuth-90</code> and <code>#lighting-scale-zero</code> trio (via <code>diffuse_lighting</code>)</li>
+            <li>Nine light-source rects (via <code>specular_lighting</code>) grouped into the four <code>ls-distant</code>, <code>ls-point</code>, <code>ls-spot</code> and <code>ls-cone</code> comparisons</li>
+        </ol>
+        and signals readiness by adding a <code>#fixture-ready</code> element
+    </td>
+</tr>
+<tr>
+    <td><code>cdp-integration-test</code></td>
+    <td>
+        <p><code>src/lib.rs</code> holds the shared <code>fixture_dir</code>, <code>build_fixture</code>, <code>serve</code> and <code>launch_browser</code> setup helpers.</p>
+        <p><code>tests/cdp/common.rs</code> calls them once per test run and hands every scenario module its own tab from the one shared <code>Browser</code>. <code>tests/cdp/{accessibility_tree, filter_blend_render, turbulence_scale_zero_render, lighting_render, light_sources_render}.rs</code> are that binary's five scenario modules, each running its own <code>#[test]</code>s</p>
+    </td>
+</tr>
+</table>
 
 ### Prerequisites
 
@@ -343,8 +362,9 @@ No extra install step is needed, and no per-file CI wiring either, for the same 
 It was initially added without any CI job at all, so it protected nothing.
 The workspace's `default-members` deliberately excludes it (see above), so plain `cargo test`/`cargo nextest run` never runs it.
 None of the other CI jobs invoke it either.
-A regression here could land on `main` without any CI job noticing.
+Before the dedicated job described above existed, that exclusion meant a regression here could land on `main` unnoticed.
 For example: any test file failing to compile, Chrome's actual accessible-name/description computation drifting away from what the crate assumes, a filter chain silently starting to leak, a scale-zero displacement no longer rendering as a perfect circle, or the lighting/light-source primitives silently losing their directional or positional effect on the rendered pixels.
+The separate `cdp-integration-test` job now closes that gap.
 Being a separate job, rather than an extra step tacked onto `browser-tests`, means its failure is reported independently.
 It doesn't obscure, or get obscured by, the unrelated `wasm-bindgen-test` results, while still gating the merge like any other required check.
 
