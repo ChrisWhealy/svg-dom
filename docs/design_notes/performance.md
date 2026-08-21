@@ -26,7 +26,7 @@ It exposes helpers such as `set_attr_fmt`, `set_fill_fmt`, `set_d_fmt`, `set_tex
 
 Use these helpers for values that change every frame instead of writing `set_attr(..., &format!(...))` or `set_attr(..., &value.to_string())` inside the RAF callback.
 
-The DOM still receives a normal `&str`, but on the Rust/WASM side, the same allocation is used across frames.
+The DOM still receives a normal `&str`, but on the Rust/WASM side, the buffer retains and reuses its allocation across frames, growing only when a formatted value exceeds its current capacity.
 
 ## Transform setters reuse a caller-owned buffer
 
