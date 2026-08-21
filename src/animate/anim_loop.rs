@@ -12,8 +12,13 @@ type FrameClosure = Closure<dyn FnMut(f64)>;
 /// This slot is the single source of truth for whether the loop is still running: `stop()` clears it, and the RAF
 /// wrapper re-borrows it after `callback(ts)` returns to tell whether `stop()` ran during that call.
 type SharedClosure = Rc<RefCell<Option<FrameClosure>>>;
-/// Shared cell holding the pending `requestAnimationFrame` handle so it can be cancelled.
-type RafHandle = Rc<Cell<i32>>;
+/// Shared cell holding the pending `requestAnimationFrame` id, so it can be cancelled.
+///
+/// `Some(id)` means a request is currently pending; `None` means it is not.
+/// `0` is deliberately not used as a "no pending request" sentinel: it is a valid id `requestAnimationFrame` can
+/// return (MDN warns against using `0` this way, since ids are generally an incrementing counter that browsers are
+/// not required to handle consistently on overflow).
+type RafHandle = Rc<Cell<Option<i32>>>;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// # A running `window.requestAnimationFrame` loop.
@@ -109,7 +114,7 @@ impl AnimationLoop {
     fn start_inner<F: FnMut(f64) + 'static>(mut callback: F) -> Result<Self, Error> {
         let window = web_sys::window().ok_or_else(|| Error::Dom("no window".into()))?;
 
-        let handle: RafHandle = Rc::new(Cell::new(0));
+        let handle: RafHandle = Rc::new(Cell::new(None));
         let closure: SharedClosure = Rc::new(RefCell::new(None));
 
         // Clones moved into the closure so it can re-schedule itself.
@@ -119,6 +124,9 @@ impl AnimationLoop {
 
         // The closure holds an Rc to its own slot so it can re-register after each frame.
         let raf_closure: FrameClosure = Closure::new(move |ts: f64| {
+            // The request this callback is currently running for has already fired, so it is no longer pending —
+            // clear it before invoking the user callback, so `handle_inner` never names an already-fired id.
+            handle_inner.set(None);
             callback(ts);
 
             // Borrow, extract the RAF result, then release the borrow before potentially mutating the slot — avoids a
@@ -132,7 +140,7 @@ impl AnimationLoop {
                     .map(|c| window_inner.request_animation_frame(c.as_ref().unchecked_ref()))
             };
             match raf_result {
-                Some(Ok(h)) => handle_inner.set(h),
+                Some(Ok(h)) => handle_inner.set(Some(h)),
                 Some(Err(_)) => {
                     // requestAnimationFrame failed. The loop cannot continue.
                     // Release captures immediately rather than holding them until the AnimationLoop is dropped.
@@ -148,7 +156,7 @@ impl AnimationLoop {
         let h = window
             .request_animation_frame(raf_closure.as_ref().unchecked_ref())
             .map_err(dom_err)?;
-        handle.set(h);
+        handle.set(Some(h));
 
         *closure.borrow_mut() = Some(raf_closure);
 
@@ -170,8 +178,7 @@ impl AnimationLoop {
     /// Calling `stop()` is idempotent.
     ///
     /// Repeated calls to `stop()` — either explicitly, or via `Drop` when the handle is dropped inside the callback —
-    /// are all safe, since a second call simply re-cancels an already-cancelled handle and re-clears an already-empty
-    /// slot.
+    /// are all safe: a second call finds no pending RAF id to cancel and re-clears an already-empty closure slot.
     ///
     /// Normally, there is no need for you to call `stop()` explicitly since dropping the `AnimationLoop` calls it
     /// automatically via the `impl Drop for AnimationLoop` below.
@@ -196,8 +203,9 @@ impl AnimationLoop {
     /// assert_eq!(count.get(), 0); // not yet run (this is a doc example — no real frames fire)
     /// ```
     pub fn stop(&self) {
-        let _ = self.window.cancel_animation_frame(self.handle.get());
-        self.handle.set(0);
+        if let Some(handle) = self.handle.take() {
+            let _ = self.window.cancel_animation_frame(handle);
+        }
         // Safe even when called from inside the currently-executing RAF callback (`self.closure` is the same slot the
         // closure holds a clone of): dropping an owned `Closure` from within its own invocation keeps its data alive
         // for the rest of that call, only freeing it once the call returns. See this method's doc comment.
