@@ -19,7 +19,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Doc only: Correct `AnimationLoop` lifecycle statement (`4c9db64`)
 - Correct `AnimationFrame` unit test messages (`cdec57d`)
 - Correct typo in test error message (`06c3bee`)
-- Doc only: Correct description of `AnimationLoop::stop()` behaviour (``)
+- Doc only: Correct description of `AnimationLoop::stop()` behaviour (`3624196`)
+- Doc only: Correct description of animation loop test (``)
 
 ## Changed
 

@@ -100,7 +100,8 @@ fn closure_can_drop_itself_from_within_its_own_invocation() -> Result<(), String
 
 /// `stop()` called before yielding to the event loop cancels the pending RAF, so the callback is never invoked.
 ///
-/// JS is single-threaded: the RAF callback can only fire when we yield via `await`.
+/// This test runs on the browser main thread: the RAF callback cannot run until the current task yields back to the
+/// event loop, which only happens here via `await`.
 /// Calling `stop()` synchronously cancels the handle before we ever yield.
 #[wasm_bindgen_test]
 async fn should_stop_all_callbacks_before_first_frame() -> Result<(), String> {
