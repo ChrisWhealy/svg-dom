@@ -36,7 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## Added
 
 - Unit test `AnimationFrame::scratch` allocation capacity (`04d5cd7`)
-- Include CDP tests in clippy check (``)
+- Include CDP tests in clippy check (`69729ce`)
 
 # [Released]
 
