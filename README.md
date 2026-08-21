@@ -160,7 +160,7 @@ The coding used to create each demo is shown beneath each example.
 |---|---|
 | `SvgRoot` | Wraps the root `<svg>` element; entry point for all element creation
 | `SvgNode` | Cheap-to-clone handle to a live DOM element; attribute + event API
-| `SvgDefs` | `<defs>` container for reusable assets; factory for `SvgMarker`, `SvgClipPath`, `SvgMask`, `SvgPattern`, `SvgSymbol`, `SvgFilter`, gradients, and shape elements
+| `SvgDefs` | `<defs>` container for reusable assets; factory for `SvgMarker`, `SvgClipPath`, `SvgMask`, `SvgPattern`, `SvgSymbol`, `SvgFilter`, `SvgView`, gradients, and shape elements
 | `SvgMarker` | `<marker>` element for arrowheads and other path decorations; owned id cache + shape factories
 | `SvgClipPath` | `<clipPath>` element that restricts rendered region to an arbitrary shape; owned id cache + shape factories
 | `SvgMask` | `<mask>` element that reveals/hides rendered region by luminance or alpha; owned id cache + shape factories

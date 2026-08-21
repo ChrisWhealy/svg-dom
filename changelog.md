@@ -22,7 +22,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Doc only: Correct description of `AnimationLoop::stop()` behaviour (`3624196`)
 - Doc only: Correct description of animation loop test (`21fdf00`)
 - Doc only: Correct description of script-injection guarantee (`6da6289`)
-- Doc only: Correct description of `AnimationLoop::start()` behaviour (``)
+- Doc only: Correct description of `AnimationLoop::start()` behaviour (`062de09`)
+- Doc only: Add `SvgView` to README (``)
 
 ## Changed
 
