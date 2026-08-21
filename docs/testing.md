@@ -62,8 +62,17 @@ Tests are organised into integration test files under `tests/`:
 | `tests/svg_root.rs` | `SvgRoot` constructors, viewport, and all element factories |
 | `tests/svg_node/` | `SvgNode` attribute API, clone semantics, `append`, and event handlers — see below |
 | `tests/animation_loop.rs` | `AnimationLoop` lifecycle, `start`/`stop` from within callback, and memory retention bug prevention |
+| `tests/accessibility.rs` | `title`/`desc` accessible-name/description API: create, read back, update, remove, sibling/ordering behaviour, and blank-value rejection, on both `SvgNode` and `SvgRoot` |
+| `tests/clip_path.rs` | `SvgClipPath` construction, id caching, id validation, and `set_id` |
 | `tests/defs/` | `SvgDefs` and `SvgMarker` construction, all factory methods, marker ID validation, `build_defs`/`build_marker` deferred-append, `set_id`, and generic attribute surface — see below |
 | `tests/filter/` | `SvgFilter` construction, every primitive factory method, id validation, region/coordinate-space attributes, and `SvgNode::set_filter`/`set_filter_ref`/`remove_filter` — see below |
+| `tests/gradient.rs` | `SvgLinearGradient`/`SvgRadialGradient` construction, id caching/validation, and `set_fill_gradient`/`set_stroke_gradient` (plus their linear/radial-specific variants) |
+| `tests/mask.rs` | `SvgMask` construction, id caching/validation, region/units/type attributes, shape children, and `set_mask_ref`/`remove_mask` |
+| `tests/pattern.rs` | `SvgPattern` construction, id caching/validation, region/units/viewBox/transform attributes, shape children, and `set_fill_pattern`/`set_stroke_pattern` |
+| `tests/symbol.rs` | `SvgSymbol` construction, id caching/validation, viewBox/preserveAspectRatio, and shape children |
+| `tests/text_path.rs` | `<textPath>` construction, content, `href`, and its startOffset/method/spacing/side attributes |
+| `tests/tspan.rs` | `<tspan>` construction and nesting, plus the `tspan_dy`/`tspan_line` positioning helpers |
+| `tests/view.rs` | `SvgView` construction, id caching/validation, viewBox/preserveAspectRatio, and a real, cross-browser rendering test that samples canvas pixels to prove `<view>` fragment navigation changes the rendered viewport |
 
 Shared DOM helpers (creating fixture `<div>` and `<svg>` containers, assertion functions) live in `tests/common.rs`, included by every test file.
 Files directly under `tests/` use a plain `mod common;`.
