@@ -290,8 +290,8 @@ async fn should_not_retain_captures_after_stop_from_within_callback() -> Result<
 /// Calling `stop()` twice from inside the running callback must not crash and must prevent re-scheduling.
 ///
 /// The first call clears the closure slot synchronously — dropping the very closure whose invocation is still
-/// running. The second call is a plain idempotent no-op: it re-cancels an already-cancelled handle and re-clears an
-/// already-`None` slot.
+/// running. The second call is a plain idempotent no-op: it finds no pending RAF handle to cancel (the request that
+/// caused this very callback has already fired) and re-clears an already-`None` closure slot.
 ///
 /// A `DropFlag` proves the closure is freed exactly once.
 #[wasm_bindgen_test]
@@ -333,7 +333,8 @@ async fn should_allow_stop_twice_from_within_callback() -> Result<(), String> {
 /// Calling `stop()` then immediately dropping the `AnimationLoop` handle from inside its own callback must not crash.
 ///
 /// The explicit `stop()` call clears the closure slot synchronously.  The subsequent `Drop` on the handle calls
-/// `stop()` again — a plain idempotent no-op, since the slot is already `None` and the handle already cancelled.
+/// `stop()` again — a plain idempotent no-op: it finds no pending RAF handle and re-clears an already-empty closure
+/// slot.
 ///
 /// A `DropFlag` proves the captures are freed exactly once.
 #[wasm_bindgen_test]

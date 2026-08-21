@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Doc only: Correct description of `AnimationLoop::start()` behaviour (`062de09`)
 - Doc only: Add `SvgView` to README (`3bfb341`)
 - Doc only: Correct stale wording in `docs/design_notes/rejected_ideas/animation.md` (`7cac972`)
+- Doc only: Various minor tweaks and updates (``)
 
 ## Changed
 

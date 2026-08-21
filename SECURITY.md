@@ -47,6 +47,6 @@ Note that:
 
 - The crate contains **no `unsafe` code** in its library build (enforced with `#![forbid(unsafe_code)]`), and its dependency tree is audited in CI with [`cargo-deny`](https://github.com/EmbarkStudios/cargo-deny) (advisories, licenses, bans, and sources).
 - Vulnerabilities in **upstream dependencies** (e.g. `wasm-bindgen`, `web-sys`, `js-sys`) should be reported to those projects; if one affects `svg-dom` users, we will respond by updating the affected dependency.
-- The `demo/` gallery and `demo-server/` are **examples**, not part of the published library, and are out of scope for this policy.
+- The demo gallery (`demo-app/` and `demo/`) and `demo-server/` are **examples**, not part of the published library, and are out of scope for this policy.
 
 Thank you for your commitment to responsible disclosure.

@@ -21,7 +21,7 @@ All reasonable, conventional steps have been taken to provide a secure, stable a
 - [What This Crate Is](#what-this-crate-is)
 - [What This Crate Is NOT](#what-this-crate-is-not)
 - [Building](#building)
-- [Demo Server](#demo-server)
+- [Demo Gallery](#demo-gallery)
 - [Quick Start](#quick-start)
 - [Testing](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/testing.md)
 - [Supported SVG Elements](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/svg_elements/README.md)

@@ -13,7 +13,7 @@ Consult their own rustdoc for the full signature of each.
 Note that `<g>` is a structural/container element (SVG 2 classifies it as such), not a shape, despite sharing this factory grouping with the others for construction purposes.
 
 `svg-dom` provides typed support for the SVG elements listed below.
-`<script>` and the SMIL-based animation elements are intentional non-goals (see [Implementation Non-goals](../non-goals.md) for details):
+`<script>` and the SMIL-based animation elements — `<animate>`, `<animateTransform>`, `<animateMotion>`, `<set>`, `<discard>` and `<mpath>` — are intentional non-goals (see [Implementation Non-goals](../non-goals.md) for details):
 
 - `<a>` (anchor)
 - `<circle>`
@@ -74,6 +74,8 @@ At the moment, there is no support for the following SVG elements:
 - `<canvas>`
 
 These might be implemented in future if a legitimate use case is presented.
+
+`<unknown>` is also absent from the list above, but for a different reason: SVG 2 defines it as the browser's own fallback rendering for unrecognised markup, not an element a typed factory API would ever construct.
 
 ## Core Operations
 
