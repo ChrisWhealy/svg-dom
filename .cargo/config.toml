@@ -5,7 +5,8 @@
 # remains a release build regardless (that is wasm-pack's own default, independent of this alias), so demo-server's own
 # profile has no effect on what actually needs to be fast.
 demo = "run -p demo-server"
-# Measure coverage of the host-runnable tests and open the HTML report. Covers the `error` module; the DOM-bound code is
-# covered by the browser tests (`wasm-pack test`), which this cannot instrument. Needs `cargo-llvm-cov` and the
-# `llvm-tools-preview` rustup component installed.
+# Measure coverage of the host-runnable tests and open the HTML report.
+# This measures only code exercised by host-runnable tests, wherever in the crate those tests live.
+# DOM-dependent code is instead exercised by the browser tests (`wasm-pack test`), which this cannot instrument.
+# Needs `cargo-llvm-cov` and the `llvm-tools-preview` rustup component installed.
 cov = "llvm-cov nextest --all-features --html --open"

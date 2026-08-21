@@ -197,11 +197,12 @@ jobs:
           tool: cargo-llvm-cov,cargo-nextest
       - uses: Swatinem/rust-cache@v2
 
-      # llvm-cov instruments the host-runnable tests only (the `error` module — the demo gallery's own
-      # host-runnable `highlight` tests moved out to the separate `svg-dom-demo` workspace crate along with the
-      # rest of the demo implementation, and are not measured here). The DOM-bound `root`/`node`/`animate` code is
-      # exercised by the wasm-pack browser tests in the `browser-tests` job, which cannot be instrumented here —
-      # so this figure reflects the host-testable subset of the library crate, not the whole library.
+      # llvm-cov measures only code exercised by host-runnable tests, wherever in the crate those tests live.
+      # The demo gallery's own host-runnable `highlight` tests live in the separate `svg-dom-demo` workspace crate
+      # along with the rest of the demo implementation, so they are not measured here.
+      # DOM-dependent paths are instead exercised by the wasm-pack browser suites in the `browser-tests` job,
+      # which cannot be instrumented here, so they fall outside this coverage figure.
+      # This figure reflects the host-testable subset of the library crate, not the whole library.
       - name: Measure coverage (host-runnable tests)
         run: cargo llvm-cov nextest --all-features --no-report
 
