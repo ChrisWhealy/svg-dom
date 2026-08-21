@@ -37,9 +37,9 @@ Two rare failure paths are worth noting:
 
    If `setTimeout` scheduling itself fails (a near-impossible browser-level error), the deferred cleanup cannot be registered.
    The post-callback code still transitions the state from `StopPending` to `Stopped`.
-   So, *if another `AnimationLoop` handle survives*, a later `stop()` or `Drop` sees `Stopped` and clears the slot synchronously.
+   So, *if the `AnimationLoop` value remains alive after the callback*, a later `stop()` or `Drop` sees the `Stopped` state and clears the slot synchronously.
    That releases the RAF closure and its captures.
-   But if the handle that called `stop()` was the last `AnimationLoop` handle — i.e. it was dropped from inside the running callback — no later `stop()`/`Drop` call exists to perform that cleanup.
+   But if the `AnimationLoop` was dropped from inside the running callback, no later `stop()`/`Drop` call exists to perform that cleanup.
    The RAF closure, the shared slot, and everything the user callback captured remain permanently leaked.
 
 1. The callback created by `Closure::once_into_js` for the deferred `setTimeout` is a Rust `FnOnce`, handed to JavaScript as a one-shot function.
@@ -48,6 +48,6 @@ Two rare failure paths are worth noting:
 
    If `setTimeout` registration fails, that callback is never invoked.
    So it — and its cloned `Rc` reference to the closure slot — leaks for the life of the page.
-   In the recoverable case where another `AnimationLoop` handle survives (see above), that leaked callback's `Rc` ends up pointing at an already-cleared (`None`) slot.
+   In the recoverable case where the `AnimationLoop` value remains alive after the callback (see above), that leaked callback's `Rc` ends up pointing at an already-cleared (`None`) slot.
    So the RAF closure and the user's captured state are not doubled up in the leak.
    Only the one-shot closure and the empty slot allocation remain leaked.
