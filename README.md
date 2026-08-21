@@ -328,7 +328,7 @@ Element factory methods use `SvgAttrs` internally for initial numeric geometry a
 ## Allocation-light Animation Formatting
 
 For attributes that change every animation frame, prefer `AnimationLoop::start_with_frame` over building fresh strings with `format!` inside the RAF callback.
-The callback receives an `AnimationFrame` scratch buffer that is allocated once and reused for formatted attributes and text:
+The callback receives an `AnimationFrame` scratch buffer with initial capacity that retains and reuses its allocation between frames, growing only when a formatted value exceeds the current capacity:
 
 ```rust
 let _loop = AnimationLoop::start_with_frame(move |ts, frame| {
