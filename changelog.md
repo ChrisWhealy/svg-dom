@@ -11,7 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## Fixed
 
 - Doc only: Correct description of browser suite test functionality (`21a74b3`)
-- Doc only: Update test inventory in `docs/testing.md` (``)
+- Doc only: Update test inventory in `docs/testing.md` (`77f083f`)
+- Doc only: Update stale statements in CDP docs (``)
 
 # [Released]
 

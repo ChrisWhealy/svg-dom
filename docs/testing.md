@@ -205,7 +205,7 @@ Because the pixel-sampling script is asynchronous — `Image` loading is not syn
 It is called directly, rather than through `headless_chrome::Tab`'s own `evaluate()` wrapper, which hardcodes `returnByValue: false`.
 
 This lives in its own module, rather than as more `#[test]`s in `accessibility_tree.rs`.
-So each module's doc comment stays retains its "common sense" scope for what it actually verifies — accessible-name computation in one, filter alpha compositing in the other.
+So each module's doc comment retains its common-sense scope for what it actually verifies — accessible-name computation in one, filter alpha compositing in the other.
 It shares `tests/cdp/common.rs`'s one `Browser` instance with every other module in this binary, opening only its own tab.
 
 ### `turbulence_scale_zero_render.rs` — `SvgFilter::displacement_map`'s `scale` at `0.0`, against real rendered pixels
@@ -313,7 +313,7 @@ Two supporting crates make this possible:
 
 | Crate | Role |
 |---|---|
-| `cdp-test-fixture` | A tiny `wasm-bindgen` cdylib that builds real `svg-dom` elements for all five test files: six accessibility scenarios (via `set_title`, `set_desc` and `set_attr`), one `#blend-circle` filter scenario (via `flood`/`blend`/`composite`), a `#turbulence-reference`/`#turbulence-scale-zero`/`#turbulence-scale-sixty` trio (via `turbulence`/`displacement_map`), a `#lighting-reference`/`#lighting-azimuth-90`/`#lighting-scale-zero` trio (via `diffuse_lighting`), and nine light-source rects (via `specular_lighting`) grouped into the four `ls-distant`/`ls-point`/`ls-spot`/`ls-cone` comparisons — and signals readiness by adding a `#fixture-ready` element |
+| `cdp-test-fixture` | A tiny `wasm-bindgen` cdylib that builds real `svg-dom` elements for all five test files: seven accessibility scenarios (via `set_title`, `set_desc` and `set_attr`), one `#blend-circle` filter scenario (via `flood`/`blend`/`composite`), a `#turbulence-reference`/`#turbulence-scale-zero`/`#turbulence-scale-sixty` trio (via `turbulence`/`displacement_map`), a `#lighting-reference`/`#lighting-azimuth-90`/`#lighting-scale-zero` trio (via `diffuse_lighting`), and nine light-source rects (via `specular_lighting`) grouped into the four `ls-distant`/`ls-point`/`ls-spot`/`ls-cone` comparisons — and signals readiness by adding a `#fixture-ready` element |
 | `cdp-integration-test` | `src/lib.rs` holds the shared `fixture_dir`/`build_fixture`/`serve`/`launch_browser` setup helpers. `tests/cdp/common.rs` calls them once per test run and hands every scenario module its own tab from the one shared `Browser`. `tests/cdp/{accessibility_tree,filter_blend_render,turbulence_scale_zero_render,lighting_render,light_sources_render}.rs` are that binary's five scenario modules, each running its own `#[test]`s |
 
 ### Prerequisites
