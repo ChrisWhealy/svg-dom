@@ -36,7 +36,7 @@ pub fn start_with_frame<F: FnMut(f64, &mut AnimationFrame) + 'static>(mut callba
 }
 ```
 
-`AnimationFrame` is an adapter that adds one allocation (the scratch `String`, made once) and no other overhead.
+`AnimationFrame` is an adapter that adds one retained scratch `String`, initially allocated with 16 bytes of capacity, and no other overhead.
 The two constructors are not alternatives at the same abstraction level.
 One wraps the other.
 
