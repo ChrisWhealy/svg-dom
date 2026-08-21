@@ -372,7 +372,7 @@ async fn should_allow_stop_then_drop_from_within_callback() -> Result<(), String
 /// exactly once.
 ///
 /// `stop()` drops the closure slot while the RAF wrapper is still executing past `callback(ts)`; after `callback(ts)`
-/// returns, the `AnimLoopState` check stops the wrapper from re-scheduling into that now-cleared slot.
+/// returns, the wrapper re-borrows that same slot, finds it empty, and skips re-scheduling.
 #[wasm_bindgen_test]
 async fn should_allow_stop_from_within_callback() -> Result<(), String> {
     let count = Rc::new(Cell::new(0u32));

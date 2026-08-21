@@ -86,8 +86,8 @@ The scheduler would only add infrastructure to solve a problem the API does not 
 `stop()` drops the closure synchronously (even when called from inside that closure's own currently-running invocation).
 This relies on a `wasm_bindgen::Closure` guarantee verified by a dedicated regression test.
 
-`AnimLoopState::Dispatching` is still needed so that once the callback returns, the RAF wrapper can tell whether `stop()` already cleared the slot and then skip re-scheduling into it.
-A scheduler with `N` callbacks inherits this dispatch-state bookkeeping, and multiplies it.
+The RAF wrapper still has to re-borrow the closure slot after the callback returns to tell whether `stop()` already cleared it, and skip re-scheduling into it when it has.
+A scheduler with `N` callbacks inherits this per-callback borrow discipline, and multiplies it.
 Any callback can deregister *itself*, deregister *another* callback, add new callbacks, or drop the whole scheduler.
 
 The RFC acknowledges this directly and proposes a slot table with tombstones followed by post-dispatch compaction.
@@ -99,7 +99,7 @@ A tombstone-based slot table is the correct solution, but every frame then pays:
 - `RefCell` borrow management around each callback invocation to keep the collection accessible for mutation
 
 This introduces O(N) bookkeeping per frame, even when the slot table is perfectly stable.
-The borrow hygiene is at least as finicky as the existing `AnimLoopState` trick, but with more interacting mutation paths.
+The borrow hygiene is at least as finicky as `AnimationLoop`'s existing single-slot-as-source-of-truth trick, but with more interacting mutation paths.
 A panic or use-after-free in this code in production would cause a silent WASM failure with no stack trace.
 
 ### The feature is not SVG-specific

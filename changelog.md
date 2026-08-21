@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Initialise `AnimationFrame::scratch` with an arbitrary capacity of 16 bytes (`9c38ad5`)
 - Drop `StopPending` state used by `AnimationState` as it turns out to be unnecessary (`2e88594`)
+- Drop `AnimLoopState` because dropping `StopPending` made it redundant (``)
 
 ## Added
 

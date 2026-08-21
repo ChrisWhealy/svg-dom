@@ -16,8 +16,8 @@ This relies on a guarantee that `wasm_bindgen::Closure` makes for owned closures
 
 `tests/animation_loop.rs`'s `closure_can_drop_itself_from_within_its_own_invocation` isolates and verifies this directly, in a real browser, independently of `AnimationLoop`.
 
-`AnimationLoop` tracks the dispatch lifecycle via the enum `AnimLoopState` (with members `Idle`, `Dispatching` and `Stopped`), purely so that after `callback(ts)` returns, the RAF wrapper can tell whether `stop()` ran during that call and already cleared the slot.
-When it did, the wrapper skips re-scheduling instead of trying to re-register a closure that no longer exists.
+The closure slot itself is the single source of truth for whether `stop()` ran during the call: after `callback(ts)` returns, the RAF wrapper re-borrows the same slot to schedule the next frame.
+If `stop()` ran inside `callback(ts)`, the slot is already `None`, so the wrapper simply has nothing to re-register and skips re-scheduling — no separate dispatch-state flag is needed to detect that case.
 
 Because `stop()` is unconditional and synchronous, repeated calls during the same dispatch — an explicit second call, or `Drop` firing because the handle was dropped inside the callback — are trivially idempotent: each one re-cancels an already-cancelled RAF handle and re-clears an already-empty slot.
 No deferred cleanup, no scheduling failure mode, and no leak path exists for this case.
