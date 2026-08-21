@@ -14,18 +14,22 @@ use svg_dom::{
 };
 use wasm_bindgen::prelude::*;
 
-// An app must keep its AnimationLoop alive somewhere lasting, or it stops the moment the handle is dropped.
-// `thread_local!` provides exactly one such slot per thread (a wasm page is single-threaded), initialised lazily on
-// first access — the idiomatic place to park page-lifetime state in a `#[wasm_bindgen(start)]` app.
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// An app must keep its AnimationLoop alive in some long lasting structure; otherwise it will stop the moment the handle
+// is dropped. `thread_local!` gives us one slot per execution thread; this DOM-facing code runs on the page's main
+// thread, so it acts as a slot whose lifetime equals that of the Web page. It is initialised lazily on first access.
+// In a `#[wasm_bindgen(start)]` app, this is the idiomatic place to park state.
 thread_local! {
     static ANIM: RefCell<Option<AnimationLoop>> = const { RefCell::new(None) };
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #[wasm_bindgen(start)]
 pub fn run() -> Result<(), JsValue> {
     build().map_err(|e| JsValue::from_str(&e.to_string()))
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 fn build() -> Result<(), svg_dom::Error> {
     // Attach to <svg id="diagram"> already present in index.html.
     let svg = SvgRoot::attach("diagram")?;
@@ -67,4 +71,5 @@ fn build() -> Result<(), svg_dom::Error> {
     Ok(())
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 fn main() {}

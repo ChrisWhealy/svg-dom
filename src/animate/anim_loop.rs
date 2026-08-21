@@ -88,7 +88,7 @@ impl AnimationLoop {
     /// use std::fmt::Write;
     /// use svg_dom::{AnimationLoop, SvgRoot};
     ///
-    /// // One page-lifetime slot to hold the running loop (a wasm page is single-threaded).
+    /// // One page-lifetime slot to hold the running loop (this DOM-facing code runs on the page's main thread).
     /// thread_local! {
     ///     static ANIM: RefCell<Option<AnimationLoop>> = const { RefCell::new(None) };
     /// }

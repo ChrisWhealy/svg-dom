@@ -22,7 +22,7 @@ use std::fmt::{self, Write};
 /// use std::cell::RefCell;
 /// use svg_dom::{AnimationLoop, SvgRoot, root::utils::{Point, Size}};
 ///
-/// // One page-lifetime slot to hold the running loop (a wasm page is single-threaded).
+/// // One page-lifetime slot to hold the running loop (this DOM-facing code runs on the page's main thread).
 /// thread_local! {
 ///     static ANIM: RefCell<Option<AnimationLoop>> = const { RefCell::new(None) };
 /// }

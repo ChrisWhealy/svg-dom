@@ -178,24 +178,28 @@ The coding used to create each demo is shown beneath each example.
 
 ```rust
 use std::cell::RefCell;
+use svg_dom::{
+    AnimationLoop, SvgAttrs, SvgRoot,
+    root::utils::{Point, Size},
+};
 use wasm_bindgen::prelude::*;
-use svg_dom::{AnimationLoop, SvgAttrs, SvgRoot, root::utils::{Point, Size}};
 
-// An app must keep its AnimationLoop alive somewhere lasting, or it stops the moment the
-// handle is dropped. `thread_local!` gives us exactly one such slot per thread (a wasm page
-// is single-threaded), initialised lazily on first access.
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// An app must keep its AnimationLoop alive in some long lasting structure; otherwise it will stop the moment the handle
+// is dropped. `thread_local!` gives us one slot per execution thread; this DOM-facing code runs on the page's main
+// thread, so it acts as a slot whose lifetime equals that of the Web page. It is initialised lazily on first access.
+// In a `#[wasm_bindgen(start)]` app, this is the idiomatic place to park state.
 thread_local! {
     static ANIM: RefCell<Option<AnimationLoop>> = const { RefCell::new(None) };
 }
 
-// wasm-bindgen entry point. An exported function's error type must be `Into<JsValue>`, and
-// `svg_dom::Error` is not, so the boundary returns `Result<(), JsValue>` and converts there;
-// the actual work lives in `build`, which uses `?` with `svg_dom::Error` throughout.
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #[wasm_bindgen(start)]
 pub fn run() -> Result<(), JsValue> {
     build().map_err(|e| JsValue::from_str(&e.to_string()))
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 fn build() -> Result<(), svg_dom::Error> {
     // Attach to <svg id="diagram"> already present in index.html.
     let svg = SvgRoot::attach("diagram")?;
@@ -203,19 +207,20 @@ fn build() -> Result<(), svg_dom::Error> {
     // Add a rectangle and give it a colour.
     let rect = svg.rect(Point::new(20.0, 20.0), Size::new(160.0, 80.0))?;
     let mut attrs = SvgAttrs::new();
-    rect.attrs(&mut attrs)
-        .fill("steelblue")?
-        .stroke("white")?
-        .stroke_width(2.0)?;
+    rect.attrs(&mut attrs).fill("steelblue")?.stroke("white")?.stroke_width(2.0)?;
 
-    // `rect` is a page-lifetime node that is intentionally kept alive by the strong clones inside
-    // the closures — that is the exception, not the rule.  For nodes that should be discardable,
-    // use `rect.downgrade()` and call `upgrade()` inside the closure instead; see `WeakSvgNode`.
+    // `rect` is a page-lifetime node that is intentionally kept alive by the strong clones inside the closures —
+    // that is the exception, not the rule.  For nodes that should be discardable, use `rect.downgrade()` and call
+    // `upgrade()` inside the closure instead; see `svg_dom::WeakSvgNode`.
     let rect_out = rect.clone();
-    rect.on_pointerenter(move |_evt| { let _ = rect_out.set_fill("gold"); })?;
+    rect.on_pointerenter(move |_evt| {
+        let _ = rect_out.set_fill("gold");
+    })?;
 
     let rect_back = rect.clone();
-    rect.on_pointerleave(move |_evt| { let _ = rect_back.set_fill("steelblue"); })?;
+    rect.on_pointerleave(move |_evt| {
+        let _ = rect_back.set_fill("steelblue");
+    })?;
 
     // Build a <g> group containing a circle and a label.
     let group = svg.group()?;
@@ -224,12 +229,9 @@ fn build() -> Result<(), svg_dom::Error> {
     group.append(&dot)?;
     group.append(&label)?;
 
-    // Animate: pulse the circle radius each frame.
-    //
-    // The AnimationLoop must outlive this function — dropping it cancels the pending frame
-    // immediately. Park it in the thread-local slot so it runs for the page's lifetime; because
-    // AnimationLoop stops on Drop, clearing or replacing that slot later stops the animation
-    // cleanly (whereas `std::mem::forget` would simply leak it).
+    // Animate: pulse the circle radius each frame. The AnimationLoop must outlive this function — dropping it cancels
+    // the pending frame immediately — so park it in the thread-local slot for the page's lifetime. Because
+    // AnimationLoop stops on Drop, clearing or replacing that slot later stops the animation cleanly.
     let anim = AnimationLoop::start_with_frame(move |ts, frame| {
         let r = 8.0 + 4.0 * (ts / 500.0).sin();
         let _ = frame.set_attr_fmt(&dot, "r", format_args!("{r}"));
@@ -238,6 +240,9 @@ fn build() -> Result<(), svg_dom::Error> {
 
     Ok(())
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+fn main() {}
 ```
 
 > This example is mirrored in [`examples/readme_minimal.rs`](examples/readme_minimal.rs) and compiled for `wasm32` in CI, so it cannot silently fall out of step with the crate.
@@ -248,7 +253,8 @@ An `AnimationLoop` stops as soon as its handle is dropped, so it must be held so
 
 This example parks it in a [`thread_local!`](https://doc.rust-lang.org/std/macro.thread_local.html) slot.
 Thread-local storage is a variable with one independent instance *per thread*, created lazily the first time that thread touches it.
-A WASM page runs on a single thread, so in practice this is one page-global slot that is initialised on first use and then lives for the lifetime of the page.
+This DOM-facing code runs on the page's main thread.
+In practice, that makes it one page-global slot, initialised on first use and living for the lifetime of the page.
 
 This approach is preferable to calling `std::mem::forget(anim)`, since forgetting the loop leaks it permanently and throws away the crate's `Drop`-based stop; whereas a stored loop can be cleared (or replaced) later to stop it cleanly.
 
