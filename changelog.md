@@ -20,7 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Correct `AnimationFrame` unit test messages (`cdec57d`)
 - Correct typo in test error message (`06c3bee`)
 - Doc only: Correct description of `AnimationLoop::stop()` behaviour (`3624196`)
-- Doc only: Correct description of animation loop test (``)
+- Doc only: Correct description of animation loop test (`21fdf00`)
 
 ## Changed
 
