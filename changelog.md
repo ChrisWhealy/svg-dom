@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Doc only: Clarify CDP CI docs (`439faf4`)
 - Doc only: Clarify statements about WASM running single-threaded (`31d0a68`)
 - Doc only: Adjust scratch buffer allocation claim (`76c3fa9`)
+- Doc only: Improve description of `cargo test` coverage (``)
 
 ## Changed
 

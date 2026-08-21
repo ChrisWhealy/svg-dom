@@ -4,10 +4,13 @@ The test suite has three tiers that use different runners.
 
 ## Unit Tests — `cargo test`
 
-Pure Rust tests with no browser dependency.
+A set of pure Rust tests (with no browser dependency) that currently cover:
 
-Currently covers the `Error` type's `Display` and `Debug` implementations and its inner-value accessors, plus the `PathDef` → `d`-string formatting logic in `root::path::unit_tests` (one command per SVG path letter, buffer-reuse behaviour in `write_d`).
-Also covers doc tests.
+* The `Error` type's `Display` and `Debug` implementations and its inner-value accessors
+* The `PathDef` → `d`-string formatting logic in `root::path::unit_tests` (one command per SVG path letter, buffer-reuse behaviour in `write_d`).
+* `Point`-list formatting in `root::utils::unit_tests`
+* `AnimationFrame`'s initial scratch-buffer capacity in `animate::anim_frame::unit_tests`
+* Doc tests.
 
 ```sh
 cargo test
