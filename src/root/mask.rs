@@ -365,7 +365,8 @@ impl SvgMask {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Formats `value` through the element's internal scratch buffer and writes it as `name`.
     ///
-    /// Uses the same `SvgAttrs` scratch buffer that the shape factories use internally, so no extra allocation is made.
+    /// Uses the same `SvgAttrs` scratch buffer that the shape factories use internally, avoiding a fresh
+    /// allocation once that buffer's capacity already covers the value.
     /// Passing `"id"` (matched case-insensitively) returns [`Error::ReservedAttribute`].
     /// Use [`set_id`](Self::set_id) instead.
     pub fn set_attr_display<T: std::fmt::Display>(&self, name: &str, value: T) -> Result<(), Error> {

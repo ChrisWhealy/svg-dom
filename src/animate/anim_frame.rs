@@ -11,10 +11,15 @@ use std::fmt::{self, Write};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Scratch storage made available to an animation callback.
 ///
+/// Since this code typically lies on the hot-path, calls to `format!(...)` or `value.to_string()` inside the
+/// `set_attr...()` functions should always be avoided as this repeatedly allocates a short-lived `String` and thus
+/// introduce a noticeable performance hit.
+///
+/// The scratch buffer starts empty and grows only as needed with subsequent calls always reusing the existing buffer.
+/// Reallocation only takes place if the next value exceeds the existing buffer's capacity.
+///
 /// Use this with [`AnimationLoop::start_with_frame`](crate::AnimationLoop::start_with_frame) when a callback needs to
 /// format SVG attribute values every frame.
-/// The internal `String` is allocated once and then reused, avoiding the repeated short-lived allocations caused by
-/// `format!(...)` or `value.to_string()` inside a `requestAnimationFrame` loop.
 ///
 /// # Example
 ///
@@ -46,9 +51,9 @@ pub struct AnimationFrame {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 impl AnimationFrame {
-    /// Creates an `AnimationFrame` with an empty scratch buffer.
+    /// Creates an `AnimationFrame` with a scratch buffer arbitrarily sized at 16 bytes.
     pub fn new() -> Self {
-        Self { scratch: String::new() }
+        Self { scratch: String::with_capacity(16) }
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

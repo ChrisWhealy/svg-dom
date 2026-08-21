@@ -7,10 +7,12 @@
 //! On the exact "value usually repeats" hot path it is meant for — a cursor style or `opacity` flag touched on
 //! every `pointermove` — that is real cost. It is a per-event allocation, plus a round-trip that buys only a comparison.
 //!
-//! `CachedAttr` removes both costs by remembering the last value it wrote on the **Rust** side. The no-op case becomes a
-//! plain `&str` comparison against an owned `String`: no allocation, and no call into JS at all. The DOM is touched only
-//! when the value genuinely changes, and even then the backing buffer is reused (`clear` + `push_str`) rather than
-//! reallocated.
+//! `CachedAttr` removes both costs by remembering the last value it wrote on the **Rust** side.
+//! The no-op case becomes a plain `&str` comparison against an owned `String`: no allocation, and no call into JS at
+//! all.
+//! The DOM is touched only when the value genuinely changes, and even then the backing buffer is reused
+//! (`clear` + `push_str`).
+//! Reallocation only happens the first time a written value exceeds the buffer's current capacity.
 //!
 //! The same cache also covers text content via [`CachedAttr::set_text`] — a status readout rewritten with the same
 //! string on every `pointermove` is exactly the kind of redundant `set_text_content` it elides.

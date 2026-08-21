@@ -241,7 +241,8 @@ impl SvgDefs {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /// Formats `value` through the element's internal scratch buffer and writes it as `name`.
     ///
-    /// Uses the same `SvgAttrs` scratch buffer that the shape factories use internally, so no extra allocation is made.
+    /// Uses the same `SvgAttrs` scratch buffer that the shape factories use internally, avoiding a fresh
+    /// allocation once that buffer's capacity already covers the value.
     pub fn set_attr_display<T: std::fmt::Display>(&self, name: &str, value: T) -> Result<(), Error> {
         self.attrs.borrow_mut().display_element(&self.element, name, value)
     }

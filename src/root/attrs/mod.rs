@@ -15,9 +15,11 @@ use web_sys::Element;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Reusable scratch buffer for writing SVG attributes.
 ///
-/// `SvgAttrs` is useful when many numeric or formatted attributes need to be written in succession.  The internal
-/// `String` is allocated once and reused for every [`display`](AttrWriter::display) or [`fmt`](AttrWriter::fmt) call,
-/// avoiding the short-lived allocations caused by `value.to_string()` and `format!(...)`.
+/// `SvgAttrs` is useful when many numeric or formatted attributes need to be written in succession.
+/// The internal `String` starts empty and grows only as needed.
+/// Once its capacity covers the largest value written, every later [`display`](AttrWriter::display) or
+/// [`fmt`](AttrWriter::fmt) call reuses it instead of reallocating.
+/// That avoids the short-lived allocations `value.to_string()` and `format!(...)` would otherwise cause.
 ///
 /// # Example
 ///
