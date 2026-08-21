@@ -206,9 +206,9 @@ impl AnimationLoop {
     /// Instead, `stop()` schedules a zero-delay `setTimeout` whose callback clears the slot once the running callback
     /// has fully returned.
     /// If that `setTimeout` registration itself fails, a later `stop()` or `Drop` still clears the slot — but only if
-    /// another `AnimationLoop` handle survives to make that later call.
-    /// If the handle dropped inside the callback was the last one, no such later call exists, and the closure and its
-    /// captures leak.
+    /// the `AnimationLoop` value remains alive after the callback to make that later call.
+    /// If the `AnimationLoop` was dropped from inside the callback, no such later call exists, and the closure and
+    /// its captures leak.
     /// See the "Two rare failure paths" section in `docs/design_notes/animation.md`.
     ///
     /// Calling `stop()` is idempotent.
@@ -262,10 +262,10 @@ impl AnimationLoop {
                 // wasm-bindgen only frees a `once_into_js` closure when it is invoked.
                 // So an unscheduled callback leaks permanently, along with its cloned `Rc` to `slot`.
                 // The post-callback code still transitions state to `Stopped`.
-                // So a later `stop()`/`Drop` call — if another `AnimationLoop` handle survives — will still clear
-                // the slot, and release the RAF closure and its captures.
-                // If this was the last handle (dropped from inside the callback), no later caller exists, so the
-                // RAF closure and its captures also remain leaked.
+                // So a later `stop()`/`Drop` call — if the `AnimationLoop` value remains alive after the callback —
+                // will still clear the slot, and release the RAF closure and its captures.
+                // If the `AnimationLoop` was dropped from inside the callback, no later caller exists, so the RAF
+                // closure and its captures also remain leaked.
                 let _ = self
                     .window
                     .set_timeout_with_callback_and_timeout_and_arguments_0(cb.unchecked_ref(), 0);
