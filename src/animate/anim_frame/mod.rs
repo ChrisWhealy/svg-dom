@@ -43,17 +43,24 @@ use std::fmt::{self, Write};
 /// // Keep the loop alive for the page's lifetime. Dropping it would stop it via `Drop`.
 /// ANIM.with(|slot| *slot.borrow_mut() = Some(anim));
 /// ```
-#[derive(Default)]
 pub struct AnimationFrame {
     /// The reusable formatting buffer, exposed so callers can also write into it directly via [`scratch`](Self::scratch).
     pub scratch: String,
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+impl Default for AnimationFrame {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 impl AnimationFrame {
     /// Creates an `AnimationFrame` with a scratch buffer arbitrarily sized at 16 bytes.
     pub fn new() -> Self {
-        Self { scratch: String::with_capacity(16) }
+        Self {
+            scratch: String::with_capacity(16),
+        }
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -166,3 +173,7 @@ impl AnimationFrame {
         node.set_attr("points", &self.scratch)
     }
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#[cfg(test)]
+mod unit_tests;
