@@ -54,7 +54,8 @@ impl AnimationLoop {
     ///
     /// The first frame is scheduled immediately.  Subsequent frames are re-scheduled from inside the closure, using
     /// the self-referencing `Rc<RefCell<Option<Closure>>>` pattern.
-    /// The closure captures a reference-counted clone of its own slot, and re-fills it each time it runs.
+    /// The closure captures a reference-counted clone of its own slot and borrows that slot after each callback to
+    /// register itself for the next frame.
     ///
     /// # Arguments
     ///
