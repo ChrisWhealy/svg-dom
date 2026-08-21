@@ -25,18 +25,18 @@
 //! slider positions:
 //!
 //! 1. `#ls-distant-low` (elevation 15deg) vs `#ls-distant-high` (elevation 85deg) — checks that a flat Distant
-//!   surface's own average brightness genuinely rises with elevation, panel-light-sources.html's own claim.
+//!    surface's own average brightness genuinely rises with elevation, panel-light-sources.html's own claim.
 //! 2. `#ls-point-low-z` (z 20) vs `#ls-point-high-z` (z 180) — checks that a lower light genuinely sharpens the hotspot
-//!   (a bigger centre-to-corner contrast) rather than spreading it.
+//!    (a bigger centre-to-corner contrast) rather than spreading it.
 //! 3. `#ls-spot-left` (light at its own rect's left edge) vs `#ls-spot-right` (right edge), both with `pointsAtX`
-//!   trailing by the same 80-unit offset `demo_light_sources.rs`'s own `SPOT_OPEN_AIM_OFFSET` uses — checks that
-//!   the bright region genuinely moves horizontally with the light, not just the DOM attribute.
+//!    trailing by the same 80-unit offset `demo_light_sources.rs`'s own `SPOT_OPEN_AIM_OFFSET` uses — checks that
+//!    the bright region genuinely moves horizontally with the light, not just the DOM attribute.
 //! 4. `#ls-cone-zero` (`limitingConeAngle` 0deg) vs `#ls-cone-narrow` (5deg) vs `#ls-cone-wide` (90deg) — three rects,
-//!   not two. `#ls-cone-narrow` vs `#ls-cone-wide` alone only proves 5deg is a usefully narrow lower bound; it says
-//!   nothing about 0deg being anomalous. `#ls-cone-zero` checks that specific claim directly: the same off-axis sample
-//!   stays dark at 5deg, but is materially brighter and close to the wide reading, at 0deg — this is the highest-value
-//!   check of the four, since the slider's own chosen minimum (5, not 0) and panel-light-sources.html's own explanation
-//!   of why both depend on this exact, sandbox-specific Chrome behaviour rather than a specification guarantee.
+//!    not two. `#ls-cone-narrow` vs `#ls-cone-wide` alone only proves 5deg is a usefully narrow lower bound; it says
+//!    nothing about 0deg being anomalous. `#ls-cone-zero` checks that specific claim directly: the same off-axis sample
+//!    stays dark at 5deg, but is materially brighter and close to the wide reading, at 0deg — this is the highest-value
+//!    check of the four, since the slider's own chosen minimum (5, not 0) and panel-light-sources.html's own explanation
+//!    of why both depend on this exact, sandbox-specific Chrome behaviour rather than a specification guarantee.
 //!
 //! # How the pixels are read
 //!

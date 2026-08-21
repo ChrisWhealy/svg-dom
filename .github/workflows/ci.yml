@@ -173,6 +173,18 @@ jobs:
       - name: Chrome version (diagnostic — the runner image ships one, nothing to install)
         run: google-chrome --version || google-chrome-stable --version || chromium-browser --version
 
+      # cdp-test-fixture is a `cdylib` (wasm-bindgen crate) with no test targets of its own, so a plain `-p`
+      # invocation under the wasm32 target already covers all its compiled code.
+      - name: Clippy (cdp-test-fixture)
+        run: cargo clippy -p cdp-test-fixture --target wasm32-unknown-unknown -- -D warnings
+
+      # Native, not `--target wasm32-unknown-unknown`: cdp-integration-test itself runs on the host (it drives a real
+      # local Chrome via headless_chrome), so its own compiled code — including the `cdp` test binary under
+      # `tests/cdp/` — only exists under the native target. --all-targets for the same reason as demo-server's clippy
+      # step above: a plain `-p cdp-integration-test` would not lint the test binary at all.
+      - name: Clippy (cdp-integration-test)
+        run: cargo clippy -p cdp-integration-test --all-targets -- -D warnings
+
       # Builds the cdp-test-fixture wasm package, serves it locally, and drives the runner's own Chrome over
       # the DevTools Protocol — see the module doc comment in cdp-integration-test/tests/cdp/main.rs for what
       # this verifies and why it is a separate job rather than folded into `browser-tests`: it needs

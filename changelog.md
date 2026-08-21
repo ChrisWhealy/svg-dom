@@ -24,7 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Doc only: Correct description of script-injection guarantee (`6da6289`)
 - Doc only: Correct description of `AnimationLoop::start()` behaviour (`062de09`)
 - Doc only: Add `SvgView` to README (`3bfb341`)
-- Doc only: Correct stale wording in `docs/design_notes/rejected_ideas/animation.md` (``)
+- Doc only: Correct stale wording in `docs/design_notes/rejected_ideas/animation.md` (`7cac972`)
 
 ## Changed
 
@@ -36,6 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## Added
 
 - Unit test `AnimationFrame::scratch` allocation capacity (`04d5cd7`)
+- Include CDP tests in clippy check (``)
 
 # [Released]
 
