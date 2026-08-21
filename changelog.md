@@ -14,6 +14,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Doc only: Clarify CDP CI docs (`439faf4`)
 - Doc only: Clarify statements about WASM running single-threaded (`31d0a68`)
 
+## Changed
+
+- Initialise `AnimationFrame::scratch` with an arbitrary capacity of 16 bytes (`9c38ad5`)
+
 # [Released]
 
 ## [0.2.12] - 2026-08-21
@@ -23,10 +27,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Doc only: Correct description of browser suite test functionality (`21a74b3`)
 - Doc only: Update test inventory in `docs/testing.md` (`77f083f`)
 - Doc only: Update stale statements in CDP docs (`04a2beb`)
-
-## Changed
-
-- Initialise `AnimationFrame::scratch` with an arbitrary capacity of 16 bytes (``)
 
 ## [0.2.11] - 2026-08-20
 
