@@ -36,9 +36,10 @@ enum AnimLoopState {
 /// # A running `window.requestAnimationFrame` loop.
 ///
 /// `requestAnimationFrame` is the browser API that schedules a callback immediately before the browser paints the next
-/// frame — typically 60 times per second on a 60 Hz display.  Your callback receives the frame timestamp in
-/// milliseconds (the same value as `performance.now()`), which you can use to drive time-based animations that stay
-/// frame-rate–independent.
+/// frame, typically 60 times per second on a 60 Hz display.
+/// Your callback receives the frame timestamp as a `DOMHighResTimeStamp`, in the same high-resolution timing domain as
+/// `performance.now()`; however, these two values will, most likely, not be the same!
+/// Use it to drive time-based animations that stay frame-rate-independent.
 ///
 /// The loop continues until [`stop`](Self::stop) is called or this value is dropped.  Dropping an `AnimationLoop` is
 /// always safe since the `Drop` impl calls `stop()` automatically, thus cancelling any pending frame and releasing the
@@ -46,8 +47,9 @@ enum AnimLoopState {
 ///
 /// ## Keeping the loop alive
 ///
-/// The `AnimationLoop` value **must** be kept alive for the loop to continue running.  If you drop it (e.g. by
-/// assigning it to `_`), then `stop()` fires and the loop ends after the very first frame.
+/// The `AnimationLoop` value **must** be kept alive for the loop to continue running.
+/// If you drop it immediately (e.g. by assigning it to `_`), `stop()` cancels the pending first frame before it ever
+/// fires, and the callback may never run at all.
 ///
 /// The `AnimationLoop` can be kept alive by storing it in a `static`, a `Closure` captured variable, or some other
 /// location whose lifespan outlives your animation.
