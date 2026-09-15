@@ -6,13 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Unreleased]
 
-## [0.2.16] - 2026-08-26
+# [Released]
+
+## [0.2.17] - 2026-09-15
 
 ## Fixed
 
-- Fix edge case race condition during demo server build process (``)
-
-# [Released]
+- Fix edge case race condition during demo server build process (`39a7e3c`)
 
 ## [0.2.16] - 2026-08-26
 
