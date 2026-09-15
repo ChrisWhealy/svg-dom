@@ -61,6 +61,9 @@ pub enum BuildError {
     Validate(validate::ValidationError),
     /// `index.html` could not be assembled — see [`panels::AssembleError`].
     Assemble(panels::AssembleError),
+    /// The assembled temporary file could not be renamed into place over the previously staged `index.html` —
+    /// see [`prepare_gallery`]'s own doc comment for why there is a temporary file at all.
+    RenameIndexHtml { src: PathBuf, dest: PathBuf, source: io::Error },
     /// `wasm-pack` could not even be started (e.g. not on `PATH`).
     WasmSpawn(io::Error),
     /// `wasm-pack` ran but exited with a non-success status.
@@ -76,6 +79,9 @@ impl fmt::Display for BuildError {
             },
             Self::Validate(err) => write!(f, "{err}"),
             Self::Assemble(err) => write!(f, "{err}"),
+            Self::RenameIndexHtml { src, dest, source } => {
+                write!(f, "could not rename {} to {} ({source})", src.display(), dest.display())
+            },
             Self::WasmSpawn(err) => write!(f, "could not run wasm-pack ({err})"),
             Self::WasmBuildFailed(status) => write!(f, "wasm-pack exited with {status}"),
         }
@@ -102,6 +108,21 @@ impl From<panels::AssembleError> for BuildError {
 /// servable `demo/` directory except `pkg/`. Returns as soon as any phase fails, via `?`, the same short-circuiting
 /// [`panels::assemble`] and [`validate::validate`] already do individually: nothing after a failed phase runs, so
 /// (for example) a stale catalogue is caught before `index.html` is ever written.
+///
+/// `index.html` is assembled into a temporary file in `stage.demo_dir` first, then `fs::rename`-d into place only
+/// once that assembly has fully succeeded: `rename` within one directory means every request either sees the old
+/// `index.html` or the new one, never a partially written one, and a failure partway leaves the previous
+/// `index.html` completely untouched — unlike writing straight onto the live destination, where a request served
+/// mid-write could see a truncated or half-substituted page.
+///
+/// That guarantee is only sound when at most one call to this function runs at a time: the temporary file below is
+/// a fixed, shared path, not made unique per call, so two concurrent calls (from two Actix workers each refreshing
+/// the gallery for their own near-simultaneous request) could otherwise interleave their own
+/// assemble-then-rename sequences over that same temporary file — one call's rename landing on the other's
+/// still-being-written file, or the two renames racing each other. `main`'s `.workers(1)` is what keeps every
+/// request — including the refresh that calls this function — strictly sequential, so that race cannot happen in
+/// practice; see its own comment for why a single worker is the right fix here rather than a mutex or a
+/// per-call-unique temporary file.
 pub fn prepare_gallery(root: &Path, stage: &StagePaths, port: u16) -> Result<(), BuildError> {
     fs::create_dir_all(&stage.demo_dir).map_err(|source| BuildError::CreateStageDir {
         path: stage.demo_dir.clone(),
@@ -116,7 +137,15 @@ pub fn prepare_gallery(root: &Path, stage: &StagePaths, port: u16) -> Result<(),
     // it, so both always see the current assembled file, not some stale one from a previous run. The source demo/
     // directory is read from, never written to — panels::assemble takes its input and output paths independently.
     let source_demo_dir = root.join("demo");
-    panels::assemble(&source_demo_dir, &stage.demo_dir.join("index.html"), port)?;
+    let dest_index = stage.demo_dir.join("index.html");
+    // Same directory as `dest_index`, so the rename below is guaranteed to be a same-filesystem, atomic replace.
+    let tmp_index = stage.demo_dir.join("index.html.tmp");
+    panels::assemble(&source_demo_dir, &tmp_index, port)?;
+    fs::rename(&tmp_index, &dest_index).map_err(|source| BuildError::RenameIndexHtml {
+        src: tmp_index,
+        dest: dest_index,
+        source,
+    })?;
 
     // style.css and view-demo.svg are not generated — they are static assets index.html references by a plain
     // relative path, so they need to sit alongside the generated file in the staging directory too.

@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Unreleased]
 
+## [0.2.16] - 2026-08-26
+
+## Fixed
+
+- Fix edge case race condition during demo server build process (``)
+
 # [Released]
 
 ## [0.2.16] - 2026-08-26

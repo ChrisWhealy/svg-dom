@@ -121,7 +121,10 @@ async fn main() -> std::io::Result<()> {
             //
             // A refresh failure (e.g. a source file was left mid-edit) is only logged, not fatal: the previous
             // successfully staged files are left in place and keep being served, the same file-not-found-yet
-            // tolerance an editor's own autosave already needs.
+            // tolerance an editor's own autosave already needs — prepare_gallery's own doc comment explains why
+            // it writes index.html through a temporary file and renames it into place, rather than writing
+            // straight onto the live file. That guarantee assumes only one refresh ever runs at a time, which is
+            // exactly what `.workers(1)` below exists to guarantee — see its own comment for why.
             .wrap_fn(move |req, srv| {
                 if let Err(err) = build::prepare_gallery(&root, &stage, port) {
                     eprintln!("warning: could not refresh gallery ({err})");
@@ -140,6 +143,14 @@ async fn main() -> std::io::Result<()> {
                     .redirect_to_slash_directory(),
             )
     })
+    // A single worker, deliberately: prepare_gallery's own temporary file (index.html.tmp) is a fixed, shared
+    // path within demo_dir, not one made unique per request. Two workers refreshing it for two near-simultaneous
+    // requests could otherwise interleave their own assemble-then-rename sequences over that same temporary
+    // file — one worker's rename landing on the other's still-being-written temporary file, or the two renames
+    // racing each other. A single worker makes every request, including that refresh, run strictly one at a
+    // time, which removes the race outright rather than merely making it unlikely. This demo server has no
+    // throughput requirement multiple workers would ever be serving.
+    .workers(1)
     .bind(addr)?
     .run()
     .await
