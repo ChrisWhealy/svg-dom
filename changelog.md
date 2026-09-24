@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Released]
 
+## [0.2.18] - 2026-09-24
+
+## Changed
+
+- Doc only: Refactored README file (`cee4cdb`)
+
 ## [0.2.17] - 2026-09-15
 
 ## Fixed
