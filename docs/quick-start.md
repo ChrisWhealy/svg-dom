@@ -111,14 +111,31 @@ A larger app would instead hold the loop in its own long-lived state: maybe an a
 `SvgNode` owns the closures registered by its event helpers and removes the matching DOM listener before those closures are dropped.
 Use these helpers instead of registering raw `web-sys` callbacks and calling `Closure::forget`.
 
-The managed wrappers cover common SVG interaction events: click/double-click/context menu, mouse down/up/move/enter/leave/over/out, pointer down/up/move/enter/leave/over/out/cancel, wheel, touch start/move/end/cancel, key down/up, focus/blur, and drag-and-drop.
+The managed wrappers cover most of the common SVG interaction events:
+* click
+* double-click
+* context menu
+* mouse[down, up, move, enter, leave, over, out]
+* pointer[down, up, move, enter, leave, over, out, cancel]
+* wheel
+* touch[start, move, end, cancel]
+* key[down, up]
+* focus and blur
+* drag-and-drop
+
 For less common events, `on_event("event-name", handler)` provides the same managed lifetime with a generic `web_sys::Event`.
 
-When a listener needs to mutate the node it is registered on, capture a `WeakSvgNode` rather than a strong clone.
-A strong self-capture creates a cycle — node → listener store → closure → node — that keeps the node alive indefinitely and prevents automatic listener cleanup.
+When a listener needs to mutate the node on which it is registered, capture a `WeakSvgNode` rather than a strong clone.
+The problem here is that if you create a strong clone, it will end up creating a reference cycle:
+
+```text
+node → listener store → closure → node
+```
+
+This then keeps the node alive indefinitely and inhibits automatic listener cleanup.
 
 ```rust
-// `pad` must be kept alive in application state for as long as it should remain interactive.
+// `pad` must be kept alive in the application state for as long as it is required to be interactive.
 // The weak handles inside the closures do not count as strong references.
 let pad = svg.rect(Point::new(20.0, 20.0), Size::new(160.0, 80.0))?;
 pad.set_attrs([("tabindex", "0"), ("style", "cursor:pointer")])?;
@@ -173,8 +190,8 @@ Element factory methods use `SvgAttrs` internally for initial numeric geometry a
 
 ## Allocation-light Animation Formatting
 
-For attributes that change every animation frame, prefer `AnimationLoop::start_with_frame` over building fresh strings with `format!` inside the RAF callback.
-The callback receives an `AnimationFrame` scratch buffer with initial capacity that retains and reuses its allocation between frames, growing only when a formatted value exceeds the current capacity:
+For attributes that change every animation frame, the use of `AnimationLoop::start_with_frame` is preferable over building fresh strings with `format!` inside the RAF callback.
+The callback receives an `AnimationFrame` scratch buffer with initial capacity that retains and reuses its previous allocation size between frames; thus, it grows only when a formatted value exceeds its current capacity:
 
 ```rust
 let _loop = AnimationLoop::start_with_frame(move |ts, frame| {

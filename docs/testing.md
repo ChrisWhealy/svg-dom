@@ -4,7 +4,7 @@ The test suite has three tiers that use different runners.
 
 ## Unit Tests — `cargo test`
 
-A set of pure Rust tests (with no browser dependency) that currently cover:
+A set of pure Rust unit tests (with no browser dependency) that currently cover:
 
 * The `Error` type's `Display` and `Debug` implementations and its inner-value accessors
 * The `PathDef` → `d`-string formatting logic in `root::path::unit_tests` (one command per SVG path letter, buffer-reuse behaviour in `write_d`).
@@ -18,8 +18,9 @@ cargo test
 
 ## Browser Tests — `wasm-pack test`
 
-Everything that touches the SVG DOM requires a real browser.
-These tests use [`wasm-bindgen-test`](https://rustwasm.github.io/wasm-bindgen/wasm-bindgen-test/index.html), which compiles the test suite to WebAssembly, serves it to a headless browser, and streams the results back to the terminal.
+Any area of functionality that touches the SVG DOM must be tested in a real browser.
+
+These tests use [`wasm-bindgen-test`](https://rustwasm.github.io/wasm-bindgen/wasm-bindgen-test/index.html), which compiles the test suite to WebAssembly, serves it to a headless browser then streams the results back to the terminal.
 
 ### Prerequisites
 
@@ -27,20 +28,21 @@ These tests use [`wasm-bindgen-test`](https://rustwasm.github.io/wasm-bindgen/wa
 cargo install wasm-pack      # one-time install
 ```
 
-Chrome or Firefox must be installed (headless mode is used — no window opens).
+Chrome or Firefox must be installed (headless mode is used, so no window opens).
 
 ### Running
 
 ```sh
 wasm-pack test --headless --firefox   # always works
 
-wasm-pack test --headless --chrome    # requires Chrome to be on the latest stable release
+wasm-pack test --headless --chrome    # requires the latest stable version of Chrome to be available
 ```
 
 **Chrome version note.**
-wasm-pack 0.15+ always downloads the latest stable ChromeDriver from the Chrome for Testing endpoint rather than detecting the installed Chrome version.
-If your Chrome lags behind the stable channel (e.g. managed machines, delayed auto-updates), ChromeDriver and Chrome will be mismatched.
-All Chrome tests will then fail with an HTTP 404 session error.
+`wasm-pack` 0.15+ always downloads the latest stable ChromeDriver from the Chrome for Testing endpoint rather than detecting the particular version of Chrome you may (or may not) have installed.
+
+If the locally installed version of Chrome lags behind the stable channel (e.g. managed machines, delayed auto-updates), then ChromeDriver and Chrome will be mismatched and all the Chrome-based tests will fail with an HTTP 404 session error.
+
 The fix is to update Chrome to the latest stable release so its major version matches the downloaded ChromeDriver.
 If you cannot update Chrome immediately, point wasm-pack at a compatible driver with the `--chromedriver` flag:
 
@@ -62,31 +64,34 @@ Tests are organised into integration test files under `tests/`:
 
 | File | What it covers |
 |---|---|
-| `tests/svg_root.rs` | `SvgRoot` constructors, viewport, and all element factories |
-| `tests/svg_node/` | `SvgNode` attribute API, clone semantics, `append`, and event handlers — see below |
-| `tests/animation_loop.rs` | `AnimationLoop` lifecycle, `start`/`stop` from within callback, and memory retention bug prevention |
-| `tests/accessibility.rs` | `title`/`desc` accessible-name/description API: create, read back, update, remove, sibling/ordering behaviour, and blank-value rejection, on both `SvgNode` and `SvgRoot` |
-| `tests/clip_path.rs` | `SvgClipPath` construction, id caching, id validation, and `set_id` |
-| `tests/defs/` | `SvgDefs` and `SvgMarker` construction, all factory methods, marker ID validation, `build_defs`/`build_marker` deferred-append, `set_id`, and generic attribute surface — see below |
-| `tests/filter/` | `SvgFilter` construction, every primitive factory method, id validation, region/coordinate-space attributes, and `SvgNode::set_filter`/`set_filter_ref`/`remove_filter` — see below |
-| `tests/gradient.rs` | `SvgLinearGradient`/`SvgRadialGradient` construction, id caching/validation, and `set_fill_gradient`/`set_stroke_gradient` (plus their linear/radial-specific variants) |
-| `tests/mask.rs` | `SvgMask` construction, id caching/validation, region/units/type attributes, shape children, and `set_mask_ref`/`remove_mask` |
-| `tests/pattern.rs` | `SvgPattern` construction, id caching/validation, region/units/viewBox/transform attributes, shape children, and `set_fill_pattern`/`set_stroke_pattern` |
-| `tests/symbol.rs` | `SvgSymbol` construction, id caching/validation, viewBox/preserveAspectRatio, and shape children |
-| `tests/text_path.rs` | `<textPath>` construction, content, `href`, and its startOffset/method/spacing/side attributes |
-| `tests/tspan.rs` | `<tspan>` construction and nesting, plus the `tspan_dy`/`tspan_line` positioning helpers |
-| `tests/view.rs` | `SvgView` construction, id caching/validation, viewBox/preserveAspectRatio, and a real, cross-browser rendering test that samples canvas pixels to prove `<view>` fragment navigation changes the rendered viewport |
+| `./svg_root.rs` | `SvgRoot` constructors, viewport, and all element factories |
+| `./svg_node/` | `SvgNode` attribute API, clone semantics, `append`, and event handlers — see below |
+| `./animation_loop.rs` | `AnimationLoop` lifecycle, `start`/`stop` from within callback, and memory retention bug prevention |
+| `./accessibility.rs` | `title`/`desc` accessible-name/description API: create, read back, update, remove, sibling/ordering behaviour, and blank-value rejection, on both `SvgNode` and `SvgRoot` |
+| `./clip_path.rs` | `SvgClipPath` construction, id caching, id validation, and `set_id` |
+| `./defs/` | `SvgDefs` and `SvgMarker` construction, all factory methods, marker ID validation, `build_defs`/`build_marker` deferred-append, `set_id`, and generic attribute surface — see below |
+| `./filter/` | `SvgFilter` construction, every primitive factory method, id validation, region/coordinate-space attributes, and `SvgNode::set_filter`/`set_filter_ref`/`remove_filter` — see below |
+| `./gradient.rs` | `SvgLinearGradient`/`SvgRadialGradient` construction, id caching/validation, and `set_fill_gradient`/`set_stroke_gradient` (plus their linear/radial-specific variants) |
+| `./mask.rs` | `SvgMask` construction, id caching/validation, region/units/type attributes, shape children, and `set_mask_ref`/`remove_mask` |
+| `./pattern.rs` | `SvgPattern` construction, id caching/validation, region/units/viewBox/transform attributes, shape children, and `set_fill_pattern`/`set_stroke_pattern` |
+| `./symbol.rs` | `SvgSymbol` construction, id caching/validation, viewBox/preserveAspectRatio, and shape children |
+| `./text_path.rs` | `<textPath>` construction, content, `href`, and its startOffset/method/spacing/side attributes |
+| `./tspan.rs` | `<tspan>` construction and nesting, plus the `tspan_dy`/`tspan_line` positioning helpers |
+| `./view.rs` | `SvgView` construction, id caching/validation, viewBox/preserveAspectRatio, and a real, cross-browser rendering test that samples canvas pixels to prove `<view>` fragment navigation changes the rendered viewport |
 
-Shared DOM helpers (creating fixture `<div>` and `<svg>` containers, assertion functions) live in `tests/common.rs`, included by every test file.
+Shared DOM helpers (creating assertion functions, and fixture `<div>` and `<svg>` containers) live in `tests/common.rs`, included by every test file.
 Files directly under `tests/` use a plain `mod common;`.
-A file one level down, inside `tests/svg_node/`, `tests/defs/`, or `tests/filter/`, uses `#[path = "../common.rs"] mod common;` instead (see below).
+
+The files one level down inside `tests/svg_node/`, `tests/defs/`, or `tests/filter/`, uses `#[path = "../common.rs"] mod common;` instead (see below).
 
 ### Promoted-to-folder Test Files
 
-`tests/svg_node.rs`, `tests/defs.rs`, and `tests/filter.rs` each grew past 1000 lines, so each was promoted to a folder.
+The test files `tests/svg_node.rs`, `tests/defs.rs`, and `tests/filter.rs` each grew past 1000 lines, so each was promoted to a folder.
+
 `tests/svg_node/main.rs`, `tests/defs/main.rs`, and `tests/filter/main.rs` are the actual Cargo-discovered test binaries — Cargo treats `tests/<name>/main.rs` as equivalent to a bare `tests/<name>.rs`.
-The rest of the folder splits into one file per concern, indexed in that `main.rs`'s own module doc comment.
-This is the same categorisation approach `docs/design_notes/` uses, rather than a `README.md`.
+
+The rest of the folder splits into one file per functional concern, indexed in that `main.rs`'s own module doc comment.
+This is the same categorisation approach used by `docs/design_notes/`, rather than a `README.md`.
 
 | Folder | Files, each named after (and scoped to) the matching `src/` module | Shared setup |
 |---|---|---|
@@ -101,7 +106,7 @@ The split is organisational, not a change to how the tests run.
 ### DOM Fixture Strategy
 
 Each test appends its own uniquely-named container element to `<body>` so tests do not interfere with each other.
-No teardown is needed: the browser page is discarded after the run.
+No teardown is needed: everything is thrown away when the browser page is discarded after the run.
 
 ### Event Handler Tests
 
@@ -122,21 +127,23 @@ assert!(fired.get());
 ```
 
 Additional event wrapper tests dispatch representative synthetic mouse, pointer, wheel, touch, keyboard, focus, drag-and-drop and generic events.
-They verify that those managed wrappers fire synchronously too, so demo or application code does not need raw `Closure::forget` listeners for ordinary SVG interaction.
+They verify that those managed wrappers also fire synchronously, so demo or application code does not need raw `Closure::forget` listeners for ordinary SVG interaction.
 
 ### Failure Reporting
 
-All test functions return `Result<(), String>`.
+Rather than vomitting a stack trace all over the console, all test functions return `Result<(), String>`.
+
 If a test fails, `wasm-bindgen-test` displays the `String` message directly without a stack trace, making failures easier to read in the terminal.
 
 ## CDP Integration Tests — `cargo test -p cdp-integration-test`
 
-The above tests mostly prove DOM structure: that the correct element was created, updated, or removed in the correct place, with the correct attributes.
+The above tests mostly prove that the correct DOM structure was created, updated, or removed in the correct place, with the correct attributes.
 Most of the above assertions check only the DOM element structure and the attributes of those elements, not what the browser actually paints.
 
-That is not because `wasm-bindgen-test` cannot rasterise since `tests/view.rs` already includes render-level pixel assertions.
+That is not because `wasm-bindgen-test` cannot check rasterised output, since `tests/view.rs` already includes render-level pixel assertions.
 Instead, it creates an offscreen `<canvas>`, draws an `SvgImageElement` onto it then calls `getImageData` to sample the actual RGBA pixels.
-Those pixels prove that navigating to an SVG `<view>` fragment changes the rendered viewport.
+By examining those pixels, we can prove that navigating to an SVG `<view>` fragment has actually changed the rendered viewport.
+
 The crate's own dev-dependencies already enable `CanvasRenderingContext2d`, `HtmlCanvasElement`, `ImageData`, `XmlSerializer`, and `wasm-bindgen-futures` for exactly this.
 Because the ordinary browser suite runs in both Firefox and Chrome, that view-fragment test is a genuine cross-engine rasterisation check.
 
