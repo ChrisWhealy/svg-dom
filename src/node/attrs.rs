@@ -372,14 +372,29 @@ impl SvgNode {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Sets the `fill` attribute to a CSS colour value.
+    /// Sets the `fill` attribute to an SVG paint value.
     ///
-    /// Accepts any valid SVG paint value:
+    /// The accepted forms are broader than a colour:
     ///
     /// * named colours (`"red"`)
     /// * hex codes (`"#ff0000"`)
     /// * `rgb()`/`hsl()` functions
     /// * `"none"` to make the fill transparent
+    /// * a paint-server reference such as `"url(#gradient-id)"`
+    /// * a reference into an external document, such as `"url(external.svg#gradient-id)"`
+    /// * `"context-fill"` / `"context-stroke"`
+    ///
+    /// Prefer [`set_fill_gradient`](Self::set_fill_gradient) or [`set_fill_pattern`](Self::set_fill_pattern) when the
+    /// target paint server is defined by this crate.
+    /// Their typed `_ref` siblings take the id or handle directly, instead of a hand-built `url(...)` string.
+    ///
+    /// # Security
+    ///
+    /// A `url(...)` paint value is a reference, not a colour.
+    /// Untrusted input passed as `paint` can point at an external document.
+    /// Same-origin restrictions in the rendering browser limit what such a reference can do.
+    /// This setter does not otherwise restrict or validate the value.
+    /// Treat an untrusted paint value with the same care as any other externally controlled URL.
     ///
     /// # Example
     ///
@@ -390,12 +405,16 @@ impl SvgNode {
     /// rect.set_fill("steelblue")?;
     /// Ok::<(), svg_dom::Error>(())
     /// ```
-    pub fn set_fill(&self, colour: &str) -> Result<(), Error> {
-        self.set_attr("fill", colour)
+    pub fn set_fill(&self, paint: &str) -> Result<(), Error> {
+        self.set_attr("fill", paint)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    /// Sets the `stroke` attribute to a CSS colour value.
+    /// Sets the `stroke` attribute to an SVG paint value.
+    ///
+    /// Accepts the same forms as [`set_fill`](Self::set_fill): colours, `"none"`, `"url(...)"` paint-server
+    /// references, and `"context-fill"` / `"context-stroke"`.
+    /// See the `# Security` note there for untrusted `url(...)` values.
     ///
     /// Use in combination with [`set_stroke_width`](Self::set_stroke_width) to control the appearance of outlines and lines.
     ///
@@ -409,8 +428,8 @@ impl SvgNode {
     /// rect.set_stroke_width(1.5)?;
     /// Ok::<(), svg_dom::Error>(())
     /// ```
-    pub fn set_stroke(&self, colour: &str) -> Result<(), Error> {
-        self.set_attr("stroke", colour)
+    pub fn set_stroke(&self, paint: &str) -> Result<(), Error> {
+        self.set_attr("stroke", paint)
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

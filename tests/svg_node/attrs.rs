@@ -429,6 +429,26 @@ fn should_update_stroke_attribute_after_calling_set_stroke() -> Result<(), Strin
     common::check_eq(rect.attr("stroke"), Some("black".into()))
 }
 
+/// `set_fill` accepts a `url(...)` paint-server reference verbatim, not just a colour.
+#[wasm_bindgen_test]
+fn should_accept_url_paint_reference_via_set_fill() -> Result<(), String> {
+    let rect = make_svg("node-fill-url")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    rect.set_fill("url(#gradient-id)").map_err(|e| e.to_string())?;
+    common::check_eq(rect.attr("fill"), Some("url(#gradient-id)".into()))
+}
+
+/// `set_stroke` accepts a `url(...)` paint-server reference verbatim, not just a colour.
+#[wasm_bindgen_test]
+fn should_accept_url_paint_reference_via_set_stroke() -> Result<(), String> {
+    let rect = make_svg("node-stroke-url")
+        .rect(Point::origin(), Size::new(50.0, 50.0))
+        .map_err(|e| e.to_string())?;
+    rect.set_stroke("url(#gradient-id)").map_err(|e| e.to_string())?;
+    common::check_eq(rect.attr("stroke"), Some("url(#gradient-id)".into()))
+}
+
 /// `set_stroke_width` writes the `stroke-width` attribute.
 #[wasm_bindgen_test]
 fn should_update_stroke_width_attribute_after_calling_set_stroke_width() -> Result<(), String> {
