@@ -18,12 +18,16 @@ on:
       - ".github/workflows/audit.yml"
   workflow_dispatch:
 
+# This job only reads the checked-out source to run cargo-deny; it never writes to the repository.
+permissions:
+  contents: read
+
 jobs:
   advisories:
     name: cargo-deny advisories
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: EmbarkStudios/cargo-deny-action@v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: EmbarkStudios/cargo-deny-action@b66acf5e9fe20f8aba065be86778a8a4c846f902 # v2
         with:
           command: check advisories

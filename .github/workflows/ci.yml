@@ -5,6 +5,12 @@ on:
     branches: [main]
   pull_request:
 
+# GITHUB_TOKEN gets only what these jobs actually need. None of them push commits, comment on PRs, or otherwise
+# write to the repository — checking out code, running tests, and uploading the coverage artifact all work under
+# read-only `contents` access, since `actions/upload-artifact` uses its own runtime token, not GITHUB_TOKEN.
+permissions:
+  contents: read
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -13,11 +19,11 @@ jobs:
     name: fmt · clippy · test · doc
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           components: rustfmt, clippy
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c # v2
 
       - name: Formatting
         run: cargo fmt --all --check
@@ -68,11 +74,11 @@ jobs:
     name: wasm build · README example · demo-app
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           targets: wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c # v2
 
       - name: Compile README minimal demo for wasm32
         run: cargo build --example readme_minimal --target wasm32-unknown-unknown
@@ -95,7 +101,7 @@ jobs:
       # straight from its own GitHub Releases — pinning the tool version here keeps the same reproducibility the
       # previous pin gave. Bump deliberately when a newer wasm-pack is actually needed.
       - name: Install wasm-pack
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@9983c65e42da123ff25d1f78505eb6de315aa172 # v2
         with:
           tool: wasm-pack@0.15.0
 
@@ -117,11 +123,11 @@ jobs:
         # runner and lacks reliable headless support, so it is intentionally omitted.
         browser: [firefox, chrome]
     steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           targets: wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c # v2
       # `ubuntu-latest` runners default to Ubuntu 24.04, which enables AppArmor's unprivileged-user-namespace
       # restriction by default. Firefox's (and Chromium's) content sandbox needs one, so headless launch fails with
       # "Exiting due to channel error" and the browser process gets SIGKILLed before geckodriver/chromedriver can
@@ -132,7 +138,7 @@ jobs:
       # See the `wasm` job's own `Install wasm-pack` step for why this uses taiki-e/install-action rather than
       # jetli/wasm-pack-action.
       - name: Install wasm-pack
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@9983c65e42da123ff25d1f78505eb6de315aa172 # v2
         with:
           tool: wasm-pack@0.15.0
       - name: Run the browser integration tests
@@ -148,11 +154,11 @@ jobs:
     name: CDP browser integration tests (Chrome)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           targets: wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c # v2
       # Unlike `browser-tests`, this job does not need the AppArmor/unprivileged-userns workaround: the shared
       # `launch_browser` helper (cdp-integration-test/src/lib.rs) launches Chrome with `.sandbox(false)`, precisely
       # so it never attempts the AppArmor-dependent sandbox initialisation that workaround exists for — see
@@ -161,7 +167,7 @@ jobs:
       # See the `wasm` job's own `Install wasm-pack` step for why this uses taiki-e/install-action rather than
       # jetli/wasm-pack-action.
       - name: Install wasm-pack
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@9983c65e42da123ff25d1f78505eb6de315aa172 # v2
         with:
           tool: wasm-pack@0.15.0
 
@@ -195,14 +201,14 @@ jobs:
     name: coverage (host tests)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           components: llvm-tools-preview
-      - uses: taiki-e/install-action@v2
+      - uses: taiki-e/install-action@9983c65e42da123ff25d1f78505eb6de315aa172 # v2
         with:
           tool: cargo-llvm-cov,cargo-nextest
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c # v2
 
       # llvm-cov measures only code exercised by host-runnable tests, wherever in the crate those tests live.
       # The demo gallery's own host-runnable `highlight` tests live in the separate `svg-dom-demo` workspace crate
@@ -220,7 +226,7 @@ jobs:
         run: cargo llvm-cov report
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: coverage-lcov
           path: lcov.info
@@ -229,8 +235,8 @@ jobs:
     name: cargo-deny (advisories · licenses · bans · sources)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: taiki-e/install-action@v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: taiki-e/install-action@9983c65e42da123ff25d1f78505eb6de315aa172 # v2
         with:
           tool: cargo-deny
       - name: Check advisories, bans, licenses, and sources
@@ -240,10 +246,10 @@ jobs:
     name: MSRV (1.85)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@1.85.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dtolnay/rust-toolchain@3230091d7ef9483f601620abacc570c22cf44d22 # 1.85.0
         with:
           targets: wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c # v2
       - name: Check the library builds on the declared MSRV
         run: cargo check --lib --target wasm32-unknown-unknown
