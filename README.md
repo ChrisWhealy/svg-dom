@@ -18,6 +18,7 @@ All reasonable, conventional steps have been taken to provide a secure, stable a
 
 # Table of Contents
 
+- [Securiy](#security)
 - [What This Crate Is NOT](#what-this-crate-is-not)
 - [What This Crate Is](#what-this-crate-is)
 - [Building](#building)
@@ -28,6 +29,10 @@ All reasonable, conventional steps have been taken to provide a secure, stable a
 - [Design Notes](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/design_notes/README.md)
 - [Implementation Non-goals](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/non-goals.md)
 
+## Security
+
+See the [security](https://github.com/ChrisWhealy/svg-dom/blob/main/docs/security.md) page for a description of these issues.
+
 ## What This Crate Is NOT
 
 This crate makes no use of the HTML `<canvas>` element!
@@ -37,23 +42,6 @@ Whilst the `<canvas>` element offers a pixel-based, bitmap drawing API that give
 Not only is the implementation cost of such functionality high, it becomes somewhat redundant in light of the fact that SVG elements are already a persistent DOM tree that can be individually updated and with which JavaScript (via `web-sys`) can already interact.
 
 Consequently, this crate works exclusively with the SVG DOM.
-
-### Security and Trust Boundaries
-
-The `svg-dom` crate is a DOM-construction library, not an SVG sanitizer.
-If an SVG element consumes a caller-supplied URL, you must establish the safety of the URL-derived content before adding that SVG element to the DOM
-
-| API | Untrusted input? | Principal risk |
-|---|---|---|
-| [`SvgNode::set_text`](https://docs.rs/svg-dom/latest/svg_dom/node/struct.SvgNode.html#method.set_text) and other text setters | Yes | None — written via `textContent`, never interpreted as markup |
-| Typed id setters (`set_id`, gradient/pattern/marker/filter/mask/clip-path/view refs) | Yes, checked by this crate's own validation | Low — rejected before reaching the DOM |
-| [`SvgNode::set_attr`](https://docs.rs/svg-dom/latest/svg_dom/node/struct.SvgNode.html#method.set_attr) / [`set_attrs`](https://docs.rs/svg-dom/latest/svg_dom/node/struct.SvgNode.html#method.set_attrs) | Safe only once the caller validates it | Script or event-handler attribute injection |
-| URL-bearing methods — [`SvgRoot::anchor`](https://docs.rs/svg-dom/latest/svg_dom/root/svg_root/struct.SvgRoot.html#method.anchor)'s `href`, [`SvgRoot::image`](https://docs.rs/svg-dom/latest/svg_dom/root/svg_root/struct.SvgRoot.html#method.image)'s `href`, [`SvgNode::set_href`](https://docs.rs/svg-dom/latest/svg_dom/node/struct.SvgNode.html#method.set_href) | Validate against your own application policy first | Navigation to a `javascript:` URL, or an unwanted resource fetch |
-| Style/paint strings — [`SvgRoot::style`](https://docs.rs/svg-dom/latest/svg_dom/root/svg_root/struct.SvgRoot.html#method.style)'s CSS, [`SvgNode::set_fill`](https://docs.rs/svg-dom/latest/svg_dom/node/struct.SvgNode.html#method.set_fill)/[`set_stroke`](https://docs.rs/svg-dom/latest/svg_dom/node/struct.SvgNode.html#method.set_stroke)'s paint value | Validate against your own application policy first | A CSS or SVG `url(...)` reference can still trigger a resource fetch |
-| [`SvgNode::as_element`](https://docs.rs/svg-dom/latest/svg_dom/node/struct.SvgNode.html#method.as_element) / [`SvgRoot::root`](https://docs.rs/svg-dom/latest/svg_dom/root/svg_root/struct.SvgRoot.html#structfield.root) | Raw `web-sys` DOM access | None added or removed by this crate — the caller takes on ordinary browser-DOM responsibilities, such as never passing untrusted content to `set_inner_html` |
-
-Every row already carries its own `# Security` section at the point of use.
-This table is a map of where to look, not a new rule.
 
 ## What This Crate Is
 

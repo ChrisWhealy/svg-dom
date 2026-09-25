@@ -10,7 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Added
 
-- Doc only: Systematically mention all crate saftey risks (E.G. caller supplied URLs) (``)
+- Doc only: Systematically mention all crate saftey risks (E.G. caller supplied URLs) (`f1ce800`)
+- Define complexity limits on attacker-controlled scene generation (``)
 
 ## Fixed
 

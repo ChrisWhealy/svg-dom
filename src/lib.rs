@@ -80,6 +80,27 @@
 //!
 //! Every row already carries its own `# Security` section at the point of use.
 //! This table is a map of where to look, not a new rule.
+//!
+//! ### Resource limits for attacker-controlled scene descriptions
+//!
+//! This crate places no limit on element counts, path lengths, filter/mask region sizes, or convolution kernel
+//! dimensions.
+//! SVG itself leaves all of these unbounded, so this crate does not second-guess the caller.
+//! Some individual APIs already document their own performance cost.
+//! [`SvgFilter::set_width`](crate::SvgFilter::set_width)/[`set_height`](crate::SvgFilter::set_height) cover
+//! filter-region size.
+//! [`SvgFilter::convolve_matrix`](crate::SvgFilter::convolve_matrix) covers kernel order.
+//! Those notes describe cost, not a limit this crate enforces.
+//!
+//! An untrusted, externally supplied scene description can drive the same excesses as oversized hand-written SVG
+//! markup — unbounded DOM growth, oversized filter regions, expensive convolution kernels.
+//! A third-party diagram format converted into calls on this crate is a typical example.
+//! Apply your own budget before constructing the scene.
+//! Cap element counts, path segment counts, string lengths, filter primitives per filter, kernel dimensions, image
+//! dimensions, and update rate, to whatever your application can render acceptably.
+//!
+//! This does not apply when your own Rust code decides what SVG to build: there, the scene's shape is already under
+//! your control.
 
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
