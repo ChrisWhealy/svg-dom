@@ -579,6 +579,90 @@ fn should_allow_reregistration_after_clear_listeners() -> Result<(), String> {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Self-removal from within the currently-executing handler
+//
+// wasm-bindgen's generated closure wrapper reference-counts each invocation. Dropping a `Closure` from inside its
+// own call only decrements that count, and defers the actual deallocation until the invocation's own call frame
+// returns. So a handler that removes itself completes normally, and its captured state is freed only once dispatch
+// finishes, never while the handler is still running.
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/// Records, via `Drop`, when the handler closure holding it was actually deallocated.
+struct DropMarker(Rc<Cell<bool>>);
+
+impl Drop for DropMarker {
+    fn drop(&mut self) {
+        self.0.set(true);
+    }
+}
+
+/// Calling `clear_listeners` on its own node from inside a running `on_click` handler lets that handler finish
+/// normally, prevents any further dispatch, and frees the handler's captured state right after dispatch returns.
+#[wasm_bindgen_test]
+fn should_complete_dispatch_when_clear_listeners_called_from_within_handler() -> Result<(), String> {
+    let rect = make_svg("node-self-clear-listeners")
+        .rect(Point::origin(), Size::new(200.0, 200.0))
+        .map_err(|e| e.to_string())?;
+    let elem = rect.as_element().clone();
+    let calls = Rc::new(Cell::new(0u32));
+    let dropped = Rc::new(Cell::new(false));
+
+    let calls_c = calls.clone();
+    let rect_weak = rect.downgrade();
+    let marker = DropMarker(dropped.clone());
+    rect.on_click(move |_| {
+        let _keep_alive = &marker;
+        calls_c.set(calls_c.get() + 1);
+        if let Some(rect) = rect_weak.upgrade() {
+            rect.clear_listeners();
+        }
+        // This still runs after self-removal: the handler's captured state was not freed mid-call.
+        calls_c.set(calls_c.get() + 1);
+    })
+    .map_err(|e| e.to_string())?;
+
+    dispatch_element(&elem, "click")?;
+    common::check_eq(calls.get(), 2)?;
+    common::check(dropped.get(), "handler state must be freed once dispatch returns")?;
+
+    dispatch_element(&elem, "click")?;
+    common::check_eq(calls.get(), 2)
+}
+
+/// Calling `remove_listeners` for its own event type from inside a running `on_click` handler behaves the same way as
+/// `clear_listeners` above: the current dispatch completes, no further dispatch occurs, and captured state is freed
+/// right after dispatch returns.
+#[wasm_bindgen_test]
+fn should_complete_dispatch_when_remove_listeners_called_from_within_handler() -> Result<(), String> {
+    let rect = make_svg("node-self-remove-listeners")
+        .rect(Point::origin(), Size::new(200.0, 200.0))
+        .map_err(|e| e.to_string())?;
+    let elem = rect.as_element().clone();
+    let calls = Rc::new(Cell::new(0u32));
+    let dropped = Rc::new(Cell::new(false));
+
+    let calls_c = calls.clone();
+    let rect_weak = rect.downgrade();
+    let marker = DropMarker(dropped.clone());
+    rect.on_click(move |_| {
+        let _keep_alive = &marker;
+        calls_c.set(calls_c.get() + 1);
+        if let Some(rect) = rect_weak.upgrade() {
+            rect.remove_listeners("click");
+        }
+        calls_c.set(calls_c.get() + 1);
+    })
+    .map_err(|e| e.to_string())?;
+
+    dispatch_element(&elem, "click")?;
+    common::check_eq(calls.get(), 2)?;
+    common::check(dropped.get(), "handler state must be freed once dispatch returns")?;
+
+    dispatch_element(&elem, "click")?;
+    common::check_eq(calls.get(), 2)
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Self-referential listeners — strong cycle vs WeakSvgNode
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

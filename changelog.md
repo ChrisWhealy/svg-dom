@@ -10,11 +10,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Fixed
 
-- Transform `set_fill`/`set_stroke` parameter from handling "CSS colour value" to "SVG paint value" (``)
+- Transform `set_fill`/`set_stroke` parameter from handling "CSS colour value" to "SVG paint value" (`3f21bb9`)
 
 ## Changed
 
 - Doc only: Refactored dcos `.md` files (`1b77086`)
+- Correct premise on which undefined behaviour occurs after dropping event closure (``)
 
 # [Released]
 
