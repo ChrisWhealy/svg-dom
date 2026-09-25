@@ -66,6 +66,20 @@
 //! Do not pass untrusted values to [`SvgRoot::anchor`](crate::SvgRoot::anchor)'s `href`, or to
 //! [`SvgNode::set_attr`](crate::SvgNode::set_attr)/[`set_attrs`](crate::SvgNode::set_attrs), without validating them
 //! first — treat them as you would any HTML sink.
+//!
+//! ### Trust boundaries at a glance
+//!
+//! | API | Untrusted input? | Principal risk |
+//! |---|---|---|
+//! | [`SvgNode::set_text`](crate::SvgNode::set_text) and other text setters | Yes | None — written via `textContent`, never interpreted as markup |
+//! | Typed id setters (`set_id`, gradient/pattern/marker/filter/mask/clip-path/view refs) | Yes, checked by this crate's own validation | Low — rejected before reaching the DOM |
+//! | [`SvgNode::set_attr`](crate::SvgNode::set_attr) / [`set_attrs`](crate::SvgNode::set_attrs) | Safe only once the caller validates it | Script or event-handler attribute injection |
+//! | URL-bearing methods — [`SvgRoot::anchor`](crate::SvgRoot::anchor)'s `href`, [`SvgRoot::image`](crate::SvgRoot::image)'s `href`, [`SvgNode::set_href`](crate::SvgNode::set_href) | Validate against your own application policy first | Navigation to a `javascript:` URL, or an unwanted resource fetch |
+//! | Style/paint strings — [`SvgRoot::style`](crate::SvgRoot::style)'s CSS, [`SvgNode::set_fill`](crate::SvgNode::set_fill)/[`set_stroke`](crate::SvgNode::set_stroke)'s paint value | Validate against your own application policy first | A CSS or SVG `url(...)` reference can still trigger a resource fetch |
+//! | [`SvgNode::as_element`](crate::SvgNode::as_element) / [`SvgRoot::root`](crate::SvgRoot::root) | Raw `web-sys` DOM access | None added or removed by this crate — the caller takes on ordinary browser-DOM responsibilities, such as never passing untrusted content to `set_inner_html` |
+//!
+//! Every row already carries its own `# Security` section at the point of use.
+//! This table is a map of where to look, not a new rule.
 
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]

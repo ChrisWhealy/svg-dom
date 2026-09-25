@@ -6,30 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Unreleased]
 
-## [0.2.19] - 2026-09-25
+## [0.2.17] - 2026-09-25
 
-## Fixed
+## Added
+
+- Doc only: Systematically mention all crate saftey risks (E.G. caller supplied URLs) (``)
+
+## Fixed
 
 - Transform `set_fill`/`set_stroke` parameter from handling "CSS colour value" to "SVG paint value" (`3f21bb9`)
+- Fix edge case race condition during demo server build process (`39a7e3c`)
 
 ## Changed
 
 - Doc only: Refactored dcos `.md` files (`1b77086`)
-- Correct premise on which undefined behaviour occurs after dropping event closure (``)
-
-# [Released]
-
-## [0.2.18] - 2026-09-24
-
-## Changed
-
+- Correct premise on which undefined behaviour occurs after dropping event closure (`d0250aa`)
 - Doc only: Refactored README file (`cee4cdb`)
 
-## [0.2.17] - 2026-09-15
-
-## Fixed
-
-- Fix edge case race condition during demo server build process (`39a7e3c`)
+# [Released]
 
 ## [0.2.16] - 2026-08-26
 
