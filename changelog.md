@@ -6,26 +6,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # [Unreleased]
 
-## [0.2.17] - 2026-09-25
+# [Released]
+
+## [0.2.19] - 2026-09-25
 
 ## Added
 
 - Doc only: Systematically mention all crate saftey risks (E.G. caller supplied URLs) (`f1ce800`)
 - Define complexity limits on attacker-controlled scene generation (`38b3518`)
-- Harden CI against compromised GitHub Actions (``)
+- Harden CI against compromised GitHub Actions (`2fa852e`)
 
 ## Fixed
 
 - Transform `set_fill`/`set_stroke` parameter from handling "CSS colour value" to "SVG paint value" (`3f21bb9`)
-- Fix edge case race condition during demo server build process (`39a7e3c`)
 
 ## Changed
 
 - Doc only: Refactored dcos `.md` files (`1b77086`)
 - Correct premise on which undefined behaviour occurs after dropping event closure (`d0250aa`)
+
+## [0.2.18] - 2026-09-24
+
+## Changed
+
 - Doc only: Refactored README file (`cee4cdb`)
 
-# [Released]
+## [0.2.17] - 2026-09-15
+
+## Fixed
+
+- Fix edge case race condition during demo server build process (`39a7e3c`)
 
 ## [0.2.16] - 2026-08-26
 
