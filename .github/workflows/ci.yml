@@ -23,7 +23,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           components: rustfmt, clippy
-      - uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c # v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
 
       - name: Formatting
         run: cargo fmt --all --check
@@ -78,7 +78,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           targets: wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c # v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
 
       - name: Compile README minimal demo for wasm32
         run: cargo build --example readme_minimal --target wasm32-unknown-unknown
@@ -127,7 +127,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           targets: wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c # v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
       # `ubuntu-latest` runners default to Ubuntu 24.04, which enables AppArmor's unprivileged-user-namespace
       # restriction by default. Firefox's (and Chromium's) content sandbox needs one, so headless launch fails with
       # "Exiting due to channel error" and the browser process gets SIGKILLed before geckodriver/chromedriver can
@@ -158,7 +158,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           targets: wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c # v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
       # Unlike `browser-tests`, this job does not need the AppArmor/unprivileged-userns workaround: the shared
       # `launch_browser` helper (cdp-integration-test/src/lib.rs) launches Chrome with `.sandbox(false)`, precisely
       # so it never attempts the AppArmor-dependent sandbox initialisation that workaround exists for — see
@@ -208,7 +208,7 @@ jobs:
       - uses: taiki-e/install-action@9983c65e42da123ff25d1f78505eb6de315aa172 # v2
         with:
           tool: cargo-llvm-cov,cargo-nextest
-      - uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c # v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
 
       # llvm-cov measures only code exercised by host-runnable tests, wherever in the crate those tests live.
       # The demo gallery's own host-runnable `highlight` tests live in the separate `svg-dom-demo` workspace crate
@@ -250,6 +250,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # 1.85.0
         with:
           targets: wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c # v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
       - name: Check the library builds on the declared MSRV
         run: cargo check --lib --target wasm32-unknown-unknown
