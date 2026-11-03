@@ -107,11 +107,16 @@ Use [wasm-pack](https://wasm-bindgen.github.io/wasm-pack/) to build:
 wasm-pack build --target web
 ```
 
-# Demo Gallery
+## Live Demo
+
+A live demo is [available here](https://whealy.com/Rust/svg-dom/index.html)
+
+## Running the Demo Locally
 
 ## [Demo Gallery Changelog](https://github.com/ChrisWhealy/svg-dom/blob/main/demo-app/changelog.md)
 
-The demo gallery is not published as part of the crate's release, but once you have cloned this repo, you can build and run it locally as follows:
+The demo is a non-published workspace crate that serves as a standalone demo app.
+Clone this repo to your local machine, then run:
 
 ```sh
 cargo demo
